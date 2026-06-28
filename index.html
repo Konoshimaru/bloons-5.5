@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Monkey TD</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="900" height="600"></canvas>
+        <audio id="bg-music"></audio>
+        
+        <div id="error-message" class="hidden"></div>
+        <div id="shop-tooltip"></div>
+        <div id="upgrade-tooltip"></div>
+        <div id="flavor-text"></div>
+
+        <div id="top-ui-left" class="hidden">
+            <div id="lives-display">❤️ 100</div>
+            <div id="cash-display">💰 650</div>
+            <div id="wave-display">🌊 Wave 0</div>
+        </div>
+
+        <div id="top-ui-right" class="hidden">
+            <button id="pause-btn">⏸️ Pause</button>
+            <div id="fps-display">60 FPS</div>
+        </div>
+
+        <div id="ability-bar" class="hidden"></div>
+        <button id="cancel-btn" class="hidden">✖</button>
+        <div id="upgrade-panel" class="hidden">
+            <div id="hero-ui" class="hidden">
+                <div class="hero-header">
+                    <div id="hero-icon"></div>
+                    <div class="hero-info">
+                        <h3 id="hero-title">Hero</h3>
+                        <div id="hero-pops">Pops: 0</div>
+                    </div>
+                </div>
+                <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
+                <div id="hero-level-text">Level 1</div>
+                <button id="up-targeting">Target: First</button>
+                <button id="up-buy-level" class="hidden">Buy Level: $0</button>
+            </div>
+            
+            <div id="tower-ui">
+                <h3 id="up-title">Tower</h3>
+                <div id="up-stats"></div>
+                <div id="up-counters"></div>
+                <button id="up-targeting-tower">Target: First</button>
+                <div class="up-card" id="up-path1"><span class="up-name">Path 1</span><span class="cost">$0</span></div>
+                <div class="up-card" id="up-path2"><span class="up-name">Path 2</span><span class="cost">$0</span></div>
+                <div class="up-card" id="up-path3"><span class="up-name">Path 3</span><span class="cost">$0</span></div>
+            </div>
+            <button id="up-sell">Sell Tower</button>
+            <button id="up-collect-bank" class="hidden" style="background: #27ae60; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px;">Collect Bank ($0)</button>
+    </div>
+        </div>
+
+        <div id="sidebar" class="hidden">
+            <div class="sidebar-scroll">
+                <div id="shop-view" class="tower-shop">
+                    <h3>Shop</h3>
+                    <div class="tower-card" id="hero-shop-card" data-tower="quincy"><span>Quincy</span><span class="cost">$540</span></div>
+                    <div class="tower-card" data-tower="dart"><span>Dart Monkey</span><span class="cost">$200</span></div>
+                    <div class="tower-card" data-tower="boomerang"><span>Boomerang</span><span class="cost">$315</span></div>
+                    <div class="tower-card" data-tower="tack"><span>Tack Shooter</span><span class="cost">$260</span></div>
+                    <div class="tower-card" data-tower="ninja"><span>Ninja Monkey</span><span class="cost">$400</span></div>
+                    <div class="tower-card" data-tower="sniper"><span>Sniper</span><span class="cost">$350</span></div>
+                    <div class="tower-card" data-tower="ice"><span>Ice Tower</span><span class="cost">$500</span></div>
+                    <div class="tower-card" data-tower="glue"><span>Glue Gunner</span><span class="cost">$225</span></div>
+                    <div class="tower-card" data-tower="bomb"><span>Bomb Shooter</span><span class="cost">$375</span></div>
+                    <div class="tower-card" data-tower="spike"><span>Spike Factory</span><span class="cost">$1000</span></div>
+                    <div class="tower-card" data-tower="farm"><span>Banana Farm</span><span class="cost">$1250</span></div>
+                    <div class="tower-card" data-tower="village"><span>Monkey Village</span><span class="cost">$1200</span></div>
+                    <div class="tower-card" data-tower="super"><span>Super Monkey</span><span class="cost">$2500</span></div>
+                    <div class="tower-card" data-tower="sub"><span>Monkey Sub</span><span class="cost">$500</span></div>
+                    <div class="tower-card" data-tower="buccaneer"><span>Monkey Buccaneer</span><span class="cost">$500</span></div>
+                    <div class="tower-card" data-tower="mortar"><span>Mortar Monkey</span><span class="cost">$750</span></div>
+                    <div class="tower-card" data-tower="wizard"><span>Wizard Monkey</span><span class="cost">$600</span></div>
+                    <div class="tower-card" data-tower="engineer"><span>Monkey Engineer</span><span class="cost">$450</span></div>
+                    <div class="tower-card" data-tower="alchemist"><span>Alchemist</span><span class="cost">$400</span></div>
+                </div>
+                <div id="enemy-view" class="tower-shop hidden">
+                    <h3>Spawn Bloons</h3>
+                    <div class="sb-row">
+                        <button id="sb-toggle-camo" class="sb-toggle">Camo: Off</button>
+                        <button id="sb-toggle-regen" class="sb-toggle">Regen: Off</button>
+                        <button id="sb-toggle-fortified" class="sb-toggle">Fortified: Off</button>
+                    </div>
+                    <div class="tower-card" data-enemy="1"><span>Red</span></div>
+                    <div class="tower-card" data-enemy="2"><span>Blue</span></div>
+                    <div class="tower-card" data-enemy="3"><span>Green</span></div>
+                    <div class="tower-card" data-enemy="4"><span>Yellow</span></div>
+                    <div class="tower-card" data-enemy="5"><span>Pink</span></div>
+                    <div class="tower-card" data-enemy="6"><span>Black</span></div>
+                    <div class="tower-card" data-enemy="7"><span>White</span></div>
+                    <div class="tower-card" data-enemy="8"><span>Lead</span></div>
+                    <div class="tower-card" data-enemy="9"><span>Zebra</span></div>
+                    <div class="tower-card" data-enemy="10"><span>Purple</span></div>
+                    <div class="tower-card" data-enemy="11"><span>Rainbow</span></div>
+                    <div class="tower-card" data-enemy="12"><span>Ceramic</span></div>
+                    <div class="tower-card" data-enemy="13"><span>MOAB</span></div>
+                    <div class="tower-card" data-enemy="14"><span>BFB</span></div>
+                    <div class="tower-card" data-enemy="15"><span>ZOMG</span></div>
+                    <div class="tower-card" data-enemy="16"><span>DDT</span></div>
+                    <div class="tower-card" data-enemy="17"><span>BAD</span></div>
+                </div>
+            </div>
+
+            <div class="sidebar-bottom">
+                <div id="norm-controls" class="controls"><button id="wave-speed-btn">Start Wave</button></div>
+<div id="sandbox-controls" class="hidden">
+    <div class="sb-row"><button id="sb-prev">⏪ Prev</button><button id="sb-next">Next ⏩</button></div>
+    <button id="sb-speed-btn">Start Wave</button>
+    <button id="sb-view-toggle">🎈 Spawn Bloons</button>
+    <!-- NEW: Reset Cooldowns Button -->
+    <button id="sb-reset-cooldowns" class="sb-btn" style="background: #9b59b6; color: white; border: none;">Reset Ability Cooldowns</button>
+</div>
+                <div id="message-log">Select a tower to begin.</div>
+            </div>
+        </div>
+
+        <div id="main-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h1>Monkey Tower Defense</h1>
+                <button id="play-btn">Select Difficulty</button>
+                <button id="sandbox-btn">Sandbox Mode</button>
+                <button id="maps-btn">Select Map</button>
+                <button id="custom-maps-btn">Custom Maps</button>
+                <button id="hero-btn">Select Hero</button>
+                <button id="settings-btn">Settings</button>
+            </div>
+        </div>
+
+        <div id="hero-select-menu" class="overlay hidden">
+            <div class="hm-container">
+                <div class="hm-top">
+                    <div class="hm-top-text">
+                        <h2 id="hero-select-title">Select Hero</h2>
+                        <h3 id="hero-select-subtitle"></h3>
+                    </div>
+                    <button class="back-btn hm-back-btn" data-target="main-menu">Back</button>
+                </div>
+                <div class="hm-main">
+                    <div class="hm-left">
+                        <div class="hm-skins">
+                            <div class="hm-skin-btn active">1</div>
+                            <div class="hm-skin-btn">2</div>
+                            <div class="hm-skin-btn">3</div>
+                        </div>
+                        <div class="hm-model" id="hero-model-view">Hero Model</div>
+                    </div>
+                    <div class="hm-right">
+                        <div class="hm-abilities">
+                            <div class="hm-ability-sq" id="hero-ab1">Ab1</div>
+                            <div class="hm-ability-sq" id="hero-ab2">Ab2</div>
+                        </div>
+                        <div class="hm-bio">
+                            <h4>Hero Details</h4>
+                            <div id="hero-bio-text">Select a hero to view their details.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hm-bottom">
+                    <button id="hm-prev-btn" class="hm-nav-btn">◀</button>
+                    <div id="hero-selector" class="hm-carousel"></div>
+                    <button id="hm-next-btn" class="hm-nav-btn">▶</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="difficulty-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2>Select Difficulty</h2>
+                <div class="difficulty-grid">
+                    <button class="diff-btn" data-diff="easy">Easy<br><span class="diff-info">200 Lives<br>-15% Cost</span></button>
+                    <button class="diff-btn" data-diff="medium">Medium<br><span class="diff-info">150 Lives<br>Normal Cost</span></button>
+                    <button class="diff-btn" data-diff="hard">Hard<br><span class="diff-info">100 Lives<br>+8% Cost</span></button>
+                    <button class="diff-btn" data-diff="impoppable">Impoppable<br><span class="diff-info">1 Life<br>+20% Cost</span></button>
+                    <button class="diff-btn" data-diff="chimps">CHIMPS<br><span class="diff-info">1 Life<br>No Selling</span></button>
+                </div>
+                <button class="back-btn" data-target="main-menu">Back</button>
+            </div>
+        </div>
+
+        <div id="maps-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2>Select a Map</h2>
+                <div id="map-selector" class="map-selector"></div>
+                <button class="back-btn" data-target="main-menu">Back</button>
+            </div>
+        </div>
+
+        <div id="custom-maps-menu" class="overlay hidden">
+            <div class="menu-content" style="max-width: 500px;">
+                <h2>Custom Maps</h2>
+                <p style="font-size: 12px; color: #bdc3c7; margin-bottom: 15px; text-align: left;">Paste a JSON object with a "name", "waypoints" array, and "props" array to add a custom map. Example format:<br>
+                {"name":"My Map","waypoints":[{"x":0,"y":300}],"props":[{"type":"tree","x":100,"y":100}]}</p>
+                <textarea id="map-json-input" style="width: 100%; height: 150px; background: #2c3e50; color: white; border: 1px solid #e67e22; border-radius: 4px; padding: 10px; font-family: monospace;"></textarea>
+                <button id="add-map-btn">Add Map</button>
+                <button class="back-btn" data-target="main-menu">Back</button>
+            </div>
+        </div>
+
+<div id="settings-menu" class="overlay hidden">
+    <div class="menu-content">
+        <h2>Settings</h2>
+        <div class="setting-item"><label>SFX Volume: <span id="vol-display">50%</span></label><input type="range" id="volume-slider" min="0" max="100" value="50"></div>
+        <div class="setting-item"><label>Music Volume: <span id="music-vol-display">30%</span></label><input type="range" id="music-slider" min="0" max="100" value="30"></div>
+        
+        <div class="setting-item"><label><input type="checkbox" id="shuffle-music-checkbox"> Shuffle Music</label></div>
+        <div class="setting-item"><label><input type="checkbox" id="random-start-checkbox"> Random Starting Track</label></div>
+        <p style="font-size: 11px; color: #7f8c8d; margin: -10px 0 10px;">(Game automatically loads all .mp3 files in the /music folder)</p>
+
+        <div class="setting-item"><label><input type="checkbox" id="bg-run-checkbox"> Run in Background</label></div>
+        <div class="setting-item"><label><input type="checkbox" id="auto-wave-checkbox-menu"> Auto Start Waves</label></div>
+        <div class="setting-item"><label><input type="checkbox" id="flavor-text-checkbox" checked> Show Wave Flavor Text</label></div>
+        <div class="setting-item"><label><input type="checkbox" id="smoothing-checkbox" checked> Enable Anti-Aliasing (Sprites)</label></div>
+        <div class="setting-item"><label><input type="checkbox" id="fps-checkbox" checked> Show FPS Counter</label></div>
+        <div class="music-controls"><button id="prev-song-btn">⏮</button><button id="next-song-btn">⏭</button></div>
+        <button class="back-btn" id="settings-back-btn">Back</button>
+    </div>
+</div>
+
+        <div id="pause-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2>Paused</h2>
+                <button id="resume-btn">Resume</button>
+                <button id="pause-settings-btn">Settings</button>
+                <div class="setting-item" style="margin-top: 20px;"><label><input type="checkbox" id="auto-wave-checkbox-pause"> Auto Start Waves</label></div>
+                <div class="music-controls"><button id="pause-prev-song">⏮</button><button id="pause-next-song">⏭</button></div>
+                <button id="quit-btn">Quit to Menu</button>
+            </div>
+        </div>
+
+        <div id="game-over-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h1 style="color: #e74c3c;">Game Over</h1>
+                <p id="go-wave-stat" style="font-size: 20px; margin-bottom: 20px;">You survived to Wave 0</p>
+                <button id="go-menu-btn">Return to Main Menu</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
