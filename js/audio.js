@@ -2,10 +2,9 @@ import { Config } from './config.js';
 
 export const AudioEngine = {
     ctx: null, sfxVolume: 0.5, musicAudio: null, currentTrack: 0, isPlaying: false,
-    playlist: [], 
-    history: [], 
-    lastPopTime: 0, 
-    sfxCache: {}, // Cache for SFX audio elements
+    playlist: [], history: [], 
+    lastPopTime: 0, lastShootTime: 0, // PRO FIX: Throttle trackers
+    sfxCache: {}, 
 
     async init() { 
         if (this.ctx) return; 
@@ -113,7 +112,6 @@ export const AudioEngine = {
         let path = '';
         let isFile = false;
         
-        // PRO FEATURE: Dynamic SFX file loading
         if (type === 'pop') {
             let r = Math.floor(Math.random() * 4) + 1;
             path = `sfx/pop${r}.mp3`;
@@ -138,7 +136,6 @@ export const AudioEngine = {
         }
 
         if (isFile) {
-            // Throttle pop sounds so 1000 bloons dying at once doesn't crash the browser
             if (type === 'pop') {
                 const now = performance.now();
                 if (now - this.lastPopTime < 50) return; 
@@ -156,7 +153,13 @@ export const AudioEngine = {
             return;
         }
 
-        // Synth fallback for UI sounds (shoot, place, cash)
+        // PRO FIX: Throttle shoot sound to prevent memory spam
+        if (type === 'shoot') {
+            const now = performance.now();
+            if (now - this.lastShootTime < 30) return; 
+            this.lastShootTime = now;
+        }
+
         try {
             const o = this.ctx.createOscillator();
             const g = this.ctx.createGain();

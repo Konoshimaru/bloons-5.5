@@ -1,25 +1,29 @@
-// js/config.js
 import { Maps } from './data.js';
 import { HeroStats, HeroLevels } from './heroes/index.js';
 
 export { HeroStats, HeroLevels };
 
-export const RANGE_SCALE = 3.0; // Changed from 3.5 to 3.0
+export const RANGE_SCALE = 3.0; 
 
 export const Config = {
-    data: { sfxVolume: 0.5, musicVolume: 0.3, runInBackground: false, autoStart: false, currentMap: 0, showFlavor: true, smoothingEnabled: true, showFps: true, customMaps: [], currentDifficulty: 'medium',
-        // NEW MUSIC SETTINGS
-        musicShuffle: false,
-        musicRandomStart: false,
-        musicPlaylist: ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'] },
+    data: { 
+        sfxVolume: 0.5, musicVolume: 0.3, runInBackground: false, autoStart: false, 
+        currentMap: 0, showFlavor: true, smoothingEnabled: true, showFps: true, 
+        customMaps: [], currentDifficulty: 'medium',
+        musicShuffle: false, musicRandomStart: false
+    },
     load() { 
         try {
             const saved = localStorage.getItem('td_config_v10'); 
             if (saved) this.data = { ...this.data, ...JSON.parse(saved) }; 
             if (!this.data.currentDifficulty) this.data.currentDifficulty = 'medium';
+            if (!Array.isArray(this.data.customMaps)) this.data.customMaps = [];
+            
+            // PRO FIX: Load custom maps AFTER config is loaded
+            Maps.push(...this.data.customMaps);
         } catch (e) {
             console.error("Failed to load config, resetting to default.", e);
-            this.data = { sfxVolume: 0.5, musicVolume: 0.3, runInBackground: false, autoStart: false, currentMap: 0, showFlavor: true, smoothingEnabled: true, showFps: true, customMaps: [], currentDifficulty: 'medium' };
+            this.data = { sfxVolume: 0.5, musicVolume: 0.3, runInBackground: false, autoStart: false, currentMap: 0, showFlavor: true, smoothingEnabled: true, showFps: true, customMaps: [], currentDifficulty: 'medium', musicShuffle: false, musicRandomStart: false };
         }
     },
     save() { 
@@ -40,7 +44,3 @@ export const Difficulties = {
 };
 
 export const TargetingModes = ['First', 'Last', 'Strong', 'Close'];
-
-if (Array.isArray(Config.data.customMaps)) {
-    Maps.push(...Config.data.customMaps);
-}

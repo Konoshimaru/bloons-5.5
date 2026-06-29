@@ -4,93 +4,110 @@ import { GameEngine } from './engine.js';
 import { UI } from './ui.js';
 
 export class WaveManager {
-    constructor() { this.currentWave = 0; this.enemiesToSpawn = []; this.spawnTimer = 0; this.spawnInterval = 0.35; this.waveActive = false; this.autoWaveEnabled = false; this.nextWaveTimer = 0; }
+    constructor() { 
+        this.currentWave = 0; 
+        this.spawnQueue = []; 
+        this.waveTime = 0; 
+        this.waveActive = false; 
+        this.autoWaveEnabled = false; 
+        this.nextWaveTimer = 0; 
+    }
     
     clearField() {
-        GameEngine.enemies = []; this.enemiesToSpawn = []; GameEngine.projectiles = []; GameEngine.explosions = []; this.waveActive = false; this.spawnTimer = 0;
+        GameEngine.enemies = []; this.spawnQueue = []; GameEngine.projectiles = []; GameEngine.explosions = []; this.waveActive = false;
     }
     
     startWave() { 
-        this.currentWave++; this.waveActive = true; this.spawnTimer = 0; 
+        this.currentWave++; 
+        this.waveActive = true; 
+        this.waveTime = 0; 
+        this.spawnQueue = [];
         
         let waveData = Waves[this.currentWave - 1];
+        
+        // If we run out of defined waves, generate a procedural endless wave
         if (!waveData) {
-            const bfb = Math.floor((this.currentWave - 60) / 10) + 1;
-            const m = Math.floor((this.currentWave - 60) / 5) + 2;
-            const c = 5 + Math.floor((this.currentWave - 60) / 2);
+            const m = Math.floor((this.currentWave - 40) / 5) + 2;
+            const c = 5 + Math.floor((this.currentWave - 40) / 2);
             const z = this.currentWave >= 80 ? Math.floor((this.currentWave - 80) / 5) + 1 : 0;
             const ddt = this.currentWave >= 90 ? Math.floor((this.currentWave - 90) / 10) + 1 : 0;
             const bad = this.currentWave >= 100 ? Math.floor((this.currentWave - 100) / 20) + 1 : 0;
             const zomg = this.currentWave >= 70 ? Math.floor((this.currentWave - 70) / 15) + 1 : 0;
-            waveData = { bfb: bfb, m: m, c: c, z: z, ddt: ddt, bad: bad, zomg: zomg, fort: ['c', 'l', 'm', 'bfb', 'ddt', 'bad', 'zomg'] };
+            waveData = { groups: [] };
+            if (bad > 0) waveData.groups.push({t: 17, c: bad, s: 0, e: 5, fort: true});
+            if (zomg > 0) waveData.groups.push({t: 15, c: zomg, s: 0, e: 10, fort: true});
+            if (ddt > 0) waveData.groups.push({t: 16, c: ddt, s: 0, e: 10, camo: true, regen: true, fort: true});
+            if (m > 0) waveData.groups.push({t: 13, c: m, s: 0, e: 15, fort: true});
+            if (c > 0) waveData.groups.push({t: 12, c: c, s: 0, e: 20, fort: true});
+            if (z > 0) waveData.groups.push({t: 9, c: z, s: 0, e: 20});
         }
-        this.enemiesToSpawn = [];
-        const map = { r:1, b:2, g:3, y:4, p:5, bl:6, w:7, l:8, z:9, pu:10, rb:11, c:12, m:13, bfb:14, zomg:15, ddt:16, bad:17 };
-        for (let key in waveData) {
-            if (['camo', 'reg', 'fort'].includes(key)) continue;
-            const tier = map[key.replace(/\d/g, '')];
-            const count = waveData[key];
-            const isCamo = waveData.camo && waveData.camo.includes(key);
-            const isReg = waveData.reg && waveData.reg.includes(key);
-            const isFort = waveData.fort && waveData.fort.includes(key);
-            for (let i = 0; i < count; i++) { this.enemiesToSpawn.push({ t: tier, c: isCamo, r: isReg, fort: isFort }); }
+        
+        // Build the spawn queue from the timeline data
+        for (let group of waveData.groups) {
+            let count = group.c;
+            let start = group.s;
+            let end = group.e;
+            
+            // Calculate interval
+            let interval = 0;
+            if (count > 1) {
+                interval = (end - start) / (count - 1);
+            }
+            
+            for (let i = 0; i < count; i++) {
+                let spawnTime = start + (i * interval);
+                this.spawnQueue.push({
+                    time: spawnTime,
+                    tier: group.t,
+                    camo: group.camo || false,
+                    regen: group.regen || false,
+                    fort: group.fort || false
+                });
+            }
         }
-        this.enemiesToSpawn.sort(() => Math.random() - 0.5);
-        GameEngine.flavorText = this.getWaveFlavor(this.currentWave);
+        
+        // Sort the queue chronologically so we just pop the first element each spawn
+        this.spawnQueue.sort((a, b) => a.time - b.time);
+        
+        GameEngine.flavorText = `Wave ${this.currentWave}`;
         GameEngine.flavorTimer = 5.0;
         GameEngine.updateUI(); 
     }
     
-    getWaveFlavor(waveNum) {
-        let wave = Waves[waveNum - 1];
-        if (!wave) return `Endless Wave ${waveNum}: Scaling difficulty!`;
-        let parts = [];
-        const names = { r:'Red', b:'Blue', g:'Green', y:'Yellow', p:'Pink', bl:'Black', w:'White', l:'Lead', z:'Zebra', pu:'Purple', rb:'Rainbow', c:'Ceramic', m:'MOAB', bfb:'BFB', zomg:'ZOMG', ddt:'DDT', bad:'BAD' };
-        for (let key in wave) {
-            if (['camo', 'reg', 'fort'].includes(key)) continue;
-            let count = wave[key];
-            let baseName = key.replace(/\d/g, '');
-            let name = names[baseName];
-            let prefix = "";
-            if (wave.camo && wave.camo.includes(key)) prefix += "Camo ";
-            if (wave.reg && wave.reg.includes(key)) prefix += "Regrow ";
-            if (wave.fort && wave.fort.includes(key)) prefix += "Fortified ";
-            parts.push(`${count} ${prefix}${name}${count > 1 ? 's' : ''}`);
-        }
-        return `Wave ${waveNum}: ${parts.join(', ')}`;
-    }
-    
     update(dt) { 
-        if (this.nextWaveTimer > 0) { this.nextWaveTimer -= dt; if (this.nextWaveTimer <= 0) this.startWave(); } 
+        if (this.nextWaveTimer > 0) { 
+            this.nextWaveTimer -= dt; 
+            if (this.nextWaveTimer <= 0) this.startWave(); 
+        } 
+        
         if (!this.waveActive) return; 
-        if (this.enemiesToSpawn.length > 0) { 
-            this.spawnTimer += dt; 
-            if (this.spawnTimer >= this.spawnInterval) { 
-                this.spawnTimer = 0; 
-                const e = this.enemiesToSpawn.shift(); 
-                GameEngine.enemies.push(new Enemy(e.t, GameEngine.map, e.c, e.r, e.t, e.fort)); 
-            } 
-        } else if (GameEngine.enemies.length === 0) { 
+        
+        this.waveTime += dt;
+        
+        // Check spawn queue
+        while (this.spawnQueue.length > 0 && this.spawnQueue[0].time <= this.waveTime) {
+            let spawn = this.spawnQueue.shift(); // Get the next bloon to spawn
+            GameEngine.enemies.push(new Enemy(spawn.tier, GameEngine.map, spawn.camo, spawn.regen, spawn.tier, spawn.fort));
+        }
+        
+        // Wave ends when queue is empty AND no enemies are left on screen
+        if (this.spawnQueue.length === 0 && GameEngine.enemies.length === 0) { 
             this.waveActive = false; 
             if (!GameEngine.difficulty || !GameEngine.difficulty.noIncome) {
                 GameEngine.addCash(100 + (this.currentWave * 20)); 
                 for (let t of GameEngine.towers) {
                     if (t) {
-                        // PRO FIX: Banana Farm End of Round Logic
                         if (t.type === 'farm' && t.stats.isBank) {
                             let cap = t.stats.bankCap || 7000;
                             if (t.bankBalance < cap) {
                                 t.bankBalance = Math.min(cap, Math.floor(t.bankBalance * 1.15));
                             }
                             if (t.upgrades[2] >= 2 && t.bankBalance >= cap) {
-                                GameEngine.addCash(Math.floor(t.bankBalance)); 
-                                t.bankBalance = 0;
+                                GameEngine.addCash(Math.floor(t.bankBalance)); t.bankBalance = 0;
                             }
                         }
                         if (t.type === 'farm' && t.stats.wallStreet) {
-                            GameEngine.addCash(4000); 
-                            GameEngine.lives += 15; 
-                            GameEngine.updateUI();
+                            GameEngine.addCash(4000); GameEngine.lives += 15; GameEngine.updateUI();
                         }
                     }
                 }
@@ -103,15 +120,8 @@ export class WaveManager {
                 else xp = round * 90 - 2880;
                 GameEngine.hero.gainXp(xp);
             }
-            GameEngine.updateUI(); 
-            GameEngine.log(`Wave ${this.currentWave} Complete!`); 
-            if (this.autoWaveEnabled) { 
-                this.nextWaveTimer = 0.1; 
-            } else { 
-                GameEngine.speedState = 0; 
-                GameEngine.timeScale = 1; 
-                UI.updateWaveSpeedBtn(GameEngine.speedState); 
-            } 
+            GameEngine.updateUI(); GameEngine.log(`Wave ${this.currentWave} Complete!`); 
+            if (this.autoWaveEnabled) { this.nextWaveTimer = 0.1; } else { GameEngine.speedState = 0; GameEngine.timeScale = 1; UI.updateWaveSpeedBtn(GameEngine.speedState); } 
         } 
     }
 }

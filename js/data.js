@@ -8,7 +8,7 @@ export const EnemyTypes = {
     7: { color: '#ffffff', radius: 12, size: 32, speed: 110, nextTier: null, isWhite: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => d.isIce }, 
     8: { color: '#95a5a6', radius: 18, size: 32, speed: 50, nextTier: null, isLead: true, livesLost: 6, rbe: 23, maxHp: 1, splitsInto: [{tier: 6, count: 2}], blocksDamageType: (d) => d.isSharp && !d.canHitLead },
     9: { color: '#bdc3c7', radius: 18, size: 36, speed: 120, nextTier: null, isZebra: true, livesLost: 6, rbe: 23, maxHp: 1, splitsInto: [{tier: 6, count: 1}, {tier: 7, count: 1}], blocksDamageType: (d) => d.isExplosion || d.isIce }, 
-    10:{ color: '#9b59b6', radius: 18, size: 36, speed: 130, nextTier: null, isPurple: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => d.isPlasma || d.isEnergy || d.isFire || d.isMagic }, 
+    10:{ color: '#9b59b6', radius: 18, size: 36, speed: 130, nextTier: null, isPurple: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => (d.isPlasma || d.isEnergy || d.isFire || d.isMagic) && !d.canHitPurple },
     11:{ color: '#e74c3c', radius: 20, size: 40, speed: 100, nextTier: null, isRainbow: true, livesLost: 12, rbe: 47, maxHp: 1, splitsInto: [{tier: 9, count: 2}] }, 
     12:{ color: '#e67e22', radius: 20, size: 40, speed: 80, nextTier: null, isCeramic: true, livesLost: 26, rbe: 104, maxHp: 10, splitsInto: [{tier: 11, count: 2}] }, 
     13:{ color: '#2c3e50', radius: 35, size: 115, speed: 40, nextTier: null, isMoab: true, livesLost: 154, rbe: 616, maxHp: 200, splitsInto: [{tier: 12, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 }, 
@@ -18,13 +18,105 @@ export const EnemyTypes = {
     17:{ color: '#e74c3c', radius: 70, size: 170, speed: 15, nextTier: null, isMoab: true, isBAD: true, livesLost: 55760, rbe: 55760, maxHp: 20000, splitsInto: [{tier: 15, count: 2}, {tier: 16, count: 3}], spriteOffsetX: 0, spriteOffsetY: 0 }
 };
 
+// NEW TIMELINE WAVE SYSTEM
+// t: Bloon Tier, c: Count, s: Start Time (s), e: End Time (s), camo, regen, fort
 export const Waves = [
-    { r: 20 }, { r: 35 }, { r: 25, b: 5 }, { r: 35, b: 18 }, { r: 5, b: 27 }, { r: 15, b: 15, g: 4 }, { r: 20, b: 20, g: 5 }, { r: 10, b: 20, g: 14 }, { g: 30 }, { b: 102 },
-    { r: 10, b: 10, g: 12, y: 3 }, { b: 15, g: 10, y: 5 }, { b: 50, g: 23 }, { r: 49, b: 15, g: 10, y: 9 }, { r: 20, b: 15, g: 12, y: 10, p: 5 }, { g: 40, y: 8 }, { y: 12, reg: ['y'] }, { g: 80 }, { g: 10, y: 4, y2: 5, p: 15, reg: ['y2'] }, { bl: 6 },
-    { y: 40, p: 14 }, { w: 16 }, { bl: 7, w: 7 }, { b: 20, g: 1, camo: ['g'] }, { y: 25, pu: 10, reg: ['y'] }, { p: 23, z: 4 }, { r: 100, b: 60, g: 45, y: 45 }, { l: 6 }, { y: 50, y2: 15, reg: ['y2'] }, { l: 9 },
-    { bl: 8, w: 8, z: 8, z2: 2, reg: ['z2'] }, { bl: 15, w: 20, pu: 10 }, { r: 20, y: 13, camo: ['r', 'y'] }, { y: 160, z: 6 }, { p: 35, bl: 30, w: 25, rb: 5 }, { p: 140, g: 20, camo: ['g'], reg: ['g'] }, { bl: 25, w: 25, w2: 7, z: 10, l: 15, camo: ['w2'] }, { p: 42, w: 17, z: 10, l: 14, c: 2 }, { bl: 10, w: 10, z: 20, rb: 18, rb2: 2, reg: ['rb2'] }, { m: 1 },
-    { bl: 60, z: 60 }, { rb: 6, rb2: 5, reg: ['rb'], camo: ['rb2'] }, { rb: 10, c: 7 }, { z: 50 }, { p: 180, pu: 10, l: 4, rb: 25, camo: ['pu'], fort: ['l'] }, { c: 6, fort: ['c'] }, { p: 70, c: 12, camo: ['p'] }, { p: 40, pu: 30, rb: 40, c: 3, reg: ['p', 'pu'], camo: ['pu'], fort: ['c'] }, { g: 343, z: 20, rb: 20, rb2: 10, c: 18, reg: ['rb2'] }, { r: 20, l: 8, c: 20, m: 2, fort: ['l'] },
-    { rb: 10, c: 15, reg: ['rb'], camo: ['c'] }, { rb: 25, c: 10, m: 2 }, { p: 80, m: 3, camo: ['p'] }, { c: 35, m: 2 }, { c: 45, m: 1 }, { rb: 40, m: 1, camo: ['rb'] }, { rb: 40, m: 4 }, { c: 15, c2: 10, m: 5, fort: ['c2'] }, { l: 50, c: 20, c2: 10, camo: ['l'], reg: ['c2'] }, { bfb: 1 }
+    // Round 1
+    { groups: [ {t:1, c:20, s:0, e:17.51} ] },
+    // Round 2
+    { groups: [ {t:1, c:30, s:0, e:19} ] },
+    // Round 3
+    { groups: [ 
+        {t:1, c:10, s:0, e:5.1}, {t:2, c:5, s:5.7, e:7.95}, {t:1, c:15, s:9.71, e:16.71} 
+    ] },
+    // Round 4
+    { groups: [ 
+        {t:1, c:25, s:0, e:12}, {t:2, c:18, s:7.9, e:10.4}, {t:1, c:10, s:14.51, e:17.31} 
+    ] },
+    // Round 5
+    { groups: [ 
+        {t:2, c:12, s:0, e:5.14}, {t:1, c:5, s:5.7, e:7.98}, {t:2, c:15, s:8.6, e:16.5} 
+    ] },
+    // Round 6
+    { groups: [ 
+        {t:3, c:4, s:0, e:1.71}, {t:1, c:15, s:5.33, e:10.33}, {t:2, c:15, s:10.8, e:18.7} 
+    ] },
+    // Round 7
+    { groups: [ 
+        {t:2, c:10, s:0, e:5.14}, {t:3, c:5, s:5.7, e:10.65}, {t:1, c:20, s:11.81, e:22.65}, {t:2, c:10, s:22.81, e:26.8} 
+    ] },
+    // Round 8
+    { groups: [ 
+        {t:2, c:20, s:0, e:10.84}, {t:3, c:2, s:11.42, e:11.99}, {t:1, c:10, s:14.03, e:16}, {t:3, c:12, s:18.27, e:28.87} 
+    ] },
+    // Round 9
+    { groups: [ {t:3, c:30, s:0, e:18.95} ] },
+    // Round 10
+    { groups: [ 
+        {t:2, c:60, s:0, e:35}, {t:2, c:20, s:35, e:44}, {t:2, c:22, s:44, e:47.99} 
+    ] },
+
+    // --- GENERATED ESCALATION WAVES (11-40) ---
+    // Round 11
+    { groups: [ {t:4, c:20, s:0, e:20}, {t:3, c:10, s:10, e:20} ] },
+    // Round 12
+    { groups: [ {t:4, c:30, s:0, e:25} ] },
+    // Round 13
+    { groups: [ {t:4, c:20, s:0, e:15}, {t:5, c:10, s:15, e:20}, {t:4, c:10, s:20, e:25} ] },
+    // Round 14
+    { groups: [ {t:5, c:20, s:0, e:20}, {t:6, c:10, s:10, e:20} ] },
+    // Round 15
+    { groups: [ {t:5, c:30, s:0, e:20}, {t:7, c:10, s:10, e:20} ] },
+    // Round 16
+    { groups: [ {t:6, c:20, s:0, e:20}, {t:7, c:20, s:10, e:20} ] },
+    // Round 17
+    { groups: [ {t:8, c:10, s:0, e:15}, {t:5, c:20, s:5, e:20} ] },
+    // Round 18
+    { groups: [ {t:9, c:10, s:0, e:15}, {t:6, c:10, s:10, e:20} ] },
+    // Round 19
+    { groups: [ {t:10, c:10, s:0, e:15}, {t:7, c:10, s:10, e:20} ] },
+    // Round 20
+    { groups: [ {t:13, c:1, s:0, e:0}, {t:4, c:30, s:5, e:20} ] }, // First MOAB
+    // Round 21
+    { groups: [ {t:8, c:20, s:0, e:20}, {t:9, c:10, s:10, e:20} ] },
+    // Round 22
+    { groups: [ {t:10, c:20, s:0, e:20}, {t:8, c:10, s:10, e:20} ] },
+    // Round 23
+    { groups: [ {t:8, c:20, s:0, e:15, fort:true}, {t:9, c:10, s:15, e:20} ] },
+    // Round 24
+    { groups: [ {t:5, c:40, s:0, e:20, camo:true} ] },
+    // Round 25
+    { groups: [ {t:8, c:30, s:0, e:20, fort:true}, {t:10, c:20, s:10, e:20} ] },
+    // Round 26
+    { groups: [ {t:12, c:10, s:0, e:20}, {t:8, c:20, s:10, e:20} ] },
+    // Round 27
+    { groups: [ {t:12, c:20, s:0, e:20}, {t:8, c:10, s:10, e:20, camo:true} ] },
+    // Round 28
+    { groups: [ {t:13, c:3, s:0, e:20}, {t:12, c:10, s:10, e:20} ] },
+    // Round 29
+    { groups: [ {t:12, c:20, s:0, e:20}, {t:5, c:20, s:10, e:20, regen:true} ] },
+    // Round 30
+    { groups: [ {t:13, c:5, s:0, e:20}, {t:12, c:20, s:5, e:20} ] },
+    // Round 31
+    { groups: [ {t:14, c:1, s:0, e:0}, {t:12, c:20, s:5, e:20} ] }, // First BFB
+    // Round 32
+    { groups: [ {t:12, c:30, s:0, e:20, fort:true} ] },
+    // Round 33
+    { groups: [ {t:12, c:40, s:0, e:20, camo:true, regen:true} ] },
+    // Round 34
+    { groups: [ {t:13, c:10, s:0, e:20}, {t:8, c:30, s:10, e:20, fort:true} ] },
+    // Round 35
+    { groups: [ {t:13, c:10, s:0, e:20}, {t:12, c:30, s:5, e:20} ] },
+    // Round 36
+    { groups: [ {t:14, c:2, s:0, e:20}, {t:13, c:10, s:5, e:20} ] },
+    // Round 37
+    { groups: [ {t:12, c:50, s:0, e:20, fort:true} ] },
+    // Round 38
+    { groups: [ {t:13, c:20, s:0, e:20}, {t:12, c:20, s:10, e:20} ] },
+    // Round 39
+    { groups: [ {t:14, c:4, s:0, e:20}, {t:13, c:10, s:5, e:20} ] },
+    // Round 40
+    { groups: [ {t:14, c:1, s:0, e:0}, {t:13, c:10, s:5, e:15}, {t:12, c:20, s:15, e:20} ] } 
 ];
 
 export let Maps = [

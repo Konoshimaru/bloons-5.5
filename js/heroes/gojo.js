@@ -2,6 +2,7 @@
 import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
+import { Projectile } from '../projectile.js';
 import { AudioEngine } from '../audio.js';
 
 export default {
@@ -29,7 +30,6 @@ export default {
     update(tower, dt) {
         if (!tower.phase) tower.phase = 1;
 
-        // PRO FIX: 0.2 Domain Expansion only unlocks if Level 20 AND Awakened
         let shouldHaveAb3 = (tower.level >= 20 && tower.phase === 2);
         if (shouldHaveAb3 && !tower.stats.isAbility3) {
             tower.stats.isAbility3 = true;
@@ -38,17 +38,13 @@ export default {
             tower.stats.isAbility3 = false; 
         }
 
-        // --- HOLLOW PURPLE CHARGING STATE ---
         if (tower.isHollowCharging) {
-            // Stop normal attacks while charging
             tower.cooldown = 1.0; 
             tower.attackPointTimer = 0;
-            // Point Gojo towards the mouse
             tower.angle = Utils.angle(tower.x, tower.y, GameEngine.mouse.x, GameEngine.mouse.y);
             tower.hollowChargeTime += dt;
         }
 
-        // --- HOLLOW PURPLE PROJECTILE (Unmatched Pierce) ---
         if (tower.hollowProjectile) {
             tower.hollowProjectile.x += Math.cos(tower.hollowProjectile.angle) * 1200 * dt;
             tower.hollowProjectile.y += Math.sin(tower.hollowProjectile.angle) * 1200 * dt;
@@ -56,23 +52,20 @@ export default {
             const nearby = GameEngine.enemyGrid.query(tower.hollowProjectile.x, tower.hollowProjectile.y, 80);
             for (let e of nearby) {
                 if (!e.alive) continue;
-                // Only damage each bloon once as it passes through them
                 if (tower.hollowProjectile.hitEnemies.has(e)) continue;
                 
                 if (Utils.distance(tower.hollowProjectile.x, tower.hollowProjectile.y, e.x, e.y) < e.data.radius + 40) {
                     let dmg = e.takeDamage(10000, { isMagic: true, canHitLead: true });
                     tower.damageDealt += dmg;
-                    tower.hollowProjectile.hitEnemies.add(e); // Mark as hit so it doesn't hit them again
+                    tower.hollowProjectile.hitEnemies.add(e); 
                 }
             }
             
-            // Only disappears when it leaves the map
             if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > 1000 || tower.hollowProjectile.y < -100 || tower.hollowProjectile.y > 700) {
                 tower.hollowProjectile = null;
             }
         }
 
-        // --- PHASE TRANSITION CHECK (Awakening) ---
         if (tower.phase === 1 && GameEngine.difficulty) {
             const criticalLives = Math.max(1, GameEngine.difficulty.lives * 0.1);
             if (GameEngine.lives <= criticalLives) {
@@ -84,7 +77,6 @@ export default {
             }
         }
 
-        // --- TRANSITION EFFECT: Anti-Bloon Reverse Well ---
         if (tower.reverseWell) {
             tower.reverseWell.life -= dt; tower.reverseWell.dist -= 200 * dt; 
             if (tower.reverseWell.dist < 0) tower.reverseWell.dist = 0;
@@ -103,7 +95,6 @@ export default {
             if (tower.reverseWell.life <= 0 || tower.reverseWell.dist <= 0) tower.reverseWell = null;
         }
 
-        // --- PASSIVE: INFINITY ---
         if (tower.stats.limitlessPassive && GameEngine.map) {
             const totalLen = GameEngine.map.getTotalLength(); const maxSlow = tower.phase === 2 ? 0.50 : 0.25;
             for (let e of GameEngine.enemies) {
@@ -113,7 +104,6 @@ export default {
             }
         }
 
-        // --- ABILITY LOGIC: Fake Red / Reversal Red ---
         if (tower.fakeRed) {
             tower.fakeRed.life -= dt; tower.fakeRed.rot += dt * 4;
             if (tower.fakeRed.life <= 0) { GameEngine.explosions.push({ x: tower.x, y: tower.y - 20, radius: 0, maxRadius: 80, life: 0.3, maxLife: 0.3, color: '#ff0000' }); tower.fakeRed = null; }
@@ -129,7 +119,6 @@ export default {
             }
         }
 
-        // --- ABILITY LOGIC: Max Blue (Revolves around Gojo) ---
         if (tower.maxBlue) {
             tower.maxBlue.life -= dt; tower.maxBlue.angle += dt * 4; 
             let mx = tower.x + Math.cos(tower.maxBlue.angle) * 150; let my = tower.y + Math.sin(tower.maxBlue.angle) * 150;
@@ -147,7 +136,6 @@ export default {
             }
         }
 
-        // --- MAIN ATTACK: LAPSE BLUE WELLS ---
         if (tower.blueWells && tower.blueWells.length > 0) {
             for (let i = tower.blueWells.length - 1; i >= 0; i--) {
                 let w = tower.blueWells[i]; w.life -= dt; w.rot += dt * 10;
@@ -171,16 +159,14 @@ export default {
         if (tower.reversalRed) { this.drawRedTyphoonVFX(ctx, tower.reversalRed.x, tower.reversalRed.y, tower.reversalRed.rot, 80); }
         if (tower.maxBlue) { this.drawMaxBlueVFX(ctx, tower.maxBlue.x, tower.maxBlue.y, 100); }
         
-        // DRAW HOLLOW PURPLE CHARGING (In front of Gojo)
         if (tower.isHollowCharging) {
-            let dist = 40; // 40px in front of him
+            let dist = 40; 
             let vx = tower.x + Math.cos(tower.angle) * dist;
             let vy = tower.y + Math.sin(tower.angle) * dist;
-            let progress = Math.min(1, tower.hollowChargeTime / 1.0); // Takes 1s to fully charge visually
+            let progress = Math.min(1, tower.hollowChargeTime / 1.0); 
             this.drawHollowPurpleVFX(ctx, vx, vy, progress);
         }
 
-        // DRAW HOLLOW PURPLE PROJECTILE
         if (tower.hollowProjectile) {
             this.drawHollowPurpleVFX(ctx, tower.hollowProjectile.x, tower.hollowProjectile.y, 1.0);
         }
@@ -203,10 +189,20 @@ export default {
             for(let i=0; i<3; i++) { ctx.beginPath(); ctx.arc(tower.x, tower.y, 22 + (i*4), t + (i * Math.PI / 3), t + (i * Math.PI / 3) + Math.PI * 1.5); ctx.stroke(); }
             ctx.globalAlpha = 1;
         }
+        
+        // PRO FIX: Apply rotation so Gojo faces his target!
         const baseAsset = Assets.get(`tower_gojo_base`);
-        if (baseAsset && baseAsset.loaded) { ctx.save(); ctx.translate(tower.x, tower.y); drawImageCentered(ctx, baseAsset, 45); ctx.restore(); } 
-        else {
+        if (baseAsset && baseAsset.loaded) {
+            ctx.save(); 
+            ctx.translate(tower.x, tower.y);
+            if (!isPreview && !tower.stats.isStaticRotation) {
+                ctx.rotate(tower.angle + Math.PI / 2); // Rotate to face target
+            }
+            drawImageCentered(ctx, baseAsset, 45);
+            ctx.restore();
+        } else {
             ctx.save(); ctx.translate(tower.x, tower.y);
+            if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2);
             ctx.fillStyle = tower.phase === 2 ? '#ff00ff' : '#9b59b6'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.arc(0, 2, 10, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();

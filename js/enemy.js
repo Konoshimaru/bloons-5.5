@@ -168,6 +168,20 @@ export class Enemy {
         if (this.dipped) damage += 1; 
         
         if (effects) {
+            // PRO FIX: Engineer Pin instakill
+            if (effects.pin && !this.data.isMoab && !this.data.isBAD) {
+                this.alive = false;
+                this.giveCash(true);
+                GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
+                AudioEngine.playSfx('pop');
+                return 999;
+            }
+            // PRO FIX: Engineer Cleansing Foam
+            if (effects.foam) {
+                this.isCamo = false;
+                this.isRegen = false;
+            }
+            
             if (effects.instakill && !this.data.isMoab && !this.data.isBAD) {
                 this.alive = false;
                 this.giveCash(true);

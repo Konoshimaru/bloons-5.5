@@ -16,7 +16,7 @@ function resizeGame() {
     if (!container) return;
     const scaleX = window.innerWidth / 900;
     const scaleY = window.innerHeight / 600;
-    const scale = Math.min(scaleX, scaleY) * 0.95; // 95% to leave a slight margin
+    const scale = Math.min(scaleX, scaleY) * 0.98; // 98% to leave a slight margin
     container.style.transform = `scale(${scale})`;
 }
 window.addEventListener('resize', resizeGame);
