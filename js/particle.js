@@ -2,26 +2,36 @@ import Assets from './assets.js';
 import { Names } from './names.js';
 
 export class Particle { 
-    constructor(x, y, color) { 
-        this.x = x; this.y = y; 
-        this.vx = (Math.random() - 0.5) * 10; 
-        this.vy = (Math.random() - 0.5) * 10; 
-        this.life = 0.3; this.maxLife = 0.3; 
-        
-        // PRO FIX: Separated scale logic for effects
-        this.size = Math.random() * 0.5 + 0.75; // Random size multiplier (0.75 to 1.25)
-        this.baseSize = 40; // Base pixel size for pop effects. Change this to make them bigger/smaller!
-        
-        this.rotation = Math.random() * Math.PI * 0.5;
-        this.spin = (Math.random() - 0.5) * 1;
-        this.popVariant = Math.floor(Math.random() * 3) + 1; 
+    constructor() { 
+        this.active = false;
+        this.reset();
     } 
+
+    init(x, y, color) { 
+        this.active = true;
+        this.x = x; this.y = y; 
+        this.vx = (Math.random() - 0.5) * 150; 
+        this.vy = (Math.random() - 0.5) * 150; 
+        this.life = 0.4; this.maxLife = 0.4; 
+        this.size = Math.random() * 0.5 + 0.75; 
+        this.baseSize = 45; 
+        this.rotation = Math.random() * Math.PI * 2;
+        this.spin = (Math.random() - 0.5) * 10;
+        this.popVariant = Math.floor(Math.random() * 3) + 1; 
+    }
+
+    reset() {
+        this.active = false;
+        this.life = 0;
+    }
+
     update(dt) { 
         this.x += this.vx * dt; 
         this.y += this.vy * dt; 
         this.life -= dt; 
         this.rotation += this.spin * dt;
     } 
+
     draw(ctx) { 
         const asset = Assets.get(Names.getPopEffect(this.popVariant));
         if (asset && asset.loaded) {

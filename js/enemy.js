@@ -23,6 +23,8 @@ export class Enemy {
         this.gojoSlow = 1.0; 
         this.infinityTint = 0; 
         this.angle = 0; 
+        this.unstableConcoction = false;
+        this.isGoldified = false;
     }
     update(dt) { 
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
@@ -115,6 +117,7 @@ export class Enemy {
             }
         }
         let layerCash = Math.max(1, Math.floor((this.data.rbe - childRbeTotal) * 0.15));
+        if (this.isGoldified) layerCash *= 2; // Rubber to Gold
         GameEngine.addCash(layerCash);
         if (!canSpawn && childRbeTotal > 0) {
             GameEngine.addCash(Math.max(1, Math.floor(childRbeTotal * 0.15)));
@@ -162,13 +165,32 @@ export class Enemy {
             return -1; 
         } 
         
+        // Alchemist Effects
+        if (effects && effects.alchDip) {
+            if (this.data.isCeramic || this.data.isMoab) damage += 1;
+            if (this.data.isLead && this.isFortified) damage += 1;
+        }
+        if (effects && effects.stripFortified && !this.data.isMoab) {
+            this.isFortified = false;
+        }
+        if (effects && effects.rubberToGold) {
+            this.isGoldified = true;
+        }
+        if (effects && effects.leadToGold && this.data.isLead) {
+            this.alive = false;
+            this.giveCash(true);
+            GameEngine.addCash(50);
+            GameEngine.spawnPopEffect(this.x, this.y, '#f1c40f');
+            AudioEngine.playSfx('cash');
+            return 999;
+        }
+        
         if (isNaN(damage)) damage = 0; 
         if (dmgType.moabDmg && this.data.isMoab) damage += (dmgType.moabDmg || 0);
         if (dmgType.fortifiedDmg && this.isFortified) damage += (dmgType.fortifiedDmg || 0);
         if (this.dipped) damage += 1; 
         
         if (effects) {
-            // PRO FIX: Engineer Pin instakill
             if (effects.pin && !this.data.isMoab && !this.data.isBAD) {
                 this.alive = false;
                 this.giveCash(true);
@@ -176,7 +198,6 @@ export class Enemy {
                 AudioEngine.playSfx('pop');
                 return 999;
             }
-            // PRO FIX: Engineer Cleansing Foam
             if (effects.foam) {
                 this.isCamo = false;
                 this.isRegen = false;
@@ -194,7 +215,6 @@ export class Enemy {
             if (effects.dot > 0) { this.dotDmg = Math.max(this.dotDmg, effects.dot); this.dotTimer = 3.0; }
             if (effects.moabDot > 0 && this.data.isMoab) { this.dotDmg = Math.max(this.dotDmg, effects.moabDot); this.dotTimer = 5.0; }
             
-            // Ninja Monkey Effects
             if (effects.stripCamo) this.isCamo = false; 
             if (effects.knockback) this.distanceTraveled = Math.max(0, this.distanceTraveled - effects.knockback); 
             if (effects.stun) this.applySlow(0.0, effects.stun, false); 
@@ -211,9 +231,21 @@ export class Enemy {
                 this.giveCash(canSpawn);
                 GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
                 AudioEngine.playSfx('moab_destroy'); 
+                
+                // Unstable Concoction Explosion
+                if (this.unstableConcoction) {
+                    let expDmg = this.data.maxHp * 0.10;
+                    GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#e67e22' });
+                    const nearby = GameEngine.enemyGrid.query(this.x, this.y, 100);
+                    for (let e of nearby) {
+                        if (e.alive && e !== this) e.takeDamage(expDmg, { isExplosion: true, canHitLead: true });
+                    }
+                }
+                
                 let carryOver = damage - moabHp;
                 this.spawnChildren(canSpawn, carryOver, dmgType);
             } else {
+                if (effects && effects.unstableConcoction) this.unstableConcoction = true;
                 if (dmgDealt > 0) AudioEngine.playSfx('moab_hit'); 
             }
             return Math.ceil(dmgDealt);
@@ -396,7 +428,6 @@ export class Enemy {
             else if (this.slowFactor < 1.0) { ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke(); }
         }
 
-        // PRO FIX: Stun FX Animation (Moved outside the if/else blocks so it always renders on top)
         if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) {
             let t = performance.now() / 1000;
             let fps = 15; 
@@ -407,7 +438,6 @@ export class Enemy {
             if (stunAsset && stunAsset.loaded) {
                 let s = (this.data.size || 40) * 0.8;
                 ctx.save();
-                // PRO FIX: Lowered Y offset so it doesn't float too high above big bloons
                 ctx.translate(this.x, this.y - this.data.radius * 0.6 - s/2);
                 ctx.rotate(t * 5); 
                 ctx.drawImage(stunAsset, -s/2, -s/2, s, s);

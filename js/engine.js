@@ -10,6 +10,7 @@ import { Hero } from './hero.js';
 import { WaveManager } from './waveManager.js';
 import { Projectile } from './projectile.js';
 import { Particle } from './particle.js';
+import { ObjectPool } from './pool.js';
 import { SpatialGrid } from './spatialGrid.js';
 import { AudioEngine } from './audio.js';
 import Assets from './assets.js';
@@ -18,14 +19,19 @@ import { Renderer } from './renderer.js';
 
 export const GameEngine = {
     canvas: null, ctx: null, lastTime: 0, bgInterval: null, ui: UI, _rafId: null,
-    enemies: [], towers: [], projectiles: [], explosions: [], particles: [],
+    enemies: [], towers: [], explosions: [],
+    
+    // PRO REFACTOR: Object Pools
+    projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
+    particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
+    
     enemyGrid: new SpatialGrid(80),
     lives: 100, cash: 650, selectedTowerType: null, selectedPlacedTower: null,
     mouse: { x: 0, y: 0 }, timeScale: 1, gameState: 'menu', currentMap: 0, runInBackground: false, lastMenu: 'main-menu', speedState: 0,
     maps: Maps, waveManager: new WaveManager(), tier5Bought: {}, flavorText: "", flavorTimer: 0, isSandbox: false, 
     lastCash: -1, lastLives: -1, frames: 0, fps: 0, lastFpsUpdate: 0, 
     difficulty: null, hero: null, sandboxFortified: false, selectedHero: 'quincy',
-    imfDebt: 0,
+    imfDebt: 0, acidPools: [],
 
     init() {
         Config.load();
@@ -66,11 +72,8 @@ export const GameEngine = {
         if (rawAmount <= 0) return;
         if (this.imfDebt > 0) {
             let tax = Math.floor(rawAmount * 0.5);
-            if (tax >= this.imfDebt) {
-                rawAmount -= this.imfDebt; this.imfDebt = 0;
-            } else {
-                rawAmount -= tax; this.imfDebt -= tax;
-            }
+            if (tax >= this.imfDebt) { rawAmount -= this.imfDebt; this.imfDebt = 0; } 
+            else { rawAmount -= tax; this.imfDebt -= tax; }
         }
         this.cash += rawAmount;
         this.updateUI();
@@ -104,6 +107,10 @@ export const GameEngine = {
         this.cash = isSandbox ? 10000000 : diff.cash; 
         this.imfDebt = 0; 
         this.towers = []; this.enemies = []; 
+        this.projectilePool.clear(); 
+        this.particlePool.clear();   
+        this.explosions = []; 
+        this.acidPools = []; 
         this.hero = null; 
         this.waveManager = new WaveManager(); 
         this.waveManager.autoWaveEnabled = Config.data.autoStart; 
@@ -133,18 +140,11 @@ export const GameEngine = {
         if (this.gameState !== 'playing') return; 
         const rect = this.canvas.getBoundingClientRect(); const scaleX = this.canvas.width / rect.width; const scaleY = this.canvas.height / rect.height; const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
         
-        // Intercept click for Hollow Purple
         if (this.hero && this.hero.isHollowCharging) {
             this.hero.isHollowCharging = false;
-            this.hero.hollowProjectile = {
-                x: this.hero.x, y: this.hero.y,
-                angle: Utils.angle(this.hero.x, this.hero.y, x, y),
-                hitEnemies: new Set()
-            };
+            this.hero.hollowProjectile = { x: this.hero.x, y: this.hero.y, angle: Utils.angle(this.hero.x, this.hero.y, x, y), hitEnemies: new Set() };
             return; 
         }
-        
-        // Banana/Bank click logic removed (now handled by mouse hover in update())
 
         let clickedTower = null; 
         for (let t of this.towers) { if (t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + 5)) { clickedTower = t; break; } }
@@ -223,10 +223,10 @@ export const GameEngine = {
     deselectAll() { this.selectedTowerType = null; this.selectedPlacedTower = null; UI.hideUpgradePanel(); },
     
     spawnPopEffect(x, y, color) { 
-        // PRO FIX: Increased limits so pop effects don't randomly disappear
-        if (this.particles.length > 400) return; 
+        if (this.particlePool.active.length > 400) return; 
         if (this.enemies.length > 600 && Math.random() > 0.2) return; 
-        this.particles.push(new Particle(x, y, color)); 
+        let p = this.particlePool.get();
+        p.init(x, y, color);
     },
     log(msg) { UI.log(msg); },
     
@@ -241,8 +241,7 @@ export const GameEngine = {
             const rawDt = (timestamp - this.lastTime) / 1000; 
             this.lastTime = timestamp; this.frames++;
             if (timestamp > this.lastFpsUpdate + 1000) {
-                this.fps = this.frames;
-                this.lastFpsUpdate = timestamp; this.frames = 0;
+                this.fps = this.frames; this.lastFpsUpdate = timestamp; this.frames = 0;
                 const fpsEl = document.getElementById('fps-display'); if (fpsEl) fpsEl.innerText = `${this.fps} FPS`;
             }
             if (this.gameState === 'playing') { 
@@ -263,11 +262,27 @@ export const GameEngine = {
     },
     
     update(dt) { 
-        if (this.projectiles.length > 1500) this.projectiles.splice(0, this.projectiles.length - 1500);
-        if (this.particles.length > 400) this.particles.splice(0, this.particles.length - 400);
+        if (this.projectilePool.active.length > 1500) this.projectilePool.removeAt(0);
+        if (this.particlePool.active.length > 400) this.particlePool.removeAt(0);
         if (this.explosions.length > 100) this.explosions.splice(0, this.explosions.length - 100);
 
         this.waveManager.update(dt); 
+        
+        if (this.acidPools) {
+            for (let i = this.acidPools.length - 1; i >= 0; i--) {
+                let pool = this.acidPools[i];
+                pool.life -= dt; pool.tick -= dt;
+                if (pool.life <= 0) { this.acidPools.splice(i, 1); continue; }
+                if (pool.tick <= 0) {
+                    pool.tick = 1.0;
+                    const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
+                    for (let e of nearby) {
+                        if (e.alive && Utils.distance(pool.x, pool.y, e.x, e.y) < pool.radius) e.takeDamage(pool.dmg, { isAcid: true, canHitLead: true });
+                    }
+                }
+            }
+        }
+        
         for (let i = this.enemies.length - 1; i >= 0; i--) { 
             let e = this.enemies[i];
             if (e) {
@@ -282,27 +297,23 @@ export const GameEngine = {
         this.towers.forEach(t => { if (!t) return; const behavior = TowerRegistry[t.type]; if (behavior && behavior.updateSupport) behavior.updateSupport(t, dt); });
         this.towers.forEach(t => { if (t) t.update(dt); }); 
         
-        // PRO FIX: Magnetic Banana Collection (Mouse Hover)
         if (this.mouse.x !== undefined) {
             for (let t of this.towers) {
                 if (t && t.bananas) {
                     for (let i = t.bananas.length - 1; i >= 0; i--) {
                         let b = t.bananas[i];
-                        if (b.progress >= 1) { // Only attract landed bananas
+                        if (b.progress >= 1) { 
                             let dist = Utils.distance(this.mouse.x, this.mouse.y, b.x, b.y);
                             let range = t.stats.collectionRange || 40;
                             if (dist < range) {
-                                // Move towards mouse
                                 let speed = 500 * dt;
-                                let dx = this.mouse.x - b.x;
-                                let dy = this.mouse.y - b.y;
+                                let dx = this.mouse.x - b.x; let dy = this.mouse.y - b.y;
                                 let d = Math.hypot(dx, dy) || 1;
-                                b.x += (dx / d) * speed;
-                                b.y += (dy / d) * speed;
-                                
-                                // Collect if it touches the mouse
+                                b.x += (dx / d) * speed; b.y += (dy / d) * speed;
                                 if (d < 15) {
-                                    this.addCash(b.value); AudioEngine.playSfx('cash'); t.bananas.splice(i, 1);
+                                    this.addCash(b.value); 
+                                    t.cashGenerated = (t.cashGenerated || 0) + b.value;
+                                    AudioEngine.playSfx('cash'); t.bananas.splice(i, 1);
                                 }
                             }
                         }
@@ -311,13 +322,15 @@ export const GameEngine = {
             }
         }
         
-        for (let i = this.projectiles.length - 1; i >= 0; i--) { 
-            let p = this.projectiles[i];
+        let activeProjectiles = this.projectilePool.active;
+        for (let i = activeProjectiles.length - 1; i >= 0; i--) { 
+            let p = activeProjectiles[i];
             if (p) {
                 p.update(dt); 
-                if (!p.alive) { let last = this.projectiles.pop(); if (i < this.projectiles.length) { this.projectiles[i] = last; } }
+                if (!p.alive) this.projectilePool.removeAt(i); 
             }
         } 
+
         for (let i = this.explosions.length - 1; i >= 0; i--) { 
             let exp = this.explosions[i]; 
             if (exp) {
@@ -325,13 +338,16 @@ export const GameEngine = {
                 if (exp.life <= 0) { let last = this.explosions.pop(); if (i < this.explosions.length) { this.explosions[i] = last; } } 
             }
         } 
-        for (let i = this.particles.length - 1; i >= 0; i--) { 
-            let pt = this.particles[i];
+
+        let activeParticles = this.particlePool.active;
+        for (let i = activeParticles.length - 1; i >= 0; i--) { 
+            let pt = activeParticles[i];
             if (pt) {
                 pt.update(dt); 
-                if (pt.life <= 0) { let last = this.particles.pop(); if (i < this.particles.length) { this.particles[i] = last; } }
+                if (pt.life <= 0) this.particlePool.removeAt(i); 
             }
         } 
+
         UI.updateAbilityBar(this);
         this.updateUI();
         if (this.lives <= 0) { AudioEngine.pause(); this.gameState = 'gameover'; UI.toggleMenus('game-over-menu'); document.getElementById('go-wave-stat').innerText = `You survived to Wave ${this.waveManager.currentWave}`; } 

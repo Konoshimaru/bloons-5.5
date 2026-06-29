@@ -14,7 +14,16 @@ export class WaveManager {
     }
     
     clearField() {
-        GameEngine.enemies = []; this.spawnQueue = []; GameEngine.projectiles = []; GameEngine.explosions = []; this.waveActive = false;
+        GameEngine.enemies = []; 
+        this.spawnQueue = []; 
+        
+        // PRO FIX: Use Object Pool clear instead of old array!
+        GameEngine.projectilePool.clear(); 
+        GameEngine.particlePool.clear(); 
+        
+        GameEngine.explosions = []; 
+        GameEngine.acidPools = [];
+        this.waveActive = false;
     }
     
     startWave() { 
@@ -29,11 +38,10 @@ export class WaveManager {
         if (!waveData) {
             const m = Math.floor((this.currentWave - 40) / 5) + 2;
             const c = 5 + Math.floor((this.currentWave - 40) / 2);
-            const z = this.currentWave >= 50 ? Math.floor((this.currentWave - 50) / 5) + 1 : 0;       // Was 80
-            const ddt = this.currentWave >= 60 ? Math.floor((this.currentWave - 60) / 10) + 1 : 0;    // Was 90
-            const bad = this.currentWave >= 70 ? Math.floor((this.currentWave - 70) / 20) + 1 : 0;    // Was 100
-            const zomg = this.currentWave >= 50 ? Math.floor((this.currentWave - 50) / 15) + 1 : 0;   // Was 70
-            // ... rest of generator code
+            const z = this.currentWave >= 50 ? Math.floor((this.currentWave - 50) / 5) + 1 : 0;
+            const ddt = this.currentWave >= 60 ? Math.floor((this.currentWave - 60) / 10) + 1 : 0;
+            const bad = this.currentWave >= 70 ? Math.floor((this.currentWave - 70) / 20) + 1 : 0;
+            const zomg = this.currentWave >= 50 ? Math.floor((this.currentWave - 50) / 15) + 1 : 0;
             waveData = { groups: [] };
             if (bad > 0) waveData.groups.push({t: 17, c: bad, s: 0, e: 5, fort: true});
             if (zomg > 0) waveData.groups.push({t: 15, c: zomg, s: 0, e: 10, fort: true});
@@ -49,7 +57,6 @@ export class WaveManager {
             let start = group.s;
             let end = group.e;
             
-            // Calculate interval
             let interval = 0;
             if (count > 1) {
                 interval = (end - start) / (count - 1);
@@ -67,7 +74,6 @@ export class WaveManager {
             }
         }
         
-        // Sort the queue chronologically so we just pop the first element each spawn
         this.spawnQueue.sort((a, b) => a.time - b.time);
         
         GameEngine.flavorText = `Wave ${this.currentWave}`;
@@ -87,7 +93,7 @@ export class WaveManager {
         
         // Check spawn queue
         while (this.spawnQueue.length > 0 && this.spawnQueue[0].time <= this.waveTime) {
-            let spawn = this.spawnQueue.shift(); // Get the next bloon to spawn
+            let spawn = this.spawnQueue.shift(); 
             GameEngine.enemies.push(new Enemy(spawn.tier, GameEngine.map, spawn.camo, spawn.regen, spawn.tier, spawn.fort));
         }
         

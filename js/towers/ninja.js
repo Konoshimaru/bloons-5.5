@@ -1,23 +1,24 @@
 // js/towers/ninja.js
 import { GameEngine } from '../engine.js';
-import { Projectile } from '../projectile.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 
 export default {
     stats: { 
-        name: "Ninja Monkey", cost: 400, range: 32, fireRate: 0.62, damage: 1, pierce: 2, projectileSpeed: 450, 
+        name: "Ninja Monkey", cost: 400, range: 32, 
+        baseCooldown: 0.62, fireRate: 0.62, 
+        damage: 1, pierce: 2, projectileSpeed: 450, 
         lifespan: 0.5, desc: "Throws shurikens. Can detect Camo.", 
         dmgType: 'sharp', projectileType: 'ninja', hitRadius: 18, 
         canSeeCamo: true, projectileCount: 1
     },
     upgrades: {
         1: [
-            {name:"Ninja Discipline", cost:300, stat:"fireRate", amount:-0.1, desc:"Increases attack speed and range.", extraMods:{range:8}},
+            {name:"Ninja Discipline", cost:300, desc:"Increases attack speed and range.", cooldownMult: 0.85, extraMods:{range:8}},
             {name:"Sharp Shurikens", cost:350, stat:"pierce", amount:2, desc:"Can pop 4 bloons per shuriken."},
-            {name:"Double Shot", cost:1200, stat:"projectileCount", amount:1, desc:"Throws 2 shurikens at once."},
-            {name:"Bloonjitsu", cost:3500, stat:"projectileCount", amount:3, desc:"Throws 5 shurikens at once!", extraMods:{damage:1}},
-            {name:"Grandmaster Ninja", cost:14000, stat:"fireRate", amount:-0.2, desc:"Massive attack speed increase. Throws 8 shurikens.", extraMods:{projectileCount:3, damage:1}}
+            {name:"Double Shot", cost:1200, desc:"Throws 2 shurikens at a time.", cooldownMult: 0.75, extraMods: { projectileCount: 1 }},
+            {name:"Bloonjitsu", cost:3500, desc:"Throws 5 shurikens at once!", cooldownMult: 0.5, extraMods: { projectileCount: 3, damage: 1 }},
+            {name:"Grandmaster Ninja", cost:14000, desc:"Massive attack speed increase. Throws 8 shurikens.", cooldownMult: 0.5, extraMods: { projectileCount: 3, damage: 1 }}
         ],
         2: [
             {name:"Distraction", cost:250, stat:"distraction", amount:true, desc:"Shurikens have a chance to knock bloons backwards."},
@@ -34,85 +35,45 @@ export default {
             {name:"Master Bomber", cost:14000, stat:"damage", amount:5, desc:"Massive damage against MOABs."}
         ]
     },
-
     updateSupport(tower, dt) {
         if (tower.stats.shinobi) {
-            let ninjaCount = 0;
-            let effRange = tower.stats.range * RANGE_SCALE;
-            for (let ot of GameEngine.towers) {
-                if (ot && ot.type === 'ninja' && ot !== tower) {
-                    if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < effRange) {
-                        ninjaCount++;
-                    }
-                }
-            }
-            let stacks = Math.min(20, ninjaCount);
-            let speedBuff = stacks * 0.05; 
-            let pierceBuff = (tower.stats.pierce || 2) * (stacks * 0.08); 
-            
-            tower.buffedFireRate = (tower.buffedFireRate || 0) + speedBuff;
-            tower.buffedPierce = (tower.buffedPierce || 0) + pierceBuff;
+            let ninjaCount = 0; let effRange = tower.stats.range * RANGE_SCALE;
+            for (let ot of GameEngine.towers) { if (ot && ot.type === 'ninja' && ot !== tower) { if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < effRange) ninjaCount++; } }
+            let stacks = Math.min(20, ninjaCount); let speedBuff = stacks * 0.05; let pierceBuff = (tower.stats.pierce || 2) * (stacks * 0.08); 
+            tower.buffedFireRate = (tower.buffedFireRate || 0) + speedBuff; tower.buffedPierce = (tower.buffedPierce || 0) + pierceBuff;
         }
     },
-
     fire(tower, target, damage, dmgType, isCrit, effects) {
-        let count = tower.stats.projectileCount || 1;
-        let shotCount = tower.shotCount || 0;
-        tower.shotCount++;
-
+        let count = tower.stats.projectileCount || 1; let shotCount = tower.shotCount || 0; tower.shotCount++;
         let ninjaEffects = { ...effects };
         if (tower.stats.distraction && Math.random() < 0.3) ninjaEffects.knockback = 30;
         if (tower.stats.counterEspionage) ninjaEffects.stripCamo = true;
-
-        let projType = tower.stats.projectileType;
-        let projDamage = damage;
-        let projDmgType = dmgType;
-        let projPierce = (tower.stats.pierce + (tower.buffedPierce || 0)) || 2; 
+        let projType = tower.stats.projectileType; let projDamage = damage; let projDmgType = dmgType; let projPierce = (tower.stats.pierce + (tower.buffedPierce || 0)) || 2; 
 
         if (tower.stats.flashBomb && shotCount % 4 === 0) {
-            projType = 'flash_bomb';
-            projDamage = 1;
-            projPierce = 1; 
-            projDmgType = { isExplosion: true, canHitLead: true };
-            ninjaEffects.stun = 1.0; 
-            ninjaEffects.isExplosive = true;
-            ninjaEffects.explosionPierce = 30; 
-            ninjaEffects.explosionRadius = 60;
-            ninjaEffects.explosionDamage = 1;
+            projType = 'flash_bomb'; projDamage = 1; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true };
+            ninjaEffects.stun = 1.0; ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = 30; ninjaEffects.explosionRadius = 60; ninjaEffects.explosionDamage = 1;
         } else if (tower.stats.stickyBomb && target.data.isMoab && shotCount % 3 === 0) {
-            projType = 'sticky_bomb';
-            projDamage = tower.stats.damage * 10; 
-            projPierce = 1; 
-            projDmgType = { isExplosion: true, canHitLead: true, moabDmg: 50 };
-            // PRO FIX: Sticky bomb must pass explosion stats to effects!
-            ninjaEffects.isExplosive = true;
-            ninjaEffects.explosionPierce = 1;
-            ninjaEffects.explosionRadius = 60;
-            ninjaEffects.explosionDamage = projDamage;
+            projType = 'sticky_bomb'; projDamage = tower.stats.damage * 10; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true, moabDmg: 50 };
+            ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = 1; ninjaEffects.explosionRadius = 60; ninjaEffects.explosionDamage = projDamage;
         }
 
         let spread = count > 2 ? 20 : 15; 
         for(let i=0; i<count; i++) {
             let offset = spread * (i - (count-1)/2);
-            let p = new Projectile(tower.x, tower.y, projDamage, target, projType, tower.stats.projectileSpeed, projPierce, tower.stats.lifespan, null, ninjaEffects, offset, tower, projDmgType);
+            let p = GameEngine.projectilePool.get();
+            p.init(tower.x, tower.y, projDamage, target, projType, tower.stats.projectileSpeed, projPierce, tower.stats.lifespan, null, ninjaEffects, offset, tower, projDmgType);
             p.isCrit = isCrit;
-            GameEngine.projectiles.push(p);
         }
-
         if (tower.stats.caltrops && shotCount % 5 === 0) {
             let trackPoint = GameEngine.map.getNearestPathPoint(tower.x, tower.y);
-            let randX = trackPoint.x + (Math.random() - 0.5) * 40;
-            let randY = trackPoint.y + (Math.random() - 0.5) * 40;
-            let p = new Projectile(randX, randY, 1, null, 'spike', 0, 6, 15.0, Math.random()*Math.PI*2, null, 0, tower, { isSharp: true, canHitLead: false });
-            GameEngine.projectiles.push(p);
+            let randX = trackPoint.x + (Math.random() - 0.5) * 40; let randY = trackPoint.y + (Math.random() - 0.5) * 40;
+            let p = GameEngine.projectilePool.get();
+            p.init(randX, randY, 1, null, 'spike', 0, 6, 15.0, Math.random()*Math.PI*2, null, 0, tower, { isSharp: true, canHitLead: false });
         }
     },
-
     ability(tower, engine) {
         engine.log("Bloon Sabotage Activated!");
-        for (let e of engine.enemies) {
-            if (!e.alive) continue;
-            e.applySlow(0.5, 15.0, false); 
-        }
+        for (let e of engine.enemies) { if (!e.alive) continue; e.applySlow(0.5, 15.0, false); }
     }
 };

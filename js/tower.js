@@ -1,13 +1,10 @@
-import { RANGE_SCALE } from './config.js';
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
-import { Utils, drawImageCentered, drawShadow } from './utils.js';
-import { AudioEngine } from './audio.js';
+import { drawImageCentered, drawShadow } from './utils.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
-import { Projectile } from './projectile.js';
-import { DamageType, createDmgType } from './damageTypes.js';
+import * as TowerBehavior from './towerBehavior.js'; 
 
 export class Tower {
     constructor(x, y, type) { 
@@ -45,6 +42,12 @@ export class Tower {
         this.abilityActiveTime = 0; 
         this.ability2Cooldown = 0;
         this.ability3Cooldown = 0; 
+        this.alchBuff = null;
+        this.alchDip = null;
+    }
+
+    update(dt) {
+        TowerBehavior.update(this, dt);
     }
 
     getActiveAssets() {
@@ -64,14 +67,8 @@ export class Tower {
         if (bestTier > 0) {
             let upgBase = Assets.get(`tower_${this.type}_p${bestPath}_t${bestTier}_base`);
             let upgArm = Assets.get(`tower_${this.type}_p${bestPath}_t${bestTier}_arm`);
-            if (upgBase && upgBase.loaded) {
-                baseAsset = upgBase;
-                armAsset = null; 
-                isCustomBase = true;
-            }
-            if (upgArm && upgArm.loaded) {
-                armAsset = upgArm;
-            }
+            if (upgBase && upgBase.loaded) { baseAsset = upgBase; armAsset = null; isCustomBase = true; }
+            if (upgArm && upgArm.loaded) { armAsset = upgArm; }
         }
 
         return { baseAsset, armAsset, targetSize, isCustomBase };
@@ -80,244 +77,15 @@ export class Tower {
     static drawPreview(ctx, x, y, type) {
         const stats = TowerStats[type];
         let targetSize = stats?.drawSize || 45;
-        
         const asset = Assets.get(`tower_${type}_base`);
         if (asset && asset.loaded) {
             ctx.save(); ctx.translate(x, y);
             drawImageCentered(ctx, asset, targetSize); 
             ctx.restore();
         } else {
-            ctx.fillStyle = '#795548'; 
-            ctx.beginPath(); 
-            ctx.arc(x, y, 15, 0, Math.PI * 2); 
-            ctx.fill();
-            ctx.fillStyle = '#D7BCA3'; 
-            ctx.beginPath(); 
-            ctx.arc(x, y, 10, 0, Math.PI * 2); 
-            ctx.fill();
-            ctx.fillStyle = '#795548'; 
-            ctx.beginPath(); 
-            ctx.arc(x - 12, y - 8, 5, 0, Math.PI * 2); 
-            ctx.arc(x + 12, y - 8, 5, 0, Math.PI * 2); 
-            ctx.fill();
-        }
-    }
-
-    update(dt) {
-        this.cooldown -= dt;
-        if (this.abilityCooldown > 0) this.abilityCooldown -= dt;
-        if (this.ability2Cooldown > 0) this.ability2Cooldown -= dt;
-        if (this.ability3Cooldown > 0) this.ability3Cooldown -= dt; 
-        if (this.abilityActiveTime > 0) this.abilityActiveTime -= dt;
-        if (this.fanClubBuffTimer > 0) this.fanClubBuffTimer -= dt;
-        if (this.overclockTimer > 0) this.overclockTimer -= dt; 
-        
-        for (let i = this.hitscans.length - 1; i >= 0; i--) { this.hitscans[i].life -= dt; if (this.hitscans[i].life <= 0) this.hitscans.splice(i, 1); }
-        this.animTimer += dt;
-        if (this.animTimer > 0.2) { this.animTimer = 0; this.animFrame++; }
-
-        if (this.attackPointTimer > 0) {
-            this.attackPointTimer -= dt;
-            if (this.attackPointTimer <= 0) {
-                if (this.pendingTarget && this.pendingTarget.alive) this.fire(this.pendingTarget);
-                this.pendingTarget = null;
-                this.attackPointTimer = 0;
-            }
-        }
-
-        if (this.attackAnimActive) {
-            let frameDuration = 0.03; 
-            this.attackAnimTimer += dt;
-            if (this.attackAnimTimer > frameDuration) {
-                this.attackAnimTimer = 0;
-                this.attackAnimFrame++;
-                let prefix = `${this.attackPrefix}attack_${this.isFullAnim ? 'full_' : ''}`;
-                let nextAsset = Assets.get(`${prefix}${this.attackAnimFrame}`);
-                if (!nextAsset || !nextAsset.loaded) {
-                    this.attackAnimActive = false;
-                    this.attackAnimFrame = 0;
-                }
-            }
-        }
-
-        const behavior = TowerRegistry[this.type];
-        if (behavior && behavior.update) { behavior.update(this, dt); return; }
-        const heroBehavior = HeroRegistry[this.type];
-        if (heroBehavior && heroBehavior.update) { heroBehavior.update(this, dt); }
-        this.acquireAndFire(dt);
-    }
-
-    acquireAndFire(dt) {
-        if (this.isHollowCharging) return; 
-        if (this.stats.fireRate <= 0) return; 
-        let target = null; 
-        let bestVal = (this.targetingMode === 'First' || this.targetingMode === 'Strong') ? -Infinity : Infinity;
-        
-        let scale = (typeof RANGE_SCALE === 'number') ? RANGE_SCALE : 3.0;
-        let baseRange = (typeof this.stats.range === 'number') ? this.stats.range : 100;
-        let buffMult = (typeof this.buffedRange === 'number') ? this.buffedRange : 0;
-        let effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult);
-        
-        const candidates = baseRange === 9999 ? GameEngine.enemies : GameEngine.enemyGrid.query(this.x, this.y, effRange);
-        const seen = new Set();
-        
-        for (let e of candidates) {
-            if (seen.has(e)) continue; seen.add(e);
-            if (!e.alive) continue;
-            if (e.isCamo && !this.stats.canSeeCamo && !this.buffedCamo) continue; 
-            if (this.type === 'glue' && e.data.isMoab) continue; 
-            const dist = Utils.distance(this.x, this.y, e.x, e.y);
-            if (baseRange !== 9999 && dist > effRange) continue;
-            if (this.stats.minRange && dist < (this.stats.minRange * scale)) continue; 
-
-            if (baseRange !== 9999 && GameEngine.map && GameEngine.map.props.length > 0) {
-                if (!this._losBlockers) {
-                    this._losBlockers = GameEngine.map.props.filter(p => p.type === 'tree' || p.type === 'rock');
-                }
-                if (this._losBlockers.length > 0) {
-                    let hasLoS = true;
-                    for (let p of this._losBlockers) {
-                        if (Utils.distToSegment(p.x, p.y, this.x, this.y, e.x, e.y) < 18) { hasLoS = false; break; }
-                    }
-                    if (!hasLoS) continue;
-                }
-            }
-
-            let val; 
-            if (this.targetingMode === 'First' || this.targetingMode === 'Last') val = e.distanceTraveled; 
-            else if (this.targetingMode === 'Strong') val = e.data.rbe; 
-            else if (this.targetingMode === 'Close') val = dist;
-            
-            let isBetter = false;
-            if (this.targetingMode === 'First' || this.targetingMode === 'Strong') {
-                if (val > bestVal) isBetter = true;
-                if (this.targetingMode === 'Strong' && val === bestVal && target && e.distanceTraveled > target.distanceTraveled) isBetter = true;
-            } else if (this.targetingMode === 'Last' || this.targetingMode === 'Close') {
-                if (val < bestVal) isBetter = true;
-            }
-            if (isBetter) { bestVal = val; target = e; }
-        }
-        
-        if (target) { 
-            if (!this.stats.isStaticRotation) {
-                this.angle = Utils.angle(this.x, this.y, target.x, target.y); 
-            }
-            if (this.cooldown <= 0 && this.attackPointTimer <= 0) { 
-                let effFireRate = this.fanClubBuffTimer > 0 ? (this.fanClubType === 'plasma' ? 0.03 : 0.06) : this.stats.fireRate;
-                if (this.overclockTimer > 0) effFireRate *= 0.6;
-                if (this.ultraboostStacks > 0) effFireRate *= (1 - 0.066 * this.ultraboostStacks);
-                
-                // PRO DEBUG: Check if abilityActiveTime is applying
-                if (this.abilityActiveTime > 0) {
-                    effFireRate /= (this.stats.rapidShotMult || 3);
-                    console.log(`Rapid Shot Active! Fire Rate: ${effFireRate}s`); 
-                }
-                
-                this.triggerAttack(target); 
-                this.cooldown = effFireRate / (1 + this.buffedFireRate); 
-            } 
-        }
-    }
-
-    triggerAttack(target) {
-        let animAsset = null;
-        let isFullAnim = false;
-        let prefix = `tower_${this.type}_`;
-
-        let bestTier = 0, bestPath = 0;
-        for (let p = 1; p <= 3; p++) {
-            if (this.upgrades[p-1] > bestTier) { 
-                bestTier = this.upgrades[p-1]; 
-                bestPath = p; 
-            }
-        }
-
-        if (bestTier > 0) {
-            let upgPrefix = `tower_${this.type}_p${bestPath}_t${bestTier}_`;
-            let upgFull = Assets.get(`${upgPrefix}attack_full_0`);
-            let upgArm = Assets.get(`${upgPrefix}attack_0`);
-            if (upgFull && upgFull.loaded) { prefix = upgPrefix; isFullAnim = true; animAsset = upgFull; }
-            else if (upgArm && upgArm.loaded) { prefix = upgPrefix; isFullAnim = false; animAsset = upgArm; }
-        }
-
-        if (!animAsset) {
-            let baseFull = Assets.get(`${prefix}attack_full_0`);
-            let baseArm = Assets.get(`${prefix}attack_0`);
-            if (baseFull && baseFull.loaded) { isFullAnim = true; animAsset = baseFull; }
-            else if (baseArm && baseArm.loaded) { isFullAnim = false; animAsset = baseArm; }
-        }
-
-        if (!animAsset || !animAsset.loaded) {
-            this.fire(target);
-            return;
-        }
-
-        this.attackAnimActive = true;
-        this.attackAnimFrame = 0;
-        this.attackAnimTimer = 0;
-        this.isFullAnim = isFullAnim;
-        this.attackPrefix = prefix;
-        
-        let frameDuration = 0.03; 
-        let throwFrame = 4; 
-        let windupTime = frameDuration * throwFrame; 
-        
-        let effFireRate = this.stats.fireRate / (1 + this.buffedFireRate);
-        if (this.fanClubBuffTimer > 0) effFireRate = this.fanClubType === 'plasma' ? 0.03 : 0.06;
-        if (this.abilityActiveTime > 0) effFireRate /= (this.stats.rapidShotMult || 3);
-        if (windupTime >= effFireRate) {
-            windupTime = effFireRate * 0.5; 
-        }
-        
-        this.attackPointTimer = windupTime;
-        this.pendingTarget = target;
-    }
-
-    fire(target) {
-        if (target && !target.alive) return; 
-        AudioEngine.playSfx('shoot'); 
-        
-        let damage = this.stats.damage + (this.buffedDmg || 0); 
-        let dmgTypeStr = this.stats.dmgType;
-        let canHitLead = this.stats.canHitLead || this.buffedLead;
-        let isCrit = this.stats.critChance && Math.random() < this.stats.critChance;
-        if (isCrit) damage = this.stats.critDmg;
-        if (dmgTypeStr === 'heavy') { canHitLead = true; }
-        if (this.fanClubBuffTimer > 0) {
-            damage = this.fanClubType === 'plasma' ? 4 : 2;
-            dmgTypeStr = this.fanClubType === 'plasma' ? 'plasma' : 'sharp';
-            canHitLead = true;
-        }
-        let projType = this.stats.projectileType || 'dart';
-        let pierce = this.stats.pierce + (this.buffedPierce || 0);
-        
-        let baseDmgType = DamageType.NONE;
-        if (dmgTypeStr === 'sharp' || dmgTypeStr === 'glue') baseDmgType = DamageType.SHARP;
-        else if (dmgTypeStr === 'explosion') baseDmgType = DamageType.EXPLOSION;
-        else if (dmgTypeStr === 'ice') baseDmgType = DamageType.ICE;
-        else if (dmgTypeStr === 'plasma') baseDmgType = DamageType.PLASMA;
-        else if (dmgTypeStr === 'energy') baseDmgType = DamageType.ENERGY;
-        else if (dmgTypeStr === 'fire') baseDmgType = DamageType.FIRE;
-        else if (dmgTypeStr === 'magic') baseDmgType = DamageType.MAGIC;
-        else if (dmgTypeStr === 'acid') baseDmgType = DamageType.ACID;
-        else if (dmgTypeStr === 'heavy') baseDmgType = DamageType.HEAVY;
-
-        let dmgType = createDmgType(baseDmgType, {
-            canHitLead: canHitLead,
-            moabDmg: this.stats.moabDmg || 0,
-            fortifiedDmg: this.stats.fortifiedDmg || 0
-        });
-        
-        let effects = {};
-        if (this.stats.applyPin) effects.pin = true;
-        if (this.stats.applyFoam) effects.foam = true;
-        
-        if (TowerRegistry[this.type] && TowerRegistry[this.type].fire) {
-            TowerRegistry[this.type].fire(this, target, damage, dmgType, isCrit, effects);
-        } else if (HeroRegistry[this.type] && HeroRegistry[this.type].fire) {
-            HeroRegistry[this.type].fire(this, target, damage, dmgType, isCrit, effects);
-        } else if (this.stats.isHero) {
-            GameEngine.projectiles.push(new Projectile(this.x, this.y, damage, target, projType, this.stats.projectileSpeed, pierce, this.stats.lifespan, null, effects, 0, this, dmgType));
+            ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#D7BCA3'; ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.arc(x - 12, y - 8, 5, 0, Math.PI * 2); ctx.arc(x + 12, y - 8, 5, 0, Math.PI * 2); ctx.fill();
         }
     }
     
@@ -368,10 +136,20 @@ export class Tower {
                 this.hitRadius = (TowerStats[this.type].hitRadius || 18) * upgradeData.extraMods.scale;
             }
         }
-        if (this.stats.fireRate < 0.05) this.stats.fireRate = 0.05; 
+        
+        // Engineer XXXL Trap logic
+        if (this.type === 'engineer' && path === 3 && this.upgrades[2] === 5) {
+            if (this.activeTrap) {
+                this.activeTrap.maxRbe = 9500;
+                this.activeTrap.moab = true;
+            }
+        }
+
+        if (this.stats.fireRate < 0.05 && !this.stats.baseCooldown) this.stats.fireRate = 0.05; 
         if (tier === 4) { GameEngine.tier5Bought[this.type + '-' + path] = true; }
         GameEngine.updateUI(); return true; 
     }
+    
     sell() { 
         let resaleRate = 0.70; 
         if (this.type === 'farm' && this.upgrades[2] >= 2) resaleRate = 0.80; 

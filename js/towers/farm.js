@@ -4,12 +4,14 @@ import { Utils } from '../utils.js';
 
 export default {
     stats: { 
-        name: "Banana Farm", cost: 1250, range: 40, fireRate: 0, damage: 0, pierce: 0, projectileSpeed: 0, 
+        name: "Banana Farm", cost: 1250, range: 40, 
+        baseCooldown: 0, fireRate: 0, // Standardized Base (Does not attack)
+        damage: 0, pierce: 0, projectileSpeed: 0, 
         lifespan: 0, desc: "Produces bananas that give extra cash.", dmgType: 'none', hitRadius: 18, 
         isStaticRotation: true,
         bananaCount: 4, bananaLifespan: 15, bananaValue: 20, bananaValueMult: 0,
         bankCap: 7000, bankIncome: 180,
-        collectionRange: 40 // NEW: Base magnetic collection range
+        collectionRange: 40 
     },
     upgrades: {
         1: [
@@ -40,7 +42,6 @@ export default {
         if (!tower.bankBalance) tower.bankBalance = 0;
         if (!tower.abilityUsesThisRound) tower.abilityUsesThisRound = 0;
         
-        // Banana Central Global Buff
         if (tower.upgrades[0] === 5 && !tower._buffApplied) {
             for (let ot of GameEngine.towers) {
                 if (ot && ot.type === 'farm' && ot.upgrades[0] === 4) {
@@ -50,41 +51,37 @@ export default {
             tower._buffApplied = true;
         }
 
-        // Dynamic Crosspath Math
         let path1 = tower.upgrades[0];
         let path2 = tower.upgrades[1];
         let path3 = tower.upgrades[2];
 
         let spawnsPerRound = 4;
-        if (path3 >= 3) { // Market/Central
+        if (path3 >= 3) { 
             spawnsPerRound = 16;
             if (path1 === 1) spawnsPerRound = 18;
             if (path1 >= 2) spawnsPerRound = 20;
-        } else if (path2 >= 3) { // Bank
+        } else if (path2 >= 3) { 
             spawnsPerRound = 6;
             if (path1 === 1) spawnsPerRound = 7;
             if (path1 >= 2) spawnsPerRound = 8;
-        } else { // Base Farm
+        } else { 
             if (path1 === 1) spawnsPerRound = 6;
             if (path1 === 2) spawnsPerRound = 8;
             if (path1 === 3) spawnsPerRound = 16;
-            if (path1 >= 4) spawnsPerRound = 5; // Crates
+            if (path1 >= 4) spawnsPerRound = 5; 
         }
 
-        // Wave Start Detection
         if (!tower._waveActive && GameEngine.waveManager.waveActive) {
             tower._waveActive = true;
             tower.spawnsLeft = spawnsPerRound;
             tower.spawnTimer = 0;
             
-            // PRO FIX: Reset IMF/Monkey-Nomics cooldown to 100% at round start
             if (tower.stats.isAbility && path2 >= 4) {
                 tower.abilityCooldown = tower.stats.abilityCd || 60;
                 tower.abilityUsesThisRound = 0;
             }
         } else if (tower._waveActive && !GameEngine.waveManager.waveActive) {
             tower._waveActive = false;
-            // Burst spawn remaining if round ended early
             while (tower.spawnsLeft > 0) {
                 if (tower.stats.isBank) {
                     let income = (tower.stats.bankIncome || 180) / 6;
@@ -94,7 +91,9 @@ export default {
                 } else if (tower.stats.isMarket) {
                     let val = tower.stats.bananaValue || 20;
                     let mult = 1 + (tower.stats.bananaValueMult || 0);
-                    GameEngine.addCash(Math.floor(val * mult));
+                    let cash = Math.floor(val * mult);
+                    GameEngine.addCash(cash);
+                    tower.cashGenerated = (tower.cashGenerated || 0) + cash; // PRO FIX: Track cash
                 } else {
                     this.spawnBanana(tower);
                 }
@@ -117,7 +116,9 @@ export default {
                 } else if (tower.stats.isMarket) {
                     let val = tower.stats.bananaValue || 20;
                     let mult = 1 + (tower.stats.bananaValueMult || 0);
-                    GameEngine.addCash(Math.floor(val * mult));
+                    let cash = Math.floor(val * mult);
+                    GameEngine.addCash(cash);
+                    tower.cashGenerated = (tower.cashGenerated || 0) + cash; // PRO FIX: Track cash
                 } else {
                     this.spawnBanana(tower);
                 }
@@ -125,7 +126,6 @@ export default {
             }
         }
 
-        // Update physical bananas
         for (let i = tower.bananas.length - 1; i >= 0; i--) {
             let b = tower.bananas[i];
             b.life -= dt;
@@ -138,10 +138,10 @@ export default {
                 b.arc = Math.sin(b.progress * Math.PI) * 20; 
             }
 
-            // Monkey Wall Street auto-collect
             if (tower.stats.wallStreet) {
                 if (Utils.distance(tower.x, tower.y, b.x, b.y) < 75) {
                     GameEngine.addCash(b.value);
+                    tower.cashGenerated = (tower.cashGenerated || 0) + b.value; // PRO FIX: Track cash
                     tower.bananas.splice(i, 1);
                     continue;
                 }
@@ -149,8 +149,12 @@ export default {
 
             if (b.life <= 0) {
                 let salvage = tower.stats.bananaSalvage || 0;
-                if (tower.upgrades[2] >= 1 && salvage === 0) salvage = 0.5; // EZ Collect
-                if (salvage > 0) GameEngine.addCash(Math.floor(b.value * salvage));
+                if (tower.upgrades[2] >= 1 && salvage === 0) salvage = 0.5; 
+                if (salvage > 0) {
+                    let salVal = Math.floor(b.value * salvage);
+                    GameEngine.addCash(salVal);
+                    tower.cashGenerated = (tower.cashGenerated || 0) + salVal; // PRO FIX: Track cash
+                }
                 tower.bananas.splice(i, 1);
             }
         }
@@ -167,11 +171,10 @@ export default {
         if (tower.upgrades[0] === 5) baseValue = 1200;
         let mult = 1 + (tower.stats.bananaValueMult || 0);
         
-        // PRO FIX: Dynamically check for Banana Central buff
         if (tower.upgrades[0] === 4) {
             for (let ot of GameEngine.towers) {
                 if (ot && ot.type === 'farm' && ot.upgrades[0] === 5) {
-                    mult += 0.25; // +25% from Banana Central
+                    mult += 0.25; 
                     break;
                 }
             }
@@ -188,7 +191,6 @@ export default {
     },
 
     ability(tower, engine) {
-        // Max 2 uses per round
         if (tower.abilityUsesThisRound >= 2) {
             engine.log("Ability locked: Max uses per round reached.");
             return;
@@ -196,9 +198,11 @@ export default {
 
         if (tower.upgrades[1] === 5) {
             engine.addCash(9000);
+            tower.cashGenerated = (tower.cashGenerated || 0) + 9000; // PRO FIX: Track cash
             engine.log("Monkey-Nomics Activated! +$9000");
         } else {
             engine.addCash(9000);
+            tower.cashGenerated = (tower.cashGenerated || 0) + 9000; // PRO FIX: Track cash
             engine.imfDebt += 9000;
             engine.log("IMF Loan Activated! +$9000 (Taxed at 50%)");
         }
@@ -206,10 +210,8 @@ export default {
     },
 
     draw(ctx, tower, isPreview) {
-        // PRO FIX: Call drawBaseTower so the sprite actually renders!
         tower.drawBaseTower(ctx, isPreview);
 
-        // Draw Bank Balance Text
         if (tower.stats.isBank && !isPreview) {
             ctx.fillStyle = tower.bankBalance >= (tower.stats.bankCap || 7000) ? '#f1c40f' : '#ffffff';
             ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center';

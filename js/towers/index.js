@@ -16,7 +16,7 @@ import mortar from './mortar.js';
 import wizard from './wizard.js';
 import engineer from './engineer.js';
 import alchemist from './alchemist.js';
-import farmer from './farmer.js'
+import farmer from './farmer.js';
 
 export const TowerRegistry = { 
     dart, boomerang, tack, ninja, sniper, ice, glue, bomb, spike, farm, village, 

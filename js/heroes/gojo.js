@@ -2,7 +2,6 @@
 import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
-import { Projectile } from '../projectile.js';
 import { AudioEngine } from '../audio.js';
 
 export default {
@@ -70,7 +69,7 @@ export default {
             const criticalLives = Math.max(1, GameEngine.difficulty.lives * 0.1);
             if (GameEngine.lives <= criticalLives) {
                 tower.phase = 2; tower.awakened = true;
-                tower.stats.canSeeCamo = true; // PRO FIX: Awakened Gojo sees Camo!
+                tower.stats.canSeeCamo = true; 
                 
                 let startDist = 0;
                 for (let e of GameEngine.enemies) { if (e.alive && e.distanceTraveled > startDist) startDist = e.distanceTraveled; }
@@ -129,11 +128,11 @@ export default {
             for (let e of nearby) {
                 if (!e.alive) continue; let dx = mx - e.x; let dy = my - e.y; let dist = Math.hypot(dx, dy);
                 if (dist > 1) { e.offsetX += dx * 0.1; e.offsetY += dy * 0.1; }
-                let dmg = e.takeDamage(tower.stats.damage * dt * 5, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg;
+                let dmg = e.takeDamage(tower.maxBlue.dmg * dt * 5, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg;
             }
             if (tower.maxBlue.life <= 0) {
                 GameEngine.explosions.push({ x: mx, y: my, radius: 0, maxRadius: 200, life: 0.5, maxLife: 0.5, color: '#0000ff' });
-                for (let e of nearby) { if (!e.alive) continue; let dmg = e.takeDamage(tower.stats.damage * 50, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg; }
+                for (let e of nearby) { if (!e.alive) continue; let dmg = e.takeDamage(tower.maxBlue.dmg * 50, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg; }
                 tower.maxBlue = null;
             }
         }
@@ -150,7 +149,7 @@ export default {
                 if (w.life <= 0) {
                     tower.blueWells.splice(i, 1); GameEngine.explosions.push({ x: w.x, y: w.y, radius: 0, maxRadius: w.radius, life: 0.3, maxLife: 0.3, color: '#0000ff' });
                     let explosionHits = 0;
-                    for (let e of nearby) { if (explosionHits >= w.maxHits) break; if (!e.alive) continue; if (Utils.distance(w.x, w.y, e.x, e.y) < w.radius) { let dmg = e.takeDamage(tower.stats.damage * 5, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg; e.offsetX = 0; e.offsetY = 0; explosionHits++; } }
+                    for (let e of nearby) { if (explosionHits >= w.maxHits) break; if (!e.alive) continue; if (Utils.distance(w.x, w.y, e.x, e.y) < w.radius) { let dmg = e.takeDamage(w.dmg * 5, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg; e.offsetX = 0; e.offsetY = 0; explosionHits++; } }
                 }
             }
         }
@@ -192,13 +191,12 @@ export default {
             ctx.globalAlpha = 1;
         }
         
-        // PRO FIX: Apply rotation so Gojo faces his target!
         const baseAsset = Assets.get(`tower_gojo_base`);
         if (baseAsset && baseAsset.loaded) {
             ctx.save(); 
             ctx.translate(tower.x, tower.y);
             if (!isPreview && !tower.stats.isStaticRotation) {
-                ctx.rotate(tower.angle + Math.PI / 2); // Rotate to face target
+                ctx.rotate(tower.angle + Math.PI / 2); 
             }
             drawImageCentered(ctx, baseAsset, 45);
             ctx.restore();
@@ -270,7 +268,9 @@ export default {
             tower.hollowChargeTime = 0;
             return;
         }
-        engine.log("Maximum: Blue!"); tower.maxBlue = { life: 3.14, maxLife: 3.14, angle: 0, x: tower.x, y: tower.y };
+        engine.log("Maximum: Blue!"); 
+        // PRO FIX: Pass the calculated damage into the maxBlue object
+        tower.maxBlue = { life: 3.14, maxLife: 3.14, angle: 0, x: tower.x, y: tower.y, dmg: tower.stats.damage };
     },
     ability3(tower, engine) {
         engine.log("Domain Expansion: 0.2 Second Void!");
@@ -282,7 +282,12 @@ export default {
         for (let i = 0; i < wellCount; i++) {
             let offsetX = wellCount > 1 ? (i === 0 ? -15 : 15) : 0; let offsetY = wellCount > 1 ? (i === 0 ? -15 : 15) : 0;
             tower.blueWells = tower.blueWells || [];
-            tower.blueWells.push({ x: target.x + offsetX, y: target.y + offsetY, targetDist: target.distanceTraveled, life: 0.4, maxLife: 0.4, radius: 50 + (tower.stats.range * 0.5), rot: 0, maxHits: tower.stats.pierce });
+            // PRO FIX: Store the 'damage' parameter so the update loop uses the buffed value
+            tower.blueWells.push({ 
+                x: target.x + offsetX, y: target.y + offsetY, targetDist: target.distanceTraveled, 
+                life: 1.0, maxLife: 1.0, radius: 50 + (tower.stats.range * 0.5), rot: 0, 
+                maxHits: 9999, dmg: damage 
+            });
         }
     }
 };

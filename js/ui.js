@@ -1,5 +1,6 @@
 import { TowerStats, Upgrades } from './towers/index.js';
 import { HeroStats } from './config.js';
+import { getEffectiveCooldown } from './towerBehavior.js'; // PRO REFACTOR: Import ECS System
 
 export const UI = {
     _towerCardCache: null,
@@ -11,7 +12,9 @@ export const UI = {
     showPause() { document.getElementById('pause-menu').classList.remove('hidden'); },
     hidePause() { document.getElementById('pause-menu').classList.add('hidden'); },
     updateWaveSpeedBtn(speedState) {
-        const btn = document.getElementById('wave-speed-btn'); const sbBtn = document.getElementById('sb-speed-btn'); const targets = [btn, sbBtn].filter(Boolean);
+        const btn = document.getElementById('wave-speed-btn');
+        const sbBtn = document.getElementById('sb-speed-btn');
+        const targets = [btn, sbBtn].filter(Boolean);
         if (targets.length === 0) return;
         let text, active;
         if (speedState === 0) { text = "Start Wave"; active = false; }
@@ -40,28 +43,6 @@ export const UI = {
     updateAbilityBar(engine) {
         const bar = document.getElementById('ability-bar');
         if (!bar) return;
-        
-        if (engine.gameState !== 'playing') {
-            bar.classList.add('hidden');
-            return;
-        }
-        bar.classList.remove('hidden');
-
-        // ... rest of ability bar code
-           // NEW: Show cancel button only if holding a tower or selecting one
-        const cancelBtn = document.getElementById('cancel-btn');
-        if (cancelBtn) {
-            if (engine.selectedPlacedTower || engine.selectedTowerType) {
-                cancelBtn.classList.remove('hidden');
-            } else {
-                cancelBtn.classList.add('hidden');
-            }
-        }
-
-        if (engine.gameState !== 'playing') {
-            bar.classList.add('hidden');
-            return;
-        }
         if (engine.gameState !== 'playing') { bar.classList.add('hidden'); return; }
         bar.classList.remove('hidden');
 
@@ -109,26 +90,17 @@ export const UI = {
         }
     },
     showUpgradeUI(t, engine) {
-        const panel = document.getElementById('upgrade-panel'); 
-        if (!panel) return;
-        panel.classList.remove('hidden'); 
-        
-        const heroUI = document.getElementById('hero-ui');
-        const towerUI = document.getElementById('tower-ui');
-        const sellBtn = document.getElementById('up-sell');
-        const bankBtn = document.getElementById('up-collect-bank'); // NEW
-        
+        const panel = document.getElementById('upgrade-panel'); if (!panel) return; panel.classList.remove('hidden'); 
+        const heroUI = document.getElementById('hero-ui'); const towerUI = document.getElementById('tower-ui'); const sellBtn = document.getElementById('up-sell');
+        const bankBtn = document.getElementById('up-collect-bank');
         if (sellBtn && sellBtn.parentElement.id !== 'upgrade-panel') { panel.appendChild(sellBtn); }
         if (sellBtn) sellBtn.classList.remove('hidden');
 
-        // PRO FIX: Show Bank Collect button only if it's a bank with money
         if (bankBtn) {
             if (t.type === 'farm' && t.stats.isBank && t.bankBalance > 0) {
                 bankBtn.classList.remove('hidden');
                 bankBtn.innerText = `Collect Bank ($${Math.floor(t.bankBalance)})`;
-            } else {
-                bankBtn.classList.add('hidden');
-            }
+            } else { bankBtn.classList.add('hidden'); }
         }
 
         if (t.stats.isHero) {
@@ -149,10 +121,19 @@ export const UI = {
         } else {
             if (heroUI) heroUI.classList.add('hidden'); if (towerUI) towerUI.classList.remove('hidden');
             const upTitle = document.getElementById('up-title'); if (upTitle) upTitle.innerText = TowerStats[t.type].name; 
-            const upStats = document.getElementById('up-stats'); if (upStats) upStats.innerText = `DMG: ${t.stats.damage} | RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range} | RATE: ${t.stats.fireRate.toFixed(2)}`; 
+            
+            const upStats = document.getElementById('up-stats');
+            if (upStats) {
+                // PRO REFACTOR: Use TowerBehavior System for accurate cooldown
+                let effRate = getEffectiveCooldown(t);
+                let effPierce = t.stats.pierce + (t.buffedPierce || 0) + (t.alchBuff ? t.alchBuff.pierce : 0);
+                let effDmg = t.stats.damage + (t.buffedDmg || 0) + (t.alchBuff ? t.alchBuff.dmg : 0);
+                upStats.innerText = `DMG: ${effDmg} | RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`; 
+            }
+            
             let counters = "";
             if (t.type === 'farm' && t.stats.isBank) counters = `🏦 Bank: $${Math.floor(t.bankBalance)}`;
-            else if (t.type === 'farm') counters = `💰 Cash Gen: ${t.cashGenerated}`;
+            else if (t.type === 'farm') counters = `💰 Cash Gen: $${t.cashGenerated}`;
             else if (t.type === 'engineer' && t.activeTrap) counters = `🪤 Trap: ${t.activeTrap.rbe}/${t.activeTrap.maxRbe}`;
             else counters = `💥 Dmg Dealt: ${t.damageDealt}`;
             const upCounters = document.getElementById('up-counters'); if (upCounters) upCounters.innerText = counters; 
