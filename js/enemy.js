@@ -194,10 +194,10 @@ export class Enemy {
             if (effects.dot > 0) { this.dotDmg = Math.max(this.dotDmg, effects.dot); this.dotTimer = 3.0; }
             if (effects.moabDot > 0 && this.data.isMoab) { this.dotDmg = Math.max(this.dotDmg, effects.moabDot); this.dotTimer = 5.0; }
             
-            // PRO FIX: Ninja Monkey Effects
-            if (effects.stripCamo) this.isCamo = false; // Counter-Espionage
-            if (effects.knockback) this.distanceTraveled = Math.max(0, this.distanceTraveled - effects.knockback); // Distraction
-            if (effects.stun) this.applySlow(0.0, effects.stun, false); // Flash Bomb stun
+            // Ninja Monkey Effects
+            if (effects.stripCamo) this.isCamo = false; 
+            if (effects.knockback) this.distanceTraveled = Math.max(0, this.distanceTraveled - effects.knockback); 
+            if (effects.stun) this.applySlow(0.0, effects.stun, false); 
         }
         
         const canSpawn = GameEngine.enemies.length < 3500;
@@ -263,7 +263,6 @@ export class Enemy {
             return 1;
         }
 
-        // Standard Layer Peeling (Pink -> Red)
         let currentTier = this.tier, remainingDamage = damage, layersPopped = 0;
         let safetyCounter = 0;
         while (remainingDamage > 0 && currentTier !== null) { 
@@ -271,7 +270,6 @@ export class Enemy {
             currentTier = EnemyTypes[currentTier].nextTier; 
             layersPopped++; 
             
-            // PRO FIX: Play pop sound AND spawn pop effect when a layer goes down!
             if (currentTier !== null) {
                 AudioEngine.playSfx('pop');
                 GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
@@ -360,28 +358,7 @@ export class Enemy {
                 ctx.globalAlpha = 1;
                 ctx.globalCompositeOperation = 'source-over';
             }
-
-            // Stun FX Animation
-            if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) {
-                let t = performance.now() / 1000;
-                let fps = 15; 
-                let frame = Math.floor(t * fps) % 15; 
-                let asset = Assets.get(Names.getStunFX(frame));
-                if (!asset || !asset.loaded) asset = Assets.get(Names.getStunFX(0));
-                if (!asset || !asset.loaded) asset = Assets.get(`effect_stun`);
-                if (asset && asset.loaded) {
-                    let s = (this.data.size || 40) * 0.8;
-                    ctx.save();
-                    ctx.translate(this.x, this.y - this.data.radius - s/2);
-                    ctx.rotate(t * 5); 
-                    ctx.drawImage(asset, -s/2, -s/2, s, s);
-                    ctx.restore();
-                }
-            }
-            return; 
-        }
-        
-        if (this.data.isMoab) {
+        } else if (this.data.isMoab) {
             ctx.save(); 
             ctx.translate(this.x, this.y); 
             ctx.rotate(this.angle + Math.PI / 2); 
@@ -390,33 +367,52 @@ export class Enemy {
             ctx.fillStyle = '#e74c3c'; ctx.fillRect(-5, -this.data.radius * 0.6 - 5, 10, 5);
             ctx.restore();
             if (this.isFortified) { ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 4; ctx.strokeRect(this.x - this.data.radius, this.y - this.data.radius * 0.6, this.data.radius * 2, this.data.radius * 1.2); }
-            return;
-        }
-        ctx.fillStyle = this.data.color;
-        if (this.isRegen) {
-            let r = this.data.radius;
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y + r * 0.8);
-            ctx.bezierCurveTo(this.x, this.y, this.x - r, this.y, this.x - r, this.y - r * 0.4);
-            ctx.bezierCurveTo(this.x - r, this.y - r * 0.8, this.x - r * 0.5, this.y - r, this.x, this.y - r * 0.4);
-            ctx.bezierCurveTo(this.x + r * 0.5, this.y - r, this.x + r, this.y - r * 0.8, this.x + r, this.y - r * 0.4);
-            ctx.bezierCurveTo(this.x + r, this.y, this.x, this.y, this.x, this.y + r * 0.8);
-            ctx.fill();
         } else {
-            ctx.beginPath(); ctx.ellipse(this.x, this.y, this.data.radius * 0.9, this.data.radius, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = this.data.color;
+            if (this.isRegen) {
+                let r = this.data.radius;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y + r * 0.8);
+                ctx.bezierCurveTo(this.x, this.y, this.x - r, this.y, this.x - r, this.y - r * 0.4);
+                ctx.bezierCurveTo(this.x - r, this.y - r * 0.8, this.x - r * 0.5, this.y - r, this.x, this.y - r * 0.4);
+                ctx.bezierCurveTo(this.x + r * 0.5, this.y - r, this.x + r, this.y - r * 0.8, this.x + r, this.y - r * 0.4);
+                ctx.bezierCurveTo(this.x + r, this.y, this.x, this.y, this.x, this.y + r * 0.8);
+                ctx.fill();
+            } else {
+                ctx.beginPath(); ctx.ellipse(this.x, this.y, this.data.radius * 0.9, this.data.radius, 0, 0, Math.PI * 2); ctx.fill();
+            }
+            if (this.data.isLead) {
+                ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.ellipse(this.x, this.y, this.data.radius * 0.9, this.data.radius, 0, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.ellipse(this.x - this.data.radius/3, this.y - this.data.radius/3, this.data.radius/4, this.data.radius/2, -0.5, 0, Math.PI * 2); ctx.fill();
+                if (this.isFortified) { ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke(); }
+                else { ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke(); }
+            } else if (this.isCamo) {
+                ctx.fillStyle = '#5d4037'; ctx.beginPath(); ctx.arc(this.x - 4, this.y - 2, 4, 0, Math.PI*2); ctx.arc(this.x + 5, this.y + 3, 5, 0, Math.PI*2); ctx.fill();
+            } else if (this.data.isCeramic) {
+                ctx.strokeStyle = '#7f8c8d'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke();
+                if (this.isFortified) { ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke(); }
+            }
+            if (this.isFrozen) { ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke(); }
+            else if (this.slowFactor < 1.0) { ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke(); }
         }
-        if (this.data.isLead) {
-            ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.ellipse(this.x, this.y, this.data.radius * 0.9, this.data.radius, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.beginPath(); ctx.ellipse(this.x - this.data.radius/3, this.y - this.data.radius/3, this.data.radius/4, this.data.radius/2, -0.5, 0, Math.PI * 2); ctx.fill();
-            if (this.isFortified) { ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke(); }
-            else { ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke(); }
-        } else if (this.isCamo) {
-            ctx.fillStyle = '#5d4037'; ctx.beginPath(); ctx.arc(this.x - 4, this.y - 2, 4, 0, Math.PI*2); ctx.arc(this.x + 5, this.y + 3, 5, 0, Math.PI*2); ctx.fill();
-        } else if (this.data.isCeramic) {
-            ctx.strokeStyle = '#7f8c8d'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke();
-            if (this.isFortified) { ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke(); }
+
+        // PRO FIX: Stun FX Animation (Moved outside the if/else blocks so it always renders on top)
+        if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) {
+            let t = performance.now() / 1000;
+            let fps = 15; 
+            let frame = Math.floor(t * fps) % 15; 
+            let stunAsset = Assets.get(Names.getStunFX(frame));
+            if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get(Names.getStunFX(0));
+            if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get(`effect_stun`);
+            if (stunAsset && stunAsset.loaded) {
+                let s = (this.data.size || 40) * 0.8;
+                ctx.save();
+                // PRO FIX: Lowered Y offset so it doesn't float too high above big bloons
+                ctx.translate(this.x, this.y - this.data.radius * 0.6 - s/2);
+                ctx.rotate(t * 5); 
+                ctx.drawImage(stunAsset, -s/2, -s/2, s, s);
+                ctx.restore();
+            }
         }
-        if (this.isFrozen) { ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke(); }
-        else if (this.slowFactor < 1.0) { ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke(); }
     }
 }

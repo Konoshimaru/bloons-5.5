@@ -40,6 +40,14 @@ export const UI = {
     updateAbilityBar(engine) {
         const bar = document.getElementById('ability-bar');
         if (!bar) return;
+        
+        if (engine.gameState !== 'playing') {
+            bar.classList.add('hidden');
+            return;
+        }
+        bar.classList.remove('hidden');
+
+        // ... rest of ability bar code
            // NEW: Show cancel button only if holding a tower or selecting one
         const cancelBtn = document.getElementById('cancel-btn');
         if (cancelBtn) {

@@ -16,10 +16,11 @@ import mortar from './mortar.js';
 import wizard from './wizard.js';
 import engineer from './engineer.js';
 import alchemist from './alchemist.js';
+import farmer from './farmer.js'
 
 export const TowerRegistry = { 
     dart, boomerang, tack, ninja, sniper, ice, glue, bomb, spike, farm, village, 
-    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist 
+    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer
 };
 
 export const TowerStats = Object.fromEntries(Object.entries(TowerRegistry).map(([k, v]) => [k, v.stats]));

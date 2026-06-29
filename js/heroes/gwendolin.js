@@ -34,6 +34,20 @@ export default {
         20: [{ stat: "stormDmg", amount: 5 }, { stat: "stormMoabDmg", amount: 30 }, { stat: "cocktailDmg", amount: 3 }, { stat: "burnDmg", amount: 1 }]
     },
     update(tower, dt) {
+        // PRO FIX: Re-apply Heat It Up buff every frame while active
+        if (tower.heatItUpTimer > 0) {
+            tower.heatItUpTimer -= dt;
+            let hiuRange = (tower.stats.heatItUpRange || 0) + (tower.stats.range * 3.0);
+            for (let ot of GameEngine.towers) {
+                if (ot && Utils.distance(tower.x, tower.y, ot.x, ot.y) < hiuRange) {
+                    ot.buffedPierce = (ot.buffedPierce || 0) + 1;
+                    if (tower.level >= 17) {
+                        ot.buffedDmg = (ot.buffedDmg || 0) + 1;
+                        ot.buffedLead = true;
+                    }
+                }
+            }
+        }
         // Cocktail of Fire logic
         if (tower.cocktails && tower.cocktails.length > 0) {
             for (let i = tower.cocktails.length - 1; i >= 0; i--) {

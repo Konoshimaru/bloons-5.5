@@ -31,5 +31,50 @@ export default {
         for(let i=0; i<count; i++) {
             GameEngine.projectiles.push(new Projectile(tower.x, tower.y, damage, target, 'wizard_bolt', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, null, 5 * (i - (count-1)/2), tower, dmgType));
         }
+    },
+        update(tower, dt) {
+        if (tower.fireWells && tower.fireWells.length > 0) {
+            for (let i = tower.fireWells.length - 1; i >= 0; i--) {
+                let w = tower.fireWells[i];
+                w.life -= dt;
+                if (w.life <= 0) { tower.fireWells.splice(i, 1); continue; }
+                
+                const nearby = GameEngine.enemyGrid.query(w.x, w.y, w.radius);
+                for (let e of nearby) {
+                    if (!e.alive) continue;
+                    if (Utils.distance(w.x, w.y, e.x, e.y) < w.radius) {
+                        e.takeDamage(tower.stats.damage * dt * 5, { isFire: true, canHitLead: true });
+                    }
+                }
+            }
+        }
+    },
+        ability(tower, engine) {
+        engine.log("Wall of Fire!");
+        let target = null;
+        let bestVal = -Infinity;
+        for (let e of engine.enemies) {
+            if (!e.alive) continue;
+            if (e.distanceTraveled > bestVal) { bestVal = e.distanceTraveled; target = e; }
+        }
+        if (target) {
+            tower.fireWells = tower.fireWells || [];
+            tower.fireWells.push({ x: target.x, y: target.y, life: 4.0, maxLife: 4.0, radius: 60 });
+        }
+    },
+
+    draw(ctx, tower, isPreview) {
+        if (!isPreview && tower.fireWells) {
+            for (let w of tower.fireWells) {
+                ctx.globalAlpha = Math.min(1, w.life / w.maxLife) * 0.6;
+                const grad = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, w.radius);
+                grad.addColorStop(0, 'rgba(255, 100, 0, 0.8)');
+                grad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+        tower.drawBaseTower(ctx, isPreview);
     }
 };

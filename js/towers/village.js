@@ -22,6 +22,15 @@ export default {
                 t.discount = Math.max(t.discount, tower.stats.discount || 0); 
             }
         }
+    },
+        update(tower, dt) {
+        if (tower.stats.income) {
+            tower.incomeTimer = (tower.incomeTimer || 0) - dt;
+            if (tower.incomeTimer <= 0) {
+                tower.incomeTimer = 5.0; // Generate income every 5 seconds
+                GameEngine.addCash(tower.stats.income);
+            }
+        }
     }
     // No custom draw or update, falls through to drawBaseTower and acquireAndFire (which skips due to fireRate <= 0)
 };

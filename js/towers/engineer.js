@@ -149,5 +149,68 @@ export default {
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
         GameEngine.projectiles.push(new Projectile(tower.x, tower.y, damage, target, 'nail', tower.stats.projectileSpeed, tower.stats.pierce, 0.5, null, effects, 0, tower, dmgType));
+    },
+    upgrade(path) {
+        const tier = this.upgrades[path - 1];
+        const upgradeData = this.upgrades[path][tier];
+        if (!upgradeData) return false;
+
+        let cost = GameEngine.getCost(upgradeData.cost);
+        if (this.discount > 0) cost = Math.floor(cost * (1 - this.discount));
+
+        if (GameEngine.cash < cost || !this.canUpgrade(path)) return false;
+        GameEngine.cash -= cost; this.totalSpent += cost;
+        this.upgrades[path - 1]++;
+
+        if (upgradeData.stat) {
+            if (typeof upgradeData.amount === 'number') {
+                this.stats[upgradeData.stat] = (this.stats[upgradeData.stat] || 0) + upgradeData.amount;
+            } else {
+                this.stats[upgradeData.stat] = upgradeData.amount;
+            }
+        }
+        if (upgradeData.extraMods) {
+            for (let key in upgradeData.extraMods) {
+                let val = upgradeData.extraMods[key];
+                if (key === 'scale') { this.stats.scale = val; }
+                else if (key === 'unlocksAbility') {
+                    this.stats.isAbility = true;
+                    let cd = this.stats.abilityCd || 45;
+                    this.abilityCooldown = cd * (2 / 3);
+                }
+                else if (typeof val === 'number') { this.stats[key] = (this.stats[key] || 0) + val; }
+                else { this.stats[key] = val; }
+            }
+        }
+
+        if (path === 3 && this.activeTrap && this.upgrades[2] === 5) {
+            this.activeTrap.maxRbe = 9500;
+            this.activeTrap.moab = true;
+        }
+
+        if (this.stats.fireRate < 0.05) this.stats.fireRate = 0.05;
+        if (this.upgrades[path - 1] === 5) { GameEngine.tier5Bought[this.type + '-' + path] = true; }
+        GameEngine.updateUI();
+        return true;
+    },
+    ability(tower, engine) {
+        let target = null;
+        let maxCost = 0;
+        let effRange = tower.stats.range * RANGE_SCALE * 3.0;
+        for (let ot of engine.towers) {
+            if (ot === tower || ot.type === 'farm' || ot.type === 'village') continue;
+            if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < effRange) {
+                if (ot.totalSpent > maxCost) { maxCost = ot.totalSpent; target = ot; }
+            }
+        }
+        if (target) {
+            target.overclockTimer = 10;
+            if (tower.upgrades[1] === 5) {
+                target.ultraboostStacks = Math.min(10, (target.ultraboostStacks || 0) + 1);
+            }
+            engine.log("Overclock Activated on " + target.type + "!");
+        } else {
+            engine.log("No valid towers in range for Overclock!");
+        }
     }
 };

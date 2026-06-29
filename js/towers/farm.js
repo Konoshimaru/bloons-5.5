@@ -158,7 +158,7 @@ export default {
 
     spawnBanana(tower) {
         let angle = Math.random() * Math.PI * 2;
-        let dist = 10 + Math.random() * 30; // Spawns within 40px
+        let dist = 10 + Math.random() * 30; 
         let targetX = tower.x + Math.cos(angle) * dist;
         let targetY = tower.y + Math.sin(angle) * dist;
         
@@ -166,6 +166,16 @@ export default {
         if (tower.upgrades[0] === 4) baseValue = 300;
         if (tower.upgrades[0] === 5) baseValue = 1200;
         let mult = 1 + (tower.stats.bananaValueMult || 0);
+        
+        // PRO FIX: Dynamically check for Banana Central buff
+        if (tower.upgrades[0] === 4) {
+            for (let ot of GameEngine.towers) {
+                if (ot && ot.type === 'farm' && ot.upgrades[0] === 5) {
+                    mult += 0.25; // +25% from Banana Central
+                    break;
+                }
+            }
+        }
         
         tower.bananas.push({
             startX: tower.x, startY: tower.y, targetX, targetY,

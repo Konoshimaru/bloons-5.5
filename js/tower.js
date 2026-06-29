@@ -50,8 +50,6 @@ export class Tower {
     getActiveAssets() {
         let baseAsset = Assets.get(`tower_${this.type}_base`);
         let armAsset = Assets.get(`tower_${this.type}_arm`);
-        
-        // PRO FIX: Reverted to 45 to fix massive monkey sizes.
         let targetSize = this.stats.drawSize || (45 * (this.stats.scale || 1.0));
         let isCustomBase = false;
 
@@ -135,8 +133,7 @@ export class Tower {
                 this.attackAnimFrame++;
                 let prefix = `${this.attackPrefix}attack_${this.isFullAnim ? 'full_' : ''}`;
                 let nextAsset = Assets.get(`${prefix}${this.attackAnimFrame}`);
-                // PRO FIX: Only stop animation if the file is truly missing (isError), not just still downloading
-                if (!nextAsset || nextAsset.isError) {
+                if (!nextAsset || !nextAsset.loaded) {
                     this.attackAnimActive = false;
                     this.attackAnimFrame = 0;
                 }
@@ -209,7 +206,13 @@ export class Tower {
                 let effFireRate = this.fanClubBuffTimer > 0 ? (this.fanClubType === 'plasma' ? 0.03 : 0.06) : this.stats.fireRate;
                 if (this.overclockTimer > 0) effFireRate *= 0.6;
                 if (this.ultraboostStacks > 0) effFireRate *= (1 - 0.066 * this.ultraboostStacks);
-                if (this.abilityActiveTime > 0) effFireRate /= (this.stats.rapidShotMult || 3); 
+                
+                // PRO DEBUG: Check if abilityActiveTime is applying
+                if (this.abilityActiveTime > 0) {
+                    effFireRate /= (this.stats.rapidShotMult || 3);
+                    console.log(`Rapid Shot Active! Fire Rate: ${effFireRate}s`); 
+                }
+                
                 this.triggerAttack(target); 
                 this.cooldown = effFireRate / (1 + this.buffedFireRate); 
             } 
@@ -244,8 +247,7 @@ export class Tower {
             else if (baseArm && baseArm.loaded) { isFullAnim = false; animAsset = baseArm; }
         }
 
-       // PRO FIX: Only skip animation if the file is truly missing (isError)
-        if (!animAsset || animAsset.isError) {
+        if (!animAsset || !animAsset.loaded) {
             this.fire(target);
             return;
         }
@@ -290,7 +292,7 @@ export class Tower {
         let pierce = this.stats.pierce + (this.buffedPierce || 0);
         
         let baseDmgType = DamageType.NONE;
-        if (dmgTypeStr === 'sharp') baseDmgType = DamageType.SHARP;
+        if (dmgTypeStr === 'sharp' || dmgTypeStr === 'glue') baseDmgType = DamageType.SHARP;
         else if (dmgTypeStr === 'explosion') baseDmgType = DamageType.EXPLOSION;
         else if (dmgTypeStr === 'ice') baseDmgType = DamageType.ICE;
         else if (dmgTypeStr === 'plasma') baseDmgType = DamageType.PLASMA;

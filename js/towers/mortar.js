@@ -29,5 +29,15 @@ export default {
     fire(tower, target, damage, dmgType) {
         if (!target) return;
         GameEngine.projectiles.push(new Projectile(tower.x, tower.y, damage, target, 'mortar_shell', 0, 0, tower.stats.arcTime || 1.2, null, null, 0, tower, dmgType));
+    },
+        ability(tower, engine) {
+        engine.log("Pop and Awe!");
+        for (let e of engine.enemies) {
+            if (!e.alive) continue;
+            e.applySlow(0.0, 3.0, false); // Stun all bloons for 3s
+            e.takeDamage(tower.stats.damage * 5, { isExplosion: true, canHitLead: true });
+        }
+        // Screen flash effect
+        engine.explosions.push({ x: 450, y: 300, radius: 0, maxRadius: 900, life: 0.8, maxLife: 0.8, color: '#ffffff' });
     }
 };

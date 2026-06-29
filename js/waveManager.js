@@ -29,10 +29,11 @@ export class WaveManager {
         if (!waveData) {
             const m = Math.floor((this.currentWave - 40) / 5) + 2;
             const c = 5 + Math.floor((this.currentWave - 40) / 2);
-            const z = this.currentWave >= 80 ? Math.floor((this.currentWave - 80) / 5) + 1 : 0;
-            const ddt = this.currentWave >= 90 ? Math.floor((this.currentWave - 90) / 10) + 1 : 0;
-            const bad = this.currentWave >= 100 ? Math.floor((this.currentWave - 100) / 20) + 1 : 0;
-            const zomg = this.currentWave >= 70 ? Math.floor((this.currentWave - 70) / 15) + 1 : 0;
+            const z = this.currentWave >= 50 ? Math.floor((this.currentWave - 50) / 5) + 1 : 0;       // Was 80
+            const ddt = this.currentWave >= 60 ? Math.floor((this.currentWave - 60) / 10) + 1 : 0;    // Was 90
+            const bad = this.currentWave >= 70 ? Math.floor((this.currentWave - 70) / 20) + 1 : 0;    // Was 100
+            const zomg = this.currentWave >= 50 ? Math.floor((this.currentWave - 50) / 15) + 1 : 0;   // Was 70
+            // ... rest of generator code
             waveData = { groups: [] };
             if (bad > 0) waveData.groups.push({t: 17, c: bad, s: 0, e: 5, fort: true});
             if (zomg > 0) waveData.groups.push({t: 15, c: zomg, s: 0, e: 10, fort: true});

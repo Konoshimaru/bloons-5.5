@@ -1,11 +1,14 @@
+// js/heroes/quincy.js
 import { GameEngine } from '../engine.js';
 import { Projectile } from '../projectile.js';
 import { Utils } from '../utils.js';
 
 export default {
     stats: { 
-        name: "Quincy", cost: 540, range: 44, fireRate: 0.95, damage: 1, projectileSpeed: 800, pierce: 3, lifespan: 0.5, desc: "Auto-levels via XP. Fires powerful bouncing arrows.", dmgType: 'sharp', projectileType: 'arrow', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
-        rapidShotCd: 60, rapidShotDur: 8, rapidShotMult: 3, 
+        name: "Quincy", cost: 540, range: 44, fireRate: 0.95, damage: 1, projectileSpeed: 800, pierce: 3, 
+        lifespan: 0.5, desc: "Auto-levels via XP. Fires powerful bouncing arrows.", 
+        dmgType: 'sharp', projectileType: 'arrow', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
+        rapidShotMult: 3, rapidShotDur: 8, rapidShotCd: 60, 
         stormCd: 70, stormChance: 0.05, stormDmg: 6, stormMoabDmg: 6, stormCeramicDmg: 0
     },
     xpTable: [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 14400, 16650, 14940, 16380, 17820, 19260, 20700, 16470, 17280],
@@ -47,7 +50,8 @@ export default {
                             let dmg = soa.dmg;
                             if (e.data.isMoab) dmg += soa.moabDmg;
                             if (e.data.isCeramic) dmg += soa.ceramicDmg;
-                            e.takeDamage(dmg, dmgType);
+                            let actualDmg = e.takeDamage(dmg, dmgType); 
+                            tower.damageDealt += actualDmg;
                             e.stormHitTimer = 0.05;
                         }
                     }
@@ -81,43 +85,40 @@ export default {
         tower.drawBaseTower(ctx, isPreview);
     },
     ability(tower, engine) {
+        console.log("Quincy: Rapid Shot Activated!");
+        // PRO FIX: Force set abilityActiveTime directly on the tower
+        tower.abilityActiveTime = tower.stats.rapidShotDur || 8;
         engine.log("Quincy: Rapid Shot!");
     },
     ability2(tower, engine) {
-        let target = null;
-        let bestVal = (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') ? -Infinity : Infinity;
+        console.log("Quincy: Storm of Arrows Activated!");
+        // PRO FIX: Force set cooldown directly on the tower
+        tower.ability2Cooldown = tower.stats.stormCd || 70;
         
-        // PRO FIX: Obei his targeting priority globally
+        let target = null;
+        let bestVal = Infinity;
         for (let e of GameEngine.enemies) {
             if (!e.alive) continue;
-            let val;
-            if (tower.targetingMode === 'First' || tower.targetingMode === 'Last') val = e.distanceTraveled;
-            else if (tower.targetingMode === 'Strong') val = e.data.rbe;
-            else if (tower.targetingMode === 'Close') val = Utils.distance(tower.x, tower.y, e.x, e.y);
-            
-            let isBetter = false;
-            if (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') {
-                if (val > bestVal) isBetter = true;
-            } else {
-                if (val < bestVal) isBetter = true;
-            }
-            
-            if (isBetter) { bestVal = val; target = e; }
+            if (e.distanceTraveled < bestVal) { bestVal = e.distanceTraveled; target = e; }
         }
-        
         let x = target ? target.x : tower.x;
         let y = target ? target.y : tower.y;
 
         tower.stormOfArrows = {
             active: true, timer: 3, x: x, y: y, radius: 250,
-            chance: tower.stats.stormChance,
-            dmg: tower.stats.stormDmg,
-            moabDmg: tower.stats.stormMoabDmg,
-            ceramicDmg: tower.stats.stormCeramicDmg
+            chance: 1.0, // PRO DEBUG: 100% hit chance for testing
+            dmg: 100,    // PRO DEBUG: 100 damage for testing
+            moabDmg: 100,
+            ceramicDmg: 100
         };
         engine.log("Quincy: Storm of Arrows!");
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
+        // PRO DEBUG: Log if Rapid Shot is active when firing
+        if (tower.abilityActiveTime > 0) {
+            console.log(`Firing with Rapid Shot! Fire Rate: ${tower.stats.fireRate / (tower.stats.rapidShotMult || 3)}s`);
+        }
+        
         let count = tower.stats.projectileCount || 1;
         tower.shotCount = (tower.shotCount || 0) + 1;
         let isExplosive = tower.stats.applyExplosive && (tower.shotCount % (tower.stats.explosiveEvery || 3) === 0);

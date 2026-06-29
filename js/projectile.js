@@ -85,7 +85,8 @@ export class Projectile {
                 while (diff > Math.PI) diff -= Math.PI * 2;
                 while (diff < -Math.PI) diff += Math.PI * 2;
                 
-                let turnSpeed = 0.2; // Visible curve
+                // PRO FIX: Scale turn rate by dt
+                let turnSpeed = 12 * dt; // 12 radians per second
                 if (Math.abs(diff) < turnSpeed) {
                     this.angle = targetAngle;
                 } else {

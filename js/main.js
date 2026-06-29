@@ -373,7 +373,7 @@ function setupEventListeners() {
     // PRO FEATURE: Drag and Drop Tower Placement
     document.querySelectorAll('.tower-card[data-tower]').forEach(card => { 
         card.addEventListener('mousedown', (e) => { 
-            e.preventDefault(); // Prevent text selection while dragging
+            e.preventDefault(); 
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
             if (GameEngine.cash < GameEngine.getCost(stats.cost)) { GameEngine.log("Not enough cash!"); return; } 
             
@@ -382,7 +382,6 @@ function setupEventListeners() {
             card.classList.add('selected'); 
             GameEngine.selectedTowerType = card.dataset.tower; 
 
-            // Listen for mouse release globally to allow dragging outside the sidebar
             const handleMouseUp = (ev) => {
                 window.removeEventListener('mouseup', handleMouseUp);
                 const rect = GameEngine.canvas.getBoundingClientRect();
@@ -390,11 +389,13 @@ function setupEventListeners() {
                 // If released over the canvas, place it immediately
                 if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
                     GameEngine.handleCanvasClick({ clientX: ev.clientX, clientY: ev.clientY });
+                } else {
+                    // PRO FIX: If dragged back to sidebar or outside canvas, deselect!
+                    GameEngine.deselectAll();
                 }
             };
             window.addEventListener('mouseup', handleMouseUp);
         }); 
-
         // Keep hover tooltip
         card.addEventListener('mouseenter', (e) => { 
             const tip = document.getElementById('shop-tooltip'); 

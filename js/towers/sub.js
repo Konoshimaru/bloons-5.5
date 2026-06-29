@@ -12,5 +12,18 @@ export default {
     },
     fire(tower, target, damage, dmgType) {
         GameEngine.projectiles.push(new Projectile(tower.x, tower.y, damage, target, 'dart', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, null, 0, tower, dmgType));
+    },
+        ability(tower, engine) {
+        engine.log("First Strike Capability!");
+        let target = null;
+        let bestVal = -Infinity;
+        for (let e of engine.enemies) {
+            if (!e.alive) continue;
+            if (e.data.isMoab && e.hp > bestVal) { bestVal = e.hp; target = e; }
+        }
+        if (target) {
+            target.takeDamage(10000, { isExplosion: true, canHitLead: true });
+            engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: 150, life: 0.5, maxLife: 0.5, color: '#3498db' });
+        }
     }
 };

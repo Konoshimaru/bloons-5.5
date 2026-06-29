@@ -72,10 +72,10 @@ export default {
         if (tower.stats.flashBomb && shotCount % 4 === 0) {
             projType = 'flash_bomb';
             projDamage = 1;
-            projPierce = 1; // The projectile itself hits 1 bloon
+            projPierce = 1; 
             projDmgType = { isExplosion: true, canHitLead: true };
             ninjaEffects.stun = 1.0; 
-            // PRO FIX: Pass explosion stats to the effects
+            ninjaEffects.isExplosive = true;
             ninjaEffects.explosionPierce = 30; 
             ninjaEffects.explosionRadius = 60;
             ninjaEffects.explosionDamage = 1;
@@ -84,6 +84,11 @@ export default {
             projDamage = tower.stats.damage * 10; 
             projPierce = 1; 
             projDmgType = { isExplosion: true, canHitLead: true, moabDmg: 50 };
+            // PRO FIX: Sticky bomb must pass explosion stats to effects!
+            ninjaEffects.isExplosive = true;
+            ninjaEffects.explosionPierce = 1;
+            ninjaEffects.explosionRadius = 60;
+            ninjaEffects.explosionDamage = projDamage;
         }
 
         let spread = count > 2 ? 20 : 15; 
@@ -94,12 +99,10 @@ export default {
             GameEngine.projectiles.push(p);
         }
 
-        // PRO FIX: Caltrops drop ON THE TRACK, scatter randomly, and CANNOT pop lead
         if (tower.stats.caltrops && shotCount % 5 === 0) {
             let trackPoint = GameEngine.map.getNearestPathPoint(tower.x, tower.y);
             let randX = trackPoint.x + (Math.random() - 0.5) * 40;
             let randY = trackPoint.y + (Math.random() - 0.5) * 40;
-            // canHitLead is false!
             let p = new Projectile(randX, randY, 1, null, 'spike', 0, 6, 15.0, Math.random()*Math.PI*2, null, 0, tower, { isSharp: true, canHitLead: false });
             GameEngine.projectiles.push(p);
         }

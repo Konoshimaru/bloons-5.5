@@ -70,6 +70,8 @@ export default {
             const criticalLives = Math.max(1, GameEngine.difficulty.lives * 0.1);
             if (GameEngine.lives <= criticalLives) {
                 tower.phase = 2; tower.awakened = true;
+                tower.stats.canSeeCamo = true; // PRO FIX: Awakened Gojo sees Camo!
+                
                 let startDist = 0;
                 for (let e of GameEngine.enemies) { if (e.alive && e.distanceTraveled > startDist) startDist = e.distanceTraveled; }
                 tower.reverseWell = { life: 5.0, maxLife: 5.0, dist: startDist };

@@ -85,9 +85,25 @@ export default {
             tower.drawBaseTower(ctx, isPreview);
             return;
         }
-        // Center bolt
+        ctx.save(); ctx.translate(tower.x, tower.y);
+        let scaleVal = tower.stats.scale || 1.0; // PRO FIX: Defined the missing variable
+        let bodyColor = '#e74c3c';
+        if (tower.upgrades[0] >= 4) bodyColor = '#d35400'; 
+        if (tower.upgrades[1] >= 3) bodyColor = '#95a5a6'; 
+        
+        ctx.fillStyle = bodyColor;
+        ctx.beginPath(); ctx.arc(0, 0, 15 * scaleVal, 0, Math.PI*2); ctx.fill();
+        
+        ctx.fillStyle = '#2c3e50';
+        let barrelCount = tower.stats.tackCount || 8;
+        for(let i=0; i<barrelCount; i++) {
+            ctx.save(); ctx.rotate(i * (Math.PI*2 / barrelCount));
+            ctx.fillRect(10 * scaleVal, -2 * scaleVal, 8 * scaleVal, 4 * scaleVal);
+            ctx.restore();
+        }
+        
         ctx.fillStyle = '#7f8c8d';
-        ctx.beginPath(); ctx.arc(0, 0, 5 * size, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, 5 * scaleVal, 0, Math.PI*2); ctx.fill();
         ctx.restore();
     }
 };
