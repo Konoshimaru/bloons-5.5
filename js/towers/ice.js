@@ -1,6 +1,5 @@
-// js/towers/ice.js
 import { GameEngine } from '../engine.js';
-import { Utils } from '../utils.js'; // PRO FIX: Added missing import to prevent crash
+import { Utils } from '../utils.js';
 
 export default {
     stats: { 
@@ -20,7 +19,6 @@ export default {
             {name:"Absolute Zero", cost:25000, stat:"isAbility", amount:true, desc:"Ability: Freezes all bloons on screen.", extraMods:{unlocksAbility:true, abilityName:"Abs Zero", abilityCd:60}}
         ],
         2: [
-            // Converted to multiplicative cooldown
             {name:"Faster Thaw", cost:300, desc:"Attacks faster.", cooldownMult: 0.85},
             {name:"Snap Freeze", cost:500, stat:"damage", amount:1, desc:"Freezes and deals 1 damage."},
             {name:"Arctic Wind", cost:800, stat:"range", amount:40, desc:"Greatly increases range."},
@@ -31,18 +29,19 @@ export default {
             {name:"Cold Snap", cost:400, stat:"canHitLead", amount:true, desc:"Can freeze Lead bloons."},
             {name:"Frost Aura", cost:600, stat:"range", amount:20, desc:"Damages bloons in range over time."},
             {name:"Re-Freezer", cost:2000, stat:"slowDuration", amount:2, desc:"Freezes for longer."},
-            // Converted to multiplicative cooldown
             {name:"Cryo Cannon", cost:5000, desc:"Shoots a continuous beam of ice.", cooldownMult: 0.5},
             {name:"Super Freeze", cost:30000, stat:"slowFactor", amount:0.1, desc:"Freezes bloons almost completely solid."}
         ]
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
-        // Ice monkey hits everything in range instantly
         let expRadius = tower.stats.range * 3.0; 
         GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#1abc9c' });
         const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius);
         for (let e of nearby) {
             if (!e.alive) continue;
+            // PRO FIX: Re-added the missing Camo check!
+            if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
+            
             if (Utils.distance(tower.x, tower.y, e.x, e.y) < expRadius) {
                 e.takeDamage(damage, dmgType, { slow: tower.stats.slowFactor || 0.5, slowDuration: tower.stats.slowDuration || 2.0 });
             }

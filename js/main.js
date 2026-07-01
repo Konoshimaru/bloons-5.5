@@ -1,6 +1,5 @@
 import { GameEngine } from './engine.js';
-import { Config } from './config.js';
-import { HeroStats } from './heroes/index.js';
+import { Config, HeroStats } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { Maps } from './data.js';
@@ -8,7 +7,16 @@ import { AudioEngine } from './audio.js';
 import { Enemy } from './enemy.js';
 import { Hero } from './hero.js';
 import { InputManager } from './input.js';
-import { UI } from './ui.js'; // IMPORTANT: Added missing UI import
+import { UI } from './ui.js';
+
+window.addEventListener('error', (e) => {
+    const errMsg = document.getElementById('error-message');
+    if (errMsg) {
+        errMsg.innerText = `Game Error: ${e.message}. Check console (F12) for details.`;
+        errMsg.classList.remove('hidden');
+    }
+    console.error("Game Error:", e);
+});
 
 // DYNAMIC RESIZING LOGIC
 function resizeGame() {
@@ -16,7 +24,7 @@ function resizeGame() {
     if (!container) return;
     const scaleX = window.innerWidth / 900;
     const scaleY = window.innerHeight / 600;
-    const scale = Math.min(scaleX, scaleY) * 0.98; // 98% to leave a slight margin
+    const scale = Math.min(scaleX, scaleY) * 0.98; 
     container.style.transform = `scale(${scale})`;
 }
 window.addEventListener('resize', resizeGame);
@@ -160,7 +168,7 @@ function applyConfigToUI() {
 }
 
 async function startGameUI(isSandbox) {
-    await AudioEngine.init(); // WAIT for music folder to fetch!
+    await AudioEngine.init(); 
     AudioEngine.play(); 
     GameEngine.startGame(isSandbox); 
     updateShopPrices();
@@ -189,6 +197,30 @@ async function startGameUI(isSandbox) {
 }
 
 function setupEventListeners() {
+    // PRO FEATURE: Meta-Game Listeners
+    document.getElementById('continue-btn')?.addEventListener('click', () => {
+        if (GameEngine.loadGame()) {
+            AudioEngine.init(); 
+            AudioEngine.play(); 
+            
+            // Hide menus, show game UI without resetting state
+            document.getElementById('main-menu')?.classList.add('hidden');
+            document.getElementById('sidebar')?.classList.remove('hidden'); 
+            document.getElementById('top-ui-left')?.classList.remove('hidden'); 
+            document.getElementById('top-ui-right')?.classList.remove('hidden');
+            
+            document.getElementById('sandbox-controls')?.classList.add('hidden'); 
+            document.getElementById('norm-controls')?.classList.remove('hidden'); 
+            
+            document.getElementById('shop-view')?.classList.remove('hidden');
+            document.getElementById('enemy-view')?.classList.add('hidden');
+            
+            GameEngine.gameState = 'playing';
+            updateShopPrices();
+        }
+    });
+    document.getElementById('abandon-btn')?.addEventListener('click', () => GameEngine.abandonRun());
+
     document.getElementById('play-btn')?.addEventListener('click', () => GameEngine.toggleMenus('difficulty-menu'));
     document.getElementById('sandbox-btn')?.addEventListener('click', () => startGameUI(true));
     document.getElementById('hero-btn')?.addEventListener('click', () => GameEngine.toggleMenus('hero-select-menu'));
@@ -207,7 +239,14 @@ function setupEventListeners() {
     
     document.querySelectorAll('.back-btn[data-target]').forEach(btn => btn.addEventListener('click', (e) => GameEngine.toggleMenus(e.target.dataset.target)));
     document.getElementById('settings-back-btn')?.addEventListener('click', () => GameEngine.toggleMenus(GameEngine.lastMenu));
-    document.getElementById('go-menu-btn')?.addEventListener('click', () => { GameEngine.toggleMenus('main-menu'); document.getElementById('sidebar')?.classList.add('hidden'); document.getElementById('top-ui-left')?.classList.add('hidden'); document.getElementById('top-ui-right')?.classList.add('hidden'); AudioEngine.pause(); });
+    document.getElementById('go-menu-btn')?.addEventListener('click', () => { 
+        GameEngine.toggleMenus('main-menu'); 
+        document.getElementById('sidebar')?.classList.add('hidden'); 
+        document.getElementById('top-ui-left')?.classList.add('hidden'); 
+        document.getElementById('top-ui-right')?.classList.add('hidden'); 
+        AudioEngine.pause(); 
+        UI.updateMetaStats(); 
+    });
     
     document.getElementById('hm-prev-btn')?.addEventListener('click', () => {
         const sel = document.getElementById('hero-selector');
@@ -263,55 +302,34 @@ function setupEventListeners() {
     document.getElementById('pause-next-song')?.addEventListener('click', () => AudioEngine.nextTrack());
     
     document.getElementById('pause-btn')?.addEventListener('click', () => GameEngine.pauseGame());
-    
-    // PRO FEATURE: Clickable HUD for Sandbox Mode
-    document.getElementById('cash-display')?.addEventListener('click', () => {
-        if (!GameEngine.isSandbox) return;
-        const val = prompt("Set Cash Amount:", GameEngine.cash);
-        if (val !== null && !isNaN(val)) {
-            GameEngine.cash = Math.max(0, parseInt(val));
-            GameEngine.updateUI();
-        }
-    });
-
-    document.getElementById('lives-display')?.addEventListener('click', () => {
-        if (!GameEngine.isSandbox) return;
-        const val = prompt("Set Lives Amount:", GameEngine.lives);
-        if (val !== null && !isNaN(val)) {
-            GameEngine.lives = Math.max(0, parseInt(val));
-            GameEngine.updateUI();
-        }
-    });
-    
     document.getElementById('resume-btn')?.addEventListener('click', () => GameEngine.resumeGame());
     document.getElementById('pause-settings-btn')?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; GameEngine.toggleMenus('settings-menu'); });
-    document.getElementById('quit-btn')?.addEventListener('click', () => { GameEngine.gameState = 'menu'; GameEngine.toggleMenus('main-menu'); document.getElementById('sidebar')?.classList.add('hidden'); document.getElementById('top-ui-left')?.classList.add('hidden'); document.getElementById('top-ui-right')?.classList.add('hidden'); AudioEngine.pause(); });
+    document.getElementById('quit-btn')?.addEventListener('click', () => { 
+        GameEngine.saveGame(); // Auto-save before quitting
+        GameEngine.gameState = 'menu'; 
+        GameEngine.toggleMenus('main-menu'); 
+        document.getElementById('sidebar')?.classList.add('hidden'); 
+        document.getElementById('top-ui-left')?.classList.add('hidden'); 
+        document.getElementById('top-ui-right')?.classList.add('hidden'); 
+        AudioEngine.pause(); 
+        UI.updateMetaStats(); 
+    });
     document.getElementById('sb-prev')?.addEventListener('click', () => GameEngine.skipWave(-1));
     document.getElementById('sb-next')?.addEventListener('click', () => GameEngine.skipWave(1));
     document.getElementById('sb-speed-btn')?.addEventListener('click', () => GameEngine.handleWaveSpeedClick());
     
     document.getElementById('sb-reset-cooldowns')?.addEventListener('click', () => {
-        if (!GameEngine.isSandbox) return; // Only works in sandbox
-        
+        if (!GameEngine.isSandbox) return; 
         GameEngine.towers.forEach(t => {
             if (!t) return;
-            t.abilityCooldown = 0;
-            t.ability2Cooldown = 0;
-            t.ability3Cooldown = 0;
+            t.abilityCooldown = 0; t.ability2Cooldown = 0; t.ability3Cooldown = 0;
         });
-        
         GameEngine.log("Ability cooldowns reset!");
-        UI.updateAbilityBar(GameEngine); // Instantly update the UI
+        UI.updateAbilityBar(GameEngine); 
     });
     
-    document.getElementById('shuffle-music-checkbox')?.addEventListener('change', (e) => { 
-        Config.data.musicShuffle = e.target.checked; 
-        Config.save(); 
-    });
-    document.getElementById('random-start-checkbox')?.addEventListener('change', (e) => { 
-        Config.data.musicRandomStart = e.target.checked; 
-        Config.save(); 
-    });
+    document.getElementById('shuffle-music-checkbox')?.addEventListener('change', (e) => { Config.data.musicShuffle = e.target.checked; Config.save(); });
+    document.getElementById('random-start-checkbox')?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });
 
     let sandboxCamoOn = false, sandboxRegenOn = false, sandboxFortifiedOn = false;
     const shopView = document.getElementById('shop-view');
@@ -367,10 +385,7 @@ function setupEventListeners() {
     });
 
     InputManager.init();
-      // NEW: Wire the cancel button to deselect
-    document.getElementById('cancel-btn')?.addEventListener('click', () => GameEngine.deselectAll());
     
-    // PRO FEATURE: Drag and Drop Tower Placement
     document.querySelectorAll('.tower-card[data-tower]').forEach(card => { 
         card.addEventListener('mousedown', (e) => { 
             e.preventDefault(); 
@@ -386,17 +401,15 @@ function setupEventListeners() {
                 window.removeEventListener('mouseup', handleMouseUp);
                 const rect = GameEngine.canvas.getBoundingClientRect();
                 
-                // If released over the canvas, place it immediately
                 if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
                     GameEngine.handleCanvasClick({ clientX: ev.clientX, clientY: ev.clientY });
                 } else {
-                    // PRO FIX: If dragged back to sidebar or outside canvas, deselect!
                     GameEngine.deselectAll();
                 }
             };
             window.addEventListener('mouseup', handleMouseUp);
         }); 
-        // Keep hover tooltip
+
         card.addEventListener('mouseenter', (e) => { 
             const tip = document.getElementById('shop-tooltip'); 
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
@@ -439,7 +452,7 @@ function setupEventListeners() {
             GameEngine.addCash(Math.floor(GameEngine.selectedPlacedTower.bankBalance));
             GameEngine.selectedPlacedTower.bankBalance = 0;
             AudioEngine.playSfx('cash');
-            UI.showUpgradeUI(GameEngine.selectedPlacedTower, GameEngine); // Refresh UI to hide button
+            UI.showUpgradeUI(GameEngine.selectedPlacedTower, GameEngine); 
         }
     });
 }
@@ -448,6 +461,7 @@ window.addEventListener('load', () => {
     GameEngine.init();
     setupEventListeners();
     applyConfigToUI();
-    resizeGame(); // Call once on load
+    resizeGame(); 
+    UI.updateMetaStats(); // Load meta stats on boot
     document.getElementById('main-menu')?.classList.remove('hidden');
 });

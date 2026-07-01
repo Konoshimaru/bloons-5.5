@@ -1,6 +1,6 @@
 import { TowerStats, Upgrades } from './towers/index.js';
-import { HeroStats } from './config.js';
-import { getEffectiveCooldown } from './towerBehavior.js'; // PRO REFACTOR: Import ECS System
+import { Config, HeroStats } from './config.js'; // PRO FIX: Added Config to the import
+import { getEffectiveCooldown } from './towerBehavior.js';
 
 export const UI = {
     _towerCardCache: null,
@@ -11,6 +11,26 @@ export const UI = {
     },
     showPause() { document.getElementById('pause-menu').classList.remove('hidden'); },
     hidePause() { document.getElementById('pause-menu').classList.add('hidden'); },
+    
+    // PRO FEATURE: Meta-Game Stats Updater
+    updateMetaStats() {
+        const levelEl = document.getElementById('menu-player-level');
+        const mmEl = document.getElementById('menu-monkey-money');
+        const continueBtn = document.getElementById('continue-btn');
+        const abandonBtn = document.getElementById('abandon-btn');
+        
+        if (levelEl) levelEl.innerText = `Level ${Config.data.playerLevel}`;
+        if (mmEl) mmEl.innerText = `🐵 $${Config.data.monkeyMoney}`;
+        
+        if (Config.data.savedRun) {
+            if (continueBtn) continueBtn.style.display = 'block';
+            if (abandonBtn) abandonBtn.style.display = 'block';
+        } else {
+            if (continueBtn) continueBtn.style.display = 'none';
+            if (abandonBtn) abandonBtn.style.display = 'none';
+        }
+    },
+
     updateWaveSpeedBtn(speedState) {
         const btn = document.getElementById('wave-speed-btn');
         const sbBtn = document.getElementById('sb-speed-btn');
@@ -124,7 +144,6 @@ export const UI = {
             
             const upStats = document.getElementById('up-stats');
             if (upStats) {
-                // PRO REFACTOR: Use TowerBehavior System for accurate cooldown
                 let effRate = getEffectiveCooldown(t);
                 let effPierce = t.stats.pierce + (t.buffedPierce || 0) + (t.alchBuff ? t.alchBuff.pierce : 0);
                 let effDmg = t.stats.damage + (t.buffedDmg || 0) + (t.alchBuff ? t.alchBuff.dmg : 0);

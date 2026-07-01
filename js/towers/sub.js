@@ -13,6 +13,7 @@ export default {
             {name:"Advanced Intel", cost:400, desc:"Attacks faster.", cooldownMult: 0.8},
             {name:"Barbed Darts", cost:500, stat:"pierce", amount:2, desc:"Darts hit 3 bloons."},
             {name:"Armor Piercing Darts", cost:1000, stat:"canHitLead", amount:true, desc:"Can pop Lead bloons."},
+            // PRO FIX: Submerge is now correctly Path 1 Tier 4
             {name:"Submerge", cost:1500, stat:"isAbility", amount:true, desc:"Ability: Submerges to detect Camo.", extraMods:{unlocksAbility:true, abilityName:"Submerge", abilityCd:10}},
             {name:"Energizer", cost:25000, stat:"damage", amount:2, desc:"Deals 3 damage."}
         ],
@@ -20,6 +21,7 @@ export default {
             {name:"Longer Range", cost:300, stat:"range", amount:20, desc:"Increases range."},
             {name:"Twin Guns", cost:500, stat:"projectileCount", amount:1, desc:"Shoots 2 darts at once."},
             {name:"Airburst Darts", cost:1500, stat:"pierce", amount:3, desc:"Darts split into 3."},
+            // PRO FIX: First Strike is now correctly Path 2 Tier 4
             {name:"First Strike", cost:5000, stat:"isAbility", amount:true, desc:"Ability: Massive MOAB damage.", extraMods:{unlocksAbility:true, abilityName:"Strike", abilityCd:50}},
             {name:"Sub Commander", cost:30000, stat:"damage", amount:3, desc:"Deals 4 damage."}
         ],

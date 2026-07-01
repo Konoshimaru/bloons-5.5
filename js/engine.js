@@ -20,11 +20,8 @@ import { Renderer } from './renderer.js';
 export const GameEngine = {
     canvas: null, ctx: null, lastTime: 0, bgInterval: null, ui: UI, _rafId: null,
     enemies: [], towers: [], explosions: [],
-    
-    // PRO REFACTOR: Object Pools
     projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
-    
     enemyGrid: new SpatialGrid(80),
     lives: 100, cash: 650, selectedTowerType: null, selectedPlacedTower: null,
     mouse: { x: 0, y: 0 }, timeScale: 1, gameState: 'menu', currentMap: 0, runInBackground: false, lastMenu: 'main-menu', speedState: 0,
@@ -53,6 +50,7 @@ export const GameEngine = {
         
         document.addEventListener("visibilitychange", () => { 
             if (document.hidden) { 
+                this.saveGame(); // Auto-save when tab is hidden
                 if (this.runInBackground && this.gameState === 'playing' && !this.bgInterval) { 
                     this.bgInterval = setInterval(() => this.loop(performance.now()), 16); 
                 } 
@@ -130,6 +128,97 @@ export const GameEngine = {
             this.waveManager.startWave();
         }
         this.updateUI();
+    },
+    
+    // PRO FEATURE: Meta-Game Saving & Loading
+    saveGame() {
+        if (this.gameState !== 'playing' && this.gameState !== 'paused') return;
+        
+        const state = {
+            mapIndex: this.currentMap,
+            difficulty: this.difficulty.name,
+            lives: this.lives,
+            cash: this.cash,
+            wave: this.waveManager.currentWave,
+            towers: this.towers.map(t => ({
+                x: t.x, y: t.y, type: t.type, 
+                upgrades: [...t.upgrades], 
+                targeting: t.targetingMode,
+                heroLevel: t.level ? t.level : 0
+            }))
+        };
+        Config.data.savedRun = state;
+        Config.save();
+    },
+
+    loadGame() {
+        if (!Config.data.savedRun) return false;
+        const state = Config.data.savedRun;
+        
+        this.currentMap = state.mapIndex;
+        Config.data.currentDifficulty = state.difficulty.toLowerCase();
+        
+        this.startGame(false); 
+        
+        this.lives = state.lives;
+        this.cash = state.cash;
+        this.waveManager.currentWave = state.wave - 1; 
+        
+        for (let tData of state.towers) {
+            let t;
+            const stats = TowerStats[tData.type] || HeroStats[tData.type];
+            if (stats.isHero) {
+                t = new Hero(tData.x, tData.y, tData.type);
+                this.hero = t;
+            } else {
+                t = new Tower(tData.x, tData.y, tData.type);
+            }
+            t.upgrades = [...tData.upgrades];
+            t.targetingMode = tData.targeting;
+            t.applyUpgradesForLoad(); 
+            
+            if (t.stats.isHero && tData.heroLevel > 1) {
+                while(t.level < tData.heroLevel) {
+                    t.levelUp();
+                }
+            }
+            
+            this.towers.push(t);
+        }
+        
+        this.updateUI();
+        return true;
+    },
+
+    abandonRun() {
+        Config.data.savedRun = null;
+        Config.save();
+        this.gameState = 'menu';
+        UI.toggleMenus('main-menu');
+        UI.updateMetaStats();
+    },
+
+    giveRewards() {
+        const wavesSurvived = this.waveManager.currentWave;
+        const xpEarned = wavesSurvived * 15;
+        const mmEarned = Math.floor(wavesSurvived / 3) + 5;
+        
+        Config.data.playerXP += xpEarned;
+        Config.data.monkeyMoney += mmEarned;
+        
+        while (Config.data.playerXP >= Config.data.playerXPToNext) {
+            Config.data.playerXP -= Config.data.playerXPToNext;
+            Config.data.playerLevel++;
+            Config.data.playerXPToNext = Math.floor(Config.data.playerXPToNext * 1.25);
+        }
+        
+        Config.data.savedRun = null; 
+        Config.save();
+        
+        const rewardsEl = document.getElementById('go-rewards');
+        if (rewardsEl) {
+            rewardsEl.innerHTML = `+${xpEarned} XP<br>+${mmEarned} Monkey Money`;
+        }
     },
     
     pauseGame() { if (this.gameState !== 'playing') return; this.gameState = 'paused'; UI.showPause(); },
@@ -350,6 +439,11 @@ export const GameEngine = {
 
         UI.updateAbilityBar(this);
         this.updateUI();
-        if (this.lives <= 0) { AudioEngine.pause(); this.gameState = 'gameover'; UI.toggleMenus('game-over-menu'); document.getElementById('go-wave-stat').innerText = `You survived to Wave ${this.waveManager.currentWave}`; } 
+        if (this.lives <= 0) { 
+            AudioEngine.pause(); this.gameState = 'gameover'; 
+            this.giveRewards(); // PRO FEATURE: Give Meta rewards!
+            UI.toggleMenus('game-over-menu'); 
+            document.getElementById('go-wave-stat').innerText = `You survived to Wave ${this.waveManager.currentWave}`; 
+        } 
     }
 };

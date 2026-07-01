@@ -20,9 +20,9 @@ export default {
         2: [
             {name:"Bigger Stacks", cost:400, stat:"pierce", amount:5, desc:"Spikes pop 10 bloons."},
             {name:"White Hot Spikes", cost:600, stat:"canHitLead", amount:true, desc:"Can pop Lead bloons."},
-            {name:"MOAB SHREDR", cost:1500, stat:"moabDmg", amount:4, desc:"Deals 4 extra damage to MOABs."},
-            {name:"Spike Storm", cost:4000, stat:"isAbility", amount:true, desc:"Ability: Spikes cover the screen.", extraMods:{unlocksAbility:true, abilityName:"Storm", abilityCd:30}},
-            {name:"Carpet of Spikes", cost:25000, stat:"damage", amount:2, desc:"Spikes deal 3 damage."}
+            {name:"Spiked Balls", cost:1500, stat:"damage", amount:1, desc:"Spikes deal extra damage and pop more bloons.", extraMods:{pierce: 5}},
+            {name:"Spike Blitz", cost:4000, stat:"isAbility", amount:true, desc:"Ability: Spikes cover the screen.", extraMods:{unlocksAbility:true, abilityName:"Blitz", abilityCd:30}},
+            {name:"Heavy Carpet", cost:25000, stat:"damage", amount:3, desc:"Spikes deal massive damage."}
         ],
         3: [
             {name:"Long Reach", cost:300, stat:"range", amount:20, desc:"Increases range."},

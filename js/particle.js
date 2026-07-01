@@ -10,13 +10,13 @@ export class Particle {
     init(x, y, color) { 
         this.active = true;
         this.x = x; this.y = y; 
-        this.vx = (Math.random() - 0.5) * 150; 
-        this.vy = (Math.random() - 0.5) * 150; 
-        this.life = 0.4; this.maxLife = 0.4; 
+        this.vx = (Math.random() - 0.5) * 15; 
+        this.vy = (Math.random() - 0.5) * 15; 
+        this.life = 0.3; this.maxLife = 0.3;
         this.size = Math.random() * 0.5 + 0.75; 
         this.baseSize = 45; 
-        this.rotation = Math.random() * Math.PI * 2;
-        this.spin = (Math.random() - 0.5) * 10;
+        this.rotation = Math.random() * Math.PI * 1;
+        this.spin = (Math.random() - 0.5) * 1;
         this.popVariant = Math.floor(Math.random() * 3) + 1; 
     }
 

@@ -60,14 +60,30 @@ export default {
         }
         tower.drawBaseTower(ctx, isPreview);
     },
-    ability(tower, engine) { console.log("Quincy: Rapid Shot Activated!"); tower.abilityActiveTime = tower.stats.rapidShotDur || 8; engine.log("Quincy: Rapid Shot!"); },
+    ability(tower, engine) { tower.abilityActiveTime = tower.stats.rapidShotDur || 8; engine.log("Quincy: Rapid Shot!"); },
     ability2(tower, engine) {
-        console.log("Quincy: Storm of Arrows Activated!"); tower.ability2Cooldown = tower.stats.stormCd || 70;
-        let target = null; let bestVal = Infinity;
-        for (let e of GameEngine.enemies) { if (!e.alive) continue; if (e.distanceTraveled < bestVal) { bestVal = e.distanceTraveled; target = e; } }
-        let x = target ? target.x : tower.x; let y = target ? target.y : tower.y;
+        tower.ability2Cooldown = tower.stats.stormCd || 70;
+        let target = null; 
+        let bestVal = (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') ? -Infinity : Infinity;
         
-        // PRO FIX: Restored normal BTD6 stats (removed debug 100 dmg)
+        // PRO FIX: Obey his Targeting Mode
+        for (let e of GameEngine.enemies) { 
+            if (!e.alive) continue; 
+            let val;
+            if (tower.targetingMode === 'First' || tower.targetingMode === 'Last') val = e.distanceTraveled;
+            else if (tower.targetingMode === 'Strong') val = e.data.rbe;
+            else if (tower.targetingMode === 'Close') val = Utils.distance(tower.x, tower.y, e.x, e.y);
+            
+            let isBetter = false;
+            if (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') {
+                if (val > bestVal) isBetter = true;
+            } else {
+                if (val < bestVal) isBetter = true;
+            }
+            if (isBetter) { bestVal = val; target = e; }
+        }
+        
+        let x = target ? target.x : tower.x; let y = target ? target.y : tower.y;
         tower.stormOfArrows = { 
             active: true, timer: 3, x: x, y: y, radius: 250, 
             chance: tower.stats.stormChance, 
@@ -78,8 +94,9 @@ export default {
         engine.log("Quincy: Storm of Arrows!");
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
-        if (tower.abilityActiveTime > 0) console.log(`Firing with Rapid Shot! Fire Rate: ${tower.stats.fireRate / (tower.stats.rapidShotMult || 3)}s`);
-        let count = tower.stats.projectileCount || 1; tower.shotCount = (tower.shotCount || 0) + 1;
+        // PRO FIX: Removed debug console.log
+        let count = tower.stats.projectileCount || 1; 
+        tower.shotCount = (tower.shotCount || 0) + 1;
         let isExplosive = tower.stats.applyExplosive && (tower.shotCount % (tower.stats.explosiveEvery || 3) === 0);
         for(let i=0; i<count; i++) {
             let p = GameEngine.projectilePool.get();

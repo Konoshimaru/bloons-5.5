@@ -144,7 +144,13 @@ export default {
                 for (let e of nearby) {
                     if (pullHits >= w.maxHits) break; if (!e.alive) continue;
                     let dx = w.x - e.x; let dy = w.y - e.y; let dist = Math.hypot(dx, dy);
-                    if (dist < w.radius && dist > 1) { let pullStrength = 20 * dt * (w.life / w.maxLife); e.offsetX += dx * pullStrength; e.offsetY += dy * pullStrength; e.distanceTraveled += (w.targetDist - e.distanceTraveled) * 0.15; pullHits++; }
+                    if (dist < w.radius && dist > 1) { 
+                        let pullStrength = 20 * dt * (w.life / w.maxLife); 
+                        e.offsetX += dx * pullStrength; 
+                        e.offsetY += dy * pullStrength; 
+                        // PRO FIX: Removed the distanceTraveled manipulation. It was causing bloons to be infinitely trapped at the start of the track.
+                        pullHits++; 
+                    }
                 }
                 if (w.life <= 0) {
                     tower.blueWells.splice(i, 1); GameEngine.explosions.push({ x: w.x, y: w.y, radius: 0, maxRadius: w.radius, life: 0.3, maxLife: 0.3, color: '#0000ff' });

@@ -62,6 +62,13 @@ export class Projectile {
     }
     
     update(dt) {
+        // PRO FIX: Lifespan check moved to the very top so ALL projectiles die on time!
+        this.life -= dt; 
+        if (this.life <= 0) { 
+            if (this.type === 'ultra_juggernaut' && !this.hasSplit) this.split(); 
+            this.alive = false; return; 
+        }
+
         if (this.type === 'buff_potion') {
             if (this.targetTower) {
                 this.angle = Utils.angle(this.x, this.y, this.targetTower.x, this.targetTower.y);
@@ -93,10 +100,11 @@ export class Projectile {
                 for (let e of nearby) {
                     if (!e.alive || e.data.isBAD) continue;
                     if (hits >= this.pierce) break;
+                    let wasMoab = e.data.isMoab; 
                     e.tier = 1;
                     e.data = { ...EnemyTypes[1], speed: EnemyTypes[1].speed * (GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0) };
                     e.hp = 1; e.alive = true; 
-                    hits += e.data.isMoab ? 10 : 1; 
+                    hits += wasMoab ? 10 : 1; 
                 }
                 GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#9b59b6' });
                 this.alive = false;
@@ -105,7 +113,6 @@ export class Projectile {
         }
 
         if (this.type === 'mortar_shell') {
-            this.life -= dt;
             this.t = 1 - (this.life / this.maxLife);
             if (this.t >= 1) { this.alive = false; this.hit(null); return; }
             this.x = Utils.lerp(this.startX, this.targetX, this.t);
@@ -113,12 +120,6 @@ export class Projectile {
             return; 
         }
 
-        this.life -= dt; 
-        if (this.life <= 0) { 
-            if (this.type === 'ultra_juggernaut' && !this.hasSplit) this.split(); 
-            this.alive = false; return; 
-        }
-        
         if (this.type === 'ninja' && this.tower && this.tower.stats.seeking) {
             if (!this.target || !this.target.alive) {
                 let nearby = GameEngine.enemyGrid.query(this.x, this.y, 250);

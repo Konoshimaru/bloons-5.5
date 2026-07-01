@@ -50,6 +50,38 @@ export class Tower {
         TowerBehavior.update(this, dt);
     }
 
+    // PRO FEATURE: Apply upgrades for loading saved games without charging cash
+    applyUpgradesForLoad() {
+        for(let p=1; p<=3; p++) {
+            for(let tier=0; tier<this.upgrades[p-1]; tier++) {
+                let upgradeData = Upgrades[this.type][p][tier];
+                if (!upgradeData) continue;
+                
+                if(upgradeData.stat) {
+                    if(typeof upgradeData.amount === 'number') {
+                        this.stats[upgradeData.stat] = (this.stats[upgradeData.stat] || 0) + upgradeData.amount;
+                    } else {
+                        this.stats[upgradeData.stat] = upgradeData.amount; 
+                    }
+                }
+                if(upgradeData.extraMods) {
+                    for(let key in upgradeData.extraMods) {
+                        let val = upgradeData.extraMods[key];
+                        if(key === 'scale') this.stats.scale = val;
+                        else if(key === 'unlocksAbility') { this.stats.isAbility = true; }
+                        else if(key === 'abilityName') this.stats.abilityName = val;
+                        else if(key === 'abilityCd') this.stats.abilityCd = val;
+                        else if(typeof val === 'number') this.stats[key] = (this.stats[key] || 0) + val;
+                        else this.stats[key] = val;
+                    }
+                    if(upgradeData.extraMods.scale) {
+                        this.hitRadius = (TowerStats[this.type].hitRadius || 18) * upgradeData.extraMods.scale;
+                    }
+                }
+            }
+        }
+    }
+
     getActiveAssets() {
         let baseAsset = Assets.get(`tower_${this.type}_base`);
         let armAsset = Assets.get(`tower_${this.type}_arm`);
@@ -79,9 +111,7 @@ export class Tower {
         let targetSize = stats?.drawSize || 45;
         const asset = Assets.get(`tower_${type}_base`);
         if (asset && asset.loaded) {
-            ctx.save(); ctx.translate(x, y);
-            drawImageCentered(ctx, asset, targetSize); 
-            ctx.restore();
+            ctx.save(); ctx.translate(x, y); drawImageCentered(ctx, asset, targetSize); ctx.restore();
         } else {
             ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.arc(x, y, 15, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#D7BCA3'; ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2); ctx.fill();
@@ -137,12 +167,8 @@ export class Tower {
             }
         }
         
-        // Engineer XXXL Trap logic
         if (this.type === 'engineer' && path === 3 && this.upgrades[2] === 5) {
-            if (this.activeTrap) {
-                this.activeTrap.maxRbe = 9500;
-                this.activeTrap.moab = true;
-            }
+            if (this.activeTrap) { this.activeTrap.maxRbe = 9500; this.activeTrap.moab = true; }
         }
 
         if (this.stats.fireRate < 0.05 && !this.stats.baseCooldown) this.stats.fireRate = 0.05; 
