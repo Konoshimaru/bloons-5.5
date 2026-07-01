@@ -162,6 +162,10 @@ function applyConfigToUI() {
     const fpsDisplay = document.getElementById('fps-display');
     if (fpsDisplay) fpsDisplay.style.display = Config.data.showFps ? 'block' : 'none';
     
+    // PRO FEATURE: Load Extreme Speed setting
+    const extremeSpeedCb = document.getElementById('extreme-speed-checkbox');
+    if (extremeSpeedCb) extremeSpeedCb.checked = Config.data.extremeSpeedEnabled;
+    
     refreshMapSelector();
     refreshHeroSelector();
     updateHeroShopCard();
@@ -203,7 +207,6 @@ function setupEventListeners() {
             AudioEngine.init(); 
             AudioEngine.play(); 
             
-            // Hide menus, show game UI without resetting state
             document.getElementById('main-menu')?.classList.add('hidden');
             document.getElementById('sidebar')?.classList.remove('hidden'); 
             document.getElementById('top-ui-left')?.classList.remove('hidden'); 
@@ -220,6 +223,20 @@ function setupEventListeners() {
         }
     });
     document.getElementById('abandon-btn')?.addEventListener('click', () => GameEngine.abandonRun());
+
+    // PRO FIX: Restored Sandbox HUD Listeners
+    document.getElementById('cash-display')?.addEventListener('click', () => {
+        if (!GameEngine.isSandbox) return;
+        const val = prompt("Set Cash Amount:", GameEngine.cash);
+        if (val !== null && !isNaN(val)) { GameEngine.cash = Math.max(0, parseInt(val)); GameEngine.updateUI(); }
+    });
+    document.getElementById('lives-display')?.addEventListener('click', () => {
+        if (!GameEngine.isSandbox) return;
+        const val = prompt("Set Lives Amount:", GameEngine.lives);
+        if (val !== null && !isNaN(val)) { GameEngine.lives = Math.max(0, parseInt(val)); GameEngine.updateUI(); }
+    });
+    // PRO FIX: Restored Cancel Button Listener
+    document.getElementById('cancel-btn')?.addEventListener('click', () => GameEngine.deselectAll());
 
     document.getElementById('play-btn')?.addEventListener('click', () => GameEngine.toggleMenus('difficulty-menu'));
     document.getElementById('sandbox-btn')?.addEventListener('click', () => startGameUI(true));
@@ -264,6 +281,12 @@ function setupEventListeners() {
     document.getElementById('smoothing-checkbox')?.addEventListener('change', (e) => { Config.data.smoothingEnabled = e.target.checked; Config.save(); });
     document.getElementById('fps-checkbox')?.addEventListener('change', (e) => { Config.data.showFps = e.target.checked; Config.save(); const fpsDisp = document.getElementById('fps-display'); if (fpsDisp) fpsDisp.style.display = e.target.checked ? 'block' : 'none'; });
     
+    // PRO FEATURE: Extreme Speed Toggle Listener
+    document.getElementById('extreme-speed-checkbox')?.addEventListener('change', (e) => { 
+        Config.data.extremeSpeedEnabled = e.target.checked; 
+        Config.save(); 
+    });
+
     document.getElementById('add-map-btn')?.addEventListener('click', () => {
         try {
             const json = document.getElementById('map-json-input').value;
@@ -305,7 +328,7 @@ function setupEventListeners() {
     document.getElementById('resume-btn')?.addEventListener('click', () => GameEngine.resumeGame());
     document.getElementById('pause-settings-btn')?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; GameEngine.toggleMenus('settings-menu'); });
     document.getElementById('quit-btn')?.addEventListener('click', () => { 
-        GameEngine.saveGame(); // Auto-save before quitting
+        GameEngine.saveGame(); 
         GameEngine.gameState = 'menu'; 
         GameEngine.toggleMenus('main-menu'); 
         document.getElementById('sidebar')?.classList.add('hidden'); 
@@ -462,6 +485,6 @@ window.addEventListener('load', () => {
     setupEventListeners();
     applyConfigToUI();
     resizeGame(); 
-    UI.updateMetaStats(); // Load meta stats on boot
+    UI.updateMetaStats(); 
     document.getElementById('main-menu')?.classList.remove('hidden');
 });

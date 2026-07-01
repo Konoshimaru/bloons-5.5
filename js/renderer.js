@@ -6,7 +6,7 @@ import { Tower } from './tower.js';
 import { UI } from './ui.js';
 
 export const Renderer = {
-    render(engine) {
+    render(engine, dt) { 
         const ctx = engine.ctx;
         if (!engine.map) return; 
         
@@ -30,8 +30,6 @@ export const Renderer = {
         } 
         
         engine.towers.forEach(t => { if (t) t.draw(ctx); }); 
-        
-        // PRO FIX: Draw from the Object Pools!
         engine.projectilePool.active.forEach(p => { if (p && p.alive) p.draw(ctx); }); 
         engine.enemies.forEach(e => { if (e) e.draw(ctx); }); 
         engine.particlePool.active.forEach(p => { if (p && p.life > 0) p.draw(ctx); }); 
@@ -42,8 +40,6 @@ export const Renderer = {
             const cost = engine.getCost(stats.cost);
             const canAfford = engine.cash >= cost; 
             ctx.globalAlpha = 0.6; 
-
-            // PRO FIX: Restored RANGE_SCALE for placement preview
             if (stats.range < 9999) { 
                 let effRange = stats.range * RANGE_SCALE;
                 ctx.fillStyle = canAfford ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 0, 0, 0.2)'; 
@@ -72,8 +68,6 @@ export const Renderer = {
         if (engine.selectedPlacedTower) { 
             const t = engine.selectedPlacedTower; 
             ctx.strokeStyle = '#e67e22'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(t.x, t.y, t.hitRadius + 4, 0, Math.PI * 2); ctx.stroke(); 
-
-            // PRO FIX: Restored RANGE_SCALE for selected tower highlight
             if (t.stats.range < 9999) { 
                 let scale = (typeof RANGE_SCALE === 'number') ? RANGE_SCALE : 3.0;
                 let effRange = t.stats.range * scale * (1 + t.buffedRange + (t.alchBuff ? t.alchBuff.range : 0));
@@ -83,7 +77,6 @@ export const Renderer = {
         } 
         
         if (engine.flavorTimer > 0) {
-            engine.flavorTimer -= 0.016; 
             const el = document.getElementById('flavor-text');
             if (el) {
                 el.innerText = engine.flavorText;

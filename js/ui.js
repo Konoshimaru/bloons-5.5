@@ -1,5 +1,5 @@
 import { TowerStats, Upgrades } from './towers/index.js';
-import { Config, HeroStats } from './config.js'; // PRO FIX: Added Config to the import
+import { Config, HeroStats } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 
 export const UI = {
@@ -12,7 +12,6 @@ export const UI = {
     showPause() { document.getElementById('pause-menu').classList.remove('hidden'); },
     hidePause() { document.getElementById('pause-menu').classList.add('hidden'); },
     
-    // PRO FEATURE: Meta-Game Stats Updater
     updateMetaStats() {
         const levelEl = document.getElementById('menu-player-level');
         const mmEl = document.getElementById('menu-monkey-money');
@@ -37,12 +36,19 @@ export const UI = {
         const targets = [btn, sbBtn].filter(Boolean);
         if (targets.length === 0) return;
         let text, active;
+        
+        // PRO FEATURE: Added 5x, 10x, 20x text
         if (speedState === 0) { text = "Start Wave"; active = false; }
         else if (speedState === 1) { text = "➤ 1x"; active = true; }
         else if (speedState === 2) { text = "➤➤ 2x"; active = true; }
-        else { text = "➤➤➤ 3x"; active = true; }
+        else if (speedState === 3) { text = "➤➤➤ 3x"; active = true; }
+        else if (speedState === 4) { text = "➤ 5x"; active = true; }
+        else if (speedState === 5) { text = "➤ 10x"; active = true; }
+        else { text = "➤ 20x"; active = true; }
+        
         targets.forEach(b => { b.innerText = text; b.classList.toggle('speed-active', active); });
     },
+    
     hideUpgradePanel() {
         document.querySelectorAll('.tower-card[data-tower]').forEach(c => c.classList.remove('selected'));
         document.getElementById('upgrade-panel').classList.add('hidden');

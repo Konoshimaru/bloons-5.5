@@ -11,9 +11,9 @@ export const Config = {
         currentMap: 0, showFlavor: true, smoothingEnabled: true, showFps: true, 
         customMaps: [], currentDifficulty: 'medium',
         musicShuffle: false, musicRandomStart: false,
-        // PRO FEATURE: Meta-Game Stats
         monkeyMoney: 0, playerLevel: 1, playerXP: 0, playerXPToNext: 1000,
-        savedRun: null 
+        savedRun: null,
+        extremeSpeedEnabled: false // NEW: Toggle for 5x, 10x, 20x speeds
     },
     load() { 
         try {
@@ -25,11 +25,12 @@ export const Config = {
             if (!this.data.playerLevel) this.data.playerLevel = 1;
             if (!this.data.playerXP) this.data.playerXP = 0;
             if (!this.data.playerXPToNext) this.data.playerXPToNext = 1000;
+            if (!this.data.extremeSpeedEnabled) this.data.extremeSpeedEnabled = false;
             
             Maps.push(...this.data.customMaps);
         } catch (e) {
             console.error("Failed to load config, resetting to default.", e);
-            this.data = { sfxVolume: 0.5, musicVolume: 0.3, runInBackground: false, autoStart: false, currentMap: 0, showFlavor: true, smoothingEnabled: true, showFps: true, customMaps: [], currentDifficulty: 'medium', musicShuffle: false, musicRandomStart: false, monkeyMoney: 0, playerLevel: 1, playerXP: 0, playerXPToNext: 1000, savedRun: null };
+            this.data = { sfxVolume: 0.5, musicVolume: 0.3, runInBackground: false, autoStart: false, currentMap: 0, showFlavor: true, smoothingEnabled: true, showFps: true, customMaps: [], currentDifficulty: 'medium', musicShuffle: false, musicRandomStart: false, monkeyMoney: 0, playerLevel: 1, playerXP: 0, playerXPToNext: 1000, savedRun: null, extremeSpeedEnabled: false };
         }
     },
     save() { 

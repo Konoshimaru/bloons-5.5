@@ -16,11 +16,8 @@ export class WaveManager {
     clearField() {
         GameEngine.enemies = []; 
         this.spawnQueue = []; 
-        
-        // PRO FIX: Use Object Pool clear instead of old array!
         GameEngine.projectilePool.clear(); 
         GameEngine.particlePool.clear(); 
-        
         GameEngine.explosions = []; 
         GameEngine.acidPools = [];
         this.waveActive = false;
@@ -34,7 +31,6 @@ export class WaveManager {
         
         let waveData = Waves[this.currentWave - 1];
         
-        // If we run out of defined waves, generate a procedural endless wave
         if (!waveData) {
             const m = Math.floor((this.currentWave - 40) / 5) + 2;
             const c = 5 + Math.floor((this.currentWave - 40) / 2);
@@ -51,7 +47,6 @@ export class WaveManager {
             if (z > 0) waveData.groups.push({t: 9, c: z, s: 0, e: 20});
         }
         
-        // Build the spawn queue from the timeline data
         for (let group of waveData.groups) {
             let count = group.c;
             let start = group.s;
@@ -91,24 +86,23 @@ export class WaveManager {
         
         this.waveTime += dt;
         
-        // Check spawn queue
         while (this.spawnQueue.length > 0 && this.spawnQueue[0].time <= this.waveTime) {
             let spawn = this.spawnQueue.shift(); 
             GameEngine.enemies.push(new Enemy(spawn.tier, GameEngine.map, spawn.camo, spawn.regen, spawn.tier, spawn.fort));
         }
         
-        // Wave ends when queue is empty AND no enemies are left on screen
         if (this.spawnQueue.length === 0 && GameEngine.enemies.length === 0) { 
             this.waveActive = false; 
             if (!GameEngine.difficulty || !GameEngine.difficulty.noIncome) {
-                GameEngine.addCash(100 + (this.currentWave * 20)); 
+                let cashEarned = 100 + this.currentWave;
+                GameEngine.addCash(cashEarned); 
+                GameEngine.log(`Wave ${this.currentWave} Complete! +$${cashEarned}`);
+
                 for (let t of GameEngine.towers) {
                     if (t) {
                         if (t.type === 'farm' && t.stats.isBank) {
                             let cap = t.stats.bankCap || 7000;
-                            if (t.bankBalance < cap) {
-                                t.bankBalance = Math.min(cap, Math.floor(t.bankBalance * 1.15));
-                            }
+                            if (t.bankBalance < cap) t.bankBalance = Math.min(cap, Math.floor(t.bankBalance * 1.15));
                             if (t.upgrades[2] >= 2 && t.bankBalance >= cap) {
                                 GameEngine.addCash(Math.floor(t.bankBalance)); t.bankBalance = 0;
                             }
@@ -127,7 +121,7 @@ export class WaveManager {
                 else xp = round * 90 - 2880;
                 GameEngine.hero.gainXp(xp);
             }
-            GameEngine.updateUI(); GameEngine.log(`Wave ${this.currentWave} Complete!`); 
+            GameEngine.updateUI(); 
             if (this.autoWaveEnabled) { this.nextWaveTimer = 0.1; } else { GameEngine.speedState = 0; GameEngine.timeScale = 1; UI.updateWaveSpeedBtn(GameEngine.speedState); } 
         } 
     }
