@@ -167,8 +167,12 @@ export class Tower {
             }
         }
         
+        // PRO FIX: Update active trap stats when upgrading to XXXL Trap
         if (this.type === 'engineer' && path === 3 && this.upgrades[2] === 5) {
-            if (this.activeTrap) { this.activeTrap.maxRbe = 9500; this.activeTrap.moab = true; }
+            if (this.activeTrap) {
+                this.activeTrap.maxRbe = this.stats.trapRbe; // Use the newly upgraded stats
+                this.activeTrap.moab = this.stats.trapMoab || false;
+            }
         }
 
         if (this.stats.fireRate < 0.05 && !this.stats.baseCooldown) this.stats.fireRate = 0.05; 

@@ -114,9 +114,8 @@ export const Waves = [
     // Round 38
     { groups: [ {t:13, c:20, s:0, e:20}, {t:12, c:20, s:10, e:20} ] },
     // Round 39
-    { groups: [ {t:14, c:4, s:0, e:20}, {t:13, c:10, s:5, e:20} ] },
-    // Round 40
-    { groups: [ {t:14, c:1, s:0, e:0}, {t:13, c:10, s:5, e:15}, {t:12, c:20, s:15, e:20} ] } 
+    { groups: [ {t:10, c:20, s:0, e:20}, {t:8, c:10, s:10, e:20, fort: true} ] }, // Wave 39: Fortified Leads
+    { groups: [ {t:14, c:1, s:0, e:0}, {t:13, c:10, s:5, e:15}, {t:12, c:20, s:15, e:20, fort: true} ] } // Wave 40: Fortified Ceramics
 ];
 
 export let Maps = [

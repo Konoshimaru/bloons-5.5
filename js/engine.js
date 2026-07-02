@@ -77,14 +77,10 @@ export const GameEngine = {
     },
 
     handleWaveSpeedClick() {
-        // PRO FEATURE: Dynamic max speed based on settings
         let isExtreme = false;
         try {
             isExtreme = Config.data.extremeSpeedEnabled === true;
         } catch(e) { isExtreme = false; }
-        
-        // TEMP DEBUG LOG: Check console (F12) to see what value this is reading!
-        console.log("Extreme Speed Setting is:", isExtreme);
         
         let maxSpeed = isExtreme ? 6 : 3;
         
@@ -100,7 +96,6 @@ export const GameEngine = {
         
         UI.updateWaveSpeedBtn(this.speedState);
     },
-
     startGame(isSandbox = false) { 
         this.isSandbox = isSandbox;
         this.map = new GameMap(this.currentMap); this.gameState = 'playing'; 

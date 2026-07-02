@@ -31,6 +31,16 @@ export default {
             {name:"Merchantmen",cost:30000,stat:"income",amount:200,desc:"Generates $200 per round."}
         ]
     },
+    // PRO FIX: Added update function for income generation
+    update(tower, dt) {
+        if (tower.stats.income) {
+            tower.incomeTimer = (tower.incomeTimer || 0) - dt;
+            if (tower.incomeTimer <= 0) {
+                tower.incomeTimer = 5.0; // Generate income every 5 seconds
+                GameEngine.addCash(tower.stats.income);
+            }
+        }
+    },
     fire(tower, target, damage, dmgType) {
         let p1 = GameEngine.projectilePool.get();
         p1.init(tower.x, tower.y, damage, target, 'dart', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, null, 0, tower, dmgType);
