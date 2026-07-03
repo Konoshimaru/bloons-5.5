@@ -458,6 +458,7 @@ function _setupShopListeners() {
             dom.towerCards.forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             GameEngine.selectedTowerType = card.dataset.tower;
+            document.getElementById('cancel-btn').classList.remove('hidden');
 
             const handleMouseUp = (ev) => {
                 window.removeEventListener('mouseup', handleMouseUp);

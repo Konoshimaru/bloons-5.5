@@ -473,6 +473,8 @@ export const GameEngine = {
         this.selectedTowerType = null;
         this.selectedPlacedTower = null;
         UI.hideUpgradePanel();
+        const cancelBtn = document.getElementById('cancel-btn');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
     },
 
     spawnPopEffect(x, y, color) {

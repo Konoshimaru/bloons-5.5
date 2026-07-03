@@ -5,7 +5,7 @@ import { UI } from './ui.js';
 
 const SPAWN_INTERVAL_DEFAULT = 0.35;
 const AUTO_WAVE_DELAY = 0.1;
-const ENDLESS_BASE_ROUND = 40;
+const ENDLESS_BASE_ROUND = 41;
 
 export class WaveManager {
     constructor() {
