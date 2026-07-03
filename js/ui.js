@@ -107,7 +107,7 @@ export const UI = {
             }
         });
 
-        if (engine.selectedPlacedTower) {
+        if (engine.selectedPlacedTower && !engine.selectedPlacedTower.stats.isHero) {
             this._updateUpgradeCards(engine.selectedPlacedTower, engine);
         }
     },
