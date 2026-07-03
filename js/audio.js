@@ -1,176 +1,232 @@
 import { Config } from './config.js';
 
-export const AudioEngine = {
-    ctx: null, sfxVolume: 0.5, musicAudio: null, currentTrack: 0, isPlaying: false,
-    playlist: [], history: [], 
-    lastPopTime: 0, lastShootTime: 0, // PRO FIX: Throttle trackers
-    sfxCache: {}, 
+const SFX_VOLUME_MODIFIER = 0.1;
+const MIN_VOLUME = 0.0001;
+const POP_THROTTLE_MS = 50;
+const SHOOT_THROTTLE_MS = 30;
+const DEFAULT_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
 
-    async init() { 
-        if (this.ctx) return; 
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-        this.musicAudio = document.getElementById('bg-music');
-        this.sfxVolume = Config.data.sfxVolume;
-        this.musicAudio.volume = Config.data.musicVolume;
-        
-        await this.loadPlaylist();
-        
-        if (this.playlist.length === 0) {
-            console.warn("No music found. Ensure manifest.json exists in the music folder.");
-            return;
+// Variáveis de escopo local que atuam estritamente como estados privados seguros
+let ctx = null;
+let musicAudio = null;
+let sfxVolume = 0.5;
+let playlist = [];
+let history = [];
+let currentTrack = 0;
+let isPlaying = false;
+let lastPopTime = 0;
+let lastShootTime = 0;
+
+// Funções utilitárias internas (Substitutos de métodos privados)
+async function _loadPlaylistInternal() {
+    try {
+        const manifestRes = await fetch('./music/manifest.json');
+        if (manifestRes.ok) {
+            const manifest = await manifestRes.json();
+            if (manifest?.songs?.length > 0) {
+                playlist = manifest.songs.map(s => s.startsWith('music/') ? s : `music/${s}`);
+                console.log("Loaded music from manifest:", playlist);
+                return;
+            }
         }
-
-        if (Config.data.musicRandomStart) {
-            this.currentTrack = Math.floor(Math.random() * this.playlist.length);
+        
+        const response = await fetch('./music/');
+        if (!response.ok) throw new Error("Directory listing blocked");
+        
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const links = doc.querySelectorAll('a');
+        const mp3s = [];
+        const baseUrl = new URL('./music/', window.location.href);
+        
+        links.forEach(link => {
+            const href = link.getAttribute('href');
+            if (href && href.toLowerCase().endsWith('.mp3')) {
+                mp3s.push(new URL(href, baseUrl).href);
+            }
+        });
+        
+        if (mp3s.length > 0) {
+            playlist = mp3s;
+            console.log("Discovered music files:", playlist);
         } else {
-            this.currentTrack = 0;
+            throw new Error("No mp3s found");
         }
-        
-        this.loadTrack(this.currentTrack);
-        this.musicAudio.addEventListener('ended', () => this.nextTrack());
-    },
+    } catch (e) {
+        console.warn("Could not fetch music. Falling back to default list.", e);
+        playlist = [...DEFAULT_PLAYLIST];
+    }
+}
 
-    async loadPlaylist() {
+function _loadTrackInternal(index) {
+    if (index < 0 || index >= playlist.length) return;
+    currentTrack = index;
+    if (musicAudio) {
+        musicAudio.src = playlist[index];
+        if (isPlaying) AudioEngine.play();
+    }
+}
+
+export const AudioEngine = {
+    async init() {
+        if (ctx) return;
+        
         try {
-            const manifestRes = await fetch('./music/manifest.json');
-            if (manifestRes.ok) {
-                const manifest = await manifestRes.json();
-                if (manifest && manifest.songs && manifest.songs.length > 0) {
-                    this.playlist = manifest.songs.map(s => s.startsWith('music/') ? s : `music/${s}`);
-                    console.log("Loaded music from manifest:", this.playlist);
-                    return;
-                }
+            ctx = new (window.AudioContext || window.webkitAudioContext)();
+            musicAudio = document.getElementById('bg-music');
+            sfxVolume = Config.data.sfxVolume ?? 0.5;
+            
+            if (musicAudio) {
+                musicAudio.volume = Config.data.musicVolume ?? 0.3;
             }
             
-            const response = await fetch('./music/');
-            if (!response.ok) throw new Error("Directory listing blocked");
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const links = doc.querySelectorAll('a');
-            const mp3s = [];
-            const baseUrl = new URL('./music/', window.location.href);
-            links.forEach(link => {
-                const href = link.getAttribute('href');
-                if (href && href.toLowerCase().endsWith('.mp3')) {
-                    const absoluteUrl = new URL(href, baseUrl).href;
-                    mp3s.push(absoluteUrl);
-                }
-            });
-            if (mp3s.length > 0) {
-                this.playlist = mp3s;
-                console.log("Discovered music files:", this.playlist);
-            } else {
-                throw new Error("No mp3s found");
+            await _loadPlaylistInternal();
+            
+            if (playlist.length === 0) {
+                console.warn("No music found. Ensure manifest.json exists in the music folder.");
+                return;
+            }
+
+            currentTrack = Config.data.musicRandomStart 
+                ? Math.floor(Math.random() * playlist.length) 
+                : 0;
+            
+            _loadTrackInternal(currentTrack);
+            
+            if (musicAudio) {
+                musicAudio.addEventListener('ended', () => this.nextTrack());
             }
         } catch (e) {
-            console.warn("Could not fetch music. Game will run silently.", e);
-            this.playlist = [];
+            console.error("Failed to initialize AudioEngine:", e);
         }
     },
 
-    loadTrack(index) {
-        if (index < 0 || index >= this.playlist.length) return;
-        this.currentTrack = index;
-        this.musicAudio.src = this.playlist[index];
-        if (this.isPlaying) this.play();
+    setSfxVolume(v) {
+        sfxVolume = v;
+        Config.data.sfxVolume = v;
+        Config.save();
     },
 
-    setSfxVolume(v) { this.sfxVolume = v; Config.data.sfxVolume = v; Config.save(); },
-    setMusicVolume(v) { if (this.musicAudio) this.musicAudio.volume = v; Config.data.musicVolume = v; Config.save(); },
-    play() { if (this.musicAudio && this.musicAudio.src) { this.musicAudio.play().catch(e=>{}); this.isPlaying = true; } },
-    pause() { if (this.musicAudio) { this.musicAudio.pause(); this.isPlaying = false; } },
-    
+    setMusicVolume(v) {
+        if (musicAudio) musicAudio.volume = v;
+        Config.data.musicVolume = v;
+        Config.save();
+    },
+
+    play() {
+        if (musicAudio && musicAudio.src) {
+            musicAudio.play().catch(e => console.warn("Audio play blocked:", e));
+            isPlaying = true;
+        }
+    },
+
+    pause() {
+        if (musicAudio) {
+            musicAudio.pause();
+            isPlaying = false;
+        }
+    },
+
     nextTrack() {
-        if (this.playlist.length === 0) return;
+        if (playlist.length === 0) return;
         let nextIndex;
         if (Config.data.musicShuffle) {
-            if (this.playlist.length > 1) {
-                do { nextIndex = Math.floor(Math.random() * this.playlist.length); } while (nextIndex === this.currentTrack);
-            } else { nextIndex = 0; }
-            this.history.push(this.currentTrack);
+            if (playlist.length > 1) {
+                do {
+                    nextIndex = Math.floor(Math.random() * playlist.length);
+                } while (nextIndex === currentTrack);
+            } else {
+                nextIndex = 0;
+            }
+            history.push(currentTrack);
         } else {
-            nextIndex = (this.currentTrack + 1) % this.playlist.length;
+            nextIndex = (currentTrack + 1) % playlist.length;
         }
-        this.loadTrack(nextIndex);
+        _loadTrackInternal(nextIndex);
     },
-    
+
     prevTrack() {
-        if (this.playlist.length === 0) return;
+        if (playlist.length === 0) return;
         let prevIndex;
-        if (Config.data.musicShuffle && this.history.length > 0) {
-            prevIndex = this.history.pop();
+        if (Config.data.musicShuffle && history.length > 0) {
+            prevIndex = history.pop();
         } else {
-            prevIndex = (this.currentTrack - 1 + this.playlist.length) % this.playlist.length;
+            prevIndex = (currentTrack - 1 + playlist.length) % playlist.length;
         }
-        this.loadTrack(prevIndex);
+        _loadTrackInternal(prevIndex);
     },
 
     playSfx(type) {
-        if (!this.ctx) return;
+        if (!ctx) return;
         
-        let path = '';
-        let isFile = false;
+        const now = performance.now();
         
-        if (type === 'pop') {
-            let r = Math.floor(Math.random() * 4) + 1;
-            path = `sfx/pop${r}.mp3`;
-            isFile = true;
-        } else if (type === 'ceramic_hit') {
-            path = `sfx/ceramic_hit.mp3`;
-            isFile = true;
-        } else if (type === 'moab_hit') {
-            let r = Math.floor(Math.random() * 3) + 1;
-            path = `sfx/moab_hit${r}.mp3`;
-            isFile = true;
-        } else if (type === 'moab_destroy') {
-            let r = Math.floor(Math.random() * 3) + 1;
-            path = `sfx/moab_destroy${r}.mp3`;
-            isFile = true;
-        } else if (type === 'lead_hit') {
-            path = `sfx/lead_hit.mp3`;
-            isFile = true;
-        } else if (type === 'frozen_hit') {
-            path = `sfx/frozen_hit.mp3`;
-            isFile = true;
-        }
-
-        if (isFile) {
-            if (type === 'pop') {
-                const now = performance.now();
-                if (now - this.lastPopTime < 50) return; 
-                this.lastPopTime = now;
-            }
-            
-            let sound = this.sfxCache[path];
-            if (!sound) {
-                sound = new Audio(path);
-                this.sfxCache[path] = sound;
-            }
-            sound.volume = this.sfxVolume;
-            sound.currentTime = 0;
-            sound.play().catch(e=>{});
-            return;
-        }
-
-        // PRO FIX: Throttle shoot sound to prevent memory spam
-        if (type === 'shoot') {
-            const now = performance.now();
-            if (now - this.lastShootTime < 30) return; 
-            this.lastShootTime = now;
-        }
+        if (type === 'pop' && now - lastPopTime < POP_THROTTLE_MS) return;
+        if (type === 'shoot' && now - lastShootTime < SHOOT_THROTTLE_MS) return;
+        
+        if (type === 'pop') lastPopTime = now;
+        if (type === 'shoot') lastShootTime = now;
 
         try {
-            const o = this.ctx.createOscillator();
-            const g = this.ctx.createGain();
-            o.connect(g); g.connect(this.ctx.destination);
-            g.gain.value = Math.max(0.0001, this.sfxVolume * 0.1);
+            // Garante que o contexto não foi pausado pelo navegador devido a políticas de autoplay
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.connect(g);
+            g.connect(ctx.destination);
             
-            if (type === 'shoot') { o.type = 'square'; o.frequency.value = 400; g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.05); o.start(); o.stop(this.ctx.currentTime + 0.05); }
-            else if (type === 'place') { o.frequency.setValueAtTime(400, this.ctx.currentTime); o.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.15); o.start(); o.stop(this.ctx.currentTime + 0.15); }
-            else if (type === 'cash') { o.frequency.setValueAtTime(1200, this.ctx.currentTime); o.frequency.linearRampToValueAtTime(1600, this.ctx.currentTime + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.15); o.start(); o.stop(this.ctx.currentTime + 0.15); }
+            const vol = Math.max(MIN_VOLUME, sfxVolume * SFX_VOLUME_MODIFIER);
+            g.gain.setValueAtTime(vol, ctx.currentTime);
             
-            o.onended = () => { o.disconnect(); g.disconnect(); };
-        } catch (e) { console.error("Audio playback error safely caught:", e); }
+            switch (type) {
+                case 'pop':
+                    o.frequency.setValueAtTime(800, ctx.currentTime);
+                    o.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
+                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.1);
+                    o.start();
+                    o.stop(ctx.currentTime + 0.1);
+                    break;
+                case 'shoot':
+                    o.type = 'square';
+                    o.frequency.setValueAtTime(400, ctx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.05);
+                    o.start();
+                    o.stop(ctx.currentTime + 0.05);
+                    break;
+                case 'place':
+                    o.frequency.setValueAtTime(400, ctx.currentTime);
+                    o.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.1);
+                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.15);
+                    o.start();
+                    o.stop(ctx.currentTime + 0.15);
+                    break;
+                case 'cash':
+                    o.frequency.setValueAtTime(1200, ctx.currentTime);
+                    o.frequency.linearRampToValueAtTime(1600, ctx.currentTime + 0.1);
+                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.15);
+                    o.start();
+                    o.stop(ctx.currentTime + 0.15);
+                    break;
+                case 'leak':
+                    o.type = 'sawtooth';
+                    o.frequency.setValueAtTime(150, ctx.currentTime);
+                    o.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.2);
+                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.2);
+                    o.start();
+                    o.stop(ctx.currentTime + 0.2);
+                    break;
+            }
+            
+            o.onended = () => {
+                o.disconnect();
+                g.disconnect();
+            };
+        } catch (e) {
+            console.error("Audio playback error safely caught:", e);
+        }
     }
 };

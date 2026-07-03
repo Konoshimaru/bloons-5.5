@@ -2,7 +2,7 @@ import { Config, Difficulties, HeroStats, TargetingModes } from './config.js';
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { Maps, Waves } from './data.js';
-import { Utils, drawImageCentered } from './utils.js';
+import { Utils } from './utils.js';
 import { GameMap } from './map.js';
 import { Enemy } from './enemy.js';
 import { Tower } from './tower.js';
@@ -17,18 +17,66 @@ import Assets from './assets.js';
 import { UI } from './ui.js';
 import { Renderer } from './renderer.js';
 
+const MAX_PROJECTILES = 1500;
+const MAX_PARTICLES = 400;
+const MAX_EXPLOSIONS = 100;
+const MAX_ACID_POOLS = 100;
+const FIXED_TIMESTEP = 0.016;
+const FPS_UPDATE_INTERVAL = 1000;
+const SPEED_MULTIPLIERS = [1, 1, 2, 3, 5, 10, 20];
+const MAX_SPEED_NORMAL = 3;
+const MAX_SPEED_EXTREME = 6;
+
 export const GameEngine = {
-    canvas: null, ctx: null, lastTime: 0, bgInterval: null, ui: UI, _rafId: null,
-    enemies: [], towers: [], explosions: [],
+    canvas: null,
+    ctx: null,
+    lastTime: 0,
+    bgInterval: null,
+    ui: UI,
+    _rafId: null,
+    fpsEl: null,
+    
+    enemies: [],
+    towers: [],
+    explosions: [],
+    enemyGrid: new SpatialGrid(80),
+    
     projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
-    enemyGrid: new SpatialGrid(80),
-    lives: 100, cash: 650, selectedTowerType: null, selectedPlacedTower: null,
-    mouse: { x: 0, y: 0 }, timeScale: 1, gameState: 'menu', currentMap: 0, runInBackground: false, lastMenu: 'main-menu', speedState: 0,
-    maps: Maps, waveManager: new WaveManager(), tier5Bought: {}, flavorText: "", flavorTimer: 0, isSandbox: false, 
-    lastCash: -1, lastLives: -1, frames: 0, fps: 0, lastFpsUpdate: 0, 
-    difficulty: null, hero: null, sandboxFortified: false, selectedHero: 'quincy',
-    imfDebt: 0, acidPools: [],
+    
+    lives: 100,
+    cash: 650,
+    selectedTowerType: null,
+    selectedPlacedTower: null,
+    mouse: { x: 0, y: 0 },
+    timeScale: 1,
+    gameState: 'menu',
+    currentMap: 0,
+    runInBackground: false,
+    lastMenu: 'main-menu',
+    speedState: 0,
+    
+    maps: Maps,
+    waveManager: new WaveManager(),
+    tier5Bought: {},
+    flavorText: "",
+    flavorTimer: 0,
+    isSandbox: false,
+    leakFlash: 0,
+    
+    lastCash: -1,
+    lastLives: -1,
+    frames: 0,
+    fps: 0,
+    lastFpsUpdate: 0,
+    
+    difficulty: null,
+    hero: null,
+    sandboxFortified: false,
+    selectedHero: 'quincy',
+    
+    imfDebt: 0,
+    acidPools: [],
 
     init() {
         Config.load();
@@ -36,107 +84,149 @@ export const GameEngine = {
         if (!Config.data.selectedHero) Config.data.selectedHero = 'quincy';
         this.selectedHero = Config.data.selectedHero;
         this.currentMap = Config.data.currentMap;
+        
         if (isNaN(this.currentMap) || this.currentMap < 0 || this.currentMap >= Maps.length) {
-            this.currentMap = 0; Config.data.currentMap = 0; Config.save();
+            this.currentMap = 0; 
+            Config.data.currentMap = 0; 
+            Config.save();
         }
+        
         this.runInBackground = Config.data.runInBackground;
         this.canvas = document.getElementById('gameCanvas'); 
         this.ctx = this.canvas.getContext('2d');
         this.ctx.imageSmoothingEnabled = Config.data.smoothingEnabled;
         if (Config.data.smoothingEnabled) this.ctx.imageSmoothingQuality = 'high';
+        
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
         Assets.preloadCracks(); 
-        document.getElementById('fps-display').style.display = Config.data.showFps ? 'block' : 'none';
         
-        document.addEventListener("visibilitychange", () => { 
-            if (document.hidden) { 
-                this.saveGame(); 
-                if (this.runInBackground && this.gameState === 'playing' && !this.bgInterval) { 
-                    this.bgInterval = setInterval(() => this.loop(performance.now()), 16); 
-                } 
-            } else { 
-                if (this.bgInterval) { clearInterval(this.bgInterval); this.bgInterval = null; } 
-            } 
-        });
+        this.fpsEl = document.getElementById('fps-display');
+        if (this.fpsEl) this.fpsEl.style.display = Config.data.showFps ? 'block' : 'none';
+        
+        document.addEventListener("visibilitychange", () => this._handleVisibilityChange());
         
         this._boundLoop = this.loop.bind(this);
         if (this._rafId) cancelAnimationFrame(this._rafId);
         this._rafId = requestAnimationFrame(this._boundLoop);
     },
 
-    getCost(baseCost) { return Math.floor(baseCost * (this.difficulty ? this.difficulty.costMod : 1.0)); },
+    _handleVisibilityChange() {
+        if (document.hidden) {
+            this.saveGame();
+            if (this.runInBackground && this.gameState === 'playing' && !this.bgInterval) {
+                this.bgInterval = setInterval(() => this.loop(performance.now()), FIXED_TIMESTEP * 1000);
+            }
+        } else {
+            if (this.bgInterval) {
+                clearInterval(this.bgInterval);
+                this.bgInterval = null;
+            }
+        }
+    },
+
+    getCost(baseCost) {
+        return Math.floor(baseCost * (this.difficulty ? this.difficulty.costMod : 1.0));
+    },
 
     addCash(rawAmount) {
         if (rawAmount <= 0) return;
         if (this.imfDebt > 0) {
-            let tax = Math.floor(rawAmount * 0.5);
-            if (tax >= this.imfDebt) { rawAmount -= this.imfDebt; this.imfDebt = 0; } 
-            else { rawAmount -= tax; this.imfDebt -= tax; }
+            const tax = Math.floor(rawAmount * 0.5);
+            if (tax >= this.imfDebt) {
+                rawAmount -= this.imfDebt;
+                this.imfDebt = 0;
+            } else {
+                rawAmount -= tax;
+                this.imfDebt -= tax;
+            }
         }
         this.cash += rawAmount;
     },
 
     handleWaveSpeedClick() {
-        let isExtreme = false;
-        try {
-            isExtreme = Config.data.extremeSpeedEnabled === true;
-        } catch(e) { isExtreme = false; }
-        
-        let maxSpeed = isExtreme ? 6 : 3;
+        const isExtreme = Config.data.extremeSpeedEnabled === true;
+        const maxSpeed = isExtreme ? MAX_SPEED_EXTREME : MAX_SPEED_NORMAL;
         
         if (this.waveManager.waveActive || this.speedState > 0) {
             this.speedState++;
             if (this.speedState > maxSpeed) this.speedState = 1;
         } else {
-            this.waveManager.startWave(); 
-            this.speedState = 1; 
+            this.waveManager.startWave();
+            this.speedState = 1;
         }
         
-        this.timeScale = [1, 1, 2, 3, 5, 10, 20][this.speedState];
-        
+        this.timeScale = SPEED_MULTIPLIERS[this.speedState] || 1;
         UI.updateWaveSpeedBtn(this.speedState);
     },
-    startGame(isSandbox = false) { 
+
+    startGame(isSandbox = false) {
         this.isSandbox = isSandbox;
-        this.map = new GameMap(this.currentMap); this.gameState = 'playing'; 
+        this.map = new GameMap(this.currentMap);
+        this.gameState = 'playing';
+        
         const diff = isSandbox ? Difficulties.medium : Difficulties[Config.data.currentDifficulty];
         this.difficulty = diff;
-        this.lives = isSandbox ? 999999 : diff.lives; 
-        this.cash = isSandbox ? 10000000 : diff.cash; 
-        this.imfDebt = 0; 
-        this.towers = []; this.enemies = []; 
-        this.projectilePool.clear(); 
-        this.particlePool.clear();   
-        this.explosions = []; 
-        this.acidPools = []; 
-        this.hero = null; 
-        this.waveManager = new WaveManager(); 
-        this.waveManager.autoWaveEnabled = Config.data.autoStart; 
-        this.waveManager.currentWave = diff.startRound - 1; 
-        this.tier5Bought = {}; 
-        this.speedState = 0; this.timeScale = 1; UI.updateWaveSpeedBtn(this.speedState); this.updateUI(); 
+        this.lives = isSandbox ? 999999 : diff.lives;
+        this.cash = isSandbox ? 10000000 : diff.cash;
+        this.imfDebt = 0;
+        
+        this.towers.length = 0;
+        this.enemies.length = 0;
+        this.explosions.length = 0;
+        this.acidPools.length = 0;
+        
+        this.projectilePool.clear();
+        this.particlePool.clear();
+        
+        this.hero = null;
+        this.waveManager = new WaveManager();
+        this.waveManager.autoWaveEnabled = Config.data.autoStart;
+        this.waveManager.currentWave = diff.startRound - 1;
+        this.tier5Bought = {};
+        
+        this.speedState = 0;
+        this.timeScale = 1;
+        UI.updateWaveSpeedBtn(this.speedState);
+        this.updateUI();
     },
 
     skipWave(amount) {
         this.waveManager.clearField();
         const floorWave = this.difficulty ? this.difficulty.startRound : 1;
-        if (amount > 0) { this.waveManager.startWave(); } 
-        else if (amount < 0) {
-            if (this.waveManager.currentWave <= floorWave) { this.log("Already at the first wave!"); this.waveManager.currentWave = floorWave - 1; this.waveManager.startWave(); return; }
-            this.waveManager.currentWave -= 2; 
+        
+        if (amount > 0) {
+            this.waveManager.startWave();
+        } else if (amount < 0) {
+            if (this.waveManager.currentWave <= floorWave) {
+                this.log("Already at the first wave!");
+                this.waveManager.currentWave = floorWave - 1;
+                this.waveManager.startWave();
+                return;
+            }
+            this.waveManager.currentWave -= 2;
             if (this.waveManager.currentWave < floorWave - 1) this.waveManager.currentWave = floorWave - 1;
             this.waveManager.startWave();
         }
         this.updateUI();
     },
-    
+
     saveGame() {
         if (this.gameState !== 'playing' && this.gameState !== 'paused') return;
+        
         const state = {
-            mapIndex: this.currentMap, difficulty: this.difficulty.name, lives: this.lives, cash: this.cash,
+            mapIndex: this.currentMap,
+            difficulty: this.difficulty.name,
+            lives: this.lives,
+            cash: this.cash,
             wave: this.waveManager.currentWave,
-            towers: this.towers.map(t => ({ x: t.x, y: t.y, type: t.type, upgrades: [...t.upgrades], targeting: t.targetingMode, heroLevel: t.level ? t.level : 0 }))
+            towers: this.towers.map(t => ({
+                x: t.x, y: t.y, type: t.type,
+                upgrades: [...t.upgrades],
+                targeting: t.targetingMode,
+                heroLevel: t.level || 0
+            }))
         };
+        
         Config.data.savedRun = state;
         Config.save();
     },
@@ -144,23 +234,36 @@ export const GameEngine = {
     loadGame() {
         if (!Config.data.savedRun) return false;
         const state = Config.data.savedRun;
+        
         this.currentMap = state.mapIndex;
         Config.data.currentDifficulty = state.difficulty.toLowerCase();
-        this.startGame(false); 
+        this.startGame(false);
+        
         this.lives = state.lives;
         this.cash = state.cash;
-        this.waveManager.currentWave = state.wave - 1; 
-        for (let tData of state.towers) {
-            let t;
+        this.waveManager.currentWave = state.wave - 1;
+        
+        for (const tData of state.towers) {
             const stats = TowerStats[tData.type] || HeroStats[tData.type];
-            if (stats.isHero) { t = new Hero(tData.x, tData.y, tData.type); this.hero = t; } 
-            else { t = new Tower(tData.x, tData.y, tData.type); }
+            let t;
+            if (stats.isHero) {
+                t = new Hero(tData.x, tData.y, tData.type);
+                this.hero = t;
+            } else {
+                t = new Tower(tData.x, tData.y, tData.type);
+            }
+            
             t.upgrades = [...tData.upgrades];
             t.targetingMode = tData.targeting;
-            t.applyUpgradesForLoad(); 
-            if (t.stats.isHero && tData.heroLevel > 1) { while(t.level < tData.heroLevel) t.levelUp(); }
+            t.applyUpgradesForLoad();
+            
+            if (t.stats.isHero && tData.heroLevel > 1) {
+                while (t.level < tData.heroLevel) t.levelUp();
+            }
+            
             this.towers.push(t);
         }
+        
         this.updateUI();
         return true;
     },
@@ -177,81 +280,161 @@ export const GameEngine = {
         const wavesSurvived = this.waveManager.currentWave;
         const xpEarned = wavesSurvived * 15;
         const mmEarned = Math.floor(wavesSurvived / 3) + 5;
+        
         Config.data.playerXP += xpEarned;
         Config.data.monkeyMoney += mmEarned;
+        
         while (Config.data.playerXP >= Config.data.playerXPToNext) {
             Config.data.playerXP -= Config.data.playerXPToNext;
             Config.data.playerLevel++;
             Config.data.playerXPToNext = Math.floor(Config.data.playerXPToNext * 1.25);
         }
-        Config.data.savedRun = null; 
+        
+        Config.data.savedRun = null;
         Config.save();
+        
         const rewardsEl = document.getElementById('go-rewards');
         if (rewardsEl) rewardsEl.innerHTML = `+${xpEarned} XP<br>+${mmEarned} Monkey Money`;
     },
-    
-    pauseGame() { if (this.gameState !== 'playing') return; this.gameState = 'paused'; UI.showPause(); },
-    resumeGame() { if (this.gameState !== 'paused') return; this.gameState = 'playing'; UI.hidePause(); },
-    toggleMenus(menuId) { UI.toggleMenus(menuId); },
-    
+
+    pauseGame() {
+        if (this.gameState !== 'playing') return;
+        this.gameState = 'paused';
+        UI.showPause();
+    },
+
+    resumeGame() {
+        if (this.gameState !== 'paused') return;
+        this.gameState = 'playing';
+        UI.hidePause();
+    },
+
+    toggleMenus(menuId) {
+        UI.toggleMenus(menuId);
+    },
+
     handleCanvasClick(e) {
-        if (this.gameState !== 'playing') return; 
-        const rect = this.canvas.getBoundingClientRect(); const scaleX = this.canvas.width / rect.width; const scaleY = this.canvas.height / rect.height; const x = (e.clientX - rect.left) * scaleX, y = (e.clientY - rect.top) * scaleY;
+        if (this.gameState !== 'playing') return;
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
         
         if (this.hero && this.hero.isHollowCharging) {
             this.hero.isHollowCharging = false;
-            this.hero.hollowProjectile = { x: this.hero.x, y: this.hero.y, angle: Utils.angle(this.hero.x, this.hero.y, x, y), hitEnemies: new Set() };
-            return; 
+            this.hero.hollowProjectile = {
+                x: this.hero.x,
+                y: this.hero.y,
+                angle: Utils.angle(this.hero.x, this.hero.y, x, y),
+                hitEnemies: new Set()
+            };
+            return;
         }
 
-        let clickedTower = null; 
-        for (let t of this.towers) { if (t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + 5)) { clickedTower = t; break; } }
-        if (clickedTower) {
-            this.deselectAll(); this.selectedPlacedTower = clickedTower; UI.showUpgradeUI(this.selectedPlacedTower, this); return; 
+        // Check tower selection
+        for (const t of this.towers) {
+            if (t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + 5)) {
+                this.deselectAll();
+                this.selectedPlacedTower = t;
+                UI.showUpgradeUI(t, this);
+                return;
+            }
         }
-        if (this.selectedTowerType) { 
-            const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
-            const cost = this.getCost(stats.cost);
-            if (this.cash >= cost) { 
-                let isOverlapping = false; let placementRadius = stats.hitRadius || 18;
-                for (let t of this.towers) { if (t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + placementRadius)) { isOverlapping = true; break; } }
-                if (!isOverlapping) {
-                    let canPlace = false;
-                    if (stats.waterOnly) { for (let p of this.map.props) { if (p.type === 'pond' && Utils.distance(x, y, p.x, p.y) < 25) canPlace = true; } } 
-                    else { if (!this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < 600 && x < 720) canPlace = true; }
-                    if (canPlace) {
-                        if (stats.isHero && this.hero) { this.log("You can only place one Hero per game!"); return; }
-                        let newTower = stats.isHero ? new Hero(x, y, this.selectedTowerType) : new Tower(x, y, this.selectedTowerType);
-                        if (stats.isHero) this.hero = newTower;
-                        this.towers.push(newTower); 
-                        this.cash -= cost; AudioEngine.playSfx('place'); this.updateUI(); this.log("Tower placed!"); 
-                        this.deselectAll();
-                    } else { this.log(stats.waterOnly ? "Must be placed on water!" : "Cannot place here!"); }
-                } else { this.log("Cannot place on top of another monkey!"); }
-            } else { this.log("Not enough cash!"); } 
+
+        if (!this.selectedTowerType) return;
+
+        const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
+        const cost = this.getCost(stats.cost);
+        
+        if (this.cash < cost) {
+            this.log("Not enough cash!");
+            return;
         }
+
+        const placementRadius = stats.hitRadius || 18;
+        const isOverlapping = this.towers.some(t => t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + placementRadius));
+        
+        if (isOverlapping) {
+            this.log("Cannot place on top of another monkey!");
+            return;
+        }
+
+        let canPlace = false;
+        if (stats.waterOnly) {
+            canPlace = this.map.props.some(p => p.type === 'pond' && Utils.distance(x, y, p.x, p.y) < 25);
+        } else {
+            canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < 600 && x < 720;
+        }
+
+        if (!canPlace) {
+            this.log(stats.waterOnly ? "Must be placed on water!" : "Cannot place here!");
+            return;
+        }
+
+        if (stats.isHero && this.hero) {
+            this.log("You can only place one Hero per game!");
+            return;
+        }
+
+        const newTower = stats.isHero ? new Hero(x, y, this.selectedTowerType) : new Tower(x, y, this.selectedTowerType);
+        if (stats.isHero) this.hero = newTower;
+        
+        this.towers.push(newTower);
+        this.cash -= cost;
+        AudioEngine.playSfx('place');
+        this.updateUI();
+        this.log("Tower placed!");
+        this.deselectAll();
     },
 
-    cycleTargeting() { if (!this.selectedPlacedTower) return; const t = this.selectedPlacedTower; let idx = TargetingModes.indexOf(t.targetingMode); idx = (idx + 1) % TargetingModes.length; t.targetingMode = TargetingModes[idx]; UI.showUpgradeUI(this.selectedPlacedTower, this); },
-    
-    handleUpgrade(path) { 
-        if (!this.selectedPlacedTower) return; const t = this.selectedPlacedTower; const tier = t.upgrades[path - 1]; const upgradeData = Upgrades[t.type][path][tier]; 
-        if (!upgradeData) { this.log("Max upgrades reached!"); return; } 
-        if (!t.canUpgrade(path)) { this.log("Upgrade locked by crosspath or global limit!"); return; }
-        let cost = this.getCost(upgradeData.cost);
-        if (this.cash < cost) { this.log("Not enough cash!"); return; } 
-        t.upgrade(path); UI.showUpgradeUI(this.selectedPlacedTower, this); 
+    cycleTargeting() {
+        if (!this.selectedPlacedTower) return;
+        const t = this.selectedPlacedTower;
+        let idx = TargetingModes.indexOf(t.targetingMode);
+        idx = (idx + 1) % TargetingModes.length;
+        t.targetingMode = TargetingModes[idx];
+        UI.showUpgradeUI(t, this);
+    },
+
+    handleUpgrade(path) {
+        if (!this.selectedPlacedTower) return;
+        const t = this.selectedPlacedTower;
+        const tier = t.upgrades[path - 1];
+        const upgradeData = Upgrades[t.type][path][tier];
+        
+        if (!upgradeData) {
+            this.log("Max upgrades reached!");
+            return;
+        }
+        
+        if (!t.canUpgrade(path)) {
+            this.log("Upgrade locked by crosspath or global limit!");
+            return;
+        }
+        
+        const cost = this.getCost(upgradeData.cost);
+        if (this.cash < cost) {
+            this.log("Not enough cash!");
+            return;
+        }
+        
+        t.upgrade(path);
+        UI.showUpgradeUI(t, this);
     },
 
     buyHeroLevel() {
         if (this.selectedPlacedTower && this.selectedPlacedTower.stats.isHero) {
-            this.selectedPlacedTower.buyLevel(); UI.showUpgradeUI(this.selectedPlacedTower, this);
+            this.selectedPlacedTower.buyLevel();
+            UI.showUpgradeUI(this.selectedPlacedTower, this);
         }
     },
 
     activateAbility(slot = 1, t = null) {
         if (!t) t = this.selectedPlacedTower;
         if (!t) return;
+        
         const behavior = TowerRegistry[t.type] || HeroRegistry[t.type];
         if (!behavior) return;
 
@@ -271,151 +454,288 @@ export const GameEngine = {
             return;
         }
     },
-    
-    sellTower() { 
-        if (!this.selectedPlacedTower) return; 
-        if (this.difficulty && this.difficulty.noSelling) { this.log("Cannot sell in CHIMPS mode!"); return; }
-        if (this.selectedPlacedTower.stats.isHero) { this.hero = null; }
-        this.selectedPlacedTower.sell(); const idx = this.towers.indexOf(this.selectedPlacedTower); if (idx > -1) this.towers.splice(idx, 1); this.deselectAll(); 
+
+    sellTower() {
+        if (!this.selectedPlacedTower) return;
+        if (this.difficulty && this.difficulty.noSelling) {
+            this.log("Cannot sell in CHIMPS mode!");
+            return;
+        }
+        if (this.selectedPlacedTower.stats.isHero) this.hero = null;
+        
+        this.selectedPlacedTower.sell();
+        const idx = this.towers.indexOf(this.selectedPlacedTower);
+        if (idx > -1) this.towers.splice(idx, 1);
+        this.deselectAll();
     },
-    deselectAll() { this.selectedTowerType = null; this.selectedPlacedTower = null; UI.hideUpgradePanel(); },
-    
-    spawnPopEffect(x, y, color) { 
-        if (this.particlePool.active.length > 400) return; 
-        if (this.enemies.length > 600 && Math.random() > 0.2) return; 
-        let p = this.particlePool.get();
+
+    deselectAll() {
+        this.selectedTowerType = null;
+        this.selectedPlacedTower = null;
+        UI.hideUpgradePanel();
+    },
+
+    spawnPopEffect(x, y, color) {
+        if (this.particlePool.active.length > MAX_PARTICLES) return;
+        if (this.enemies.length > 600 && Math.random() > 0.2) return;
+        
+        const p = this.particlePool.get();
         p.init(x, y, color);
     },
-    log(msg) { UI.log(msg); },
-    
+
+    log(msg) {
+        UI.log(msg);
+    },
+
     updateUI() {
-        if (this.lastLives !== this.lives) { UI.updateLives(this.lives); this.lastLives = this.lives; }
-        if (this.lastCash !== this.cash) { UI.updateCash(this.cash, this); this.lastCash = this.cash; }
+        if (this.lastLives !== this.lives) {
+            UI.updateLives(this.lives);
+            this.lastLives = this.lives;
+        }
+        if (this.lastCash !== this.cash) {
+            UI.updateCash(this.cash, this);
+            this.lastCash = this.cash;
+        }
         UI.updateWave(this.waveManager.currentWave);
     },
 
-    loop(timestamp) { 
-        try {
-            const rawDt = (timestamp - this.lastTime) / 1000; 
-            this.lastTime = timestamp; this.frames++;
-            if (timestamp > this.lastFpsUpdate + 1000) {
-                this.fps = this.frames; this.lastFpsUpdate = timestamp; this.frames = 0;
-                const fpsEl = document.getElementById('fps-display'); if (fpsEl) fpsEl.innerText = `${this.fps} FPS`;
+    loop(timestamp) {
+        const rawDt = (timestamp - this.lastTime) / 1000;
+        this.lastTime = timestamp;
+        
+        this.frames++;
+        if (timestamp > this.lastFpsUpdate + FPS_UPDATE_INTERVAL) {
+            this.fps = this.frames;
+            this.lastFpsUpdate = timestamp;
+            this.frames = 0;
+            if (this.fpsEl) this.fpsEl.innerText = `${this.fps} FPS`;
+        }
+
+        if (this.gameState === 'playing') {
+            const targetDt = Math.min(rawDt, 0.1) * this.timeScale;
+            const steps = Math.ceil(targetDt / FIXED_TIMESTEP);
+            const stepDt = targetDt / steps;
+            
+            try {
+                for (let i = 0; i < steps; i++) this.update(stepDt);
+            } catch (err) {
+                console.error("FATAL SIMULATION ERROR:", err);
+                this.gameState = 'gameover';
+                UI.toggleMenus('game-over-menu');
+                document.getElementById('go-wave-stat').innerText = `Game Crash: ${err.message}.`;
             }
-            if (this.gameState === 'playing') { 
-                const targetDt = Math.min(rawDt, 0.1) * this.timeScale; 
-                const steps = Math.ceil(targetDt / 0.016); const stepDt = targetDt / steps; 
-                for (let i = 0; i < steps; i++) this.update(stepDt); 
-            } 
-            Renderer.render(this, rawDt); 
-            if (!document.hidden) {
-                if (this._rafId) cancelAnimationFrame(this._rafId);
-                this._rafId = requestAnimationFrame(this._boundLoop); 
-            }
-        } catch (err) {
-            console.error("FATAL GAME LOOP ERROR:", err);
-            this.gameState = 'gameover'; UI.toggleMenus('game-over-menu');
-            document.getElementById('go-wave-stat').innerText = `Game Crash: ${err.message}.`;
+        }
+        
+        Renderer.render(this, rawDt);
+        
+        if (!document.hidden) {
+            if (this._rafId) cancelAnimationFrame(this._rafId);
+            this._rafId = requestAnimationFrame(this._boundLoop);
         }
     },
-    
-    update(dt) { 
-        if (this.projectilePool.active.length > 1500) this.projectilePool.removeAt(0);
-        if (this.particlePool.active.length > 400) this.particlePool.removeAt(0);
-        if (this.explosions.length > 100) this.explosions.splice(0, this.explosions.length - 100);
 
-        if (this.flavorTimer > 0) this.flavorTimer -= dt;
-
-        this.waveManager.update(dt); 
+    update(dt) {
+        // 1. System Limits & Timers
+        this._updateLimitsAndTimers(dt);
         
-        if (this.acidPools) {
-            for (let i = this.acidPools.length - 1; i >= 0; i--) {
-                let pool = this.acidPools[i];
-                pool.life -= dt; pool.tick -= dt;
-                if (pool.life <= 0) { this.acidPools.splice(i, 1); continue; }
-                if (pool.tick <= 0) {
-                    pool.tick = 1.0;
-                    const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
-                    for (let e of nearby) {
-                        if (e.alive && Utils.distance(pool.x, pool.y, e.x, e.y) < pool.radius) e.takeDamage(pool.dmg, { isAcid: true, canHitLead: true });
-                    }
-                }
-            }
+        // 2. Wave System
+        this.waveManager.update(dt);
+        
+        // 3. Environment Systems (Acid Pools)
+        this._updateAcidPools(dt);
+        
+        // 4. Enemy System
+        const prevLives = this.lives;
+        this._updateEnemies(dt);
+        if (this.lives < prevLives) {
+            this.leakFlash = 0.3;
+            AudioEngine.playSfx('leak');
         }
         
-        for (let i = this.enemies.length - 1; i >= 0; i--) { 
-            let e = this.enemies[i];
-            if (e) {
-                e.update(dt); 
-                if (!e.alive) { let last = this.enemies.pop(); if (i < this.enemies.length) { this.enemies[i] = last; } }
-            }
-        } 
-
+        // 5. Spatial Partitioning
         this.enemyGrid.clear();
         for (const e of this.enemies) this.enemyGrid.insert(e);
         
-        for (let t of this.towers) { if (t) { t.buffedRange = 0; t.buffedFireRate = 0; t.buffedCamo = false; t.buffedLead = false; t.discount = 0; t.buffedDmg = 0; t.buffedPierce = 0; } }
-        this.towers.forEach(t => { if (!t) return; const behavior = TowerRegistry[t.type]; if (behavior && behavior.updateSupport) behavior.updateSupport(t, dt); });
-        this.towers.forEach(t => { if (t) t.update(dt); }); 
+        // 6. Tower System
+        this._updateTowers(dt);
         
-        if (this.mouse.x !== undefined) {
-            for (let t of this.towers) {
-                if (t && t.bananas) {
-                    for (let i = t.bananas.length - 1; i >= 0; i--) {
-                        let b = t.bananas[i];
-                        if (b.progress >= 1) { 
-                            let dist = Utils.distance(this.mouse.x, this.mouse.y, b.x, b.y);
-                            let range = t.stats.collectionRange || 40;
-                            if (dist < range) {
-                                let speed = 500 * dt;
-                                let dx = this.mouse.x - b.x; let dy = this.mouse.y - b.y;
-                                let d = Math.hypot(dx, dy) || 1;
-                                b.x += (dx / d) * speed; b.y += (dy / d) * speed;
-                                if (d < 15) {
-                                    this.addCash(b.value); 
-                                    t.cashGenerated = (t.cashGenerated || 0) + b.value;
-                                    AudioEngine.playSfx('cash'); t.bananas.splice(i, 1);
-                                }
-                            }
-                        }
+        // 7. Economy System (Bananas)
+        this._updateEconomy(dt);
+        
+        // 8. Projectile System
+        this._updateProjectiles(dt);
+        
+        // 9. Visual Effects Systems
+        this._updateExplosions(dt);
+        this._updateParticles(dt);
+        
+        // 10. UI & Game Over Checks
+        UI.updateAbilityBar(this);
+        this.updateUI();
+        
+        if (this.lives <= 0) {
+            AudioEngine.pause();
+            this.gameState = 'gameover';
+            this.giveRewards();
+            UI.toggleMenus('game-over-menu');
+            document.getElementById('go-wave-stat').innerText = `You survived to Wave ${this.waveManager.currentWave}`;
+        }
+    },
+
+    _updateLimitsAndTimers(dt) {
+        if (this.projectilePool.active.length > MAX_PROJECTILES) this.projectilePool.removeAt(0);
+        if (this.particlePool.active.length > MAX_PARTICLES) this.particlePool.removeAt(0);
+        if (this.explosions.length > MAX_EXPLOSIONS) this.explosions.shift();
+        if (this.acidPools.length > MAX_ACID_POOLS) this.acidPools.shift();
+
+        if (this.flavorTimer > 0) this.flavorTimer -= dt;
+        if (this.leakFlash > 0) this.leakFlash -= dt;
+    },
+
+    _updateAcidPools(dt) {
+        for (let i = this.acidPools.length - 1; i >= 0; i--) {
+            const pool = this.acidPools[i];
+            pool.life -= dt;
+            pool.tick -= dt;
+            
+            if (pool.life <= 0) {
+                this.acidPools.splice(i, 1);
+                continue;
+            }
+            
+            if (pool.tick <= 0) {
+                pool.tick = 1.0;
+                const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
+                for (const e of nearby) {
+                    if (e.alive && Utils.distance(pool.x, pool.y, e.x, e.y) < pool.radius) {
+                        e.takeDamage(pool.dmg, { isAcid: true, canHitLead: true });
                     }
                 }
             }
         }
+    },
+
+    _updateEnemies(dt) {
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const e = this.enemies[i];
+            if (!e) continue;
+            
+            e.update(dt);
+            
+            if (!e.alive) {
+                const last = this.enemies.pop();
+                if (i < this.enemies.length) {
+                    this.enemies[i] = last;
+                }
+            }
+        }
+    },
+
+    _updateTowers(dt) {
+        // Reset Buffs
+        for (const t of this.towers) {
+            if (!t) continue;
+            t.buffedRange = 0;
+            t.buffedFireRate = 0;
+            t.buffedCamo = false;
+            t.buffedLead = false;
+            t.discount = 0;
+            t.buffedDmg = 0;
+            t.buffedPierce = 0;
+        }
         
-        let activeProjectiles = this.projectilePool.active;
-        for (let i = activeProjectiles.length - 1; i >= 0; i--) { 
-            let p = activeProjectiles[i];
-            if (p) {
-                p.update(dt); 
-                if (!p.alive) this.projectilePool.removeAt(i); 
+        // Apply Support Buffs
+        for (const t of this.towers) {
+            if (!t) continue;
+            const behavior = TowerRegistry[t.type];
+            if (behavior && behavior.updateSupport) {
+                behavior.updateSupport(t, dt);
             }
-        } 
+        }
+        
+        // Update Tower Logic
+        for (const t of this.towers) {
+            if (t) t.update(dt);
+        }
+    },
 
-        for (let i = this.explosions.length - 1; i >= 0; i--) { 
-            let exp = this.explosions[i]; 
-            if (exp) {
-                exp.life -= dt; if (exp.maxLife > 0) { exp.radius = (1 - exp.life / exp.maxLife) * (exp.maxRadius || 0); }
-                if (exp.life <= 0) { let last = this.explosions.pop(); if (i < this.explosions.length) { this.explosions[i] = last; } } 
+    _updateEconomy(dt) {
+        if (this.mouse.x === undefined) return;
+        
+        for (const t of this.towers) {
+            if (!t || !t.bananas || t.bananas.length === 0) continue;
+            
+            for (let i = t.bananas.length - 1; i >= 0; i--) {
+                const b = t.bananas[i];
+                if (b.progress < 1) continue;
+                
+                const dist = Utils.distance(this.mouse.x, this.mouse.y, b.x, b.y);
+                const range = t.stats.collectionRange || 40;
+                
+                if (dist < range) {
+                    const speed = 500 * dt;
+                    const dx = this.mouse.x - b.x;
+                    const dy = this.mouse.y - b.y;
+                    const d = Math.hypot(dx, dy) || 1;
+                    
+                    b.x += (dx / d) * speed;
+                    b.y += (dy / d) * speed;
+                    
+                    if (d < 15) {
+                        this.addCash(b.value);
+                        t.cashGenerated = (t.cashGenerated || 0) + b.value;
+                        AudioEngine.playSfx('cash');
+                        t.bananas.splice(i, 1);
+                    }
+                }
             }
-        } 
+        }
+    },
 
-        let activeParticles = this.particlePool.active;
-        for (let i = activeParticles.length - 1; i >= 0; i--) { 
-            let pt = activeParticles[i];
-            if (pt) {
-                pt.update(dt); 
-                if (pt.life <= 0) this.particlePool.removeAt(i); 
+    _updateProjectiles(dt) {
+        const projectiles = this.projectilePool.active;
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            const p = projectiles[i];
+            if (!p) continue;
+            
+            p.update(dt);
+            
+            if (!p.alive) {
+                this.projectilePool.removeAt(i);
             }
-        } 
+        }
+    },
 
-        UI.updateAbilityBar(this);
-        this.updateUI();
-        if (this.lives <= 0) { 
-            AudioEngine.pause(); this.gameState = 'gameover'; 
-            this.giveRewards(); 
-            UI.toggleMenus('game-over-menu'); 
-            document.getElementById('go-wave-stat').innerText = `You survived to Wave ${this.waveManager.currentWave}`; 
-        } 
+    _updateExplosions(dt) {
+        for (let i = this.explosions.length - 1; i >= 0; i--) {
+            const exp = this.explosions[i];
+            if (!exp) continue;
+            
+            exp.life -= dt;
+            if (exp.maxLife > 0) {
+                exp.radius = (1 - exp.life / exp.maxLife) * (exp.maxRadius || 0);
+            }
+            
+            if (exp.life <= 0) {
+                const last = this.explosions.pop();
+                if (i < this.explosions.length) {
+                    this.explosions[i] = last;
+                }
+            }
+        }
+    },
+
+    _updateParticles(dt) {
+        const particles = this.particlePool.active;
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const pt = particles[i];
+            if (!pt) continue;
+            
+            pt.update(dt);
+            
+            if (pt.life <= 0) {
+                this.particlePool.removeAt(i);
+            }
+        }
     }
 };

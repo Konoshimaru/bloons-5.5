@@ -1,39 +1,58 @@
-// js/pool.js
 export class ObjectPool {
-    constructor(factoryMethod, resetMethod, initialSize = 100) {
-        this.factoryMethod = factoryMethod;
-        this.resetMethod = resetMethod;
-        this.pool = [];
-        this.active = []; 
+    #factory;
+    #reset;
+    #pool = [];
+    #active = [];
+
+    constructor(factory, resetFn, initialSize = 100) {
+        if (typeof factory !== 'function') {
+            throw new Error("ObjectPool requires a factory function.");
+        }
+        this.#factory = factory;
+        this.#reset = resetFn;
         
         for (let i = 0; i < initialSize; i++) {
-            this.pool.push(this.factoryMethod());
+            this.#pool.push(this.#factory());
         }
     }
 
     get() {
-        let obj = this.pool.length > 0 ? this.pool.pop() : this.factoryMethod();
-        this.active.push(obj);
+        const obj = this.#pool.pop() ?? this.#factory();
+        this.#active.push(obj);
         return obj;
     }
 
     release(obj) {
-        if (this.resetMethod) this.resetMethod(obj);
-        this.pool.push(obj);
+        if (this.#reset) {
+            this.#reset(obj);
+        }
+        this.#pool.push(obj);
     }
 
     removeAt(index) {
-        let obj = this.active[index];
-        let last = this.active.pop();
-        if (index < this.active.length) {
-            this.active[index] = last;
+        if (index < 0 || index >= this.#active.length) return;
+        
+        const obj = this.#active[index];
+        const last = this.#active.pop();
+        
+        if (index < this.#active.length) {
+            this.#active[index] = last;
         }
+        
         this.release(obj);
     }
 
     clear() {
-        while (this.active.length > 0) {
-            this.release(this.active.pop());
+        while (this.#active.length > 0) {
+            this.release(this.#active.pop());
         }
+    }
+
+    get active() {
+        return this.#active;
+    }
+
+    get size() {
+        return this.#active.length;
     }
 }

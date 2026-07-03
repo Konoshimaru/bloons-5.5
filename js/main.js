@@ -9,6 +9,87 @@ import { Hero } from './hero.js';
 import { InputManager } from './input.js';
 import { UI } from './ui.js';
 
+const CANVAS_WIDTH = 900;
+const CANVAS_HEIGHT = 600;
+const SCALE_MARGIN = 0.98;
+
+const dom = {
+    // Main Menu
+    playBtn: document.getElementById('play-btn'),
+    sandboxBtn: document.getElementById('sandbox-btn'),
+    heroBtn: document.getElementById('hero-btn'),
+    mapsBtn: document.getElementById('maps-btn'),
+    customMapsBtn: document.getElementById('custom-maps-btn'),
+    settingsBtn: document.getElementById('settings-btn'),
+    continueBtn: document.getElementById('continue-btn'),
+    abandonBtn: document.getElementById('abandon-btn'),
+    goMenuBtn: document.getElementById('go-menu-btn'),
+    
+    // Hero Select
+    hmPrevBtn: document.getElementById('hm-prev-btn'),
+    hmNextBtn: document.getElementById('hm-next-btn'),
+    heroSelector: document.getElementById('hero-selector'),
+    
+    // Difficulty
+    diffBtns: document.querySelectorAll('.diff-btn[data-diff]'),
+    backBtns: document.querySelectorAll('.back-btn[data-target]'),
+    settingsBackBtn: document.getElementById('settings-back-btn'),
+    
+    // Settings
+    volumeSlider: document.getElementById('volume-slider'),
+    volDisplay: document.getElementById('vol-display'),
+    musicSlider: document.getElementById('music-slider'),
+    musicVolDisplay: document.getElementById('music-vol-display'),
+    bgRunCheckbox: document.getElementById('bg-run-checkbox'),
+    autoWaveMenu: document.getElementById('auto-wave-checkbox-menu'),
+    autoWavePause: document.getElementById('auto-wave-checkbox-pause'),
+    flavorTextCheckbox: document.getElementById('flavor-text-checkbox'),
+    smoothingCheckbox: document.getElementById('smoothing-checkbox'),
+    fpsCheckbox: document.getElementById('fps-checkbox'),
+    fpsDisplay: document.getElementById('fps-display'),
+    extremeSpeedCheckbox: document.getElementById('extreme-speed-checkbox'),
+    shuffleMusicCheckbox: document.getElementById('shuffle-music-checkbox'),
+    randomStartCheckbox: document.getElementById('random-start-checkbox'),
+    prevSongBtn: document.getElementById('prev-song-btn'),
+    nextSongBtn: document.getElementById('next-song-btn'),
+    pausePrevSong: document.getElementById('pause-prev-song'),
+    pauseNextSong: document.getElementById('pause-next-song'),
+    addMapBtn: document.getElementById('add-map-btn'),
+    mapJsonInput: document.getElementById('map-json-input'),
+    
+    // Game UI
+    pauseBtn: document.getElementById('pause-btn'),
+    resumeBtn: document.getElementById('resume-btn'),
+    pauseSettingsBtn: document.getElementById('pause-settings-btn'),
+    quitBtn: document.getElementById('quit-btn'),
+    sbPrev: document.getElementById('sb-prev'),
+    sbNext: document.getElementById('sb-next'),
+    sbSpeedBtn: document.getElementById('sb-speed-btn'),
+    sbResetCooldowns: document.getElementById('sb-reset-cooldowns'),
+    sbViewToggle: document.getElementById('sb-view-toggle'),
+    camoToggleBtn: document.getElementById('sb-toggle-camo'),
+    regenToggleBtn: document.getElementById('sb-toggle-regen'),
+    fortToggleBtn: document.getElementById('sb-toggle-fortified'),
+    enemyCards: document.querySelectorAll('#enemy-view .tower-card[data-enemy]'),
+    towerCards: document.querySelectorAll('.tower-card[data-tower]'),
+    waveSpeedBtn: document.getElementById('wave-speed-btn'),
+    upTargeting: document.getElementById('up-targeting'),
+    upTargetingTower: document.getElementById('up-targeting-tower'),
+    upBuyLevel: document.getElementById('up-buy-level'),
+    upPaths: [
+        document.getElementById('up-path1'),
+        document.getElementById('up-path2'),
+        document.getElementById('up-path3')
+    ],
+    upSell: document.getElementById('up-sell'),
+    upCollectBank: document.getElementById('up-collect-bank'),
+    
+    // Sandbox HUD
+    cashDisplay: document.getElementById('cash-display'),
+    livesDisplay: document.getElementById('lives-display'),
+    cancelBtn: document.getElementById('cancel-btn')
+};
+
 window.addEventListener('error', (e) => {
     const errMsg = document.getElementById('error-message');
     if (errMsg) {
@@ -18,13 +99,13 @@ window.addEventListener('error', (e) => {
     console.error("Game Error:", e);
 });
 
-// DYNAMIC RESIZING LOGIC
 function resizeGame() {
     const container = document.getElementById('game-container');
     if (!container) return;
-    const scaleX = window.innerWidth / 900;
-    const scaleY = window.innerHeight / 600;
-    const scale = Math.min(scaleX, scaleY) * 0.98; 
+    
+    const scaleX = window.innerWidth / CANVAS_WIDTH;
+    const scaleY = window.innerHeight / CANVAS_HEIGHT;
+    const scale = Math.min(scaleX, scaleY) * SCALE_MARGIN;
     container.style.transform = `scale(${scale})`;
 }
 window.addEventListener('resize', resizeGame);
@@ -32,6 +113,7 @@ window.addEventListener('resize', resizeGame);
 function refreshMapSelector() {
     const mapSelector = document.getElementById('map-selector');
     if (!mapSelector) return;
+    
     mapSelector.innerHTML = '';
     Maps.forEach((map, index) => {
         const btn = document.createElement('button');
@@ -39,6 +121,7 @@ function refreshMapSelector() {
         btn.style.margin = '5px';
         btn.innerText = map.name || `Map ${index + 1}`;
         if (Config.data.currentMap === index) btn.style.borderColor = '#f1c40f';
+        
         btn.addEventListener('click', () => {
             document.querySelectorAll('#map-selector button').forEach(c => c.style.borderColor = '#7f8c8d');
             btn.style.borderColor = '#f1c40f';
@@ -58,13 +141,7 @@ function updateHeroInfo(key) {
     document.getElementById('hero-select-subtitle').innerText = hero.stats.desc;
     document.getElementById('hero-model-view').innerText = hero.stats.name;
     
-    let bioText = `Cost: $${hero.stats.cost}<br>`;
-    bioText += `Base Range: ${hero.stats.range}<br>`;
-    bioText += `Base Damage: ${hero.stats.damage}<br>`;
-    bioText += `Attack Rate: ${hero.stats.fireRate}s<br>`;
-    bioText += `Damage Type: ${hero.stats.dmgType}<br><br>`;
-    bioText += `<i>${hero.stats.name} is ready for battle. More lore details can be added here later.</i>`;
-    
+    const bioText = `Cost: $${hero.stats.cost}<br>Base Range: ${hero.stats.range}<br>Base Damage: ${hero.stats.damage}<br>Attack Rate: ${hero.stats.fireRate}s<br>Damage Type: ${hero.stats.dmgType}<br><br><i>${hero.stats.name} is ready for battle.</i>`;
     document.getElementById('hero-bio-text').innerHTML = bioText;
     
     document.querySelectorAll('.hm-carousel-item').forEach(item => {
@@ -73,15 +150,14 @@ function updateHeroInfo(key) {
 }
 
 function refreshHeroSelector() {
-    const heroSelector = document.getElementById('hero-selector');
-    if (!heroSelector) return;
-    heroSelector.innerHTML = '';
+    if (!dom.heroSelector) return;
+    dom.heroSelector.innerHTML = '';
     
     Object.entries(HeroRegistry).forEach(([key, hero]) => {
         const btn = document.createElement('button');
         btn.className = 'hm-carousel-item';
         btn.dataset.hero = key;
-        btn.innerText = hero.stats.name.substring(0, 2); 
+        btn.innerText = hero.stats.name.substring(0, 2);
         btn.title = hero.stats.name;
         
         if (Config.data.selectedHero === key) {
@@ -96,7 +172,7 @@ function refreshHeroSelector() {
             updateHeroInfo(key);
             updateHeroShopCard();
         });
-        heroSelector.appendChild(btn);
+        dom.heroSelector.appendChild(btn);
     });
 }
 
@@ -113,7 +189,7 @@ function updateHeroShopCard() {
 
 function updateShopPrices() {
     const costMod = GameEngine.difficulty ? GameEngine.difficulty.costMod : 1.0;
-    document.querySelectorAll('#shop-view .tower-card[data-tower]').forEach(card => {
+    dom.towerCards.forEach(card => {
         const type = card.dataset.tower;
         const stats = TowerStats[type] || HeroStats[type];
         if (stats) {
@@ -125,46 +201,20 @@ function updateShopPrices() {
 }
 
 function applyConfigToUI() {
-    const shuffleCb = document.getElementById('shuffle-music-checkbox');
-    if (shuffleCb) shuffleCb.checked = Config.data.musicShuffle;
-    
-    const randomStartCb = document.getElementById('random-start-checkbox');
-    if (randomStartCb) randomStartCb.checked = Config.data.musicRandomStart;
-    
-    const volSlider = document.getElementById('volume-slider');
-    if (volSlider) volSlider.value = Config.data.sfxVolume * 100;
-    const volDisp = document.getElementById('vol-display');
-    if (volDisp) volDisp.innerText = Math.round(Config.data.sfxVolume * 100) + '%';
-    
-    const musicSlider = document.getElementById('music-slider');
-    if (musicSlider) musicSlider.value = Config.data.musicVolume * 100;
-    const musicDisp = document.getElementById('music-vol-display');
-    if (musicDisp) musicDisp.innerText = Math.round(Config.data.musicVolume * 100) + '%';
-    
-    const bgRun = document.getElementById('bg-run-checkbox');
-    if (bgRun) bgRun.checked = Config.data.runInBackground;
-    
-    const autoWaveMenu = document.getElementById('auto-wave-checkbox-menu');
-    if (autoWaveMenu) autoWaveMenu.checked = Config.data.autoStart;
-    
-    const autoWavePause = document.getElementById('auto-wave-checkbox-pause');
-    if (autoWavePause) autoWavePause.checked = Config.data.autoStart;
-    
-    const flavorText = document.getElementById('flavor-text-checkbox');
-    if (flavorText) flavorText.checked = Config.data.showFlavor;
-    
-    const smoothing = document.getElementById('smoothing-checkbox');
-    if (smoothing) smoothing.checked = Config.data.smoothingEnabled;
-    
-    const fpsCheckbox = document.getElementById('fps-checkbox');
-    if (fpsCheckbox) fpsCheckbox.checked = Config.data.showFps;
-    
-    const fpsDisplay = document.getElementById('fps-display');
-    if (fpsDisplay) fpsDisplay.style.display = Config.data.showFps ? 'block' : 'none';
-    
-    // PRO FEATURE: Load Extreme Speed setting
-    const extremeSpeedCb = document.getElementById('extreme-speed-checkbox');
-    if (extremeSpeedCb) extremeSpeedCb.checked = Config.data.extremeSpeedEnabled;
+    if (dom.shuffleMusicCheckbox) dom.shuffleMusicCheckbox.checked = Config.data.musicShuffle;
+    if (dom.randomStartCheckbox) dom.randomStartCheckbox.checked = Config.data.musicRandomStart;
+    if (dom.volumeSlider) dom.volumeSlider.value = Config.data.sfxVolume * 100;
+    if (dom.volDisplay) dom.volDisplay.innerText = Math.round(Config.data.sfxVolume * 100) + '%';
+    if (dom.musicSlider) dom.musicSlider.value = Config.data.musicVolume * 100;
+    if (dom.musicVolDisplay) dom.musicVolDisplay.innerText = Math.round(Config.data.musicVolume * 100) + '%';
+    if (dom.bgRunCheckbox) dom.bgRunCheckbox.checked = Config.data.runInBackground;
+    if (dom.autoWaveMenu) dom.autoWaveMenu.checked = Config.data.autoStart;
+    if (dom.autoWavePause) dom.autoWavePause.checked = Config.data.autoStart;
+    if (dom.flavorTextCheckbox) dom.flavorTextCheckbox.checked = Config.data.showFlavor;
+    if (dom.smoothingCheckbox) dom.smoothingCheckbox.checked = Config.data.smoothingEnabled;
+    if (dom.fpsCheckbox) dom.fpsCheckbox.checked = Config.data.showFps;
+    if (dom.fpsDisplay) dom.fpsDisplay.style.display = Config.data.showFps ? 'block' : 'none';
+    if (dom.extremeSpeedCheckbox) dom.extremeSpeedCheckbox.checked = Config.data.extremeSpeedEnabled;
     
     refreshMapSelector();
     refreshHeroSelector();
@@ -172,77 +222,62 @@ function applyConfigToUI() {
 }
 
 async function startGameUI(isSandbox) {
-    await AudioEngine.init(); 
-    AudioEngine.play(); 
-    GameEngine.startGame(isSandbox); 
+    await AudioEngine.init();
+    AudioEngine.play();
+    GameEngine.startGame(isSandbox);
     updateShopPrices();
     
-    document.getElementById('main-menu')?.classList.add('hidden');
-    document.getElementById('difficulty-menu')?.classList.add('hidden'); 
-    document.getElementById('maps-menu')?.classList.add('hidden');
-    document.getElementById('settings-menu')?.classList.add('hidden');
+    document.getElementById('main-menu').classList.add('hidden');
+    document.getElementById('difficulty-menu').classList.add('hidden');
+    document.getElementById('maps-menu').classList.add('hidden');
+    document.getElementById('settings-menu').classList.add('hidden');
     
-    document.getElementById('sidebar')?.classList.remove('hidden'); 
-    document.getElementById('top-ui-left')?.classList.remove('hidden'); 
-    document.getElementById('top-ui-right')?.classList.remove('hidden');
+    document.getElementById('sidebar').classList.remove('hidden');
+    document.getElementById('top-ui-left').classList.remove('hidden');
+    document.getElementById('top-ui-right').classList.remove('hidden');
     
-    if (isSandbox) { 
-        document.getElementById('sandbox-controls')?.classList.remove('hidden'); 
-        document.getElementById('norm-controls')?.classList.add('hidden'); 
-    } else { 
-        document.getElementById('sandbox-controls')?.classList.add('hidden'); 
-        document.getElementById('norm-controls')?.classList.remove('hidden'); 
+    const sandboxControls = document.getElementById('sandbox-controls');
+    const normControls = document.getElementById('norm-controls');
+    
+    if (isSandbox) {
+        sandboxControls.classList.remove('hidden');
+        normControls.classList.add('hidden');
+    } else {
+        sandboxControls.classList.add('hidden');
+        normControls.classList.remove('hidden');
     }
 
-    document.getElementById('shop-view')?.classList.remove('hidden');
-    document.getElementById('enemy-view')?.classList.add('hidden');
-    const viewToggleBtn = document.getElementById('sb-view-toggle');
-    if (viewToggleBtn) viewToggleBtn.innerText = '🎈 Spawn Bloons';
+    document.getElementById('shop-view').classList.remove('hidden');
+    document.getElementById('enemy-view').classList.add('hidden');
+    if (dom.sbViewToggle) dom.sbViewToggle.innerText = '🎈 Spawn Bloons';
 }
 
-function setupEventListeners() {
-    // PRO FEATURE: Meta-Game Listeners
-    document.getElementById('continue-btn')?.addEventListener('click', () => {
+function _setupMenuListeners() {
+    dom.continueBtn?.addEventListener('click', () => {
         if (GameEngine.loadGame()) {
-            AudioEngine.init(); 
-            AudioEngine.play(); 
+            AudioEngine.init();
+            AudioEngine.play();
             
-            document.getElementById('main-menu')?.classList.add('hidden');
-            document.getElementById('sidebar')?.classList.remove('hidden'); 
-            document.getElementById('top-ui-left')?.classList.remove('hidden'); 
-            document.getElementById('top-ui-right')?.classList.remove('hidden');
-            
-            document.getElementById('sandbox-controls')?.classList.add('hidden'); 
-            document.getElementById('norm-controls')?.classList.remove('hidden'); 
-            
-            document.getElementById('shop-view')?.classList.remove('hidden');
-            document.getElementById('enemy-view')?.classList.add('hidden');
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('top-ui-left').classList.remove('hidden');
+            document.getElementById('top-ui-right').classList.remove('hidden');
+            document.getElementById('sandbox-controls').classList.add('hidden');
+            document.getElementById('norm-controls').classList.remove('hidden');
+            document.getElementById('shop-view').classList.remove('hidden');
+            document.getElementById('enemy-view').classList.add('hidden');
             
             GameEngine.gameState = 'playing';
             updateShopPrices();
         }
     });
-    document.getElementById('abandon-btn')?.addEventListener('click', () => GameEngine.abandonRun());
-
-    // PRO FIX: Restored Sandbox HUD Listeners
-    document.getElementById('cash-display')?.addEventListener('click', () => {
-        if (!GameEngine.isSandbox) return;
-        const val = prompt("Set Cash Amount:", GameEngine.cash);
-        if (val !== null && !isNaN(val)) { GameEngine.cash = Math.max(0, parseInt(val)); GameEngine.updateUI(); }
-    });
-    document.getElementById('lives-display')?.addEventListener('click', () => {
-        if (!GameEngine.isSandbox) return;
-        const val = prompt("Set Lives Amount:", GameEngine.lives);
-        if (val !== null && !isNaN(val)) { GameEngine.lives = Math.max(0, parseInt(val)); GameEngine.updateUI(); }
-    });
-    // PRO FIX: Restored Cancel Button Listener
-    document.getElementById('cancel-btn')?.addEventListener('click', () => GameEngine.deselectAll());
-
-    document.getElementById('play-btn')?.addEventListener('click', () => GameEngine.toggleMenus('difficulty-menu'));
-    document.getElementById('sandbox-btn')?.addEventListener('click', () => startGameUI(true));
-    document.getElementById('hero-btn')?.addEventListener('click', () => GameEngine.toggleMenus('hero-select-menu'));
     
-    document.querySelectorAll('.diff-btn[data-diff]').forEach(btn => {
+    dom.abandonBtn?.addEventListener('click', () => GameEngine.abandonRun());
+    dom.playBtn?.addEventListener('click', () => GameEngine.toggleMenus('difficulty-menu'));
+    dom.sandboxBtn?.addEventListener('click', () => startGameUI(true));
+    dom.heroBtn?.addEventListener('click', () => GameEngine.toggleMenus('hero-select-menu'));
+    
+    dom.diffBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             Config.data.currentDifficulty = btn.dataset.diff;
             Config.save();
@@ -250,156 +285,159 @@ function setupEventListeners() {
         });
     });
 
-    document.getElementById('maps-btn')?.addEventListener('click', () => { refreshMapSelector(); GameEngine.toggleMenus('maps-menu'); });
-    document.getElementById('custom-maps-btn')?.addEventListener('click', () => GameEngine.toggleMenus('custom-maps-menu'));
-    document.getElementById('settings-btn')?.addEventListener('click', () => { GameEngine.lastMenu = 'main-menu'; GameEngine.toggleMenus('settings-menu'); });
+    dom.mapsBtn?.addEventListener('click', () => { refreshMapSelector(); GameEngine.toggleMenus('maps-menu'); });
+    dom.customMapsBtn?.addEventListener('click', () => GameEngine.toggleMenus('custom-maps-menu'));
+    dom.settingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'main-menu'; GameEngine.toggleMenus('settings-menu'); });
     
-    document.querySelectorAll('.back-btn[data-target]').forEach(btn => btn.addEventListener('click', (e) => GameEngine.toggleMenus(e.target.dataset.target)));
-    document.getElementById('settings-back-btn')?.addEventListener('click', () => GameEngine.toggleMenus(GameEngine.lastMenu));
-    document.getElementById('go-menu-btn')?.addEventListener('click', () => { 
-        GameEngine.toggleMenus('main-menu'); 
-        document.getElementById('sidebar')?.classList.add('hidden'); 
-        document.getElementById('top-ui-left')?.classList.add('hidden'); 
-        document.getElementById('top-ui-right')?.classList.add('hidden'); 
-        AudioEngine.pause(); 
-        UI.updateMetaStats(); 
+    dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => GameEngine.toggleMenus(e.target.dataset.target)));
+    dom.settingsBackBtn?.addEventListener('click', () => GameEngine.toggleMenus(GameEngine.lastMenu));
+    
+    dom.goMenuBtn?.addEventListener('click', () => {
+        GameEngine.toggleMenus('main-menu');
+        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('top-ui-left').classList.add('hidden');
+        document.getElementById('top-ui-right').classList.add('hidden');
+        AudioEngine.pause();
+        UI.updateMetaStats();
     });
     
-    document.getElementById('hm-prev-btn')?.addEventListener('click', () => {
-        const sel = document.getElementById('hero-selector');
-        if (sel) sel.scrollBy({ left: -300, behavior: 'smooth' });
-    });
-    document.getElementById('hm-next-btn')?.addEventListener('click', () => {
-        const sel = document.getElementById('hero-selector');
-        if (sel) sel.scrollBy({ left: 300, behavior: 'smooth' });
-    });
+    dom.hmPrevBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: -300, behavior: 'smooth' }));
+    dom.hmNextBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: 300, behavior: 'smooth' }));
+}
 
-    document.getElementById('volume-slider')?.addEventListener('input', (e) => { document.getElementById('vol-display').innerText = e.target.value + '%'; AudioEngine.setSfxVolume(e.target.value / 100); });
-    document.getElementById('music-slider')?.addEventListener('input', (e) => { document.getElementById('music-vol-display').innerText = e.target.value + '%'; AudioEngine.setMusicVolume(e.target.value / 100); });
-    document.getElementById('bg-run-checkbox')?.addEventListener('change', (e) => { GameEngine.runInBackground = e.target.checked; Config.data.runInBackground = e.target.checked; Config.save(); });
-    document.getElementById('flavor-text-checkbox')?.addEventListener('change', (e) => { Config.data.showFlavor = e.target.checked; Config.save(); });
-    document.getElementById('smoothing-checkbox')?.addEventListener('change', (e) => { Config.data.smoothingEnabled = e.target.checked; Config.save(); });
-    document.getElementById('fps-checkbox')?.addEventListener('change', (e) => { Config.data.showFps = e.target.checked; Config.save(); const fpsDisp = document.getElementById('fps-display'); if (fpsDisp) fpsDisp.style.display = e.target.checked ? 'block' : 'none'; });
-    
-    // PRO FEATURE: Extreme Speed Toggle Listener
-    document.getElementById('extreme-speed-checkbox')?.addEventListener('change', (e) => { 
-        Config.data.extremeSpeedEnabled = e.target.checked; 
-        Config.save(); 
-    });
+function _setupSettingsListeners() {
+    dom.volumeSlider?.addEventListener('input', (e) => { dom.volDisplay.innerText = e.target.value + '%'; AudioEngine.setSfxVolume(e.target.value / 100); });
+    dom.musicSlider?.addEventListener('input', (e) => { dom.musicVolDisplay.innerText = e.target.value + '%'; AudioEngine.setMusicVolume(e.target.value / 100); });
+    dom.bgRunCheckbox?.addEventListener('change', (e) => { GameEngine.runInBackground = e.target.checked; Config.data.runInBackground = e.target.checked; Config.save(); });
+    dom.flavorTextCheckbox?.addEventListener('change', (e) => { Config.data.showFlavor = e.target.checked; Config.save(); });
+    dom.smoothingCheckbox?.addEventListener('change', (e) => { Config.data.smoothingEnabled = e.target.checked; Config.save(); });
+    dom.fpsCheckbox?.addEventListener('change', (e) => { Config.data.showFps = e.target.checked; Config.save(); if (dom.fpsDisplay) dom.fpsDisplay.style.display = e.target.checked ? 'block' : 'none'; });
+    dom.extremeSpeedCheckbox?.addEventListener('change', (e) => { Config.data.extremeSpeedEnabled = e.target.checked; Config.save(); });
+    dom.shuffleMusicCheckbox?.addEventListener('change', (e) => { Config.data.musicShuffle = e.target.checked; Config.save(); });
+    dom.randomStartCheckbox?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });
 
-    document.getElementById('add-map-btn')?.addEventListener('click', () => {
+    dom.addMapBtn?.addEventListener('click', () => {
         try {
-            const json = document.getElementById('map-json-input').value;
+            const json = dom.mapJsonInput.value;
             const mapData = JSON.parse(json);
             let isValid = true;
             if (!mapData.waypoints || mapData.waypoints.length < 2) isValid = false;
             else {
-                for(let wp of mapData.waypoints) {
+                for (let wp of mapData.waypoints) {
                     if (typeof wp.x !== 'number' || typeof wp.y !== 'number') { isValid = false; break; }
                 }
             }
             if (!isValid) { alert('Invalid map JSON. Must contain a "waypoints" array of {x, y} numbers.'); return; }
+            
             Config.data.customMaps.push(mapData);
             Config.save();
             Maps.push(mapData);
             refreshMapSelector();
             alert('Map added successfully! Go to "Select Map" to play it.');
-            document.getElementById('map-json-input').value = '';
-        } catch (err) { alert('Error parsing JSON: ' + err.message); }
+            dom.mapJsonInput.value = '';
+        } catch (err) {
+            alert('Error parsing JSON: ' + err.message);
+        }
     });
 
-    const autoToggle = (e) => { 
-        GameEngine.waveManager.autoWaveEnabled = e.target.checked; 
-        Config.data.autoStart = e.target.checked; Config.save(); 
-        const menuCb = document.getElementById('auto-wave-checkbox-menu');
-        const pauseCb = document.getElementById('auto-wave-checkbox-pause');
-        if (menuCb) menuCb.checked = e.target.checked;
-        if (pauseCb) pauseCb.checked = e.target.checked;
+    const autoToggle = (e) => {
+        GameEngine.waveManager.autoWaveEnabled = e.target.checked;
+        Config.data.autoStart = e.target.checked;
+        Config.save();
+        if (dom.autoWaveMenu) dom.autoWaveMenu.checked = e.target.checked;
+        if (dom.autoWavePause) dom.autoWavePause.checked = e.target.checked;
     };
-    document.getElementById('auto-wave-checkbox-menu')?.addEventListener('change', autoToggle);
-    document.getElementById('auto-wave-checkbox-pause')?.addEventListener('change', autoToggle);
+    dom.autoWaveMenu?.addEventListener('change', autoToggle);
+    dom.autoWavePause?.addEventListener('change', autoToggle);
     
-    document.getElementById('prev-song-btn')?.addEventListener('click', () => AudioEngine.prevTrack());
-    document.getElementById('next-song-btn')?.addEventListener('click', () => AudioEngine.nextTrack());
-    document.getElementById('pause-prev-song')?.addEventListener('click', () => AudioEngine.prevTrack());
-    document.getElementById('pause-next-song')?.addEventListener('click', () => AudioEngine.nextTrack());
-    
-    document.getElementById('pause-btn')?.addEventListener('click', () => GameEngine.pauseGame());
-    document.getElementById('resume-btn')?.addEventListener('click', () => GameEngine.resumeGame());
-    document.getElementById('pause-settings-btn')?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; GameEngine.toggleMenus('settings-menu'); });
-    document.getElementById('quit-btn')?.addEventListener('click', () => { 
-        GameEngine.saveGame(); 
-        GameEngine.gameState = 'menu'; 
-        GameEngine.toggleMenus('main-menu'); 
-        document.getElementById('sidebar')?.classList.add('hidden'); 
-        document.getElementById('top-ui-left')?.classList.add('hidden'); 
-        document.getElementById('top-ui-right')?.classList.add('hidden'); 
-        AudioEngine.pause(); 
-        UI.updateMetaStats(); 
+    dom.prevSongBtn?.addEventListener('click', () => AudioEngine.prevTrack());
+    dom.nextSongBtn?.addEventListener('click', () => AudioEngine.nextTrack());
+    dom.pausePrevSong?.addEventListener('click', () => AudioEngine.prevTrack());
+    dom.pauseNextSong?.addEventListener('click', () => AudioEngine.nextTrack());
+}
+
+function _setupGameListeners() {
+    dom.pauseBtn?.addEventListener('click', () => GameEngine.pauseGame());
+    dom.resumeBtn?.addEventListener('click', () => GameEngine.resumeGame());
+    dom.pauseSettingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; GameEngine.toggleMenus('settings-menu'); });
+    dom.quitBtn?.addEventListener('click', () => {
+        GameEngine.saveGame();
+        GameEngine.gameState = 'menu';
+        GameEngine.toggleMenus('main-menu');
+        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('top-ui-left').classList.add('hidden');
+        document.getElementById('top-ui-right').classList.add('hidden');
+        AudioEngine.pause();
+        UI.updateMetaStats();
     });
-    document.getElementById('sb-prev')?.addEventListener('click', () => GameEngine.skipWave(-1));
-    document.getElementById('sb-next')?.addEventListener('click', () => GameEngine.skipWave(1));
-    document.getElementById('sb-speed-btn')?.addEventListener('click', () => GameEngine.handleWaveSpeedClick());
     
-    document.getElementById('sb-reset-cooldowns')?.addEventListener('click', () => {
-        if (!GameEngine.isSandbox) return; 
+    dom.sbPrev?.addEventListener('click', () => GameEngine.skipWave(-1));
+    dom.sbNext?.addEventListener('click', () => GameEngine.skipWave(1));
+    dom.sbSpeedBtn?.addEventListener('click', () => GameEngine.handleWaveSpeedClick());
+    dom.waveSpeedBtn?.addEventListener('click', () => GameEngine.handleWaveSpeedClick());
+    
+    dom.sbResetCooldowns?.addEventListener('click', () => {
+        if (!GameEngine.isSandbox) return;
         GameEngine.towers.forEach(t => {
             if (!t) return;
-            t.abilityCooldown = 0; t.ability2Cooldown = 0; t.ability3Cooldown = 0;
+            t.abilityCooldown = 0;
+            t.ability2Cooldown = 0;
+            t.ability3Cooldown = 0;
         });
         GameEngine.log("Ability cooldowns reset!");
-        UI.updateAbilityBar(GameEngine); 
+        UI.updateAbilityBar(GameEngine);
     });
-    
-    document.getElementById('shuffle-music-checkbox')?.addEventListener('change', (e) => { Config.data.musicShuffle = e.target.checked; Config.save(); });
-    document.getElementById('random-start-checkbox')?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });
 
+    dom.cashDisplay?.addEventListener('click', () => {
+        if (!GameEngine.isSandbox) return;
+        const val = prompt("Set Cash Amount:", GameEngine.cash);
+        if (val !== null && !isNaN(val)) { GameEngine.cash = Math.max(0, parseInt(val)); GameEngine.updateUI(); }
+    });
+    dom.livesDisplay?.addEventListener('click', () => {
+        if (!GameEngine.isSandbox) return;
+        const val = prompt("Set Lives Amount:", GameEngine.lives);
+        if (val !== null && !isNaN(val)) { GameEngine.lives = Math.max(0, parseInt(val)); GameEngine.updateUI(); }
+    });
+    dom.cancelBtn?.addEventListener('click', () => GameEngine.deselectAll());
+}
+
+function _setupShopListeners() {
     let sandboxCamoOn = false, sandboxRegenOn = false, sandboxFortifiedOn = false;
     const shopView = document.getElementById('shop-view');
     const enemyView = document.getElementById('enemy-view');
-    const viewToggleBtn = document.getElementById('sb-view-toggle');
-    if (viewToggleBtn) {
-        viewToggleBtn.addEventListener('click', () => {
+    
+    if (dom.sbViewToggle) {
+        dom.sbViewToggle.addEventListener('click', () => {
             const showingEnemies = enemyView && !enemyView.classList.contains('hidden');
             if (showingEnemies) {
-                enemyView?.classList.add('hidden');
-                shopView?.classList.remove('hidden');
-                viewToggleBtn.innerText = '🎈 Spawn Bloons';
+                enemyView.classList.add('hidden');
+                shopView.classList.remove('hidden');
+                dom.sbViewToggle.innerText = '🎈 Spawn Bloons';
             } else {
-                shopView?.classList.add('hidden');
-                enemyView?.classList.remove('hidden');
-                viewToggleBtn.innerText = '🐵 Back to Shop';
+                shopView.classList.add('hidden');
+                enemyView.classList.remove('hidden');
+                dom.sbViewToggle.innerText = '🐵 Back to Shop';
             }
         });
     }
 
-    const camoToggleBtn = document.getElementById('sb-toggle-camo');
-    const regenToggleBtn = document.getElementById('sb-toggle-regen');
-    const fortToggleBtn = document.getElementById('sb-toggle-fortified');
+    dom.camoToggleBtn?.addEventListener('click', () => {
+        sandboxCamoOn = !sandboxCamoOn;
+        dom.camoToggleBtn.classList.toggle('active', sandboxCamoOn);
+        dom.camoToggleBtn.innerText = `Camo: ${sandboxCamoOn ? 'On' : 'Off'}`;
+    });
+    dom.regenToggleBtn?.addEventListener('click', () => {
+        sandboxRegenOn = !sandboxRegenOn;
+        dom.regenToggleBtn.classList.toggle('active', sandboxRegenOn);
+        dom.regenToggleBtn.innerText = `Regen: ${sandboxRegenOn ? 'On' : 'Off'}`;
+    });
+    dom.fortToggleBtn?.addEventListener('click', () => {
+        sandboxFortifiedOn = !sandboxFortifiedOn;
+        dom.fortToggleBtn.classList.toggle('active', sandboxFortifiedOn);
+        dom.fortToggleBtn.innerText = `Fortified: ${sandboxFortifiedOn ? 'On' : 'Off'}`;
+    });
 
-    if (camoToggleBtn) {
-        camoToggleBtn.addEventListener('click', () => {
-            sandboxCamoOn = !sandboxCamoOn;
-            camoToggleBtn.classList.toggle('active', sandboxCamoOn);
-            camoToggleBtn.innerText = `Camo: ${sandboxCamoOn ? 'On' : 'Off'}`;
-        });
-    }
-    if (regenToggleBtn) {
-        regenToggleBtn.addEventListener('click', () => {
-            sandboxRegenOn = !sandboxRegenOn;
-            regenToggleBtn.classList.toggle('active', sandboxRegenOn);
-            regenToggleBtn.innerText = `Regen: ${sandboxRegenOn ? 'On' : 'Off'}`;
-        });
-    }
-    if (fortToggleBtn) {
-        fortToggleBtn.addEventListener('click', () => {
-            sandboxFortifiedOn = !sandboxFortifiedOn;
-            fortToggleBtn.classList.toggle('active', sandboxFortifiedOn);
-            fortToggleBtn.innerText = `Fortified: ${sandboxFortifiedOn ? 'On' : 'Off'}`;
-        });
-    }
-
-    document.querySelectorAll('#enemy-view .tower-card[data-enemy]').forEach(card => {
+    dom.enemyCards.forEach(card => {
         card.addEventListener('click', () => {
             if (!GameEngine.isSandbox || !GameEngine.map) return;
             const tier = parseInt(card.dataset.enemy, 10);
@@ -407,18 +445,19 @@ function setupEventListeners() {
         });
     });
 
-    InputManager.init();
-    
-    document.querySelectorAll('.tower-card[data-tower]').forEach(card => { 
-        card.addEventListener('mousedown', (e) => { 
-            e.preventDefault(); 
+    dom.towerCards.forEach(card => {
+        card.addEventListener('mousedown', (e) => {
+            e.preventDefault();
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
-            if (GameEngine.cash < GameEngine.getCost(stats.cost)) { GameEngine.log("Not enough cash!"); return; } 
+            if (GameEngine.cash < GameEngine.getCost(stats.cost)) {
+                GameEngine.log("Not enough cash!");
+                return;
+            }
             
-            GameEngine.deselectAll(); 
-            document.querySelectorAll('.tower-card[data-tower]').forEach(c => c.classList.remove('selected')); 
-            card.classList.add('selected'); 
-            GameEngine.selectedTowerType = card.dataset.tower; 
+            GameEngine.deselectAll();
+            dom.towerCards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            GameEngine.selectedTowerType = card.dataset.tower;
 
             const handleMouseUp = (ev) => {
                 window.removeEventListener('mouseup', handleMouseUp);
@@ -431,26 +470,25 @@ function setupEventListeners() {
                 }
             };
             window.addEventListener('mouseup', handleMouseUp);
-        }); 
+        });
 
-        card.addEventListener('mouseenter', (e) => { 
-            const tip = document.getElementById('shop-tooltip'); 
+        card.addEventListener('mouseenter', () => {
+            const tip = document.getElementById('shop-tooltip');
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
-            if (tip && stats) tip.innerText = stats.desc; 
+            if (tip && stats) tip.innerText = stats.desc;
         });
     });
-    
-    const upHover = (id, path) => {
-        const el = document.getElementById(id);
+
+    const upHover = (el, path) => {
         if (!el) return;
-        el.addEventListener('mouseenter', (e) => {
+        el.addEventListener('mouseenter', () => {
             if (!GameEngine.selectedPlacedTower) return;
             const t = GameEngine.selectedPlacedTower;
             const tier = t.upgrades[path - 1];
             const data = Upgrades[t.type][path][tier];
             const tip = document.getElementById('upgrade-tooltip');
             if (data && tip) {
-                tip.innerHTML = `<b>${data.name} (${tier+1}/5)</b><br>${data.desc}`;
+                tip.innerHTML = `<b>${data.name} (${tier + 1}/5)</b><br>${data.desc}`;
                 const rect = el.getBoundingClientRect();
                 const containerRect = document.getElementById('game-container').getBoundingClientRect();
                 tip.style.left = (rect.right - containerRect.left + 5) + 'px';
@@ -458,33 +496,43 @@ function setupEventListeners() {
                 tip.style.opacity = 1;
             }
         });
-        el.addEventListener('mouseleave', (e) => { const tip = document.getElementById('upgrade-tooltip'); if (tip) tip.style.opacity = 0; });
+        el.addEventListener('mouseleave', () => {
+            const tip = document.getElementById('upgrade-tooltip');
+            if (tip) tip.style.opacity = 0;
+        });
     };
-    upHover('up-path1', 1); upHover('up-path2', 2); upHover('up-path3', 3);
     
-    document.getElementById('wave-speed-btn')?.addEventListener('click', () => GameEngine.handleWaveSpeedClick());
-    document.getElementById('up-targeting')?.addEventListener('click', () => GameEngine.cycleTargeting());
-    document.getElementById('up-targeting-tower')?.addEventListener('click', () => GameEngine.cycleTargeting());
-    document.getElementById('up-buy-level')?.addEventListener('click', () => GameEngine.buyHeroLevel()); 
-    document.getElementById('up-path1')?.addEventListener('click', () => GameEngine.handleUpgrade(1));
-    document.getElementById('up-path2')?.addEventListener('click', () => GameEngine.handleUpgrade(2));
-    document.getElementById('up-path3')?.addEventListener('click', () => GameEngine.handleUpgrade(3));
-    document.getElementById('up-sell')?.addEventListener('click', () => GameEngine.sellTower());
-    document.getElementById('up-collect-bank')?.addEventListener('click', () => {
+    dom.upPaths.forEach((el, i) => upHover(el, i + 1));
+    
+    dom.upTargeting?.addEventListener('click', () => GameEngine.cycleTargeting());
+    dom.upTargetingTower?.addEventListener('click', () => GameEngine.cycleTargeting());
+    dom.upBuyLevel?.addEventListener('click', () => GameEngine.buyHeroLevel());
+    dom.upPaths.forEach((el, i) => el?.addEventListener('click', () => GameEngine.handleUpgrade(i + 1)));
+    dom.upSell?.addEventListener('click', () => GameEngine.sellTower());
+    
+    dom.upCollectBank?.addEventListener('click', () => {
         if (GameEngine.selectedPlacedTower && GameEngine.selectedPlacedTower.bankBalance > 0) {
             GameEngine.addCash(Math.floor(GameEngine.selectedPlacedTower.bankBalance));
             GameEngine.selectedPlacedTower.bankBalance = 0;
             AudioEngine.playSfx('cash');
-            UI.showUpgradeUI(GameEngine.selectedPlacedTower, GameEngine); 
+            UI.showUpgradeUI(GameEngine.selectedPlacedTower, GameEngine);
         }
     });
+}
+
+function setupEventListeners() {
+    _setupMenuListeners();
+    _setupSettingsListeners();
+    _setupGameListeners();
+    _setupShopListeners();
+    InputManager.init();
 }
 
 window.addEventListener('load', () => {
     GameEngine.init();
     setupEventListeners();
     applyConfigToUI();
-    resizeGame(); 
-    UI.updateMetaStats(); 
-    document.getElementById('main-menu')?.classList.remove('hidden');
+    resizeGame();
+    UI.updateMetaStats();
+    document.getElementById('main-menu').classList.remove('hidden');
 });

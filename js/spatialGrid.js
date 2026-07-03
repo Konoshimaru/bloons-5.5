@@ -1,36 +1,63 @@
+const HASH_OFFSET = 32768; // Prevents negative keys for coordinates within +/- 32k
+const HASH_MULTIPLIER = 65536;
+
 export class SpatialGrid {
     constructor(cellSize = 80) {
         this.cellSize = cellSize;
         this.cells = new Map();
     }
-    _key(x, y) {
-        return `${Math.floor(x / this.cellSize)},${Math.floor(y / this.cellSize)}`;
+
+    _getKey(cx, cy) {
+        // Numeric keys are significantly faster to hash and compare in V8 than strings
+        return (cx + HASH_OFFSET) * HASH_MULTIPLIER + (cy + HASH_OFFSET);
     }
-    clear() { this.cells.clear(); }
+
+    clear() {
+        this.cells.clear();
+    }
+
     insert(entity) {
-        const key = this._key(entity.x, entity.y);
+        const cx = Math.floor(entity.x / this.cellSize);
+        const cy = Math.floor(entity.y / this.cellSize);
+        const key = this._getKey(cx, cy);
+        
         let bucket = this.cells.get(key);
-        if (!bucket) { bucket = []; this.cells.set(key, bucket); }
+        if (!bucket) {
+            bucket = [];
+            this.cells.set(key, bucket);
+        }
         bucket.push(entity);
     }
+
     query(x, y, radius) {
         const result = [];
         const r = Math.ceil(radius / this.cellSize) + 1;
-        const cx = Math.floor(x / this.cellSize), cy = Math.floor(y / this.cellSize);
+        const cx = Math.floor(x / this.cellSize);
+        const cy = Math.floor(y / this.cellSize);
+        
         for (let dx = -r; dx <= r; dx++) {
             for (let dy = -r; dy <= r; dy++) {
-                const bucket = this.cells.get(`${cx + dx},${cy + dy}`);
+                const key = this._getKey(cx + dx, cy + dy);
+                const bucket = this.cells.get(key);
+                
                 if (bucket) {
-                    for (let i = 0; i < bucket.length; i++) result.push(bucket[i]);
+                    const len = bucket.length;
+                    for (let i = 0; i < len; i++) {
+                        result.push(bucket[i]);
+                    }
                 }
             }
         }
         return result;
     }
+
     queryAll() {
         const result = [];
         for (const bucket of this.cells.values()) {
-            for (let i = 0; i < bucket.length; i++) result.push(bucket[i]);
+            const len = bucket.length;
+            for (let i = 0; i < len; i++) {
+                result.push(bucket[i]);
+            }
         }
         return result;
     }

@@ -1,39 +1,92 @@
+const ENEMY_PREFIX = 'enemy_';
+const PROJECTILE_PREFIX = 'proj_';
+const TOWER_PREFIX = 'tower_';
+const EFFECT_PREFIX = 'effect_';
+const MAP_PREFIX = 'map_';
+
+const ENEMY_NAMES = [
+    null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 
+    'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'
+];
+
 export const Names = {
-    PREFIXES: {
-        ENEMY: 'enemy_',
-        PROJECTILE: 'proj_',
-        TOWER: 'tower_',
-        EFFECT: 'effect_',
-        MAP: 'map_'
+    PREFIXES: Object.freeze({
+        ENEMY: ENEMY_PREFIX,
+        PROJECTILE: PROJECTILE_PREFIX,
+        TOWER: TOWER_PREFIX,
+        EFFECT: EFFECT_PREFIX,
+        MAP: MAP_PREFIX
+    }),
+
+    ENEMIES: Object.freeze(ENEMY_NAMES),
+
+    getEnemy(tier) {
+        return `${ENEMY_PREFIX}${ENEMY_NAMES[tier]}`;
     },
 
-    ENEMIES: [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'],
-
-    getEnemy(tier) { return `${this.PREFIXES.ENEMY}${this.ENEMIES[tier]}`; },
     getEnemyWithModifiers(tier, isCamo, isRegen) {
-        let base = this.ENEMIES[tier];
-        let key = `${this.PREFIXES.ENEMY}${base}`;
-        if (isCamo && isRegen) return `${key}_regen_camo`; 
-        if (isCamo) return `${key}_camo`;
-        if (isRegen) return `${key}_regen`;
-        return key;
+        const base = ENEMY_NAMES[tier];
+        if (isCamo && isRegen) return `${ENEMY_PREFIX}${base}_regen_camo`;
+        if (isCamo) return `${ENEMY_PREFIX}${base}_camo`;
+        if (isRegen) return `${ENEMY_PREFIX}${base}_regen`;
+        return `${ENEMY_PREFIX}${base}`;
     },
-    getProjectile(type) { return `${this.PREFIXES.PROJECTILE}${type}`; },
-    getTowerBase(type) { return `${this.PREFIXES.TOWER}${type}_base`; },
-    getTowerArm(type) { return `${this.PREFIXES.TOWER}${type}_arm`; },
-    getTowerUpgradeBase(type, path, tier) { return `${this.PREFIXES.TOWER}${type}_p${path}_t${tier}_base`; },
-    getTowerUpgradeArm(type, path, tier) { return `${this.PREFIXES.TOWER}${type}_p${path}_t${tier}_arm`; },
-    
-    // PRO FIX: Added variant parameter for pop effects (1, 2, or 3)
-    getPopEffect(variant = 1) { return `${this.PREFIXES.EFFECT}pop${variant}`; },
-    getMoabCrack() { return `${this.PREFIXES.EFFECT}moab_crack`; },
-    getCeramicCrack() { return `${this.PREFIXES.EFFECT}ceramic_crack`; },
-    getBanana() { return `${this.PREFIXES.EFFECT}banana`; },
-    getMap(name) { return `${this.PREFIXES.MAP}${name}`; },
-    getCamo() { return `${this.PREFIXES.EFFECT}camo`; },
-    getFortified() { return `${this.PREFIXES.EFFECT}fortified`; },
-    getRegen() { return `${this.PREFIXES.EFFECT}regen`; },
-    
-    // PRO FIX: Added stun frame helper
-    getStunFX(frame) { return `${this.PREFIXES.EFFECT}stun_${frame}`; }
+
+    getProjectile(type) {
+        return `${PROJECTILE_PREFIX}${type}`;
+    },
+
+    getTowerBase(type) {
+        return `${TOWER_PREFIX}${type}_base`;
+    },
+
+    getTowerArm(type) {
+        return `${TOWER_PREFIX}${type}_arm`;
+    },
+
+    getTowerUpgradeBase(type, path, tier) {
+        return `${TOWER_PREFIX}${type}_p${path}_t${tier}_base`;
+    },
+
+    getTowerUpgradeArm(type, path, tier) {
+        return `${TOWER_PREFIX}${type}_p${path}_t${tier}_arm`;
+    },
+
+    getPopEffect() {
+        return `${EFFECT_PREFIX}pop`;
+    },
+
+    getMoabCrack() {
+        return `${EFFECT_PREFIX}moab_crack`;
+    },
+
+    getCeramicCrack() {
+        return `${EFFECT_PREFIX}ceramic_crack`;
+    },
+
+    getBanana() {
+        return `${EFFECT_PREFIX}banana`;
+    },
+
+    getMap(name) {
+        return `${MAP_PREFIX}${name}`;
+    },
+
+    getCamo() {
+        return `${EFFECT_PREFIX}camo`;
+    },
+
+    getFortified() {
+        return `${EFFECT_PREFIX}fortified`;
+    },
+
+    getRegen() {
+        return `${EFFECT_PREFIX}regen`;
+    },
+
+    getStunFX(frame) {
+        return `${EFFECT_PREFIX}stun_${frame}`;
+    }
 };
+
+Object.freeze(Names);
