@@ -442,24 +442,7 @@ export class Enemy {
         if (this.tier >= 12 && this.hp < this._maxHp) {
             this._drawCracks(ctx, w, h, drawX, drawY);
         }
-        
-        if (!(this.tier === 13 && this.data.isMoab)) {
-            if (!this.isCamo) {
-                ctx.fillStyle = '#5d4037';
-                ctx.beginPath();
-                ctx.arc(this.x - 4, this.y - 2, 4, 0, Math.PI * 2);
-                ctx.arc(this.x + 5, this.y + 3, 5, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            if (!this.isFortified) {
-                ctx.strokeStyle = '#2c3e50';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
-        
+
         if (this.isFrozen) {
             ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)';
             ctx.lineWidth = 3;

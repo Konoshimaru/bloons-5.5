@@ -224,6 +224,11 @@ export class Projectile {
 
         this.x += Math.cos(this.angle) * this.speed * dt;
         this.y += Math.sin(this.angle) * this.speed * dt;
+
+        this.life -= dt;
+        if (this.life <= 0) {
+            this.alive = false;
+        }
     }
 
     _isHomingType() {
