@@ -2,6 +2,22 @@
 import { GameEngine } from '../engine.js';
 import { Utils, drawShadow } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
+import { DamageType, createDmgType } from '../damageTypes.js';
+
+/**
+ * Maps an engineer sentry's string dmgType to the shared DamageType constant,
+ * matching the canonical mapping in towerBehavior.js::_createDamageType.
+ */
+function _sentryDmgType(dmgTypeStr) {
+    const base = {
+        sharp: DamageType.SHARP,
+        explosion: DamageType.EXPLOSION,
+        ice: DamageType.ICE,
+        plasma: DamageType.PLASMA,
+        energy: DamageType.ENERGY
+    }[dmgTypeStr] || DamageType.NONE;
+    return base;
+}
 
 export default {
     stats: { 
@@ -55,7 +71,10 @@ export default {
                 const sCandidates = GameEngine.enemyGrid.query(s.x, s.y, s.range);
                 for (let e of sCandidates) { if (!e.alive) continue; if (Utils.distance(s.x, s.y, e.x, e.y) < s.range) { if (e.distanceTraveled < sBestVal) { sBestVal = e.distanceTraveled; sTarget = e; } } }
                 if (sTarget) {
-                    let sDmgType = { canHitLead: s.dmgType === 'plasma' || s.dmgType === 'explosion', isExplosion: s.dmgType === 'explosion', isIce: s.dmgType === 'ice', isSharp: s.dmgType === 'sharp', isPlasma: s.dmgType === 'plasma', isEnergy: s.dmgType === 'energy', isFire: false, isMagic: false, moabDmg: tower.stats.moabDmg || 0, fortifiedDmg: tower.stats.fortifiedDmg || 0 };
+                    let sDmgType = createDmgType(_sentryDmgType(s.dmgType), {
+                        moabDmg: tower.stats.moabDmg || 0,
+                        fortifiedDmg: tower.stats.fortifiedDmg || 0
+                    });
                     let count = s.projCount || 1;
                     for(let j=0; j<count; j++) {
                         let p = GameEngine.projectilePool.get();
