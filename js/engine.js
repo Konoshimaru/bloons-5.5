@@ -649,7 +649,7 @@ export const GameEngine = {
         // Apply Support Buffs
         for (const t of this.towers) {
             if (!t) continue;
-            const behavior = TowerRegistry[t.type];
+            const behavior = TowerRegistry[t.type] || HeroRegistry[t.type];
             if (behavior && behavior.updateSupport) {
                 behavior.updateSupport(t, dt);
             }

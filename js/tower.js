@@ -146,13 +146,21 @@ export class Tower {
                 this._applyUpgradeStats(upgradeData);
             }
         }
-        
+
+        this._postUpgradeHook(3);
+        this._recalculateStats();
+    }
+
+    /**
+     * Type-specific side-effects that depend on the final upgrade state.
+     * Called after stats are applied both during live upgrades and save loads.
+     * Keeps tower-type special-cases out of the generic upgrade flow.
+     */
+    _postUpgradeHook(path) {
         if (this.type === 'engineer' && this.upgrades[2] === 5 && this.activeTrap) {
             this.activeTrap.maxRbe = this.stats.trapRbe;
             this.activeTrap.moab = this.stats.trapMoab;
         }
-        
-        this._recalculateStats();
     }
 
     getActiveAssets() {
@@ -245,10 +253,7 @@ export class Tower {
         this._applyUpgradeStats(upgradeData);
         this._recalculateStats();
 
-        if (this.type === 'engineer' && path === 3 && this.upgrades[2] === 5 && this.activeTrap) {
-            this.activeTrap.maxRbe = this.stats.trapRbe;
-            this.activeTrap.moab = this.stats.trapMoab;
-        }
+        this._postUpgradeHook(path);
 
         if (this.stats.fireRate < MIN_FIRE_RATE && !this.stats.baseCooldown) {
             this.stats.fireRate = MIN_FIRE_RATE;
