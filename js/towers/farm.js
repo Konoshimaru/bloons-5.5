@@ -37,19 +37,21 @@ export default {
         ]
     },
     
+    updateSupport(tower, dt) {
+        if (tower.upgrades[0] === 5) {
+            for (let t of GameEngine.towers) {
+                if (t === tower) continue;
+                if (t && t.type === 'farm' && t.upgrades[0] === 4) {
+                    t.buffedValueMult = 0.25;
+                }
+            }
+        }
+    },
+
     update(tower, dt) {
         if (!tower.bananas) tower.bananas = [];
         if (!tower.bankBalance) tower.bankBalance = 0;
         if (!tower.abilityUsesThisRound) tower.abilityUsesThisRound = 0;
-        
-        if (tower.upgrades[0] === 5 && !tower._buffApplied) {
-            for (let ot of GameEngine.towers) {
-                if (ot && ot.type === 'farm' && ot.upgrades[0] === 4) {
-                    ot.stats.bananaValueMult = (ot.stats.bananaValueMult || 0) + 0.25;
-                }
-            }
-            tower._buffApplied = true;
-        }
 
         let path1 = tower.upgrades[0];
         let path2 = tower.upgrades[1];
@@ -85,12 +87,12 @@ export default {
             while (tower.spawnsLeft > 0) {
                 if (tower.stats.isBank) {
                     let income = (tower.stats.bankIncome || 180) / 6;
-                    let mult = 1 + (tower.stats.bananaValueMult || 0);
+                    let mult = 1 + (tower.stats.bananaValueMult || 0) + (tower.buffedValueMult || 0);
                     let cap = tower.stats.bankCap || 7000;
                     tower.bankBalance = Math.min(cap, tower.bankBalance + (income * mult));
                 } else if (tower.stats.isMarket) {
                     let val = tower.stats.bananaValue || 20;
-                    let mult = 1 + (tower.stats.bananaValueMult || 0);
+                    let mult = 1 + (tower.stats.bananaValueMult || 0) + (tower.buffedValueMult || 0);
                     let cash = Math.floor(val * mult);
                     GameEngine.addCash(cash);
                     tower.cashGenerated = (tower.cashGenerated || 0) + cash; // PRO FIX: Track cash
@@ -110,12 +112,12 @@ export default {
                 
                 if (tower.stats.isBank) {
                     let income = (tower.stats.bankIncome || 180) / 6;
-                    let mult = 1 + (tower.stats.bananaValueMult || 0);
+                    let mult = 1 + (tower.stats.bananaValueMult || 0) + (tower.buffedValueMult || 0);
                     let cap = tower.stats.bankCap || 7000;
                     tower.bankBalance = Math.min(cap, tower.bankBalance + (income * mult));
                 } else if (tower.stats.isMarket) {
                     let val = tower.stats.bananaValue || 20;
-                    let mult = 1 + (tower.stats.bananaValueMult || 0);
+                    let mult = 1 + (tower.stats.bananaValueMult || 0) + (tower.buffedValueMult || 0);
                     let cash = Math.floor(val * mult);
                     GameEngine.addCash(cash);
                     tower.cashGenerated = (tower.cashGenerated || 0) + cash; // PRO FIX: Track cash
@@ -169,16 +171,7 @@ export default {
         let baseValue = 20;
         if (tower.upgrades[0] === 4) baseValue = 300;
         if (tower.upgrades[0] === 5) baseValue = 1200;
-        let mult = 1 + (tower.stats.bananaValueMult || 0);
-        
-        if (tower.upgrades[0] === 4) {
-            for (let ot of GameEngine.towers) {
-                if (ot && ot.type === 'farm' && ot.upgrades[0] === 5) {
-                    mult += 0.25; 
-                    break;
-                }
-            }
-        }
+        let mult = 1 + (tower.stats.bananaValueMult || 0) + (tower.buffedValueMult || 0);
         
         tower.bananas.push({
             startX: tower.x, startY: tower.y, targetX, targetY,

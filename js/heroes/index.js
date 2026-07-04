@@ -1,6 +1,10 @@
+﻿// index.js
+// Exports the available game definitions for this module.
+
 import Quincy from './quincy.js';
 import Gwendolin from './gwendolin.js';
 import Gojo from './gojo.js'; 
+import Geto from './geto.js';
 import { createPlaceholderHero } from './placeholder.js';
 
 const placeholderHeroes = [
@@ -25,7 +29,8 @@ const placeholderHeroes = [
 export const HeroRegistry = {
     quincy: Quincy,
     gwendolin: Gwendolin,
-    gojo: Gojo 
+    gojo: Gojo,
+    geto: Geto
 };
 
 // Inject all placeholders into the registry

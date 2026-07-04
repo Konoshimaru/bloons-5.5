@@ -1,3 +1,6 @@
+﻿// glue.js
+// Defines the Glue tower and its slowing effects.
+
 import { GameEngine } from '../engine.js';
 
 export default {
@@ -33,6 +36,7 @@ export default {
         ]
     },
     fire(tower, target, damage, dmgType) {
+        // The glue tower does not deal direct damage; it fires a projectile that applies a slow effect on impact.
         let p = GameEngine.projectilePool.get();
         p.init(tower.x, tower.y, damage, target, 'glue', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, { slow: tower.stats.slow, slowDuration: tower.stats.slowDuration }, 0, tower, dmgType);
     }

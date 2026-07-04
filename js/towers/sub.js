@@ -1,3 +1,6 @@
+﻿// sub.js
+// Defines the Sub tower and its underwater attacks.
+
 import { GameEngine } from '../engine.js';
 
 export default {
@@ -34,6 +37,7 @@ export default {
         ]
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
+        // The submarine uses standard darts, but its upgrades can expand its pierce and special effects.
         let p = GameEngine.projectilePool.get();
         p.init(tower.x, tower.y, damage, target, 'dart', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
     },

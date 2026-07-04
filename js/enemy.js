@@ -1,3 +1,6 @@
+﻿// enemy.js
+// Defines enemy behavior, movement, status effects, and damage handling.
+
 import { EnemyTypes } from './data.js';
 import { drawShadow } from './utils.js';
 import { AudioEngine } from './audio.js';
@@ -16,6 +19,8 @@ const FORTIFIED_LEAD_HP = 3;
 const LIVES_LOST_CERAMIC_BASE = 94;
 const LIVES_LOST_FORTIFIED_LEAD = 26;
 
+// Enemy instances represent bloons moving along the map.
+// They handle movement, status effects, damage, splitting, and reward payout.
 export class Enemy {
     constructor(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false) {
         this.tier = tier;
@@ -39,6 +44,7 @@ export class Enemy {
     }
 
     _initializeStats() {
+        // Status-effect state for movement and damage over time.
         this.slowFactor = 1.0;
         this.slowTimer = 0;
         this.isFrozen = false;
@@ -49,6 +55,7 @@ export class Enemy {
         this.dipped = false;
         this.stormHitTimer = 0;
         
+        // Visual offsets and special-case modifiers used by certain effects.
         this.offsetX = 0;
         this.offsetY = 0;
         this.gojoSlow = 1.0;
@@ -112,6 +119,8 @@ export class Enemy {
     }
 
     _updateMovement(dt) {
+        // The enemy's progress along the path is driven by its speed, any slow effect, and hero-based modifiers.
+        // The enemy advances along the path using its current movement speed and any active slow effects.
         this.distanceTraveled += this.data.speed * this.slowFactor * this.gojoSlow * dt;
         const pos = this.map.getPositionAtDistance(this.distanceTraveled);
         
@@ -131,6 +140,7 @@ export class Enemy {
         this.infinityTint = Math.max(0, this.infinityTint - dt * 0.5);
         
         if (pos.finished) {
+            // Once the enemy leaves the path, it is considered escaped and costs the player lives.
             this.alive = false;
             const lost = this.getLivesLost();
             if (isFinite(lost)) GameEngine.lives -= lost;
@@ -169,6 +179,7 @@ export class Enemy {
         if (isIce && (this.data.isWhite || this.data.isZebra || this.data.isLead)) return;
         
         if (factor <= this.slowFactor || this.slowTimer <= 0) {
+            // A stronger or fresher slow replaces the previous one so the latest effect wins.
             this.slowFactor = factor;
             this.slowTimer = duration;
             this.isFrozen = isIce;
@@ -194,6 +205,7 @@ export class Enemy {
     }
 
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {
+        // Some bloons split into smaller bloons when they are popped, so the field can become more crowded.
         if (!canSpawn || !this.data.splitsInto) return;
         
         const childCount = this.data.splitsInto.length;
@@ -223,6 +235,7 @@ export class Enemy {
     }
 
     takeDamage(damage, dmgType, effects) {
+        // Damage routing is intentionally centralized here so all towers and effects share the same rules.
         if (this._isImmune(dmgType, effects)) return -1;
         
         if (isNaN(damage)) damage = 0;

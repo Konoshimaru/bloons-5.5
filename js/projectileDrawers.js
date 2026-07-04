@@ -1,3 +1,8 @@
+﻿// projectileDrawers.js
+// Contains helpers that draw projectile visuals to the canvas.
+
+// Each drawer is a tiny canvas-rendering function for a projectile type.
+// They are intentionally stateless so the same renderer can be reused for many projectiles.
 export const ProjectileDrawers = {
     dart: (ctx) => { 
         ctx.fillStyle = '#8B4513'; ctx.fillRect(-10, -2, 15, 4); 

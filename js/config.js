@@ -1,3 +1,6 @@
+﻿// config.js
+// Stores gameplay constants, difficulty data, and player save settings.
+
 import { Maps } from './data.js';
 import { HeroStats, HeroLevels } from './heroes/index.js';
 
@@ -10,6 +13,7 @@ export const RANGE_SCALE = 3.0;
 
 const STORAGE_KEY = 'td_config_v11';
 
+// The persisted settings object stores user preferences and small progression details between runs.
 const DEFAULT_DATA = {
     sfxVolume: 0.5,
     musicVolume: 0.3,

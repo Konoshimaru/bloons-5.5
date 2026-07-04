@@ -2,22 +2,7 @@
 import { GameEngine } from '../engine.js';
 import { Utils, drawShadow } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
-import { DamageType, createDmgType } from '../damageTypes.js';
-
-/**
- * Maps an engineer sentry's string dmgType to the shared DamageType constant,
- * matching the canonical mapping in towerBehavior.js::_createDamageType.
- */
-function _sentryDmgType(dmgTypeStr) {
-    const base = {
-        sharp: DamageType.SHARP,
-        explosion: DamageType.EXPLOSION,
-        ice: DamageType.ICE,
-        plasma: DamageType.PLASMA,
-        energy: DamageType.ENERGY
-    }[dmgTypeStr] || DamageType.NONE;
-    return base;
-}
+import { createDmgType, resolveDmgType } from '../damageTypes.js';
 
 export default {
     stats: { 
@@ -71,7 +56,7 @@ export default {
                 const sCandidates = GameEngine.enemyGrid.query(s.x, s.y, s.range);
                 for (let e of sCandidates) { if (!e.alive) continue; if (Utils.distance(s.x, s.y, e.x, e.y) < s.range) { if (e.distanceTraveled < sBestVal) { sBestVal = e.distanceTraveled; sTarget = e; } } }
                 if (sTarget) {
-                    let sDmgType = createDmgType(_sentryDmgType(s.dmgType), {
+                    let sDmgType = createDmgType(resolveDmgType(s.dmgType), {
                         moabDmg: tower.stats.moabDmg || 0,
                         fortifiedDmg: tower.stats.fortifiedDmg || 0
                     });

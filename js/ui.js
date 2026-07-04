@@ -1,7 +1,11 @@
+﻿// ui.js
+// Manages the HUD, shop, upgrade panel, and menus.
+
 import { TowerStats, Upgrades } from './towers/index.js';
 import { Config, HeroStats } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 
+// Cache DOM elements so the UI can update them quickly without repeatedly querying the page.
 const elements = {};
 function el(id) {
     if (!elements[id]) {
@@ -11,14 +15,16 @@ function el(id) {
 }
 
 const MENUS = ['main-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'custom-maps-menu', 'difficulty-menu', 'hero-select-menu'];
-const SPEED_TEXTS = ["Start Wave", "➤ 1x", "➤ 2x", "➤➤ 3x", "➤ 5x", "➤ 10x", "➤ 20x"];
+const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 const FLAVOR_OPACITY_VISIBLE = 1;
 const FLAVOR_OPACITY_HIDDEN = 0;
 
+// UI manages the on-screen panels, buttons, shop cards, upgrade panels, and message log.
 export const UI = {
     _towerCardCache: null,
 
     toggleMenus(menuId) {
+        // Menus are hidden and shown by toggling a shared CSS class, keeping the page structure simple.
         for (const id of MENUS) {
             const menu = el(id);
             if (menu) menu.classList.add('hidden');
@@ -44,7 +50,7 @@ export const UI = {
         const abandonBtn = el('abandon-btn');
         
         if (levelEl) levelEl.innerText = `Level ${Config.data.playerLevel}`;
-        if (mmEl) mmEl.innerText = `🐵 $${Config.data.monkeyMoney}`;
+        if (mmEl) mmEl.innerText = `$${Config.data.monkeyMoney}`;
         
         const hasSave = !!Config.data.savedRun;
         if (continueBtn) continueBtn.style.display = hasSave ? 'block' : 'none';
@@ -80,17 +86,18 @@ export const UI = {
 
     updateLives(lives) {
         const livesEl = el('lives-display');
-        if (livesEl) livesEl.innerText = `❤️ ${lives}`;
+        if (livesEl) livesEl.innerText = `Lives: ${lives}`;
     },
 
     updateWave(wave) {
         const waveEl = el('wave-display');
-        if (waveEl) waveEl.innerText = `🌊 Wave ${wave}`;
+        if (waveEl) waveEl.innerText = `Wave ${wave}`;
     },
 
     updateCash(cash, engine) {
+        // The cash display and shop card availability both depend on the player economy, so they update together.
         const cashEl = el('cash-display');
-        if (cashEl) cashEl.innerText = `💰 ${cash}`;
+        if (cashEl) cashEl.innerText = `$${cash}`;
 
         if (!this._towerCardCache) {
             this._towerCardCache = document.querySelectorAll('.tower-card[data-tower]');
@@ -109,6 +116,20 @@ export const UI = {
 
         if (engine.selectedPlacedTower && !engine.selectedPlacedTower.stats.isHero) {
             this._updateUpgradeCards(engine.selectedPlacedTower, engine);
+        }
+    },
+
+    refreshSelectedTower(engine) {
+        const selected = engine.selectedPlacedTower;
+        if (!selected) return;
+
+        const panel = el('upgrade-panel');
+        if (!panel || panel.classList.contains('hidden')) return;
+
+        if (selected.stats.isHero) {
+            this._showHeroUI(selected, engine);
+        } else {
+            this._showTowerUI(selected, engine);
         }
     },
 
@@ -211,11 +232,13 @@ export const UI = {
             abilities.push({ tower: t, slot: 2, cd: t.ability2Cooldown || 0, maxCd: ab2Cd, name: ab2Name });
         }
         if (t.stats.isAbility3) {
-            abilities.push({ tower: t, slot: 3, cd: t.ability3Cooldown || 0, maxCd: 120, name: "0.2 Domain" });
+            const name = t.type === 'gojo' ? "0.2 Domain" : "Ability 3";
+            abilities.push({ tower: t, slot: 3, cd: t.ability3Cooldown || 0, maxCd: 120, name });
         }
     },
 
     showUpgradeUI(t, engine) {
+        // Selecting a tower opens the upgrade panel and populates it with tower-specific information and buttons.
         const panel = el('upgrade-panel');
         if (!panel) return;
         panel.classList.remove('hidden');
@@ -341,13 +364,13 @@ export const UI = {
         
         let counters = "";
         if (t.type === 'farm' && t.stats.isBank) {
-            counters = `🏦 Bank: $${Math.floor(t.bankBalance)}`;
+            counters = `Bank: $${Math.floor(t.bankBalance)}`;
         } else if (t.type === 'farm') {
-            counters = `💰 Cash Gen: $${t.cashGenerated}`;
+            counters = `Cash Gen: $${t.cashGenerated}`;
         } else if (t.type === 'engineer' && t.activeTrap) {
-            counters = `🪤 Trap: ${t.activeTrap.rbe}/${t.activeTrap.maxRbe}`;
+            counters = `Trap: ${t.activeTrap.rbe}/${t.activeTrap.maxRbe}`;
         } else {
-            counters = `💥 Dmg Dealt: ${t.damageDealt}`;
+            counters = `Dmg Dealt: ${t.damageDealt}`;
         }
         upCounters.innerText = counters;
     },

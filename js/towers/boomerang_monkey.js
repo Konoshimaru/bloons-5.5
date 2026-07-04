@@ -1,3 +1,6 @@
+﻿// boomerang_monkey.js
+// Defines the Boomerang Monkey tower and its returning projectiles.
+
 import { GameEngine } from '../engine.js';
 
 export default {
@@ -32,6 +35,7 @@ export default {
         ]
     },
     fire(tower, target, damage, dmgType) {
+        // Boomerang monkeys throw a piercing projectile that loops back after hitting targets.
         let p = GameEngine.projectilePool.get();
         p.init(tower.x, tower.y, damage, target, 'boomerang', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, null, 0, tower, dmgType);
     }

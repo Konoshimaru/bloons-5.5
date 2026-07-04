@@ -1,3 +1,6 @@
+﻿// audio.js
+// Handles music and sound effect playback for the game.
+
 import { Config } from './config.js';
 
 const SFX_VOLUME_MODIFIER = 0.1;
@@ -6,7 +9,7 @@ const POP_THROTTLE_MS = 50;
 const SHOOT_THROTTLE_MS = 30;
 const DEFAULT_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
 
-// Variáveis de escopo local que atuam estritamente como estados privados seguros
+// Internal state is kept in module scope so the audio engine can manage playback without creating extra objects.
 let ctx = null;
 let musicAudio = null;
 let sfxVolume = 0.5;
@@ -17,7 +20,7 @@ let isPlaying = false;
 let lastPopTime = 0;
 let lastShootTime = 0;
 
-// Funções utilitárias internas (Substitutos de métodos privados)
+// Internal helpers resolve the music playlist from the manifest first, then fall back to a directory scan.
 async function _loadPlaylistInternal() {
     try {
         const manifestRes = await fetch('./music/manifest.json');
@@ -70,6 +73,7 @@ function _loadTrackInternal(index) {
 
 export const AudioEngine = {
     async init() {
+        // Lazy-init the browser audio context and prepare the current track list once the page is ready.
         if (ctx) return;
         
         try {
@@ -158,6 +162,7 @@ export const AudioEngine = {
     },
 
     playSfx(type) {
+        // Short, lightweight synthesized tones are used for UI feedback and combat impacts.
         if (!ctx) return;
         
         const now = performance.now();
@@ -169,7 +174,7 @@ export const AudioEngine = {
         if (type === 'shoot') lastShootTime = now;
 
         try {
-            // Garante que o contexto não foi pausado pelo navegador devido a políticas de autoplay
+            // Garante que o contexto nÃ£o foi pausado pelo navegador devido a polÃ­ticas de autoplay
             if (ctx.state === 'suspended') {
                 ctx.resume();
             }
@@ -230,3 +235,4 @@ export const AudioEngine = {
         }
     }
 };
+

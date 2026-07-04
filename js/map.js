@@ -1,3 +1,6 @@
+﻿// map.js
+// Builds and queries the map layout, path, and placement restrictions.
+
 import { Utils } from './utils.js';
 import { GameEngine } from './engine.js'; // Backward compatibility for index-based lookup
 import Assets from './assets.js';
@@ -11,6 +14,7 @@ const PLACEMENT_PADDING = 18;
 const PROP_RADIUS_SMALL = 15;
 const PROP_RADIUS_LARGE = 25;
 
+// GameMap stores the level layout, path, and props that define where enemies can travel and where towers may be placed.
 export class GameMap {
     constructor(mapDataOrIndex) {
         const mapData = typeof mapDataOrIndex === 'number' 
@@ -21,6 +25,7 @@ export class GameMap {
             throw new Error("Invalid map data provided to GameMap.");
         }
 
+        // Clone the map definition so edits do not mutate the shared template data.
         this.data = JSON.parse(JSON.stringify(mapData)); 
         this.waypoints = this.data.waypoints; 
         this.props = this.data.props || []; 
@@ -31,6 +36,7 @@ export class GameMap {
     }
 
     _initPathfinding() {
+        // The path is split into segments so the engine can quickly calculate enemy movement and placement validity.
         this.segments = [];
         this.cumulativeDistances = [0];
         this.totalLength = 0;
@@ -166,7 +172,12 @@ export class GameMap {
         return Math.max(0, high);
     }
 
+    getTotalLength() {
+        return this.totalLength;
+    }
+
     getPositionAtDistance(distance) {
+        // This is the core path-following helper. It converts an enemy's traveled distance into its current map position.
         if (distance <= 0) {
             return { x: this.waypoints[0].x, y: this.waypoints[0].y, finished: false };
         }
@@ -188,6 +199,7 @@ export class GameMap {
     }
 
     isOnPath(x, y) {
+        // Towers should not be built directly on the path, so this checks whether a point overlaps the route.
         for (let i = 0; i < this.segments.length; i++) {
             const seg = this.segments[i];
             const dist = Utils.distToSegment(x, y, seg.p1.x, seg.p1.y, seg.p2.x, seg.p2.y);

@@ -1,3 +1,6 @@
+﻿// super.js
+// Defines the Super tower and its upgraded combat behavior.
+
 import { GameEngine } from '../engine.js';
 
 export default {
@@ -32,6 +35,7 @@ export default {
         ]
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
+        // The Super Monkey can split its fire into multiple projectiles when upgraded.
         let count = tower.stats.projectileCount || 1;
         for(let i=0; i<count; i++) {
             let p = GameEngine.projectilePool.get();

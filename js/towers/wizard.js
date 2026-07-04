@@ -1,3 +1,6 @@
+﻿// wizard.js
+// Defines the Wizard tower and its magical attacks.
+
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
@@ -33,6 +36,7 @@ export default {
         ]
     },
     update(tower, dt) {
+        // Fire wells created by the wizard tick over time and damage any enemies standing inside them.
         if (tower.fireWells && tower.fireWells.length > 0) {
             for (let i = tower.fireWells.length - 1; i >= 0; i--) {
                 let w = tower.fireWells[i];
@@ -53,6 +57,7 @@ export default {
         p.init(tower.x, tower.y, damage, target, 'wizard_bolt', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
     },
     ability(tower, engine) {
+        // The wizard places a fire well at the furthest-progressed enemy so it covers the most dangerous lane.
         engine.log("Wall of Fire!");
         let target = null;
         let bestVal = -Infinity;
@@ -66,6 +71,7 @@ export default {
         }
     },
     draw(ctx, tower, isPreview) {
+        // Fire wells are rendered as fading circles so the player can see their current area of effect.
         if (!isPreview && tower.fireWells) {
             for (let w of tower.fireWells) {
                 ctx.globalAlpha = Math.min(1, w.life / w.maxLife) * 0.6;

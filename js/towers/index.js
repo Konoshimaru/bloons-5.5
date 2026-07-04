@@ -1,3 +1,6 @@
+﻿// index.js
+// Exports the available game definitions for this module.
+
 import dart from './dart.js';
 import boomerang from './boomerang_monkey.js';
 import tack from './tack.js';

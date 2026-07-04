@@ -1,3 +1,6 @@
+﻿// pool.js
+// Provides object pooling for reusable gameplay entities.
+
 export class ObjectPool {
     #factory;
     #reset;
@@ -17,12 +20,14 @@ export class ObjectPool {
     }
 
     get() {
+        // Reuse an inactive object when possible so the game does not churn through allocations.
         const obj = this.#pool.pop() ?? this.#factory();
         this.#active.push(obj);
         return obj;
     }
 
     release(obj) {
+        // Reset the object before returning it to the pool so it can be reused safely.
         if (this.#reset) {
             this.#reset(obj);
         }

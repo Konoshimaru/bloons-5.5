@@ -1,3 +1,6 @@
+﻿// names.js
+// Provides naming helpers for enemies, towers, and other game labels.
+
 const ENEMY_PREFIX = 'enemy_';
 const PROJECTILE_PREFIX = 'proj_';
 const TOWER_PREFIX = 'tower_';

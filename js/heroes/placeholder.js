@@ -1,3 +1,6 @@
+﻿// placeholder.js
+// Acts as a placeholder hero implementation for prototyping and testing.
+
 import { GameEngine } from '../engine.js';
 import { Projectile } from '../projectile.js';
 
@@ -25,3 +28,4 @@ export function createPlaceholderHero(name, cost, desc) {
         }
     };
 }
+

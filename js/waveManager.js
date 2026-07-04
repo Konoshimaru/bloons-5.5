@@ -1,3 +1,6 @@
+﻿// waveManager.js
+// Spawns enemy waves and drives round progression.
+
 import { Waves } from './data.js';
 import { Enemy } from './enemy.js';
 import { GameEngine } from './engine.js';
@@ -7,8 +10,11 @@ const SPAWN_INTERVAL_DEFAULT = 0.35;
 const AUTO_WAVE_DELAY = 0.1;
 const ENDLESS_BASE_ROUND = 41;
 
+// WaveManager is responsible for constructing enemy waves and feeding them into the game over time.
+// It decides when bloons spawn, when rounds end, and how the game rewards players after a wave clears.
 export class WaveManager {
     constructor() {
+        // Wave state for the current game session.
         this.currentWave = 0;
         this.spawnQueue = [];
         this.waveTime = 0;
@@ -28,6 +34,7 @@ export class WaveManager {
     }
 
     startWave() {
+        // Starting a wave advances the round counter and queues up the enemies for that round.
         this.currentWave++;
         this.waveActive = true;
         this.waveTime = 0;
@@ -76,7 +83,8 @@ export class WaveManager {
             const start = group.s;
             const end = group.e;
 
-            const interval = count > 1 ? (end - start) / (count - 1) : 0;
+            // Spread the group over a time window so bloons do not all appear instantly.
+        const interval = count > 1 ? (end - start) / (count - 1) : 0;
 
             for (let i = 0; i < count; i++) {
                 this.spawnQueue.push({
@@ -110,6 +118,7 @@ export class WaveManager {
     }
 
     _processSpawns() {
+        // The spawn queue is time-based, so bloons appear gradually rather than all at once.
         while (this.spawnQueue.length > 0 && this.spawnQueue[0].time <= this.waveTime) {
             const spawn = this.spawnQueue.shift();
             GameEngine.enemies.push(new Enemy(

@@ -1,3 +1,6 @@
+﻿// utils.js
+// Holds shared utility functions used across the game.
+
 export const CANVAS_WIDTH = 900;
 export const CANVAS_HEIGHT = 600;
 
@@ -76,6 +79,19 @@ export function drawShadow(ctx, x, y, r) {
 /**
  * Draws an image centered at the current context origin, scaled to fit within targetSize.
  */
+/**
+ * Recursively freezes an object and all its nested values.
+ * Used to deep-freeze immutable game data (EnemyTypes, Waves, DamageType, etc.).
+ */
+export function deepFreeze(obj) {
+    // Freeze configuration data so gameplay tables cannot be accidentally mutated at runtime.
+    if (obj && typeof obj === 'object') {
+        Object.values(obj).forEach(deepFreeze);
+        Object.freeze(obj);
+    }
+    return obj;
+}
+
 export function drawImageCentered(ctx, asset, targetSize, offsetX = 0, offsetY = 0) {
     if (!asset || !asset.loaded) return;
     

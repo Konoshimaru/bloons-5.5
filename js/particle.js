@@ -1,3 +1,6 @@
+﻿// particle.js
+// Implements particle effects for explosions and visual feedback.
+
 import Assets from './assets.js';
 import { Names } from './names.js';
 

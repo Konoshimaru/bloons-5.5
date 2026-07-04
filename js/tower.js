@@ -1,5 +1,9 @@
+﻿// tower.js
+// Defines the shared tower class and its upgrade logic.
+
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
+import { getBehavior } from './registry.js';
 import { drawImageCentered, drawShadow } from './utils.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
@@ -11,6 +15,8 @@ const DEFAULT_HIT_RADIUS = 18;
 const SHADOW_SCALE = 22;
 const MIN_FIRE_RATE = 0.05;
 
+// Base tower class shared by all tower types.
+// It stores stats, handles upgrades, and delegates combat behavior to the tower behavior system.
 export class Tower {
     constructor(x, y, type) {
         this.x = x;
@@ -25,6 +31,7 @@ export class Tower {
     }
 
     _initializeState() {
+        // Core combat state for each tower.
         this.cooldown = 0;
         this.angle = -Math.PI / 2;
         this.upgrades = [0, 0, 0];
@@ -35,6 +42,7 @@ export class Tower {
         this.stats.canSeeCamo = this.stats.canSeeCamo || false;
         this.stats.canHitLead = this.stats.canHitLead || false;
         
+        // Economy and animation tracking for special tower behaviors.
         this.bananasSpawnedThisWave = 0;
         this.lastWave = 0;
         this.bananaTimer = 0;
@@ -59,6 +67,7 @@ export class Tower {
         this.hitRadius = this.stats.hitRadius || DEFAULT_HIT_RADIUS;
         this._losBlockers = null;
         
+        // Animation and targeting state used by the visual and combat systems.
         this.attackAnimActive = false;
         this.attackAnimFrame = 0;
         this.attackAnimTimer = 0;
@@ -89,6 +98,7 @@ export class Tower {
      * based on purchased upgrades. This prevents O(N*M) lookups every frame in TowerBehavior.
      */
     _recalculateStats() {
+        // Cache the base cooldown once and then apply upgrade-based multipliers on top.
         this._baseCooldown = this.stats.baseCooldown || this.stats.fireRate;
         this._cooldownMult = 1.0;
         
@@ -107,6 +117,7 @@ export class Tower {
         if (!upgradeData) return;
 
         if (upgradeData.stat) {
+            // Most upgrades simply raise or change one of the tower's existing stats.
             if (typeof upgradeData.amount === 'number') {
                 this.stats[upgradeData.stat] = (this.stats[upgradeData.stat] || 0) + upgradeData.amount;
             } else {
@@ -115,6 +126,7 @@ export class Tower {
         }
 
         if (upgradeData.extraMods) {
+            // Extra mods can unlock new behavior such as abilities, new damage types, or special visuals.
             for (const key in upgradeData.extraMods) {
                 const val = upgradeData.extraMods[key];
                 if (key === 'scale') {
@@ -290,15 +302,9 @@ export class Tower {
         this._drawHitscans(ctx);
         this._drawBananas(ctx);
 
-        const behavior = TowerRegistry[this.type];
+        const behavior = getBehavior(this.type);
         if (behavior && behavior.draw) {
             behavior.draw(ctx, this, isPreview);
-            return;
-        }
-
-        const heroBehavior = HeroRegistry[this.type];
-        if (heroBehavior && heroBehavior.draw) {
-            heroBehavior.draw(ctx, this, isPreview);
             return;
         }
 

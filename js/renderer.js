@@ -1,3 +1,6 @@
+﻿// renderer.js
+// Renders the map, entities, effects, and selection overlays.
+
 import { Config, RANGE_SCALE } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
 import { HeroStats } from './config.js';
@@ -20,6 +23,8 @@ const LEAK_FLASH_LINE_WIDTH = 10;
 const FLAVOR_OPACITY_VISIBLE = 1;
 const FLAVOR_OPACITY_HIDDEN = 0;
 
+// Renderer handles the visible side of the game.
+// It draws the map, towers, projectiles, explosions, and selection overlays in a consistent order.
 export const Renderer = {
     render(engine, dt) {
         const ctx = engine.ctx;
@@ -83,6 +88,7 @@ export const Renderer = {
     },
 
     _drawPlacementPreview(ctx, engine) {
+        // The placement preview shows players where a tower would go and whether that spot is valid.
         if (!engine.selectedTowerType) return;
 
         const stats = TowerStats[engine.selectedTowerType] || HeroStats[engine.selectedTowerType];
@@ -135,6 +141,7 @@ export const Renderer = {
     },
 
     _drawSelection(ctx, engine) {
+        // When a tower is selected, the renderer highlights its range and placement radius so the player can reason about its reach.
         if (!engine.selectedPlacedTower) return;
 
         const t = engine.selectedPlacedTower;

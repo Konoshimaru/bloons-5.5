@@ -1,6 +1,8 @@
 // js/towers/mortar.js
 import { GameEngine } from '../engine.js';
 
+// Mortar tower behavior.
+// This tower fires artillery shells that arc toward a target area and explode on impact.
 export default {
     stats: { 
         name: "Mortar Monkey", cost: 750, range: 9999, 
@@ -34,18 +36,24 @@ export default {
             {name:"Shell Shock", cost:25000, stat:"explosionDamage", amount:5, desc:"Massive explosion damage."}
         ]
     },
-    // PRO FIX: Removed custom update() so the TowerBehavior ECS system handles targeting and firing automatically.
+    // The shared tower behavior system already handles targeting, cooldowns, and damage calculation.
+    // This method only creates the mortar shell projectile so the shell can travel and explode later.
     fire(tower, target, damage, dmgType, isCrit, effects) {
         let p = GameEngine.projectilePool.get();
+        // The mortar uses a projectile object rather than a direct hit because it needs to arc and detonate at range.
         p.init(tower.x, tower.y, damage, target, 'mortar_shell', tower.stats.projectileSpeed, 1, tower.stats.lifespan, null, effects, 0, tower, dmgType);
     },
     ability(tower, engine) {
+        // Pop and Awe is a big-screen offensive ability that punishes every bloon currently on the field.
         engine.log("Pop and Awe!");
         for (let e of engine.enemies) {
             if (!e.alive) continue;
+            // A hard stop prevents the affected bloons from advancing during the burst.
             e.applySlow(0.0, 3.0, false); 
+            // The burst damage uses a scaled-up version of the tower's normal damage for a dramatic payoff.
             e.takeDamage(tower.stats.damage * 5, { isExplosion: true, canHitLead: true });
         }
+        // The explosion effect is intentionally huge so players can clearly see the ability trigger.
         engine.explosions.push({ x: 450, y: 300, radius: 0, maxRadius: 900, life: 0.8, maxLife: 0.8, color: '#ffffff' });
     }
 };

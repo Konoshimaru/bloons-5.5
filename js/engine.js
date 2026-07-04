@@ -1,6 +1,10 @@
+﻿// engine.js
+// Runs the main game loop and owns the central game state.
+
 import { Config, Difficulties, HeroStats, TargetingModes } from './config.js';
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
+import { getBehavior } from './registry.js';
 import { Maps, Waves } from './data.js';
 import { Utils } from './utils.js';
 import { GameMap } from './map.js';
@@ -17,6 +21,10 @@ import Assets from './assets.js';
 import { UI } from './ui.js';
 import { Renderer } from './renderer.js';
 
+// GameEngine is the central state container for the whole game.
+// It owns the main update loop, the active enemies/towers, and shared object pools.
+// These constants cap expensive systems so the game stays stable even during heavy action.
+const MAX_SUBSTEPS = 10;
 const MAX_PROJECTILES = 1500;
 const MAX_PARTICLES = 400;
 const MAX_EXPLOSIONS = 100;
@@ -36,14 +44,17 @@ export const GameEngine = {
     _rafId: null,
     fpsEl: null,
     
+    // Active gameplay objects that update every frame.
     enemies: [],
     towers: [],
     explosions: [],
     enemyGrid: new SpatialGrid(80),
     
+    // Reusable object pools prevent the game from constantly allocating new projectiles and particles.
     projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
     
+    // Core economy and state values.
     lives: 100,
     cash: 650,
     selectedTowerType: null,
@@ -79,6 +90,7 @@ export const GameEngine = {
     acidPools: [],
 
     init() {
+        // Load persisted settings before the first frame so the run starts with the expected options.
         Config.load();
         if (!Array.isArray(Config.data.customMaps)) Config.data.customMaps = [];
         if (!Config.data.selectedHero) Config.data.selectedHero = 'quincy';
@@ -129,6 +141,7 @@ export const GameEngine = {
     },
 
     addCash(rawAmount) {
+        // Money can be reduced by IMF debt before it reaches the player's balance.
         if (rawAmount <= 0) return;
         if (this.imfDebt > 0) {
             const tax = Math.floor(rawAmount * 0.5);
@@ -144,13 +157,16 @@ export const GameEngine = {
     },
 
     handleWaveSpeedClick() {
+        // Wave speed is cycled through a small state machine so players can quickly increase or reset pacing.
         const isExtreme = Config.data.extremeSpeedEnabled === true;
         const maxSpeed = isExtreme ? MAX_SPEED_EXTREME : MAX_SPEED_NORMAL;
         
         if (this.waveManager.waveActive || this.speedState > 0) {
+            // If a wave is already underway, keep advancing the multiplier instead of restarting it.
             this.speedState++;
             if (this.speedState > maxSpeed) this.speedState = 1;
         } else {
+            // If no wave is active, starting a wave is the first thing that should happen.
             this.waveManager.startWave();
             this.speedState = 1;
         }
@@ -160,6 +176,7 @@ export const GameEngine = {
     },
 
     startGame(isSandbox = false) {
+        // Starting a new run resets the battlefield and reinitializes the economy, enemies, and towers.
         this.isSandbox = isSandbox;
         this.map = new GameMap(this.currentMap);
         this.gameState = 'playing';
@@ -170,6 +187,7 @@ export const GameEngine = {
         this.cash = isSandbox ? 10000000 : diff.cash;
         this.imfDebt = 0;
         
+        // Reset the battlefield so a fresh run does not inherit leftover towers, enemies, or effects.
         this.towers.length = 0;
         this.enemies.length = 0;
         this.explosions.length = 0;
@@ -179,6 +197,7 @@ export const GameEngine = {
         this.particlePool.clear();
         
         this.hero = null;
+        // Rebuild the wave system for the new run so the current round state is fresh.
         this.waveManager = new WaveManager();
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
         this.waveManager.currentWave = diff.startRound - 1;
@@ -435,7 +454,7 @@ export const GameEngine = {
         if (!t) t = this.selectedPlacedTower;
         if (!t) return;
         
-        const behavior = TowerRegistry[t.type] || HeroRegistry[t.type];
+        const behavior = getBehavior(t.type);
         if (!behavior) return;
 
         if (slot === 1 && t.stats.isAbility && t.abilityCooldown <= 0 && behavior.ability) {
@@ -499,6 +518,7 @@ export const GameEngine = {
             this.lastCash = this.cash;
         }
         UI.updateWave(this.waveManager.currentWave);
+        UI.refreshSelectedTower(this);
     },
 
     loop(timestamp) {
@@ -515,7 +535,7 @@ export const GameEngine = {
 
         if (this.gameState === 'playing') {
             const targetDt = Math.min(rawDt, 0.1) * this.timeScale;
-            const steps = Math.ceil(targetDt / FIXED_TIMESTEP);
+            const steps = Math.min(Math.ceil(targetDt / FIXED_TIMESTEP), MAX_SUBSTEPS);
             const stepDt = targetDt / steps;
             
             try {
@@ -649,7 +669,7 @@ export const GameEngine = {
         // Apply Support Buffs
         for (const t of this.towers) {
             if (!t) continue;
-            const behavior = TowerRegistry[t.type] || HeroRegistry[t.type];
+            const behavior = getBehavior(t.type);
             if (behavior && behavior.updateSupport) {
                 behavior.updateSupport(t, dt);
             }

@@ -1,3 +1,6 @@
+﻿// hero.js
+// Contains shared hero logic for abilities, progression, and combat.
+
 import { Tower } from './tower.js';
 import { HeroRegistry } from './heroes/index.js';
 import { GameEngine } from './engine.js';
@@ -8,6 +11,7 @@ export class Hero extends Tower {
     constructor(x, y, type) {
         super(x, y, type);
         
+        // Heroes grow in power through XP rather than through tower upgrades.
         this.level = 1;
         this.xp = 0;
         this.xpTable = HeroRegistry[this.type].xpTable;
@@ -24,6 +28,7 @@ export class Hero extends Tower {
     gainXp(amount) {
         if (this.level >= MAX_LEVEL) return;
         
+        // Accumulate XP until the hero reaches the next milestone, then level up.
         this.xp += amount;
         
         while (this.level < MAX_LEVEL && this.xp >= this.xpToNext) {
@@ -35,6 +40,7 @@ export class Hero extends Tower {
     buyLevel() {
         if (this.level >= MAX_LEVEL) return;
         
+        // Buying a level spends the remaining XP needed to fill the current progression bar.
         const cost = this.xpToNext - this.xp;
         if (GameEngine.cash < cost) {
             GameEngine.log("Not enough cash to buy level!");
@@ -48,6 +54,7 @@ export class Hero extends Tower {
     }
 
     _levelUp() {
+        // Advance the hero to the next rank and immediately refresh its stats and unlocks.
         this.level++;
         
         if (this.level < MAX_LEVEL) {
@@ -64,6 +71,7 @@ export class Hero extends Tower {
     }
 
     _applyLevelStats() {
+        // Each level applies a small set of stat modifiers defined by the hero configuration.
         const levelData = HeroRegistry[this.type].levels[this.level - 1];
         if (!levelData) return;
         
@@ -78,7 +86,6 @@ export class Hero extends Tower {
     _unlockAbilities() {
         if (this.level >= 3) this.stats.isAbility = true;
         if (this.level >= 10) this.stats.isAbility2 = true;
-        if (this.level >= 20) this.stats.isAbility3 = true;
     }
 
     update(dt) {

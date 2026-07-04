@@ -1,3 +1,6 @@
+﻿// spatialGrid.js
+// Implements spatial partitioning for efficient targeting and collision checks.
+
 const HASH_OFFSET = 32768; // Prevents negative keys for coordinates within +/- 32k
 const HASH_MULTIPLIER = 65536;
 
@@ -17,6 +20,7 @@ export class SpatialGrid {
     }
 
     insert(entity) {
+        // Bucket entities into a coarse grid so nearby-target queries stay cheap.
         const cx = Math.floor(entity.x / this.cellSize);
         const cy = Math.floor(entity.y / this.cellSize);
         const key = this._getKey(cx, cy);
@@ -30,6 +34,7 @@ export class SpatialGrid {
     }
 
     query(x, y, radius) {
+        // Expand the search to a ring of neighboring cells around the requested area.
         const result = [];
         const r = Math.ceil(radius / this.cellSize) + 1;
         const cx = Math.floor(x / this.cellSize);

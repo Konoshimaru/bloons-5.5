@@ -1,3 +1,5 @@
+// main.js
+// Entry point for the browser game. This file wires the DOM UI to the engine and handles menu flow.
 import { GameEngine } from './engine.js';
 import { Config, HeroStats } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';

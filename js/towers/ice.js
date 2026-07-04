@@ -1,3 +1,6 @@
+﻿// ice.js
+// Defines the Ice tower and its cold attacks.
+
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
@@ -34,6 +37,7 @@ export default {
         ]
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
+        // Ice attacks create a burst area effect and then apply freeze-like slow effects to enemies inside it.
         let expRadius = tower.stats.range * 3.0; 
         GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#1abc9c' });
         const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius);

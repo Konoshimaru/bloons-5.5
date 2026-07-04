@@ -1,3 +1,6 @@
+﻿// spike.js
+// Defines the Spike tower and its area-denial attacks.
+
 import { GameEngine } from '../engine.js';
 
 export default {
@@ -33,6 +36,7 @@ export default {
         ]
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
+        // Spike factories place their spikes on the nearest path point so they line up with the track.
         let trackPoint = GameEngine.map.getNearestPathPoint(tower.x, tower.y);
         let p = GameEngine.projectilePool.get();
         p.init(trackPoint.x, trackPoint.y, damage, null, 'spike', 0, tower.stats.pierce, tower.stats.lifespan, Math.PI/2, null, 0, tower, dmgType);

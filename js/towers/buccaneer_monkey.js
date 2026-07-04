@@ -1,3 +1,6 @@
+﻿// buccaneer_monkey.js
+// Defines the Buccaneer Monkey tower and its ship-based attacks.
+
 import { GameEngine } from '../engine.js';
 
 export default {
@@ -33,6 +36,7 @@ export default {
     },
     // PRO FIX: Added update function for income generation
     update(tower, dt) {
+        // The Buccaneer can generate passive income over time once the relevant upgrade is purchased.
         if (tower.stats.income) {
             tower.incomeTimer = (tower.incomeTimer || 0) - dt;
             if (tower.incomeTimer <= 0) {
@@ -42,6 +46,7 @@ export default {
         }
     },
     fire(tower, target, damage, dmgType) {
+        // The tower fires two projectiles: one straight at the target and one angled outward for the second barrel.
         let p1 = GameEngine.projectilePool.get();
         p1.init(tower.x, tower.y, damage, target, 'dart', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, null, 0, tower, dmgType);
         let p2 = GameEngine.projectilePool.get();

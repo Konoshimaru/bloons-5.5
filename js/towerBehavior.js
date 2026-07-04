@@ -1,11 +1,15 @@
+﻿// towerBehavior.js
+// Contains reusable tower combat behaviors and effect helpers.
+
 import { RANGE_SCALE } from './config.js';
 import { TowerRegistry, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
+import { getBehavior } from './registry.js';
 import { Utils } from './utils.js';
 import { AudioEngine } from './audio.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
-import { DamageType, createDmgType } from './damageTypes.js';
+import { DamageType, createDmgType, resolveDmgType } from './damageTypes.js';
 
 const MIN_FIRE_RATE = 0.01;
 const ANIM_FRAME_DURATION = 0.03;
@@ -40,6 +44,7 @@ export function update(tower, dt) {
 }
 
 function _updateTimers(tower, dt) {
+    // Tick down all timing-based state so attacks, abilities, buffs, and animations behave in lockstep.
     tower.cooldown -= dt;
     if (tower.abilityCooldown > 0) tower.abilityCooldown -= dt;
     if (tower.ability2Cooldown > 0) tower.ability2Cooldown -= dt;
@@ -100,14 +105,9 @@ function _updateAnimations(tower, dt) {
 }
 
 function _runCustomBehaviors(tower, dt) {
-    const behavior = TowerRegistry[tower.type];
-    if (behavior && behavior.update) { 
-        behavior.update(tower, dt); 
-    }
-    
-    const heroBehavior = HeroRegistry[tower.type];
-    if (heroBehavior && heroBehavior.update) { 
-        heroBehavior.update(tower, dt); 
+    const behavior = getBehavior(tower.type);
+    if (behavior && behavior.update) {
+        behavior.update(tower, dt);
     }
 }
 
@@ -128,6 +128,7 @@ function _acquireAndFire(tower, dt) {
 }
 
 function _findTarget(tower) {
+    // Resolve the best enemy according to the tower's range, visibility rules, and targeting mode.
     const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
     const baseRange = typeof tower.stats.range === 'number' ? tower.stats.range : 100;
     const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
@@ -201,6 +202,7 @@ function _hasLineOfSight(tower, e) {
 }
 
 function _triggerAttack(tower, target, effFireRate) {
+    // Either play an animation and delay the actual shot until the attack frame, or fire immediately.
     const animAsset = _getAnimationAsset(tower);
     
     if (!animAsset || !animAsset.loaded) {
@@ -302,16 +304,7 @@ function _calculatePierce(tower) {
 }
 
 function _createDamageType(dmgTypeStr, canHitLead, tower) {
-    let baseDmgType = DamageType.NONE;
-    if (dmgTypeStr === 'sharp' || dmgTypeStr === 'glue') baseDmgType = DamageType.SHARP;
-    else if (dmgTypeStr === 'explosion') baseDmgType = DamageType.EXPLOSION;
-    else if (dmgTypeStr === 'ice') baseDmgType = DamageType.ICE;
-    else if (dmgTypeStr === 'plasma') baseDmgType = DamageType.PLASMA;
-    else if (dmgTypeStr === 'energy') baseDmgType = DamageType.ENERGY;
-    else if (dmgTypeStr === 'fire') baseDmgType = DamageType.FIRE;
-    else if (dmgTypeStr === 'magic') baseDmgType = DamageType.MAGIC;
-    else if (dmgTypeStr === 'acid') baseDmgType = DamageType.ACID;
-    else if (dmgTypeStr === 'heavy') baseDmgType = DamageType.HEAVY;
+    let baseDmgType = dmgTypeStr === 'glue' ? DamageType.SHARP : resolveDmgType(dmgTypeStr);
 
     return createDmgType(baseDmgType, {
         canHitLead: canHitLead,
@@ -334,7 +327,7 @@ function _decrementBuffs(tower) {
 }
 
 function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce) {
-    const behavior = TowerRegistry[tower.type] || HeroRegistry[tower.type];
+    const behavior = getBehavior(tower.type);
     if (behavior && behavior.fire) {
         behavior.fire(tower, target, damage, dmgType, isCrit, effects);
     } else {

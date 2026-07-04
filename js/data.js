@@ -1,23 +1,28 @@
+﻿// data.js
+// Contains shared enemy, tower, map, and wave data used throughout the game.
+
+// Enemy type definitions are the source of truth for bloon stats, special properties, and split behavior.
 const _enemyTypes = {
     1: { color: '#e74c3c', radius: 12, size: 24, speed: 60, nextTier: null, livesLost: 1, rbe: 1, maxHp: 1 }, 
     2: { color: '#3498db', radius: 14, size: 28, speed: 80, nextTier: 1, livesLost: 1, rbe: 2, maxHp: 1 },   
     3: { color: '#2ecc71', radius: 16, size: 32, speed: 120, nextTier: 2, livesLost: 1, rbe: 3, maxHp: 1 },  
     4: { color: '#f1c40f', radius: 18, size: 36, speed: 180, nextTier: 3, livesLost: 1, rbe: 4, maxHp: 1 },  
     5: { color: '#ff00ff', radius: 20, size: 40, speed: 240, nextTier: 4, livesLost: 1, rbe: 5, maxHp: 1 },  
-    6: { color: '#2c3e50', radius: 16, size: 32, speed: 100, nextTier: null, isBlack: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => d.isExplosion }, 
-    7: { color: '#ffffff', radius: 16, size: 32, speed: 110, nextTier: null, isWhite: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => d.isIce }, 
-    8: { color: '#95a5a6', radius: 16, size: 32, speed: 50, nextTier: null, isLead: true, livesLost: 6, rbe: 23, maxHp: 1, splitsInto: [{tier: 6, count: 2}], blocksDamageType: (d) => d.isSharp && !d.canHitLead },
+    6: { color: '#2c3e50', radius: 14, size: 32, speed: 100, nextTier: null, isBlack: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => d.isExplosion }, 
+    7: { color: '#ffffff', radius: 14, size: 32, speed: 110, nextTier: null, isWhite: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => d.isIce }, 
+    8: { color: '#95a5a6', radius: 18, size: 32, speed: 50, nextTier: null, isLead: true, livesLost: 6, rbe: 23, maxHp: 1, splitsInto: [{tier: 6, count: 2}], blocksDamageType: (d) => d.isSharp && !d.canHitLead },
     9: { color: '#bdc3c7', radius: 18, size: 36, speed: 120, nextTier: null, isZebra: true, livesLost: 6, rbe: 23, maxHp: 1, splitsInto: [{tier: 6, count: 1}, {tier: 7, count: 1}], blocksDamageType: (d) => d.isExplosion || d.isIce }, 
     10:{ color: '#9b59b6', radius: 18, size: 36, speed: 130, nextTier: null, isPurple: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => (d.isPlasma || d.isEnergy || d.isFire || d.isMagic) && !d.canHitPurple }, 
     11:{ color: '#e74c3c', radius: 20, size: 40, speed: 100, nextTier: null, isRainbow: true, livesLost: 12, rbe: 47, maxHp: 1, splitsInto: [{tier: 9, count: 2}] }, 
-    12:{ color: '#e67e22', radius: 24, size: 48, speed: 80, nextTier: null, isCeramic: true, livesLost: 26, rbe: 104, maxHp: 10, splitsInto: [{tier: 11, count: 2}] }, 
-    13:{ color: '#2c3e50', radius: 35, size: 90, speed: 40, nextTier: null, isMoab: true, livesLost: 154, rbe: 616, maxHp: 200, splitsInto: [{tier: 12, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 }, 
-    14:{ color: '#e74c3c', radius: 50, size: 120, speed: 30, nextTier: null, isMoab: true, livesLost: 791, rbe: 3164, maxHp: 700, splitsInto: [{tier: 13, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 }, 
-    15:{ color: '#27ae60', radius: 70, size: 160, speed: 20, nextTier: null, isMoab: true, livesLost: 4164, rbe: 16656, maxHp: 4000, splitsInto: [{tier: 14, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 },
-    16:{ color: '#2c3e50', radius: 35, size: 90, speed: 110, nextTier: null, isMoab: true, isDDT: true, livesLost: 816, rbe: 816, maxHp: 400, splitsInto: [{tier: 12, count: 4, forceCamo: true, forceRegen: true}], blocksDamageType: (d) => d.isExplosion || d.isSharp, spriteOffsetX: 0, spriteOffsetY: 0 },
-    17:{ color: '#e74c3c', radius: 70, size: 160, speed: 15, nextTier: null, isMoab: true, isBAD: true, livesLost: 55760, rbe: 55760, maxHp: 20000, splitsInto: [{tier: 15, count: 2}, {tier: 16, count: 3}], spriteOffsetX: 0, spriteOffsetY: 0 }
+    12:{ color: '#e67e22', radius: 20, size: 48, speed: 80, nextTier: null, isCeramic: true, livesLost: 26, rbe: 104, maxHp: 10, splitsInto: [{tier: 11, count: 2}] }, 
+    13:{ color: '#2c3e50', radius: 70, size: 90, speed: 40, nextTier: null, isMoab: true, livesLost: 154, rbe: 616, maxHp: 200, splitsInto: [{tier: 12, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 }, 
+    14:{ color: '#e74c3c', radius: 90, size: 120, speed: 30, nextTier: null, isMoab: true, livesLost: 791, rbe: 3164, maxHp: 700, splitsInto: [{tier: 13, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 }, 
+    15:{ color: '#27ae60', radius: 110, size: 160, speed: 20, nextTier: null, isMoab: true, livesLost: 4164, rbe: 16656, maxHp: 4000, splitsInto: [{tier: 14, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 },
+    16:{ color: '#2c3e50', radius: 70, size: 90, speed: 110, nextTier: null, isMoab: true, isDDT: true, livesLost: 816, rbe: 816, maxHp: 400, splitsInto: [{tier: 12, count: 4, forceCamo: true, forceRegen: true}], blocksDamageType: (d) => d.isExplosion || d.isSharp, spriteOffsetX: 0, spriteOffsetY: 0 },
+    17:{ color: '#e74c3c', radius: 130, size: 160, speed: 15, nextTier: null, isMoab: true, isBAD: true, livesLost: 55760, rbe: 55760, maxHp: 20000, splitsInto: [{tier: 15, count: 2}, {tier: 16, count: 3}], spriteOffsetX: 0, spriteOffsetY: 0 }
 };
 
+// Wave definitions describe the round-by-round spawn schedule and the special modifiers that apply to each group.
 const _waves = [
     { groups: [ {t:1, c:20, s:0, e:17.51} ] },
     { groups: [ {t:1, c:30, s:0, e:19} ] },
@@ -62,6 +67,7 @@ const _waves = [
     { groups: [ {t:14, c:1, s:0, e:0}, {t:13, c:10, s:5, e:15}, {t:12, c:20, s:15, e:20, fort:true} ] } // Wave 41: Fortified Ceramics
 ];
 
+// Built-in maps define the track layout, decorative props, and visual identity for each run.
 let _maps = [
     { name: "The Park", image: "park", waypoints: [{x:-20,y:150},{x:200,y:150},{x:200,y:450},{x:450,y:450},{x:450,y:100},{x:680,y:100}], props: [ {type:'tree',x:100,y:50}, {type:'tree',x:600,y:400}, {type:'bush',x:350,y:250}, {type:'rock',x:100,y:500}, {type:'pond',x:550,y:300} ] },
     { name: "The Ripples", image: "ripples", waypoints: [{x:-20,y:300},{x:150,y:300},{x:150,y:100},{x:400,y:100},{x:400,y:500},{x:550,y:500},{x:550,y:300},{x:680,y:300}], props: [ {type:'tree',x:50,y:500}, {type:'tree',x:600,y:100}, {type:'rock',x:250,y:300}, {type:'bush',x:500,y:400}, {type:'pond',x:50,y:100} ] },
@@ -70,18 +76,12 @@ let _maps = [
     { name: "The Intersection", waypoints: [{x:300,y:-20},{x:300,y:200},{x:100,y:200},{x:100,y:400},{x:300,y:400},{x:300,y:550},{x:400,y:550},{x:400,y:400},{x:600,y:400},{x:600,y:200},{x:400,y:200},{x:400,y:-20}], props: [ {type:'rock',x:200,y:300}, {type:'pond',x:500,y:300} ] }
 ];
 
-const _deepFreeze = (obj) => {
-    if (obj && typeof obj === 'object') {
-        Object.values(obj).forEach(_deepFreeze);
-        Object.freeze(obj);
-    }
-    return obj;
-};
+import { deepFreeze } from './utils.js';
 
-export const EnemyTypes = _deepFreeze(_enemyTypes);
-export const Waves = _deepFreeze(_waves);
+export const EnemyTypes = deepFreeze(_enemyTypes);
+export const Waves = deepFreeze(_waves);
 
 // Maps array itself is not frozen to allow config.js to push custom maps,
 // but the default map objects are frozen to prevent accidental mutation.
-_maps.forEach(m => _deepFreeze(m));
+_maps.forEach(m => deepFreeze(m));
 export let Maps = _maps;
