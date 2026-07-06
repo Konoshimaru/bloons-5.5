@@ -6,6 +6,7 @@ import { deepFreeze } from '../utils.js';
 import { DamageType, createDmgType, resolveDmgType } from '../damageTypes.js';
 import { EnemyTypes } from '../data.js';
 import { Difficulties } from '../config.js';
+import { getSfxAssetChoices } from '../audio.js';
 
 const results = { passed: 0, failed: 0, errors: [] };
 
@@ -160,6 +161,17 @@ console.log("\n── Difficulty hpMod plumbing ──");
         const diff = Difficulties[key];
         assertEqual(diff.hpMod, 1.0, `${key} hpMod = 1.0`);
     }
+}
+
+// ─── 5. Restored SFX mapping regression ─────────────────────────────────────
+console.log("\n── Restored SFX mapping regression ──");
+
+{
+    assertEqual(getSfxAssetChoices('pop').length, 4, "Pop has four restored variants");
+    assert(getSfxAssetChoices('moab_destroy').includes('moab_destroy1.mp3'), "MOAB destroy assets restored");
+    assert(getSfxAssetChoices('moab_hit').includes('moab_hit2.mp3'), "MOAB hit assets restored");
+    assert(getSfxAssetChoices('ceramic_hit').includes('ceramic_hit.mp3'), "Ceramic hit asset restored");
+    assert(getSfxAssetChoices('frozen_hit').includes('frozen_hit.mp3'), "Frozen hit asset restored");
 }
 
 // ─── Summary ──────────────────────────────────────────────────────────────────

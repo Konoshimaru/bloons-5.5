@@ -8,6 +8,14 @@ const MIN_VOLUME = 0.0001;
 const POP_THROTTLE_MS = 50;
 const SHOOT_THROTTLE_MS = 30;
 const DEFAULT_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
+const SFX_ASSET_MAP = {
+    pop: ['pop1.mp3', 'pop2.mp3', 'pop3.mp3', 'pop4.mp3'],
+    moab_destroy: ['moab_destroy1.mp3', 'moab_destroy2.mp3', 'moab_destroy3.mp3'],
+    moab_hit: ['moab_hit1.mp3', 'moab_hit2.mp3', 'moab_hit3.mp3'],
+    ceramic_hit: ['ceramic_hit.mp3'],
+    frozen_hit: ['frozen_hit.mp3'],
+    lead_hit: ['lead_hit.mp3']
+};
 
 // Internal state is kept in module scope so the audio engine can manage playback without creating extra objects.
 let ctx = null;
@@ -69,6 +77,17 @@ function _loadTrackInternal(index) {
         musicAudio.src = playlist[index];
         if (isPlaying) AudioEngine.play();
     }
+}
+
+export function getSfxAssetChoices(type) {
+    return SFX_ASSET_MAP[type] ?? [];
+}
+
+export function resolveSfxAsset(type) {
+    const choices = getSfxAssetChoices(type);
+    if (choices.length === 0) return null;
+    const file = choices[Math.floor(Math.random() * choices.length)];
+    return new URL(`../sfx/${file}`, import.meta.url).href;
 }
 
 export const AudioEngine = {
@@ -162,19 +181,31 @@ export const AudioEngine = {
     },
 
     playSfx(type) {
-        // Short, lightweight synthesized tones are used for UI feedback and combat impacts.
-        if (!ctx) return;
-        
         const now = performance.now();
-        
+
         if (type === 'pop' && now - lastPopTime < POP_THROTTLE_MS) return;
         if (type === 'shoot' && now - lastShootTime < SHOOT_THROTTLE_MS) return;
-        
+
         if (type === 'pop') lastPopTime = now;
         if (type === 'shoot') lastShootTime = now;
 
+        const asset = resolveSfxAsset(type);
+        if (asset) {
+            try {
+                const audio = new Audio(asset);
+                audio.preload = 'auto';
+                audio.volume = Math.max(MIN_VOLUME, sfxVolume * 0.75);
+                audio.play().catch(() => undefined);
+                return;
+            } catch (e) {
+                console.warn("Failed to play SFX asset, falling back to synth:", e);
+            }
+        }
+
+        if (!ctx) return;
+
         try {
-            // Garante que o contexto nÃ£o foi pausado pelo navegador devido a polÃ­ticas de autoplay
+            // Fallback to lightweight synthesized tones for UI feedback when no dedicated asset exists.
             if (ctx.state === 'suspended') {
                 ctx.resume();
             }
@@ -183,10 +214,10 @@ export const AudioEngine = {
             const g = ctx.createGain();
             o.connect(g);
             g.connect(ctx.destination);
-            
+
             const vol = Math.max(MIN_VOLUME, sfxVolume * SFX_VOLUME_MODIFIER);
             g.gain.setValueAtTime(vol, ctx.currentTime);
-            
+
             switch (type) {
                 case 'pop':
                     o.frequency.setValueAtTime(800, ctx.currentTime);
@@ -225,7 +256,7 @@ export const AudioEngine = {
                     o.stop(ctx.currentTime + 0.2);
                     break;
             }
-            
+
             o.onended = () => {
                 o.disconnect();
                 g.disconnect();

@@ -410,7 +410,7 @@ export const UI = {
         if (nameEl) nameEl.innerText = `${upgradeData.name} (${tier + 1}/5)`;
         if (costEl) costEl.innerText = `$${cost}`;
         
-        if (engine.cash < cost || !tower.canUpgrade(path)) {
+        if (engine.cash < cost || !tower.canUpgrade(path, engine)) {
             card.classList.add('locked');
         }
     }

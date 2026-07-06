@@ -13,6 +13,7 @@ const FOLDER_MAP = Object.freeze({
 
 const CRACK_NAMES = Object.freeze(['ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad']);
 const MAX_CRACK_STAGES = 10;
+const DAMAGE_STAGE_SUFFIXES = Object.freeze(['_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9', '_10']);
 
 class AssetsManager {
     #images = new Map();
@@ -67,7 +68,8 @@ class AssetsManager {
             let loadedCount = 0;
             
             for (let stage = 1; stage <= MAX_CRACK_STAGES; stage++) {
-                const key = `${Names.PREFIXES.ENEMY}${name}_${stage}`;
+                const suffix = DAMAGE_STAGE_SUFFIXES[stage - 1] || `_${stage}`;
+                const key = `${Names.PREFIXES.ENEMY}${name}${suffix}`;
                 const img = this.get(key);
                 
                 if (img.loaded) {

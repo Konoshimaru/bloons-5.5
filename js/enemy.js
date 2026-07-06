@@ -298,18 +298,36 @@ export class Enemy {
     }
 
     _isImmune(dmgType, effects) {
-        if (this.data.blocksDamageType && this.data.blocksDamageType(dmgType)) return true;
+        if (this.data.blocksDamageType && this.data.blocksDamageType(dmgType)) {
+            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead) {
+                AudioEngine.playSfx('lead_hit');
+            }
+            return true;
+        }
         if (this.isFrozen && dmgType.isSharp && !dmgType.canHitLead) {
             AudioEngine.playSfx('frozen_hit');
+            return true;
+        }
+        if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead) {
+            AudioEngine.playSfx('lead_hit');
             return true;
         }
         return false;
     }
 
+    _getDamageLayerStage(currentHp, maxHp) {
+        if (!maxHp || maxHp <= 0) return 0;
+        const damagePercent = Math.max(0, Math.min(1, 1 - (currentHp / maxHp)));
+        return Math.min(4, Math.floor(damagePercent / 0.25));
+    }
+
     _handleMoabDamage(damage, dmgType, effects, canSpawn) {
-        const moabHp = this.hp;
+        const previousHp = this.hp;
+        const previousLayer = this._getDamageLayerStage(previousHp, this._maxHp);
         const dmgDealt = Math.max(0, Math.min(this.hp, damage));
         this.hp -= damage;
+        const newLayer = this._getDamageLayerStage(this.hp, this._maxHp);
+        const layersCrossed = Math.max(0, newLayer - previousLayer);
         
         if (this.hp <= 0) {
             this.alive = false;
@@ -330,10 +348,16 @@ export class Enemy {
                 this.unstableConcoction = true;
             }
             
-            const carryOver = damage - moabHp;
+            const carryOver = damage - previousHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
-            if (dmgDealt > 0) AudioEngine.playSfx('moab_hit');
+            for (let i = 0; i < layersCrossed; i++) {
+                GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
+                AudioEngine.playSfx('pop');
+            }
+            if (dmgDealt > 0 && layersCrossed === 0) {
+                AudioEngine.playSfx('moab_hit');
+            }
         }
         
         return Math.ceil(dmgDealt);
@@ -341,8 +365,11 @@ export class Enemy {
 
     _handleCeramicDamage(damage, dmgType, effects, canSpawn) {
         const shellHp = this.hp;
+        const previousLayer = this._getDamageLayerStage(shellHp, this._maxHp);
         const dmgDealt = Math.max(0, Math.min(this.hp, damage));
         this.hp -= damage;
+        const newLayer = this._getDamageLayerStage(this.hp, this._maxHp);
+        const layersCrossed = Math.max(0, newLayer - previousLayer);
         
         if (this.hp <= 0) {
             this.alive = false;
@@ -352,7 +379,13 @@ export class Enemy {
             const carryOver = damage - shellHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
-            if (dmgDealt > 0) AudioEngine.playSfx('ceramic_hit');
+            for (let i = 0; i < layersCrossed; i++) {
+                GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
+                AudioEngine.playSfx('pop');
+            }
+            if (dmgDealt > 0 && layersCrossed === 0) {
+                AudioEngine.playSfx('ceramic_hit');
+            }
         }
         
         return Math.ceil(dmgDealt);
@@ -396,6 +429,7 @@ export class Enemy {
             remainingDamage -= 1;
             currentTier = EnemyTypes[currentTier].nextTier;
             layersPopped++;
+            AudioEngine.playSfx('pop');
             
             if (++safetyCounter > SAFETY_LOOP_LIMIT) {
                 console.error("CRASH PREVENTED: Bloon damage while-loop infinite loop!");
@@ -407,7 +441,6 @@ export class Enemy {
             this.alive = false;
             this.giveCash(true);
             GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-            AudioEngine.playSfx('pop');
         } else {
             this.tier = currentTier;
             this.data = { ...EnemyTypes[currentTier] };
@@ -506,7 +539,7 @@ export class Enemy {
         
         if (stage <= 0 || stage > maxCracks) return;
         
-        const crackAsset = Assets.get(`enemy_${baseName}_${stage}`);
+        const crackAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_${stage}`);
         if (!crackAsset || !crackAsset.loaded) return;
         
         ctx.save();

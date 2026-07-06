@@ -242,7 +242,7 @@ export class Tower {
             if (i !== path - 1 && this.upgrades[i] >= 3 && tier >= 2) return false;
         }
         
-        if (tier === 4 && engine.tier5Bought[`${this.type}-${path}`]) return false;
+        if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) return false;
         
         return true;
     }
