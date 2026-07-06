@@ -3,7 +3,6 @@
 
 import { Tower } from './tower.js';
 import { HeroRegistry } from './heroes/index.js';
-import { GameEngine } from './engine.js';
 
 const MAX_LEVEL = 20;
 
@@ -37,23 +36,23 @@ export class Hero extends Tower {
         }
     }
 
-    buyLevel() {
+    buyLevel(engine) {
         if (this.level >= MAX_LEVEL) return;
         
         // Buying a level spends the remaining XP needed to fill the current progression bar.
         const cost = this.xpToNext - this.xp;
-        if (GameEngine.cash < cost) {
-            GameEngine.log("Not enough cash to buy level!");
+        if (engine.cash < cost) {
+            engine.log("Not enough cash to buy level!");
             return;
         }
         
-        GameEngine.cash -= cost;
+        engine.cash -= cost;
         this.xp = this.xpToNext; 
         this.gainXp(0);
-        GameEngine.updateUI();
+        engine.updateUI();
     }
 
-    _levelUp() {
+    _levelUp(engine) {
         // Advance the hero to the next rank and immediately refresh its stats and unlocks.
         this.level++;
         
@@ -67,7 +66,7 @@ export class Hero extends Tower {
         this._applyLevelStats();
         this._unlockAbilities();
         
-        GameEngine.updateUI();
+        if (engine) engine.updateUI();
     }
 
     _applyLevelStats() {
@@ -88,8 +87,8 @@ export class Hero extends Tower {
         if (this.level >= 10) this.stats.isAbility2 = true;
     }
 
-    update(dt) {
+    update(dt, engine) {
         // Delegates entirely to the TowerBehavior ECS system
-        super.update(dt);
+        super.update(dt, engine);
     }
 }

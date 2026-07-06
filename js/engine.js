@@ -428,7 +428,7 @@ export const GameEngine = {
             return;
         }
         
-        if (!t.canUpgrade(path)) {
+        if (!t.canUpgrade(path, this)) {
             this.log("Upgrade locked by crosspath or global limit!");
             return;
         }
@@ -439,13 +439,13 @@ export const GameEngine = {
             return;
         }
         
-        t.upgrade(path);
+        t.upgrade(path, this);
         UI.showUpgradeUI(t, this);
     },
 
     buyHeroLevel() {
         if (this.selectedPlacedTower && this.selectedPlacedTower.stats.isHero) {
-            this.selectedPlacedTower.buyLevel();
+            this.selectedPlacedTower.buyLevel(this);
             UI.showUpgradeUI(this.selectedPlacedTower, this);
         }
     },
@@ -482,7 +482,7 @@ export const GameEngine = {
         }
         if (this.selectedPlacedTower.stats.isHero) this.hero = null;
         
-        this.selectedPlacedTower.sell();
+        this.selectedPlacedTower.sell(this);
         const idx = this.towers.indexOf(this.selectedPlacedTower);
         if (idx > -1) this.towers.splice(idx, 1);
         this.deselectAll();
@@ -664,6 +664,7 @@ export const GameEngine = {
             t.discount = 0;
             t.buffedDmg = 0;
             t.buffedPierce = 0;
+            t.buffedValueMult = 0;
         }
         
         // Apply Support Buffs
@@ -677,7 +678,7 @@ export const GameEngine = {
         
         // Update Tower Logic
         for (const t of this.towers) {
-            if (t) t.update(dt);
+            if (t) t.update(dt, this);
         }
     },
 

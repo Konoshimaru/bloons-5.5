@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>bloons-5.5 — Tests</title>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+        #results { white-space: pre-wrap; line-height: 1.6; }
+        .pass { color: #2ecc71; }
+        .fail { color: #e74c3c; }
+        .summary { color: #f1c40f; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧪 bloons-5.5 Tests</h1>
+    <div id="results">Loading...</div>
+    <script type="module">
+        // Import and run tests, then display results
+        await import('./js/tests/tests.js');
+
+        const r = window.__testResults;
+        const el = document.getElementById('results');
+
+        let html = '';
+        html += `<div class="summary">${r.passed} passed, ${r.failed} failed</div>\n\n`;
+
+        if (r.errors.length > 0) {
+            html += `<div class="fail">Failures:</div>\n`;
+            for (const err of r.errors) {
+                html += `<div class="fail">${err}</div>`;
+            }
+        } else {
+            html += `<div class="pass">All tests passed! 🎉</div>`;
+        }
+
+        el.innerHTML = html;
+    </script>
+</body>
+</html>

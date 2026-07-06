@@ -7,7 +7,6 @@ import { HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
 import { Utils } from './utils.js';
 import { AudioEngine } from './audio.js';
-import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { DamageType, createDmgType, resolveDmgType } from './damageTypes.js';
 
@@ -33,17 +32,17 @@ export function getEffectiveCooldown(tower) {
     return finalCooldown < MIN_FIRE_RATE ? MIN_FIRE_RATE : finalCooldown;
 }
 
-export function update(tower, dt) {
-    _updateTimers(tower, dt);
+export function update(tower, dt, engine) {
+    _updateTimers(tower, dt, engine);
     _updateAnimations(tower, dt);
-    _runCustomBehaviors(tower, dt);
+    _runCustomBehaviors(tower, dt, engine);
     
     if (tower.stats.fireRate > 0 || tower.stats.baseCooldown > 0) {
-        _acquireAndFire(tower, dt);
+        _acquireAndFire(tower, dt, engine);
     }
 }
 
-function _updateTimers(tower, dt) {
+function _updateTimers(tower, dt, engine) {
     // Tick down all timing-based state so attacks, abilities, buffs, and animations behave in lockstep.
     tower.cooldown -= dt;
     if (tower.abilityCooldown > 0) tower.abilityCooldown -= dt;
@@ -78,7 +77,7 @@ function _updateTimers(tower, dt) {
         tower.attackPointTimer -= dt;
         if (tower.attackPointTimer <= 0) {
             if (tower.pendingTarget && tower.pendingTarget.alive) {
-                fire(tower, tower.pendingTarget);
+                fire(tower, tower.pendingTarget, engine);
             }
             tower.pendingTarget = null;
             tower.attackPointTimer = 0;
@@ -104,17 +103,17 @@ function _updateAnimations(tower, dt) {
     }
 }
 
-function _runCustomBehaviors(tower, dt) {
+function _runCustomBehaviors(tower, dt, engine) {
     const behavior = getBehavior(tower.type);
     if (behavior && behavior.update) {
-        behavior.update(tower, dt);
+        behavior.update(tower, dt, engine);
     }
 }
 
-function _acquireAndFire(tower, dt) {
+function _acquireAndFire(tower, dt, engine) {
     if (tower.isHollowCharging) return; 
     
-    const target = _findTarget(tower);
+    const target = _findTarget(tower, engine);
     if (!target) return;
     
     if (!tower.stats.isStaticRotation) {
@@ -123,11 +122,11 @@ function _acquireAndFire(tower, dt) {
     
     if (tower.cooldown <= 0 && tower.attackPointTimer <= 0) { 
         const effFireRate = getEffectiveCooldown(tower);
-        _triggerAttack(tower, target, effFireRate); 
+        _triggerAttack(tower, target, effFireRate, engine); 
     } 
 }
 
-function _findTarget(tower) {
+function _findTarget(tower, engine) {
     // Resolve the best enemy according to the tower's range, visibility rules, and targeting mode.
     const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
     const baseRange = typeof tower.stats.range === 'number' ? tower.stats.range : 100;
@@ -135,7 +134,7 @@ function _findTarget(tower) {
     const alchRange = tower.alchBuff ? tower.alchBuff.range : 0;
     
     const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange);
-    const candidates = baseRange === 9999 ? GameEngine.enemies : GameEngine.enemyGrid.query(tower.x, tower.y, effRange);
+    const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
     
     let target = null;
     let bestVal = (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') ? -Infinity : Infinity;
@@ -153,7 +152,7 @@ function _findTarget(tower) {
         if (baseRange !== 9999 && dist > effRange) continue;
         if (tower.stats.minRange && dist < (tower.stats.minRange * scale)) continue; 
 
-        if (!_hasLineOfSight(tower, e)) continue;
+        if (!_hasLineOfSight(tower, e, engine)) continue;
 
         const val = _getTargetValue(tower, e, dist);
         const isBetter = _isBetterTarget(tower, val, bestVal, target, e);
@@ -183,11 +182,11 @@ function _isBetterTarget(tower, val, bestVal, currentTarget, e) {
     return false;
 }
 
-function _hasLineOfSight(tower, e) {
-    if (tower.stats.range === 9999 || !GameEngine.map || GameEngine.map.props.length === 0) return true;
+function _hasLineOfSight(tower, e, engine) {
+    if (tower.stats.range === 9999 || !engine.map || engine.map.props.length === 0) return true;
     
     if (!tower._losBlockers) {
-        tower._losBlockers = GameEngine.map.props.filter(p => p.type === 'tree' || p.type === 'rock');
+        tower._losBlockers = engine.map.props.filter(p => p.type === 'tree' || p.type === 'rock');
     }
     
     if (tower._losBlockers.length === 0) return true;
@@ -201,12 +200,12 @@ function _hasLineOfSight(tower, e) {
     return true;
 }
 
-function _triggerAttack(tower, target, effFireRate) {
+function _triggerAttack(tower, target, effFireRate, engine) {
     // Either play an animation and delay the actual shot until the attack frame, or fire immediately.
     const animAsset = _getAnimationAsset(tower);
     
     if (!animAsset || !animAsset.loaded) {
-        fire(tower, target);
+        fire(tower, target, engine);
         tower.cooldown = effFireRate / (1 + tower.buffedFireRate);
         return;
     }
@@ -259,7 +258,7 @@ function _getAnimationAsset(tower) {
     return animAsset;
 }
 
-export function fire(tower, target) {
+export function fire(tower, target, engine) {
     if (target && !target.alive) return; 
     AudioEngine.playSfx('shoot'); 
     
@@ -273,7 +272,7 @@ export function fire(tower, target) {
     const effects = _gatherEffects(tower);
     
     _decrementBuffs(tower);
-    _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce);
+    _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine);
 }
 
 function _calculateDamage(tower) {
@@ -326,12 +325,12 @@ function _decrementBuffs(tower) {
     if (tower.alchDip && !tower.alchDip.isPerm) tower.alchDip.shotsLeft--;
 }
 
-function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce) {
+function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine) {
     const behavior = getBehavior(tower.type);
     if (behavior && behavior.fire) {
-        behavior.fire(tower, target, damage, dmgType, isCrit, effects);
+        behavior.fire(tower, target, damage, dmgType, isCrit, effects, engine);
     } else {
-        const p = GameEngine.projectilePool.get();
+        const p = engine.projectilePool.get();
         p.init(tower.x, tower.y, damage, target, projType, tower.stats.projectileSpeed, pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
     }
 }

@@ -92,7 +92,8 @@ export class WaveManager {
                     tier: group.t,
                     camo: group.camo || false,
                     regen: group.regen || false,
-                    fort: group.fort || false
+                    fort: group.fort || false,
+                    hpMod: group.hpMod
                 });
             }
         }
@@ -127,7 +128,8 @@ export class WaveManager {
                 spawn.camo,
                 spawn.regen,
                 spawn.tier,
-                spawn.fort
+                spawn.fort,
+                spawn.hpMod
             ));
         }
     }

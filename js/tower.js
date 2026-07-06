@@ -5,7 +5,6 @@ import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
 import { drawImageCentered, drawShadow } from './utils.js';
-import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
 import * as TowerBehavior from './towerBehavior.js';
@@ -89,8 +88,8 @@ export class Tower {
         this.alchDip = null;
     }
 
-    update(dt) {
-        TowerBehavior.update(this, dt);
+    update(dt, engine) {
+        TowerBehavior.update(this, dt, engine);
     }
 
     /**
@@ -232,7 +231,7 @@ export class Tower {
         }
     }
 
-    canUpgrade(path) {
+    canUpgrade(path, engine) {
         const tier = this.upgrades[path - 1];
         if (tier >= 5) return false;
         
@@ -243,22 +242,22 @@ export class Tower {
             if (i !== path - 1 && this.upgrades[i] >= 3 && tier >= 2) return false;
         }
         
-        if (tier === 4 && GameEngine.tier5Bought[`${this.type}-${path}`]) return false;
+        if (tier === 4 && engine.tier5Bought[`${this.type}-${path}`]) return false;
         
         return true;
     }
 
-    upgrade(path) {
+    upgrade(path, engine) {
         const tier = this.upgrades[path - 1];
         const upgradeData = Upgrades[this.type][path][tier];
         if (!upgradeData) return false;
 
-        let cost = GameEngine.getCost(upgradeData.cost);
+        let cost = engine.getCost(upgradeData.cost);
         if (this.discount > 0) cost = Math.floor(cost * (1 - this.discount));
         
-        if (GameEngine.cash < cost || !this.canUpgrade(path)) return false;
+        if (engine.cash < cost || !this.canUpgrade(path, engine)) return false;
 
-        GameEngine.cash -= cost;
+        engine.cash -= cost;
         this.totalSpent += cost;
         this.upgrades[path - 1]++;
         
@@ -272,26 +271,26 @@ export class Tower {
         }
         
         if (tier === 4) {
-            GameEngine.tier5Bought[`${this.type}-${path}`] = true;
+            engine.tier5Bought[`${this.type}-${path}`] = true;
         }
 
-        GameEngine.updateUI();
+        engine.updateUI();
         return true;
     }
 
-    sell() {
+    sell(engine) {
         let resaleRate = 0.70;
         if (this.type === 'farm' && this.upgrades[2] >= 2) resaleRate = 0.80;
         
-        GameEngine.cash += Math.floor(this.totalSpent * resaleRate);
+        engine.cash += Math.floor(this.totalSpent * resaleRate);
         
         for (let i = 0; i < 3; i++) {
             if (this.upgrades[i] === 5) {
-                GameEngine.tier5Bought[`${this.type}-${i + 1}`] = false;
+                engine.tier5Bought[`${this.type}-${i + 1}`] = false;
             }
         }
         
-        GameEngine.updateUI();
+        engine.updateUI();
     }
 
     draw(ctx, isPreview = false) {

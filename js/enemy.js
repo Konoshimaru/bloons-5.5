@@ -22,24 +22,30 @@ const LIVES_LOST_FORTIFIED_LEAD = 26;
 // Enemy instances represent bloons moving along the map.
 // They handle movement, status effects, damage, splitting, and reward payout.
 export class Enemy {
-    constructor(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false) {
+    constructor(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null) {
         this.tier = tier;
         this.map = map;
         this.isCamo = isCamo;
         this.isRegen = isRegen;
         this.maxTier = maxTier;
         this.isFortified = isFortified;
-        
+
         this.data = { ...EnemyTypes[tier] };
         const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
         this.data.speed *= diffSpeedMod;
-        
+
+        // Per-spawn hpMod (from wave group) overrides the difficulty default.
+        if (hpMod == null) {
+            hpMod = GameEngine.difficulty ? (GameEngine.difficulty.hpMod || 1.0) : 1.0;
+        }
+        this.hpMod = hpMod;
+
         this.distanceTraveled = 0;
         this.x = map.waypoints[0].x;
         this.y = map.waypoints[0].y;
         this.alive = true;
         this.angle = 0;
-        
+
         this._initializeStats();
     }
 
@@ -66,6 +72,9 @@ export class Enemy {
         this._maxHp = this.data.maxHp;
         if (this.isFortified && (this.data.isMoab || this.data.isCeramic)) {
             this._maxHp *= 2;
+        }
+        if (this.hpMod && this.hpMod !== 1) {
+            this._maxHp = Math.max(1, Math.ceil(this._maxHp * this.hpMod));
         }
         
         this.hp = this._maxHp;
