@@ -13,7 +13,6 @@ const FOLDER_MAP = Object.freeze({
 
 const CRACK_NAMES = Object.freeze(['ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad']);
 const MAX_CRACK_STAGES = 10;
-const DAMAGE_STAGE_SUFFIXES = Object.freeze(['_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9', '_10']);
 
 class AssetsManager {
     #images = new Map();
@@ -68,28 +67,30 @@ class AssetsManager {
             let loadedCount = 0;
             
             for (let stage = 1; stage <= MAX_CRACK_STAGES; stage++) {
-                const suffix = DAMAGE_STAGE_SUFFIXES[stage - 1] || `_${stage}`;
-                const key = `${Names.PREFIXES.ENEMY}${name}${suffix}`;
+                const key = `${Names.PREFIXES.ENEMY}${name}_${stage}`;
                 const img = this.get(key);
                 
-                if (img.loaded) {
-                    loadedCount = stage;
-                    continue;
-                }
-
                 await new Promise(resolve => {
-                    const originalOnError = img.onerror;
-                    img.onload = () => { resolve(true); };
-                    img.onerror = (e) => {
-                        if (originalOnError) originalOnError(e);
-                        resolve(false);
-                    };
+                    // If it already loaded previously, skip waiting
+                    if (img.loaded) {
+                        resolve();
+                        return;
+                    }
+                    
+                    // PRO FIX: Actually mark the image as loaded when it finishes!
+                    img.addEventListener('load', () => { 
+                        img.loaded = true; 
+                        resolve(); 
+                    });
+                    img.addEventListener('error', () => { 
+                        resolve(); 
+                    });
                 });
 
                 if (img.loaded) {
                     loadedCount = stage;
                 } else {
-                    break; 
+                    break; // Stop checking if an image is missing
                 }
             }
             

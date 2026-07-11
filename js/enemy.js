@@ -315,19 +315,10 @@ export class Enemy {
         return false;
     }
 
-    _getDamageLayerStage(currentHp, maxHp) {
-        if (!maxHp || maxHp <= 0) return 0;
-        const damagePercent = Math.max(0, Math.min(1, 1 - (currentHp / maxHp)));
-        return Math.min(4, Math.floor(damagePercent / 0.25));
-    }
-
     _handleMoabDamage(damage, dmgType, effects, canSpawn) {
         const previousHp = this.hp;
-        const previousLayer = this._getDamageLayerStage(previousHp, this._maxHp);
         const dmgDealt = Math.max(0, Math.min(this.hp, damage));
         this.hp -= damage;
-        const newLayer = this._getDamageLayerStage(this.hp, this._maxHp);
-        const layersCrossed = Math.max(0, newLayer - previousLayer);
         
         if (this.hp <= 0) {
             this.alive = false;
@@ -351,11 +342,8 @@ export class Enemy {
             const carryOver = damage - previousHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
-            for (let i = 0; i < layersCrossed; i++) {
-                GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-                AudioEngine.playSfx('pop');
-            }
-            if (dmgDealt > 0 && layersCrossed === 0) {
+            // PRO FIX: Strictly visual layers. Just play the hit sound.
+            if (dmgDealt > 0) {
                 AudioEngine.playSfx('moab_hit');
             }
         }
@@ -365,25 +353,19 @@ export class Enemy {
 
     _handleCeramicDamage(damage, dmgType, effects, canSpawn) {
         const shellHp = this.hp;
-        const previousLayer = this._getDamageLayerStage(shellHp, this._maxHp);
         const dmgDealt = Math.max(0, Math.min(this.hp, damage));
         this.hp -= damage;
-        const newLayer = this._getDamageLayerStage(this.hp, this._maxHp);
-        const layersCrossed = Math.max(0, newLayer - previousLayer);
         
         if (this.hp <= 0) {
             this.alive = false;
             this.giveCash(canSpawn);
             GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-            AudioEngine.playSfx('pop');
+            AudioEngine.playSfx('pop'); // Standard pop only when the ceramic shell breaks
             const carryOver = damage - shellHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
-            for (let i = 0; i < layersCrossed; i++) {
-                GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-                AudioEngine.playSfx('pop');
-            }
-            if (dmgDealt > 0 && layersCrossed === 0) {
+            // PRO FIX: Strictly visual layers. Just play the hit sound.
+            if (dmgDealt > 0) {
                 AudioEngine.playSfx('ceramic_hit');
             }
         }
@@ -494,6 +476,7 @@ export class Enemy {
         ctx.drawImage(asset, -w / 2, -h / 2, w, h);
         ctx.restore();
         
+        // Draw visual cracks strictly if HP is missing
         if (this.tier >= 12 && this.hp < this._maxHp) {
             this._drawCracks(ctx, w, h, drawX, drawY);
         }
@@ -530,14 +513,18 @@ export class Enemy {
         const baseName = ENEMY_NAMES[this.tier];
         const maxCracks = Assets.getMaxCracks(baseName);
         
-        if (maxCracks <= 0) return;
+        if (maxCracks <= 0 || damagePercent <= 0) return;
         
-        let stage = 0;
-        if (damagePercent > 0.75) stage = 3;
-        else if (damagePercent > 0.50) stage = 2;
-        else if (damagePercent > 0.25) stage = 1;
+        // Calculate the exact visual stage based on the loaded crack count
+        let stage = Math.floor(damagePercent * maxCracks);
         
-        if (stage <= 0 || stage > maxCracks) return;
+        // If it's fully maxed out (100% damage), it means it's dead, so we don't need to draw the final stage over the death effect.
+        // But if it's extremely close to dead, we draw the last available stage.
+        if (damagePercent >= 1.0) stage = maxCracks; 
+        if (stage <= 0) return;
+        
+        // Clamp it just in case
+        if (stage > maxCracks) stage = maxCracks;
         
         const crackAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_${stage}`);
         if (!crackAsset || !crackAsset.loaded) return;

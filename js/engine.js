@@ -20,10 +20,8 @@ import { AudioEngine } from './audio.js';
 import Assets from './assets.js';
 import { UI } from './ui.js';
 import { Renderer } from './renderer.js';
+import { CutsceneManager } from './cutscene.js'; // PRO FIX: Import Cutscene Manager
 
-// GameEngine is the central state container for the whole game.
-// It owns the main update loop, the active enemies/towers, and shared object pools.
-// These constants cap expensive systems so the game stays stable even during heavy action.
 const MAX_SUBSTEPS = 10;
 const MAX_PROJECTILES = 1500;
 const MAX_PARTICLES = 400;
@@ -44,17 +42,14 @@ export const GameEngine = {
     _rafId: null,
     fpsEl: null,
     
-    // Active gameplay objects that update every frame.
     enemies: [],
     towers: [],
     explosions: [],
     enemyGrid: new SpatialGrid(80),
     
-    // Reusable object pools prevent the game from constantly allocating new projectiles and particles.
     projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
     
-    // Core economy and state values.
     lives: 100,
     cash: 650,
     selectedTowerType: null,
@@ -90,7 +85,6 @@ export const GameEngine = {
     acidPools: [],
 
     init() {
-        // Load persisted settings before the first frame so the run starts with the expected options.
         Config.load();
         if (!Array.isArray(Config.data.customMaps)) Config.data.customMaps = [];
         if (!Config.data.selectedHero) Config.data.selectedHero = 'quincy';
@@ -141,7 +135,6 @@ export const GameEngine = {
     },
 
     addCash(rawAmount) {
-        // Money can be reduced by IMF debt before it reaches the player's balance.
         if (rawAmount <= 0) return;
         if (this.imfDebt > 0) {
             const tax = Math.floor(rawAmount * 0.5);
@@ -157,16 +150,13 @@ export const GameEngine = {
     },
 
     handleWaveSpeedClick() {
-        // Wave speed is cycled through a small state machine so players can quickly increase or reset pacing.
         const isExtreme = Config.data.extremeSpeedEnabled === true;
         const maxSpeed = isExtreme ? MAX_SPEED_EXTREME : MAX_SPEED_NORMAL;
         
         if (this.waveManager.waveActive || this.speedState > 0) {
-            // If a wave is already underway, keep advancing the multiplier instead of restarting it.
             this.speedState++;
             if (this.speedState > maxSpeed) this.speedState = 1;
         } else {
-            // If no wave is active, starting a wave is the first thing that should happen.
             this.waveManager.startWave();
             this.speedState = 1;
         }
@@ -176,18 +166,18 @@ export const GameEngine = {
     },
 
     startGame(isSandbox = false) {
-        // Starting a new run resets the battlefield and reinitializes the economy, enemies, and towers.
         this.isSandbox = isSandbox;
         this.map = new GameMap(this.currentMap);
         this.gameState = 'playing';
         
+        // PRO FIX: Reverted Sandbox to normal Medium difficulty
         const diff = isSandbox ? Difficulties.medium : Difficulties[Config.data.currentDifficulty];
         this.difficulty = diff;
+        
         this.lives = isSandbox ? 999999 : diff.lives;
         this.cash = isSandbox ? 10000000 : diff.cash;
         this.imfDebt = 0;
         
-        // Reset the battlefield so a fresh run does not inherit leftover towers, enemies, or effects.
         this.towers.length = 0;
         this.enemies.length = 0;
         this.explosions.length = 0;
@@ -197,7 +187,6 @@ export const GameEngine = {
         this.particlePool.clear();
         
         this.hero = null;
-        // Rebuild the wave system for the new run so the current round state is fresh.
         this.waveManager = new WaveManager();
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
         this.waveManager.currentWave = diff.startRound - 1;
@@ -206,6 +195,8 @@ export const GameEngine = {
         this.speedState = 0;
         this.timeScale = 1;
         UI.updateWaveSpeedBtn(this.speedState);
+        
+        CutsceneManager.reset(); // Reset cutscene on new game
         this.updateUI();
     },
 
@@ -352,7 +343,6 @@ export const GameEngine = {
             return;
         }
 
-        // Check tower selection
         for (const t of this.towers) {
             if (t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + 5)) {
                 this.deselectAll();
@@ -557,16 +547,25 @@ export const GameEngine = {
     },
 
     update(dt) {
-        // 1. System Limits & Timers
         this._updateLimitsAndTimers(dt);
         
-        // 2. Wave System
-        this.waveManager.update(dt);
+        // PRO FIX: Cutscene triggers in Post CHIMPS (or Sandbox for testing) when MOAB takes damage
+        if ((this.difficulty.isPostChimps || this.isSandbox) && CutsceneManager.state === 'idle') {
+            let damagedMoab = this.enemies.find(e => e.alive && e.data.isMoab && e.hp < e._maxHp);
+            if (damagedMoab) CutsceneManager.trigger(damagedMoab);
+        }
         
-        // 3. Environment Systems (Acid Pools)
+        if (CutsceneManager.update(dt)) {
+            UI.updateAbilityBar(this);
+            this.updateUI();
+            return; 
+        }
+
+        this.waveManager.update(dt);
         this._updateAcidPools(dt);
         
-        // 4. Enemy System
+        // ... rest of the update function ...
+        
         const prevLives = this.lives;
         this._updateEnemies(dt);
         if (this.lives < prevLives) {
@@ -574,24 +573,16 @@ export const GameEngine = {
             AudioEngine.playSfx('leak');
         }
         
-        // 5. Spatial Partitioning
         this.enemyGrid.clear();
         for (const e of this.enemies) this.enemyGrid.insert(e);
         
-        // 6. Tower System
         this._updateTowers(dt);
-        
-        // 7. Economy System (Bananas)
         this._updateEconomy(dt);
-        
-        // 8. Projectile System
         this._updateProjectiles(dt);
         
-        // 9. Visual Effects Systems
         this._updateExplosions(dt);
         this._updateParticles(dt);
         
-        // 10. UI & Game Over Checks
         UI.updateAbilityBar(this);
         this.updateUI();
         
@@ -654,7 +645,6 @@ export const GameEngine = {
     },
 
     _updateTowers(dt) {
-        // Reset Buffs
         for (const t of this.towers) {
             if (!t) continue;
             t.buffedRange = 0;
@@ -667,7 +657,6 @@ export const GameEngine = {
             t.buffedValueMult = 0;
         }
         
-        // Apply Support Buffs
         for (const t of this.towers) {
             if (!t) continue;
             const behavior = getBehavior(t.type);
@@ -676,7 +665,6 @@ export const GameEngine = {
             }
         }
         
-        // Update Tower Logic
         for (const t of this.towers) {
             if (t) t.update(dt, this);
         }

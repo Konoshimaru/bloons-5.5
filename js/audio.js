@@ -7,6 +7,7 @@ const SFX_VOLUME_MODIFIER = 0.1;
 const MIN_VOLUME = 0.0001;
 const POP_THROTTLE_MS = 50;
 const SHOOT_THROTTLE_MS = 30;
+const HIT_THROTTLE_MS = 100; // Prevents hit sounds from queueing up
 const DEFAULT_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
 const SFX_ASSET_MAP = {
     pop: ['pop1.mp3', 'pop2.mp3', 'pop3.mp3', 'pop4.mp3'],
@@ -17,7 +18,6 @@ const SFX_ASSET_MAP = {
     lead_hit: ['lead_hit.mp3']
 };
 
-// Internal state is kept in module scope so the audio engine can manage playback without creating extra objects.
 let ctx = null;
 let musicAudio = null;
 let sfxVolume = 0.5;
@@ -27,8 +27,8 @@ let currentTrack = 0;
 let isPlaying = false;
 let lastPopTime = 0;
 let lastShootTime = 0;
+let lastHitTime = 0;
 
-// Internal helpers resolve the music playlist from the manifest first, then fall back to a directory scan.
 async function _loadPlaylistInternal() {
     try {
         const manifestRes = await fetch('./music/manifest.json');
@@ -36,7 +36,6 @@ async function _loadPlaylistInternal() {
             const manifest = await manifestRes.json();
             if (manifest?.songs?.length > 0) {
                 playlist = manifest.songs.map(s => s.startsWith('music/') ? s : `music/${s}`);
-                console.log("Loaded music from manifest:", playlist);
                 return;
             }
         }
@@ -60,12 +59,10 @@ async function _loadPlaylistInternal() {
         
         if (mp3s.length > 0) {
             playlist = mp3s;
-            console.log("Discovered music files:", playlist);
         } else {
             throw new Error("No mp3s found");
         }
     } catch (e) {
-        console.warn("Could not fetch music. Falling back to default list.", e);
         playlist = [...DEFAULT_PLAYLIST];
     }
 }
@@ -92,7 +89,6 @@ export function resolveSfxAsset(type) {
 
 export const AudioEngine = {
     async init() {
-        // Lazy-init the browser audio context and prepare the current track list once the page is ready.
         if (ctx) return;
         
         try {
@@ -106,10 +102,7 @@ export const AudioEngine = {
             
             await _loadPlaylistInternal();
             
-            if (playlist.length === 0) {
-                console.warn("No music found. Ensure manifest.json exists in the music folder.");
-                return;
-            }
+            if (playlist.length === 0) return;
 
             currentTrack = Config.data.musicRandomStart 
                 ? Math.floor(Math.random() * playlist.length) 
@@ -185,9 +178,15 @@ export const AudioEngine = {
 
         if (type === 'pop' && now - lastPopTime < POP_THROTTLE_MS) return;
         if (type === 'shoot' && now - lastShootTime < SHOOT_THROTTLE_MS) return;
+        
+        // PRO FIX: Throttle hit sounds, but DO NOT throttle moab_destroy! 
+        // moab_destroy is a death sound and must always play when a MOAB dies.
+        const isHitSound = ['moab_hit', 'ceramic_hit', 'frozen_hit', 'lead_hit'].includes(type);
+        if (isHitSound && now - lastHitTime < HIT_THROTTLE_MS) return;
 
         if (type === 'pop') lastPopTime = now;
         if (type === 'shoot') lastShootTime = now;
+        if (isHitSound) lastHitTime = now;
 
         const asset = resolveSfxAsset(type);
         if (asset) {
@@ -198,17 +197,14 @@ export const AudioEngine = {
                 audio.play().catch(() => undefined);
                 return;
             } catch (e) {
-                console.warn("Failed to play SFX asset, falling back to synth:", e);
+                // Fallback to synth below
             }
         }
 
         if (!ctx) return;
 
         try {
-            // Fallback to lightweight synthesized tones for UI feedback when no dedicated asset exists.
-            if (ctx.state === 'suspended') {
-                ctx.resume();
-            }
+            if (ctx.state === 'suspended') ctx.resume();
 
             const o = ctx.createOscillator();
             const g = ctx.createGain();
@@ -223,47 +219,36 @@ export const AudioEngine = {
                     o.frequency.setValueAtTime(800, ctx.currentTime);
                     o.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
                     g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.1);
-                    o.start();
-                    o.stop(ctx.currentTime + 0.1);
+                    o.start(); o.stop(ctx.currentTime + 0.1);
                     break;
                 case 'shoot':
                     o.type = 'square';
                     o.frequency.setValueAtTime(400, ctx.currentTime);
                     g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.05);
-                    o.start();
-                    o.stop(ctx.currentTime + 0.05);
+                    o.start(); o.stop(ctx.currentTime + 0.05);
                     break;
                 case 'place':
                     o.frequency.setValueAtTime(400, ctx.currentTime);
                     o.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.1);
                     g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.15);
-                    o.start();
-                    o.stop(ctx.currentTime + 0.15);
+                    o.start(); o.stop(ctx.currentTime + 0.15);
                     break;
                 case 'cash':
                     o.frequency.setValueAtTime(1200, ctx.currentTime);
                     o.frequency.linearRampToValueAtTime(1600, ctx.currentTime + 0.1);
                     g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.15);
-                    o.start();
-                    o.stop(ctx.currentTime + 0.15);
+                    o.start(); o.stop(ctx.currentTime + 0.15);
                     break;
                 case 'leak':
                     o.type = 'sawtooth';
                     o.frequency.setValueAtTime(150, ctx.currentTime);
                     o.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.2);
                     g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.2);
-                    o.start();
-                    o.stop(ctx.currentTime + 0.2);
+                    o.start(); o.stop(ctx.currentTime + 0.2);
                     break;
             }
 
-            o.onended = () => {
-                o.disconnect();
-                g.disconnect();
-            };
-        } catch (e) {
-            console.error("Audio playback error safely caught:", e);
-        }
+            o.onended = () => { o.disconnect(); g.disconnect(); };
+        } catch (e) {}
     }
 };
-

@@ -113,7 +113,10 @@ export class WaveManager {
         this.waveTime += dt;
         this._processSpawns();
 
-        if (this.spawnQueue.length === 0 && GameEngine.enemies.length === 0) {
+        // PRO FIX: Check for alive enemies EXCLUDING the Knight (tier 99)
+        // This allows the wave to complete and the next one to spawn while he is alive!
+        let activeEnemies = GameEngine.enemies.some(e => e.alive && e.tier !== 99);
+        if (this.spawnQueue.length === 0 && !activeEnemies) {
             this._completeWave();
         }
     }
@@ -137,7 +140,8 @@ export class WaveManager {
     _completeWave() {
         this.waveActive = false;
 
-        if (!GameEngine.difficulty || !GameEngine.difficulty.noIncome) {
+        // PRO FIX: Check for noIncome, but allow the wave cash exception for Post CHIMPS
+        if (!GameEngine.difficulty || !GameEngine.difficulty.noIncome || GameEngine.difficulty.allowWaveCash) {
             const cashEarned = 100 + this.currentWave;
             GameEngine.addCash(cashEarned);
             GameEngine.log(`Wave ${this.currentWave} Complete! +$${cashEarned}`);
@@ -148,6 +152,8 @@ export class WaveManager {
         if (GameEngine.hero) {
             this._grantHeroXP();
         }
+        
+        // ... rest of the method ...
 
         GameEngine.updateUI();
 
