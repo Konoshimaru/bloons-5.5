@@ -65,9 +65,22 @@ export default {
             }
         }
 
-        if (tower.phase === 1 && GameEngine.difficulty) {
-            const criticalLives = Math.max(1, GameEngine.difficulty.lives * 0.1);
-            if (GameEngine.lives <= criticalLives) {
+        // PRO FIX: Gojo Awakening Logic
+        // Only awakens if a bloon is in the last 5% of the track AND leaking it would cause a game over.
+        if (tower.phase === 1 && GameEngine.difficulty && GameEngine.map) {
+            const totalLen = GameEngine.map.getTotalLength();
+            let wouldDie = false;
+            
+            for (let e of GameEngine.enemies) {
+                if (e.alive && e.distanceTraveled >= totalLen * 0.95) {
+                    if (GameEngine.lives - e.getLivesLost() <= 0) {
+                        wouldDie = true;
+                        break;
+                    }
+                }
+            }
+
+            if (wouldDie) {
                 tower.phase = 2; tower.awakened = true;
                 tower.stats.canSeeCamo = true; 
                 
@@ -148,7 +161,6 @@ export default {
                         let pullStrength = 20 * dt * (w.life / w.maxLife); 
                         e.offsetX += dx * pullStrength; 
                         e.offsetY += dy * pullStrength; 
-                        // PRO FIX: Removed the distanceTraveled manipulation. It was causing bloons to be infinitely trapped at the start of the track.
                         pullHits++; 
                     }
                 }
@@ -275,7 +287,6 @@ export default {
             return;
         }
         engine.log("Maximum: Blue!"); 
-        // PRO FIX: Pass the calculated damage into the maxBlue object
         tower.maxBlue = { life: 3.14, maxLife: 3.14, angle: 0, x: tower.x, y: tower.y, dmg: tower.stats.damage };
     },
     ability3(tower, engine) {
@@ -288,7 +299,6 @@ export default {
         for (let i = 0; i < wellCount; i++) {
             let offsetX = wellCount > 1 ? (i === 0 ? -15 : 15) : 0; let offsetY = wellCount > 1 ? (i === 0 ? -15 : 15) : 0;
             tower.blueWells = tower.blueWells || [];
-            // PRO FIX: Store the 'damage' parameter so the update loop uses the buffed value
             tower.blueWells.push({ 
                 x: target.x + offsetX, y: target.y + offsetY, targetDist: target.distanceTraveled, 
                 life: 1.0, maxLife: 1.0, radius: 50 + (tower.stats.range * 0.5), rot: 0, 

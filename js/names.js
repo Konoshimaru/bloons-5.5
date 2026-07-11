@@ -55,8 +55,9 @@ export const Names = {
         return `${TOWER_PREFIX}${type}_p${path}_t${tier}_arm`;
     },
 
-    getPopEffect() {
-        return `${EFFECT_PREFIX}pop`;
+    // PRO FIX: Added variant parameter for pop effects
+    getPopEffect(variant = 1) {
+        return variant === 1 ? `${EFFECT_PREFIX}pop` : `${EFFECT_PREFIX}pop${variant}`;
     },
 
     getMoabCrack() {

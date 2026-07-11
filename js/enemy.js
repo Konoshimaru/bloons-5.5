@@ -1,6 +1,4 @@
 ﻿// enemy.js
-// Defines enemy behavior, movement, status effects, and damage handling.
-
 import { EnemyTypes } from './data.js';
 import { drawShadow } from './utils.js';
 import { AudioEngine } from './audio.js';
@@ -19,8 +17,6 @@ const FORTIFIED_LEAD_HP = 3;
 const LIVES_LOST_CERAMIC_BASE = 94;
 const LIVES_LOST_FORTIFIED_LEAD = 26;
 
-// Enemy instances represent bloons moving along the map.
-// They handle movement, status effects, damage, splitting, and reward payout.
 export class Enemy {
     constructor(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null) {
         this.tier = tier;
@@ -34,7 +30,6 @@ export class Enemy {
         const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
         this.data.speed *= diffSpeedMod;
 
-        // Per-spawn hpMod (from wave group) overrides the difficulty default.
         if (hpMod == null) {
             hpMod = GameEngine.difficulty ? (GameEngine.difficulty.hpMod || 1.0) : 1.0;
         }
@@ -50,24 +45,24 @@ export class Enemy {
     }
 
     _initializeStats() {
-        // Status-effect state for movement and damage over time.
         this.slowFactor = 1.0;
         this.slowTimer = 0;
         this.isFrozen = false;
-        
         this.dotTimer = 0;
         this.dotDmg = 0;
         this.dotTick = 0;
         this.dipped = false;
         this.stormHitTimer = 0;
-        
-        // Visual offsets and special-case modifiers used by certain effects.
         this.offsetX = 0;
         this.offsetY = 0;
         this.gojoSlow = 1.0;
         this.infinityTint = 0;
         this.unstableConcoction = false;
         this.isGoldified = false;
+        
+        // PRO FIX: Cripple Debuff state
+        this.crippled = false;
+        this.crippleTimer = 0;
 
         this._maxHp = this.data.maxHp;
         if (this.isFortified && (this.data.isMoab || this.data.isCeramic)) {
@@ -76,7 +71,6 @@ export class Enemy {
         if (this.hpMod && this.hpMod !== 1) {
             this._maxHp = Math.max(1, Math.ceil(this._maxHp * this.hpMod));
         }
-        
         this.hp = this._maxHp;
         
         if (this.data.isLead && this.isFortified) {
@@ -93,6 +87,12 @@ export class Enemy {
     _updateTimers(dt) {
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
         
+        // PRO FIX: Handle Cripple Timer
+        if (this.crippleTimer > 0) {
+            this.crippleTimer -= dt;
+            if (this.crippleTimer <= 0) this.crippled = false;
+        }
+        
         if (this.slowTimer > 0) {
             this.slowTimer -= dt;
             if (this.slowTimer <= 0) {
@@ -100,7 +100,7 @@ export class Enemy {
                 this.isFrozen = false;
             }
         }
-        
+
         if (this.dotTimer > 0) {
             this.dotTimer -= dt;
             this.dotTick += dt;
@@ -113,7 +113,6 @@ export class Enemy {
 
     _updateRegen(dt) {
         if (!this.isRegen || this.tier >= this.maxTier) return;
-        
         this.regenTimer += dt;
         if (this.regenTimer > REGEN_INTERVAL) {
             this.regenTimer = 0;
@@ -121,18 +120,14 @@ export class Enemy {
             this.data = { ...EnemyTypes[this.tier] };
             const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
             this.data.speed *= diffSpeedMod;
-            
             if (this.data.isMoab) this.hp = this.data.maxHp * (this.isFortified ? 2 : 1);
             if (this.data.isCeramic) this.hp = this.data.maxHp * (this.isFortified ? 2 : 1);
         }
     }
 
     _updateMovement(dt) {
-        // The enemy's progress along the path is driven by its speed, any slow effect, and hero-based modifiers.
-        // The enemy advances along the path using its current movement speed and any active slow effects.
         this.distanceTraveled += this.data.speed * this.slowFactor * this.gojoSlow * dt;
         const pos = this.map.getPositionAtDistance(this.distanceTraveled);
-        
         this.x = pos.x + this.offsetX;
         this.y = pos.y + this.offsetY;
         this.offsetX *= 0.9;
@@ -149,7 +144,6 @@ export class Enemy {
         this.infinityTint = Math.max(0, this.infinityTint - dt * 0.5);
         
         if (pos.finished) {
-            // Once the enemy leaves the path, it is considered escaped and costs the player lives.
             this.alive = false;
             const lost = this.getLivesLost();
             if (isFinite(lost)) GameEngine.lives -= lost;
@@ -169,16 +163,11 @@ export class Enemy {
             const currentHp = Math.max(0, Math.ceil(this.hp)) || 0;
             return isFinite(currentHp + childrenRbe) ? currentHp + childrenRbe : 0;
         }
-        
         if (this.data.isCeramic) {
             const currentHp = Math.max(0, Math.ceil(this.hp)) || 0;
             return isFinite(LIVES_LOST_CERAMIC_BASE + currentHp) ? LIVES_LOST_CERAMIC_BASE + currentHp : 0;
         }
-        
-        if (this.data.isLead && this.isFortified) {
-            return LIVES_LOST_FORTIFIED_LEAD;
-        }
-        
+        if (this.data.isLead && this.isFortified) return LIVES_LOST_FORTIFIED_LEAD;
         const rbe = this.data.rbe || 0;
         return isFinite(rbe) ? rbe : 0;
     }
@@ -186,9 +175,7 @@ export class Enemy {
     applySlow(factor, duration, isIce = true) {
         if (this.data.isBAD) return;
         if (isIce && (this.data.isWhite || this.data.isZebra || this.data.isLead)) return;
-        
         if (factor <= this.slowFactor || this.slowTimer <= 0) {
-            // A stronger or fresher slow replaces the previous one so the latest effect wins.
             this.slowFactor = factor;
             this.slowTimer = duration;
             this.isFrozen = isIce;
@@ -203,10 +190,8 @@ export class Enemy {
                 if (childData) childRbeTotal += (childData.rbe || 0) * child.count;
             }
         }
-        
         const layerCash = Math.max(1, Math.floor((this.data.rbe - childRbeTotal) * CASH_REWARD_MODIFIER));
         GameEngine.addCash(layerCash);
-        
         if (!canSpawn && childRbeTotal > 0) {
             const childCash = Math.max(1, Math.floor(childRbeTotal * CASH_REWARD_MODIFIER));
             GameEngine.addCash(childCash);
@@ -214,29 +199,20 @@ export class Enemy {
     }
 
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {
-        // Some bloons split into smaller bloons when they are popped, so the field can become more crowded.
         if (!canSpawn || !this.data.splitsInto) return;
-        
         const childCount = this.data.splitsInto.length;
         const dmgPerChild = Math.floor(carryOverDamage / childCount);
         let remainder = carryOverDamage % childCount;
-        
         for (const child of this.data.splitsInto) {
             for (let i = 0; i < child.count; i++) {
                 const childCamo = child.forceCamo !== undefined ? child.forceCamo : this.isCamo;
                 const childRegen = child.forceRegen !== undefined ? child.forceRegen : this.isRegen;
                 const c = new Enemy(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
-                
                 if (carryOverDamage > 0) {
                     let dmg = dmgPerChild;
-                    if (remainder > 0) {
-                        dmg++;
-                        remainder--;
-                    }
-                    if (dmg > 0) {
-                        c.takeDamage(dmg, dmgType);
-                    }
+                    if (remainder > 0) { dmg++; remainder--; }
+                    if (dmg > 0) c.takeDamage(dmg, dmgType);
                 }
                 GameEngine.enemies.push(c);
             }
@@ -244,10 +220,12 @@ export class Enemy {
     }
 
     takeDamage(damage, dmgType, effects) {
-        // Damage routing is intentionally centralized here so all towers and effects share the same rules.
         if (this._isImmune(dmgType, effects)) return -1;
-        
         if (isNaN(damage)) damage = 0;
+        
+        // PRO FIX: Cripple Debuff (+5 damage taken from all sources)
+        if (this.crippled) damage += 5;
+        
         if (dmgType.moabDmg && this.data.isMoab) damage += (dmgType.moabDmg || 0);
         if (dmgType.fortifiedDmg && this.isFortified) damage += (dmgType.fortifiedDmg || 0);
         if (this.dipped) damage += 1;
@@ -278,22 +256,10 @@ export class Enemy {
         
         const canSpawn = GameEngine.enemies.length < 3500;
 
-        if (this.data.isMoab) {
-            return this._handleMoabDamage(damage, dmgType, effects, canSpawn);
-        }
-        
-        if (this.data.isCeramic) {
-            return this._handleCeramicDamage(damage, dmgType, effects, canSpawn);
-        }
-        
-        if (this.data.isLead && this.isFortified) {
-            return this._handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn);
-        }
-        
-        if (this.data.splitsInto) {
-            return this._handleSplitDamage(damage, dmgType, effects, canSpawn);
-        }
-        
+        if (this.data.isMoab) return this._handleMoabDamage(damage, dmgType, effects, canSpawn);
+        if (this.data.isCeramic) return this._handleCeramicDamage(damage, dmgType, effects, canSpawn);
+        if (this.data.isLead && this.isFortified) return this._handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn);
+        if (this.data.splitsInto) return this._handleSplitDamage(damage, dmgType, effects, canSpawn);
         return this._handleStandardDamage(damage, dmgType, effects);
     }
 
@@ -306,10 +272,6 @@ export class Enemy {
         }
         if (this.isFrozen && dmgType.isSharp && !dmgType.canHitLead) {
             AudioEngine.playSfx('frozen_hit');
-            return true;
-        }
-        if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead) {
-            AudioEngine.playSfx('lead_hit');
             return true;
         }
         return false;
@@ -334,20 +296,15 @@ export class Enemy {
                     if (e.alive && e !== this) e.takeDamage(expDmg, { isExplosion: true, canHitLead: true });
                 }
             }
-            
-            if (effects && effects.unstableConcoction) {
-                this.unstableConcoction = true;
-            }
+            if (effects && effects.unstableConcoction) this.unstableConcoction = true;
             
             const carryOver = damage - previousHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
-            // PRO FIX: Strictly visual layers. Just play the hit sound.
             if (dmgDealt > 0) {
                 AudioEngine.playSfx('moab_hit');
             }
         }
-        
         return Math.ceil(dmgDealt);
     }
 
@@ -360,16 +317,14 @@ export class Enemy {
             this.alive = false;
             this.giveCash(canSpawn);
             GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-            AudioEngine.playSfx('pop'); // Standard pop only when the ceramic shell breaks
+            AudioEngine.playSfx('pop'); 
             const carryOver = damage - shellHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
-            // PRO FIX: Strictly visual layers. Just play the hit sound.
             if (dmgDealt > 0) {
                 AudioEngine.playSfx('ceramic_hit');
             }
         }
-        
         return Math.ceil(dmgDealt);
     }
 
@@ -379,12 +334,10 @@ export class Enemy {
             if (damage > 0) AudioEngine.playSfx('pop');
             return 0;
         }
-        
         this.alive = false;
         this.giveCash(canSpawn);
         GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
         AudioEngine.playSfx('pop');
-        
         const carryOver = damage - this.leadHp;
         this.spawnChildren(canSpawn, carryOver, dmgType);
         return 1;
@@ -395,7 +348,6 @@ export class Enemy {
         this.giveCash(canSpawn);
         GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
         AudioEngine.playSfx('pop');
-        
         const carryOver = damage - 1;
         this.spawnChildren(canSpawn, carryOver, dmgType);
         return 1;
@@ -413,47 +365,35 @@ export class Enemy {
             layersPopped++;
             AudioEngine.playSfx('pop');
             
-            if (++safetyCounter > SAFETY_LOOP_LIMIT) {
-                console.error("CRASH PREVENTED: Bloon damage while-loop infinite loop!");
-                break;
-            }
+            if (layersPopped === 1) GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
+            
+            if (++safetyCounter > SAFETY_LOOP_LIMIT) break;
         }
         
         if (currentTier === null) {
             this.alive = false;
             this.giveCash(true);
-            GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
         } else {
             this.tier = currentTier;
             this.data = { ...EnemyTypes[currentTier] };
             const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
             this.data.speed *= diffSpeedMod;
         }
-        
         return layersPopped;
     }
 
     draw(ctx) {
-        if (GameEngine.enemies.length < 800) {
-            drawShadow(ctx, this.x, this.y, this.data.radius);
-        }
-
+        if (GameEngine.enemies.length < 800) drawShadow(ctx, this.x, this.y, this.data.radius);
         const assetKey = Names.getEnemyWithModifiers(this.tier, this.isCamo, this.isRegen);
         let asset = Assets.get(assetKey);
         let usedModifierSprite = (asset && asset.loaded);
-        
-        if (!usedModifierSprite) {
-            asset = Assets.get(Names.getEnemy(this.tier));
-        }
+        if (!usedModifierSprite) asset = Assets.get(Names.getEnemy(this.tier));
 
-        if (asset && asset.loaded) {
-            this._drawSprite(ctx, asset);
-        } else if (this.data.isMoab) {
-            this._drawMoabFallback(ctx);
-        } else {
-            this._drawStandardFallback(ctx);
-        }
+        if (asset && asset.loaded) this._drawSprite(ctx, asset);
+        else if (this.data.isMoab) this._drawMoabFallback(ctx);
+        else this._drawStandardFallback(ctx);
 
+        // PRO FIX: Stun overlay is correctly checked and drawn
         if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) {
             this._drawStunOverlay(ctx);
         }
@@ -470,40 +410,26 @@ export class Enemy {
         
         ctx.save();
         ctx.translate(drawX, drawY);
-        if (this.tier >= 13) {
-            ctx.rotate(this.angle + Math.PI / 2);
-        }
+        if (this.tier >= 13) ctx.rotate(this.angle + Math.PI / 2);
         ctx.drawImage(asset, -w / 2, -h / 2, w, h);
         ctx.restore();
         
-        // Draw visual cracks strictly if HP is missing
-        if (this.tier >= 12 && this.hp < this._maxHp) {
-            this._drawCracks(ctx, w, h, drawX, drawY);
-        }
+        if (this.tier >= 12 && this.hp < this._maxHp) this._drawCracks(ctx, w, h, drawX, drawY);
 
         if (this.isFrozen) {
-            ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke();
         } else if (this.slowFactor < 1.0) {
-            ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke();
         }
         
         if (this.infinityTint > 0) {
             ctx.globalCompositeOperation = 'source-atop';
             ctx.globalAlpha = this.infinityTint * 0.6;
             ctx.fillStyle = '#a253ff';
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-            ctx.globalCompositeOperation = 'source-over';
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
         }
     }
 
@@ -515,15 +441,9 @@ export class Enemy {
         
         if (maxCracks <= 0 || damagePercent <= 0) return;
         
-        // Calculate the exact visual stage based on the loaded crack count
         let stage = Math.floor(damagePercent * maxCracks);
-        
-        // If it's fully maxed out (100% damage), it means it's dead, so we don't need to draw the final stage over the death effect.
-        // But if it's extremely close to dead, we draw the last available stage.
         if (damagePercent >= 1.0) stage = maxCracks; 
         if (stage <= 0) return;
-        
-        // Clamp it just in case
         if (stage > maxCracks) stage = maxCracks;
         
         const crackAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_${stage}`);
@@ -531,9 +451,7 @@ export class Enemy {
         
         ctx.save();
         ctx.translate(drawX, drawY);
-        if (this.tier >= 13) {
-            ctx.rotate(this.angle + Math.PI / 2);
-        }
+        if (this.tier >= 13) ctx.rotate(this.angle + Math.PI / 2);
         ctx.drawImage(crackAsset, -w / 2, -h / 2, w, h);
         ctx.restore();
     }
@@ -542,19 +460,15 @@ export class Enemy {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI / 2);
-        
         ctx.fillStyle = this.data.color;
         ctx.fillRect(-this.data.radius, -this.data.radius * 0.6, this.data.radius * 2, this.data.radius * 1.2);
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.fillRect(-this.data.radius, -this.data.radius * 0.6, this.data.radius * 2, this.data.radius * 0.3);
         ctx.fillStyle = '#e74c3c';
         ctx.fillRect(-5, -this.data.radius * 0.6 - 5, 10, 5);
-        
         ctx.restore();
-        
         if (this.isFortified) {
-            ctx.strokeStyle = '#bdc3c7';
-            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 4;
             ctx.strokeRect(this.x - this.data.radius, this.y - this.data.radius * 0.6, this.data.radius * 2, this.data.radius * 1.2);
         }
     }
@@ -575,62 +489,35 @@ export class Enemy {
             ctx.ellipse(this.x, this.y, this.data.radius * 0.9, this.data.radius, 0, 0, Math.PI * 2);
             ctx.fill();
         }
-        
         if (this.data.isLead) {
             ctx.fillStyle = '#7f8c8d';
-            ctx.beginPath();
-            ctx.ellipse(this.x, this.y, this.data.radius * 0.9, this.data.radius, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.beginPath(); ctx.ellipse(this.x, this.y, this.data.radius * 0.9, this.data.radius, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.beginPath();
-            ctx.ellipse(this.x - this.data.radius / 3, this.y - this.data.radius / 3, this.data.radius / 4, this.data.radius / 2, -0.5, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.beginPath(); ctx.ellipse(this.x - this.data.radius / 3, this.y - this.data.radius / 3, this.data.radius / 4, this.data.radius / 2, -0.5, 0, Math.PI * 2); ctx.fill();
             if (this.isFortified) {
-                ctx.strokeStyle = '#2c3e50';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2);
-                ctx.stroke();
+                ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke();
             } else {
-                ctx.strokeStyle = '#bdc3c7';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2);
-                ctx.stroke();
+                ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke();
             }
         } else if (this.isCamo) {
             ctx.fillStyle = '#5d4037';
-            ctx.beginPath();
-            ctx.arc(this.x - 4, this.y - 2, 4, 0, Math.PI * 2);
-            ctx.arc(this.x + 5, this.y + 3, 5, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x - 4, this.y - 2, 4, 0, Math.PI * 2); ctx.arc(this.x + 5, this.y + 3, 5, 0, Math.PI * 2); ctx.fill();
         } else if (this.data.isCeramic) {
-            ctx.strokeStyle = '#7f8c8d';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.strokeStyle = '#7f8c8d'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke();
             if (this.isFortified) {
-                ctx.strokeStyle = '#2c3e50';
-                ctx.lineWidth = 5;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2);
-                ctx.stroke();
+                ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 5;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius, 0, Math.PI * 2); ctx.stroke();
             }
         }
-        
         if (this.isFrozen) {
-            ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke();
         } else if (this.slowFactor < 1.0) {
-            ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2);
-            ctx.stroke();
+            ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke();
         }
     }
 
@@ -638,11 +525,9 @@ export class Enemy {
         const t = performance.now() / 1000;
         const fps = 15;
         const frame = Math.floor(t * fps) % fps;
-        
         let stunAsset = Assets.get(Names.getStunFX(frame));
         if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get(Names.getStunFX(0));
         if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get('effect_stun');
-        
         if (stunAsset && stunAsset.loaded) {
             const s = (this.data.size || 40) * 0.8;
             ctx.save();

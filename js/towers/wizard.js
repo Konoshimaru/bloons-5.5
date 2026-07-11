@@ -1,6 +1,4 @@
 ﻿// wizard.js
-// Defines the Wizard tower and its magical attacks.
-
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
@@ -16,27 +14,26 @@ export default {
         1: [
             {name:"Arcane Blast", cost:300, stat:"pierce", amount:2, desc:"Magic bolts hit 2 extra bloons."},
             {name:"Arcane Mastery", cost:500, stat:"damage", amount:1, desc:"Deals 1 extra damage."},
-            {name:"Dragon's Breath", cost:2000, desc:"Attacks faster.", cooldownMult: 0.75, extraMods:{dmgType:'fire', projectileType:'fire'}},
-            {name:"Shimmer", cost:3000, stat:"canSeeCamo", amount:true, desc:"Can detect Camo bloons."},
-            {name:"Phoenix", cost:30000, stat:"isAbility", amount:true, desc:"Ability: Summons a phoenix.", extraMods:{unlocksAbility:true, abilityName:"Phoenix", abilityCd:60}}
+            {name:"Arcane Spike", cost:1200, stat:"damage", amount:2, desc:"Deals massive damage.", extraMods:{pierce:1}},
+            {name:"Archmage", cost:3000, stat:"damage", amount:3, desc:"Deals colossal damage and pops lead.", extraMods:{pierce:2, canHitLead:true}},
+            {name:"Wizard Lord", cost:30000, stat:"damage", amount:10, desc:"Unleashes ultimate arcane power."}
         ],
         2: [
             {name:"Fireball", cost:400, stat:"damage", amount:1, desc:"Shoots explosive fireballs.", extraMods:{isExplosive:true, explosionRadius:40, explosionDamage:1, explosionPierce:20}},
-            {name:"Monkey Sense", cost:300, stat:"canSeeCamo", amount:true, desc:"Can detect Camo bloons."},
             {name:"Wall of Fire", cost:1500, stat:"isAbility", amount:true, desc:"Ability: Creates a wall of fire.", extraMods:{unlocksAbility:true, abilityName:"WoF", abilityCd:40}},
-            {name:"Necromancer", cost:4000, stat:"damage", amount:2, desc:"Spawns undead bloons."},
-            {name:"Prince of Darkness", cost:25000, stat:"damage", amount:5, desc:"Spawns powerful undead bloons."}
+            {name:"Dragon's Breath", cost:2000, desc:"Attacks faster.", cooldownMult: 0.75, extraMods:{dmgType:'fire', projectileType:'fire'}},
+            {name:"Liquid Fire", cost:4000, stat:"damage", amount:2, desc:"Burning fire deals extra damage.", extraMods:{dot: 1, dotTimer: 3.0}},
+            {name:"Inferno Ring", cost:25000, stat:"damage", amount:5, desc:"Massive fire explosions.", extraMods:{explosionRadius: 60, explosionDamage: 3, explosionPierce: 30}}
         ],
         3: [
             {name:"Faster Casting", cost:300, desc:"Attacks faster.", cooldownMult: 0.8},
-            {name:"Nullify", cost:500, stat:"damage", amount:1, desc:"Deals 1 extra damage."},
-            {name:"Lead to Gold", cost:2000, stat:"canHitLead", amount:true, desc:"Magic can pop Lead bloons."},
-            {name:"Zombie MOABs", cost:5000, stat:"damage", amount:3, desc:"Spawns undead MOABs."},
-            {name:"Bloon Master Alchemist", cost:30000, stat:"damage", amount:10, desc:"Massive damage boost."}
+            {name:"Monkey Sense", cost:300, stat:"canSeeCamo", amount:true, desc:"Can detect Camo bloons."},
+            {name:"Shimmer", cost:2500, stat:"canSeeCamo", amount:true, desc:"Magic strips Camo from bloons.", extraMods:{stripCamo: true}},
+            {name:"Necromancer", cost:4000, stat:"damage", amount:2, desc:"Spawns undead bloons."},
+            {name:"Prince of Darkness", cost:25000, stat:"damage", amount:5, desc:"Spawns powerful undead MOABs."}
         ]
     },
     update(tower, dt) {
-        // Fire wells created by the wizard tick over time and damage any enemies standing inside them.
         if (tower.fireWells && tower.fireWells.length > 0) {
             for (let i = tower.fireWells.length - 1; i >= 0; i--) {
                 let w = tower.fireWells[i];
@@ -57,7 +54,6 @@ export default {
         p.init(tower.x, tower.y, damage, target, 'wizard_bolt', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
     },
     ability(tower, engine) {
-        // The wizard places a fire well at the furthest-progressed enemy so it covers the most dangerous lane.
         engine.log("Wall of Fire!");
         let target = null;
         let bestVal = -Infinity;
@@ -71,7 +67,6 @@ export default {
         }
     },
     draw(ctx, tower, isPreview) {
-        // Fire wells are rendered as fading circles so the player can see their current area of effect.
         if (!isPreview && tower.fireWells) {
             for (let w of tower.fireWells) {
                 ctx.globalAlpha = Math.min(1, w.life / w.maxLife) * 0.6;

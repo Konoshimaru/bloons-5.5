@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Main shell for the game UI. The canvas and panels are mounted here and driven by the JavaScript engine. -->
     <div id="game-container">
         <canvas id="gameCanvas" width="900" height="600"></canvas>
         <audio id="bg-music"></audio>
@@ -141,6 +140,7 @@
                 <button id="maps-btn">Select Map</button>
                 <button id="custom-maps-btn">Custom Maps</button>
                 <button id="hero-btn">Select Hero</button>
+                <button id="shop-btn">Monkey Shop</button>
                 <button id="settings-btn">Settings</button>
             </div>
         </div>
@@ -216,6 +216,18 @@
             </div>
         </div>
 
+        <!-- Monkey Shop Menu -->
+        <div id="shop-menu" class="overlay hidden">
+            <div class="menu-content">
+                <h2>Monkey Shop</h2>
+                <div class="shop-item" data-unlock="extraStartingCash" data-cost="500"><span>Extra Starting Cash (+$200)</span><span class="cost">$500</span></div>
+                <div class="shop-item" data-unlock="extraStartingLives" data-cost="500"><span>Extra Starting Lives (+10)</span><span class="cost">$500</span></div>
+                <!-- PRO FIX: Renamed data-unlock to match engine logic -->
+                <div class="shop-item" data-unlock="freeFirstDartMonkey" data-cost="1000"><span>Free First Dart Monkey</span><span class="cost">$1000</span></div>
+                <button class="back-btn" data-target="main-menu">Back</button>
+            </div>
+        </div>
+
         <div id="settings-menu" class="overlay hidden">
             <div class="menu-content">
                 <h2>Settings</h2>
@@ -225,7 +237,6 @@
                 <div class="setting-item"><label><input type="checkbox" id="shuffle-music-checkbox"> Shuffle Music</label></div>
                 <div class="setting-item"><label><input type="checkbox" id="random-start-checkbox"> Random Starting Track</label></div>
                 
-                <!-- NEW: Extreme Speed Toggle -->
                 <div class="setting-item"><label><input type="checkbox" id="extreme-speed-checkbox"> Enable Extreme Speeds (5x, 10x, 20x)</label></div>
 
                 <div class="setting-item"><label><input type="checkbox" id="bg-run-checkbox"> Run in Background</label></div>

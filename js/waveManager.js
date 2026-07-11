@@ -8,7 +8,7 @@ import { UI } from './ui.js';
 
 const SPAWN_INTERVAL_DEFAULT = 0.35;
 const AUTO_WAVE_DELAY = 0.1;
-const ENDLESS_BASE_ROUND = 41;
+const ENDLESS_BASE_ROUND = 141;
 
 // WaveManager is responsible for constructing enemy waves and feeding them into the game over time.
 // It decides when bloons spawn, when rounds end, and how the game rewards players after a wave clears.

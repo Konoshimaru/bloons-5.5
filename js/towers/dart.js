@@ -4,20 +4,21 @@ import Assets from '../assets.js';
 import { drawImageCentered, Utils } from '../utils.js';
 
 export default {
-    stats: { 
-        name: "Dart Monkey", cost: 200, range: 32, 
-        baseCooldown: 0.95, fireRate: 0.95, 
-        damage: 1, pierce: 2, projectileSpeed: 350, 
-        lifespan: 0.5, desc: "Shoots a single dart. Low range, but cheap.", 
-        dmgType: 'sharp', projectileType: 'dart', hitRadius: 18, 
-        projectileCount: 1 
+    stats: {
+        name: "Dart Monkey", cost: 200, range: 32,
+        baseCooldown: 0.95, fireRate: 0.95,
+        damage: 1, pierce: 2, projectileSpeed: 350,
+        lifespan: 0.5, desc: "Shoots a single dart. Low range, but cheap.",
+        dmgType: 'sharp', projectileType: 'dart', hitRadius: 18,
+        projectileCount: 1
     },
     upgrades: {
         1: [
             {name:"Sharp Shots", cost:140, stat:"pierce", amount:1, desc:"Can pop 1 extra Bloon per shot."},
             {name:"Razor Sharp Shots", cost:200, stat:"pierce", amount:2, desc:"Can pop 2 more bloons per shot."},
             {name:"Spike-o-pult", cost:320, stat:"projectileType", amount:"spike_opult", desc:"Hurls large spiked balls.", cooldownMult: 1.2105, extraMods:{damage:1, pierce:16, range:5, projectileSpeed:400, lifespan:0.8, scale:1.2}},
-            {name:"Juggernaut", cost:1800, stat:"projectileType", amount:"juggernaut", desc:"Giant spiked ball crushes Ceramics.", cooldownMult: 0.8695, extraMods:{damage:0, pierce:42, dmgType:'heavy', bonusCeramic:3, fortifiedDmg:2, canHitLead:true, scale:1.4, projectileSpeed:800}},
+            // PRO FIX: Set Juggernaut damage to 2 so it correctly adds to base damage
+            {name:"Juggernaut", cost:1800, stat:"projectileType", amount:"juggernaut", desc:"Giant spiked ball crushes Ceramics.", cooldownMult: 0.8695, extraMods:{damage:2, pierce:42, dmgType:'heavy', bonusCeramic:3, fortifiedDmg:2, canHitLead:true, scale:1.4, projectileSpeed:800}},
             {name:"Ultra-Juggernaut", cost:15000, stat:"projectileType", amount:"ultra_juggernaut", desc:"Gigantic spiked ball splits twice.", extraMods:{damage:3, pierce:150, bonusCeramic:5, fortifiedDmg:3, canHitLead:true, scale:1.6, projectileSpeed:900}}
         ],
         2: [
@@ -50,13 +51,12 @@ export default {
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
         let count = tower.stats.projectileCount || 1;
-        
-        // PRO FIX: Shoot super_darts when Fan Club is active
+
         let projType = tower.stats.projectileType;
         if (tower.fanClubBuffTimer > 0) {
             projType = tower.fanClubType === 'plasma' ? 'plasma' : 'super_dart';
         }
-        
+
         for(let i=0; i<count; i++) {
             let p = GameEngine.projectilePool.get();
             p.init(tower.x, tower.y, damage, target, projType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 15 * (i - (count-1)/2), tower, dmgType);

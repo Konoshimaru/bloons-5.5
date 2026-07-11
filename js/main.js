@@ -1,5 +1,4 @@
 // main.js
-// Entry point for the browser game. This file wires the DOM UI to the engine and handles menu flow.
 import { GameEngine } from './engine.js';
 import { Config, HeroStats } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
@@ -16,7 +15,6 @@ const CANVAS_HEIGHT = 600;
 const SCALE_MARGIN = 0.98;
 
 const dom = {
-    // Main Menu
     playBtn: document.getElementById('play-btn'),
     sandboxBtn: document.getElementById('sandbox-btn'),
     heroBtn: document.getElementById('hero-btn'),
@@ -26,18 +24,16 @@ const dom = {
     continueBtn: document.getElementById('continue-btn'),
     abandonBtn: document.getElementById('abandon-btn'),
     goMenuBtn: document.getElementById('go-menu-btn'),
+    shopBtn: document.getElementById('shop-btn'), // PRO FIX: Added shop button
     
-    // Hero Select
     hmPrevBtn: document.getElementById('hm-prev-btn'),
     hmNextBtn: document.getElementById('hm-next-btn'),
     heroSelector: document.getElementById('hero-selector'),
     
-    // Difficulty
     diffBtns: document.querySelectorAll('.diff-btn[data-diff]'),
     backBtns: document.querySelectorAll('.back-btn[data-target]'),
     settingsBackBtn: document.getElementById('settings-back-btn'),
     
-    // Settings
     volumeSlider: document.getElementById('volume-slider'),
     volDisplay: document.getElementById('vol-display'),
     musicSlider: document.getElementById('music-slider'),
@@ -59,7 +55,6 @@ const dom = {
     addMapBtn: document.getElementById('add-map-btn'),
     mapJsonInput: document.getElementById('map-json-input'),
     
-    // Game UI
     pauseBtn: document.getElementById('pause-btn'),
     resumeBtn: document.getElementById('resume-btn'),
     pauseSettingsBtn: document.getElementById('pause-settings-btn'),
@@ -86,7 +81,6 @@ const dom = {
     upSell: document.getElementById('up-sell'),
     upCollectBank: document.getElementById('up-collect-bank'),
     
-    // Sandbox HUD
     cashDisplay: document.getElementById('cash-display'),
     livesDisplay: document.getElementById('lives-display'),
     cancelBtn: document.getElementById('cancel-btn')
@@ -202,6 +196,21 @@ function updateShopPrices() {
     });
 }
 
+// PRO FIX: Added function to update Monkey Shop UI
+function updateShopUI() {
+    document.querySelectorAll('.shop-item').forEach(item => {
+        const unlockKey = item.dataset.unlock;
+        if (Config.data.unlocks[unlockKey]) {
+            item.classList.add('purchased');
+            item.querySelector('.cost').innerText = "Purchased";
+        } else {
+            item.classList.remove('purchased');
+            const cost = item.dataset.cost;
+            item.querySelector('.cost').innerText = `$${cost}`;
+        }
+    });
+}
+
 function applyConfigToUI() {
     if (dom.shuffleMusicCheckbox) dom.shuffleMusicCheckbox.checked = Config.data.musicShuffle;
     if (dom.randomStartCheckbox) dom.randomStartCheckbox.checked = Config.data.musicRandomStart;
@@ -221,6 +230,7 @@ function applyConfigToUI() {
     refreshMapSelector();
     refreshHeroSelector();
     updateHeroShopCard();
+    updateShopUI(); // PRO FIX
 }
 
 async function startGameUI(isSandbox) {
@@ -278,6 +288,7 @@ function _setupMenuListeners() {
     dom.playBtn?.addEventListener('click', () => GameEngine.toggleMenus('difficulty-menu'));
     dom.sandboxBtn?.addEventListener('click', () => startGameUI(true));
     dom.heroBtn?.addEventListener('click', () => GameEngine.toggleMenus('hero-select-menu'));
+    dom.shopBtn?.addEventListener('click', () => GameEngine.toggleMenus('shop-menu')); // PRO FIX
     
     dom.diffBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -301,10 +312,32 @@ function _setupMenuListeners() {
         document.getElementById('top-ui-right').classList.add('hidden');
         AudioEngine.pause();
         UI.updateMetaStats();
+        updateShopUI(); // PRO FIX
     });
     
     dom.hmPrevBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: -300, behavior: 'smooth' }));
     dom.hmNextBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: 300, behavior: 'smooth' }));
+
+    // PRO FIX: Added listeners for shop items
+    document.querySelectorAll('.shop-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const unlockKey = item.dataset.unlock;
+            const cost = parseInt(item.dataset.cost);
+            if (Config.data.unlocks[unlockKey]) {
+                alert("Already purchased!");
+                return;
+            }
+            if (Config.data.monkeyMoney >= cost) {
+                Config.data.monkeyMoney -= cost;
+                Config.data.unlocks[unlockKey] = true;
+                Config.save();
+                UI.updateMetaStats();
+                updateShopUI();
+            } else {
+                alert("Not enough Monkey Money!");
+            }
+        });
+    });
 }
 
 function _setupSettingsListeners() {
@@ -371,6 +404,7 @@ function _setupGameListeners() {
         document.getElementById('top-ui-right').classList.add('hidden');
         AudioEngine.pause();
         UI.updateMetaStats();
+        updateShopUI(); // PRO FIX
     });
     
     dom.sbPrev?.addEventListener('click', () => GameEngine.skipWave(-1));

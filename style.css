@@ -139,6 +139,16 @@ body {
 .diff-btn { width: 100%; padding: 15px; background: var(--panel); border: 2px solid #7f8c8d; color: white; cursor: pointer; border-radius: 6px; font-weight: bold; margin-bottom: 5px;}
 .diff-btn:hover { border-color: var(--accent); }
 
+/* PRO FIX: Added Monkey Shop item styles */
+.shop-item {
+    background: var(--panel); border: 2px solid #7f8c8d; border-radius: 6px; padding: 15px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.2s;
+}
+.shop-item:hover { border-color: var(--accent); background: #3e5771; }
+.shop-item.purchased { opacity: 0.6; cursor: default; border-color: #27ae60; }
+.shop-item .cost { color: var(--gold); font-weight: bold; }
+.shop-item.purchased .cost { color: #27ae60; }
+
 #error-message { position: absolute; top: 0; left: 0; width: 100%; background: var(--danger); color: white; padding: 10px; text-align: center; z-index: 100; font-weight: bold; }
 input[type="range"] { width: 100%; accent-color: var(--accent); }
 input[type="text"], textarea { width: 100%; padding: 8px; margin-bottom: 10px; background: var(--bg); border: 1px solid #7f8c8d; color: white; border-radius: 4px; }

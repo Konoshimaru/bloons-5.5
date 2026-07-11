@@ -1,11 +1,8 @@
 ﻿// ui.js
-// Manages the HUD, shop, upgrade panel, and menus.
-
 import { TowerStats, Upgrades } from './towers/index.js';
 import { Config, HeroStats } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 
-// Cache DOM elements so the UI can update them quickly without repeatedly querying the page.
 const elements = {};
 function el(id) {
     if (!elements[id]) {
@@ -14,17 +11,13 @@ function el(id) {
     return elements[id];
 }
 
-const MENUS = ['main-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'custom-maps-menu', 'difficulty-menu', 'hero-select-menu'];
+const MENUS = ['main-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'custom-maps-menu', 'difficulty-menu', 'hero-select-menu', 'shop-menu'];
 const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
-const FLAVOR_OPACITY_VISIBLE = 1;
-const FLAVOR_OPACITY_HIDDEN = 0;
 
-// UI manages the on-screen panels, buttons, shop cards, upgrade panels, and message log.
 export const UI = {
     _towerCardCache: null,
 
     toggleMenus(menuId) {
-        // Menus are hidden and shown by toggling a shared CSS class, keeping the page structure simple.
         for (const id of MENUS) {
             const menu = el(id);
             if (menu) menu.classList.add('hidden');
@@ -95,7 +88,6 @@ export const UI = {
     },
 
     updateCash(cash, engine) {
-        // The cash display and shop card availability both depend on the player economy, so they update together.
         const cashEl = el('cash-display');
         if (cashEl) cashEl.innerText = `$${cash}`;
 
@@ -238,7 +230,6 @@ export const UI = {
     },
 
     showUpgradeUI(t, engine) {
-        // Selecting a tower opens the upgrade panel and populates it with tower-specific information and buttons.
         const panel = el('upgrade-panel');
         if (!panel) return;
         panel.classList.remove('hidden');
@@ -413,5 +404,23 @@ export const UI = {
         if (engine.cash < cost || !tower.canUpgrade(path, engine)) {
             card.classList.add('locked');
         }
+    },
+
+    // PRO FIX: Dynamically add 'Elite' targeting mode if the tower unlocks it
+    cycleTargeting() {
+        if (!this.selectedPlacedTower) return;
+        const t = this.selectedPlacedTower;
+        
+        let modes = ['First', 'Last', 'Strong', 'Close'];
+        if (t.stats.unlocksElite) {
+            modes.push('Elite');
+        }
+        
+        let idx = modes.indexOf(t.targetingMode);
+        if (idx === -1) idx = 0; // Fallback if current mode isn't in the list
+        idx = (idx + 1) % modes.length;
+        t.targetingMode = modes[idx];
+        
+        UI.showUpgradeUI(t, GameEngine);
     }
 };

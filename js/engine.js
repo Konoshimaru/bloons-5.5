@@ -1,6 +1,4 @@
 ﻿// engine.js
-// Runs the main game loop and owns the central game state.
-
 import { Config, Difficulties, HeroStats, TargetingModes } from './config.js';
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
@@ -20,7 +18,7 @@ import { AudioEngine } from './audio.js';
 import Assets from './assets.js';
 import { UI } from './ui.js';
 import { Renderer } from './renderer.js';
-import { CutsceneManager } from './cutscene.js'; // PRO FIX: Import Cutscene Manager
+import { CutsceneManager } from './cutscene.js';
 
 const MAX_SUBSTEPS = 10;
 const MAX_PROJECTILES = 1500;
@@ -170,7 +168,6 @@ export const GameEngine = {
         this.map = new GameMap(this.currentMap);
         this.gameState = 'playing';
         
-        // PRO FIX: Reverted Sandbox to normal Medium difficulty
         const diff = isSandbox ? Difficulties.medium : Difficulties[Config.data.currentDifficulty];
         this.difficulty = diff;
         
@@ -186,6 +183,12 @@ export const GameEngine = {
         this.projectilePool.clear();
         this.particlePool.clear();
         
+        // PRO FIX: Monkey Money unlocks do NOT apply in CHIMPS or Post CHIMPS (noSelling flag)
+        if (!isSandbox && !diff.noSelling) {
+            if (Config.data.unlocks.extraStartingLives) this.lives += 10;
+            if (Config.data.unlocks.extraStartingCash) this.cash += 200;
+        }
+        
         this.hero = null;
         this.waveManager = new WaveManager();
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
@@ -196,7 +199,7 @@ export const GameEngine = {
         this.timeScale = 1;
         UI.updateWaveSpeedBtn(this.speedState);
         
-        CutsceneManager.reset(); // Reset cutscene on new game
+        CutsceneManager.reset(); 
         this.updateUI();
     },
 
@@ -246,7 +249,8 @@ export const GameEngine = {
         const state = Config.data.savedRun;
         
         this.currentMap = state.mapIndex;
-        Config.data.currentDifficulty = state.difficulty.toLowerCase();
+        // PRO FIX: Remove spaces from difficulty string ("Post CHIMPS" -> "postchimps")
+        Config.data.currentDifficulty = state.difficulty.toLowerCase().replace(/\s+/g, '');
         this.startGame(false);
         
         this.lives = state.lives;
@@ -355,7 +359,14 @@ export const GameEngine = {
         if (!this.selectedTowerType) return;
 
         const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
-        const cost = this.getCost(stats.cost);
+        let cost = this.getCost(stats.cost);
+        
+        // PRO FIX: Free First Dart Monkey unlock (overrides cost to 0)
+        if (this.selectedTowerType === 'dart' && Config.data.unlocks.freeFirstDartMonkey && !this.isSandbox && !this.difficulty.noSelling) {
+            if (!this.towers.some(t => t.type === 'dart')) {
+                cost = 0;
+            }
+        }
         
         if (this.cash < cost) {
             this.log("Not enough cash!");
@@ -549,8 +560,7 @@ export const GameEngine = {
     update(dt) {
         this._updateLimitsAndTimers(dt);
         
-        // PRO FIX: Cutscene triggers in Post CHIMPS (or Sandbox for testing) when MOAB takes damage
-        if ((this.difficulty.isPostChimps || this.isSandbox) && CutsceneManager.state === 'idle') {
+        if (this.difficulty && this.difficulty.isPostChimps && CutsceneManager.state === 'idle') {
             let damagedMoab = this.enemies.find(e => e.alive && e.data.isMoab && e.hp < e._maxHp);
             if (damagedMoab) CutsceneManager.trigger(damagedMoab);
         }
@@ -563,8 +573,6 @@ export const GameEngine = {
 
         this.waveManager.update(dt);
         this._updateAcidPools(dt);
-        
-        // ... rest of the update function ...
         
         const prevLives = this.lives;
         this._updateEnemies(dt);

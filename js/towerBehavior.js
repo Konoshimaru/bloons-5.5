@@ -1,6 +1,4 @@
 ﻿// towerBehavior.js
-// Contains reusable tower combat behaviors and effect helpers.
-
 import { RANGE_SCALE } from './config.js';
 import { TowerRegistry, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
@@ -14,21 +12,20 @@ const MIN_FIRE_RATE = 0.01;
 const ANIM_FRAME_DURATION = 0.03;
 const ATTACK_THROW_FRAME = 4;
 
-/**
- * Calculates the effective attack cooldown for a tower.
- * Uses cached multiplier and base cooldown from the tower instance.
- */
 export function getEffectiveCooldown(tower) {
-    if (tower.fanClubBuffTimer > 0) return 0.06; 
-    if (tower.isMonster) return 0.03; 
-    
+    if (tower.fanClubBuffTimer > 0) return 0.06;
+    if (tower.isMonster) return 0.03;
+
     let finalCooldown = tower._baseCooldown * tower._cooldownMult;
-    
+
     if (tower.overclockTimer > 0) finalCooldown *= 0.6;
     if (tower.ultraboostStacks > 0) finalCooldown *= (1 - 0.066 * tower.ultraboostStacks);
     if (tower.abilityActiveTime > 0) finalCooldown /= (tower.stats.rapidShotMult || 3);
     if (tower.alchBuff) finalCooldown /= (1 + tower.alchBuff.speed);
     
+    // PRO FIX: Elite Defender speed scaling
+    if (tower.eliteDefenderSpeedMod) finalCooldown *= tower.eliteDefenderSpeedMod;
+
     return finalCooldown < MIN_FIRE_RATE ? MIN_FIRE_RATE : finalCooldown;
 }
 
@@ -36,14 +33,13 @@ export function update(tower, dt, engine) {
     _updateTimers(tower, dt, engine);
     _updateAnimations(tower, dt);
     _runCustomBehaviors(tower, dt, engine);
-    
+
     if (tower.stats.fireRate > 0 || tower.stats.baseCooldown > 0) {
         _acquireAndFire(tower, dt, engine);
     }
 }
 
 function _updateTimers(tower, dt, engine) {
-    // Tick down all timing-based state so attacks, abilities, buffs, and animations behave in lockstep.
     tower.cooldown -= dt;
     if (tower.abilityCooldown > 0) tower.abilityCooldown -= dt;
     if (tower.ability2Cooldown > 0) tower.ability2Cooldown -= dt;
@@ -127,7 +123,6 @@ function _acquireAndFire(tower, dt, engine) {
 }
 
 function _findTarget(tower, engine) {
-    // Resolve the best enemy according to the tower's range, visibility rules, and targeting mode.
     const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
     const baseRange = typeof tower.stats.range === 'number' ? tower.stats.range : 100;
     const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
@@ -136,8 +131,16 @@ function _findTarget(tower, engine) {
     const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange);
     const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
     
+    // PRO FIX: Elite Targeting Logic
+    let currentTargeting = tower.targetingMode;
+    if (currentTargeting === 'Elite') {
+        let totalLen = engine.map.getTotalLength();
+        let hasLeaking = engine.enemies.some(e => e.alive && e.distanceTraveled > totalLen * 0.75);
+        currentTargeting = hasLeaking ? 'First' : 'Strong';
+    }
+
     let target = null;
-    let bestVal = (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') ? -Infinity : Infinity;
+    let bestVal = (currentTargeting === 'First' || currentTargeting === 'Strong') ? -Infinity : Infinity;
     const seen = new Set();
     
     for (const e of candidates) {
@@ -154,8 +157,8 @@ function _findTarget(tower, engine) {
 
         if (!_hasLineOfSight(tower, e, engine)) continue;
 
-        const val = _getTargetValue(tower, e, dist);
-        const isBetter = _isBetterTarget(tower, val, bestVal, target, e);
+        const val = _getTargetValue(tower, e, dist, currentTargeting);
+        const isBetter = _isBetterTarget(tower, val, bestVal, target, e, currentTargeting);
         
         if (isBetter) { 
             bestVal = val; 
@@ -166,17 +169,17 @@ function _findTarget(tower, engine) {
     return target;
 }
 
-function _getTargetValue(tower, enemy, dist) {
-    if (tower.targetingMode === 'First' || tower.targetingMode === 'Last') return enemy.distanceTraveled; 
-    if (tower.targetingMode === 'Strong') return enemy.data.rbe; 
+function _getTargetValue(tower, enemy, dist, targetingMode) {
+    if (targetingMode === 'First' || targetingMode === 'Last') return enemy.distanceTraveled; 
+    if (targetingMode === 'Strong') return enemy.data.rbe; 
     return dist; // Close
 }
 
-function _isBetterTarget(tower, val, bestVal, currentTarget, e) {
-    if (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') {
+function _isBetterTarget(tower, val, bestVal, currentTarget, e, targetingMode) {
+    if (targetingMode === 'First' || targetingMode === 'Strong') {
         if (val > bestVal) return true;
         if (val === bestVal && currentTarget && e.distanceTraveled > currentTarget.distanceTraveled) return true;
-    } else if (tower.targetingMode === 'Last' || tower.targetingMode === 'Close') {
+    } else if (targetingMode === 'Last' || targetingMode === 'Close') {
         if (val < bestVal) return true;
     }
     return false;
@@ -201,7 +204,6 @@ function _hasLineOfSight(tower, e, engine) {
 }
 
 function _triggerAttack(tower, target, effFireRate, engine) {
-    // Either play an animation and delay the actual shot until the attack frame, or fire immediately.
     const animAsset = _getAnimationAsset(tower);
     
     if (!animAsset || !animAsset.loaded) {
@@ -279,11 +281,7 @@ function _calculateDamage(tower) {
     let damage = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0); 
     let isCrit = tower.stats.critChance && Math.random() < tower.stats.critChance;
     if (isCrit) damage = tower.stats.critDmg;
-    if (tower.stats.dmgType === 'heavy') damage = tower.stats.critDmg; // Heavy acts like crit effectively, or base if not. Preserving original logic: if heavy, canHitLead is true. Wait, original: if (dmgTypeStr === 'heavy') { canHitLead = true; } -> I moved that to _canHitLead. The original didn't set damage = critDmg here. Let me check original.
-    // Original:
-    // if (isCrit) damage = tower.stats.critDmg;
-    // if (dmgTypeStr === 'heavy') { canHitLead = true; }
-    // So I just need to return damage.
+    // PRO FIX: Removed the 'heavy' dmgType override that was causing undefined damage for Snipers
     return damage;
 }
 
@@ -304,7 +302,6 @@ function _calculatePierce(tower) {
 
 function _createDamageType(dmgTypeStr, canHitLead, tower) {
     let baseDmgType = dmgTypeStr === 'glue' ? DamageType.SHARP : resolveDmgType(dmgTypeStr);
-
     return createDmgType(baseDmgType, {
         canHitLead: canHitLead,
         moabDmg: tower.stats.moabDmg || 0,

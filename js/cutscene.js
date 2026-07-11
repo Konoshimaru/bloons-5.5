@@ -12,24 +12,27 @@ const knightScale = 1.5;
 const trailScale = 1.1; 
 const slashScale = 1.5;  
 
-// Preload assets immediately
+// PRO FIX: Extracted magic number timers into named constants
+const PHASE_SLASH_DURATION = 0.7;
+const PHASE_RIP_WAIT_DURATION = 0.4;
+const PHASE_RIP_DURATION = 0.8;
+const PHASE_PAN_DURATION = 1.2;
+const PHASE_REVEAL_DURATION = 1.5;
+
 Assets.get('enemy_knight_front');
 Assets.get('enemy_knight_back');
 for (let i = 1; i <= 14; i++) {
     Assets.get(`effect_slash_${i}`);
 }
 
-// Reusable offscreen canvas for the white MOAB effect
 const offscreenCanvas = document.createElement('canvas');
 offscreenCanvas.width = 900;
 offscreenCanvas.height = 600;
 const offCtx = offscreenCanvas.getContext('2d');
 
-// Boss music audio object
 const bossMusic = new Audio('music/boss/blackknife.mp3');
 bossMusic.loop = true;
 
-// ── KNIGHT ENEMY CLASS ──
 export class KnightEnemy extends Enemy {
     constructor(x, y) {
         super(13, GameEngine.map, false, false, 13, false, 1.0);
@@ -52,16 +55,12 @@ export class KnightEnemy extends Enemy {
 
     update(dt) {
         this.time += dt;
-
-        // Always apply floating motion (Y axis) regardless of state
         this.y = 300 + Math.cos(this.time * 3) * 20;
 
         if (!this.isCinematic) {
-            // Normal erratic floating movement once battle starts
             this.x = 200 + Math.sin(this.time * 2) * 30;
         }
 
-        // Trail is always active
         this.trailTimer += dt;
         if (this.trailTimer > 0.04) {
             this.knightTrail.unshift({ x: this.x, y: this.y, alpha: 0.7 * this.alpha });
@@ -124,7 +123,6 @@ export class KnightEnemy extends Enemy {
     }
 }
 
-// ── CUTSCENE MANAGER ──
 export const CutsceneManager = {
     state: 'idle',
     timer: 0,
@@ -165,14 +163,18 @@ export const CutsceneManager = {
         AudioEngine.pause();
         
         this.state = 'slashing';
-        this.timer = 0.7;
+        this.timer = PHASE_SLASH_DURATION; 
         this.target = moabEnemy;
     },
 
     update(dt) {
+        // PRO FIX: Continuously sync boss music volume with game settings
+        if (!bossMusic.paused) {
+            bossMusic.volume = Config.data.musicVolume ?? 0.3;
+        }
+
         if (this.state === 'idle' || this.state === 'knight_floating') return false;
 
-        // Manually update the Knight so he floats and leaves a trail even while game is paused!
         if (this.knightEnemy) {
             this.knightEnemy.update(dt);
         }
@@ -184,14 +186,14 @@ export const CutsceneManager = {
                     this.target.takeDamage(99999, { isExplosion: true, canHitLead: true });
                 }
                 this.state = 'waiting_to_rip'; 
-                this.timer = 0.4; 
+                this.timer = PHASE_RIP_WAIT_DURATION; 
             }
         }
         else if (this.state === 'waiting_to_rip') {
             this.timer -= dt;
             if (this.timer <= 0) {
                 this.state = 'ripping';
-                this.timer = 0.8; 
+                this.timer = PHASE_RIP_DURATION; 
                 this.ripProgress = 0;
             }
         }
@@ -201,29 +203,27 @@ export const CutsceneManager = {
             if (this.timer <= 0) {
                 if (this.target) {
                     this.target.alive = false;
-                    
-                    // PRO FIX: Manually remove the MOAB from the game array so it doesn't render during the pan!
                     let idx = GameEngine.enemies.indexOf(this.target);
                     if (idx > -1) GameEngine.enemies.splice(idx, 1);
                 }
-                
+
                 this.knightEnemy = new KnightEnemy(-400, 300);
                 this.knightEnemy.sprite = 'enemy_knight_back';
                 GameEngine.enemies.push(this.knightEnemy);
                 
                 this.state = 'panning_to_knight'; 
-                this.timer = 1.2; 
+                this.timer = PHASE_PAN_DURATION; 
             }
         }
         else if (this.state === 'panning_to_knight') {
             this.timer -= dt;
-            let progress = 1 - (this.timer / 1.2);
+            let progress = 1 - (this.timer / PHASE_PAN_DURATION); 
             this.cameraOffsetX = this.cameraTargetX * progress;
             
             if (this.timer <= 0) {
                 this.cameraOffsetX = this.cameraTargetX;
                 this.state = 'knight_revealed'; 
-                this.timer = 1.5; 
+                this.timer = PHASE_REVEAL_DURATION; 
             }
         }
         else if (this.state === 'knight_revealed') {
@@ -233,15 +233,14 @@ export const CutsceneManager = {
             }
             if (this.timer <= 0) {
                 this.state = 'panning_back';
-                this.timer = 1.2;
+                this.timer = PHASE_PAN_DURATION; 
             }
         }
         else if (this.state === 'panning_back') {
             this.timer -= dt;
-            let progress = 1 - (this.timer / 1.2);
+            let progress = 1 - (this.timer / PHASE_PAN_DURATION); 
             this.cameraOffsetX = this.cameraTargetX * (1 - progress);
             
-            // Knight flies forward. Start X was -400, end X is 200. Delta = 600.
             this.knightEnemy.x = -400 + (600 * progress);
             
             if (this.timer <= 0) {
@@ -250,7 +249,6 @@ export const CutsceneManager = {
                 this.knightEnemy.isCinematic = false; 
                 this.state = 'knight_floating';
                 
-                // Start boss music ONLY when he arrives at the main map
                 bossMusic.volume = Config.data.musicVolume ?? 0.3;
                 bossMusic.play().catch(e => console.warn("Boss music blocked:", e));
             }
@@ -313,7 +311,7 @@ export const CutsceneManager = {
         }
 
         if (this.state === 'slashing' && this.target) {
-            let progress = 1 - (this.timer / 0.7);
+            let progress = 1 - (this.timer / PHASE_SLASH_DURATION); 
             let frame = Math.min(14, Math.floor(progress * 14) + 1);
             
             ctx.save();
