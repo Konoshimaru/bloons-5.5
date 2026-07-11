@@ -1,20 +1,16 @@
 ﻿// input.js
-// Handles mouse and keyboard input for the game UI and controls.
-
 import { GameEngine } from './engine.js';
 
-// InputManager translates mouse and keyboard actions into game commands.
 export const InputManager = {
     init(canvas = GameEngine.canvas) {
         if (!canvas) return;
-        
-        // Register mouse and keyboard handlers once so input is always routed to the engine.
         this._setupMouseEvents(canvas);
+        this._setupTouchEvents(canvas); // PRO FIX: Add Touch Events
         this._setupKeyboardEvents();
     },
 
     _setupMouseEvents(canvas) {
-        canvas.addEventListener('mousemove', (e) => this._handleMouseMove(e, canvas));
+        canvas.addEventListener('mousemove', (e) => this._updateMousePosFromClientCoords(e.clientX, e.clientY, canvas));
         canvas.addEventListener('click', (e) => GameEngine.handleCanvasClick(e));
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -22,26 +18,36 @@ export const InputManager = {
         });
     },
 
-    _handleMouseMove(e, canvas) {
-        // The canvas uses its own coordinate system, so mouse movement has to be mapped from screen space to game space.
+    // PRO FIX: Shared coordinate mapping helper
+    _updateMousePosFromClientCoords(clientX, clientY, canvas) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        
-        GameEngine.mouse.x = (e.clientX - rect.left) * scaleX;
-        GameEngine.mouse.y = (e.clientY - rect.top) * scaleY;
+        GameEngine.mouse.x = (clientX - rect.left) * scaleX;
+        GameEngine.mouse.y = (clientY - rect.top) * scaleY;
+    },
+
+    // PRO FIX: Touch Event Setup
+    _setupTouchEvents(canvas) {
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Stop scrolling/zooming
+            const touch = e.touches[0];
+            this._updateMousePosFromClientCoords(touch.clientX, touch.clientY, canvas);
+            GameEngine.handleCanvasClick({ clientX: touch.clientX, clientY: touch.clientY });
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault(); // Stop scrolling/zooming
+            const touch = e.touches[0];
+            this._updateMousePosFromClientCoords(touch.clientX, touch.clientY, canvas);
+        }, { passive: false });
     },
 
     _setupKeyboardEvents() {
-        // Escape is used as the pause/resume shortcut while the game is running.
         window.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape') return;
-
-            if (GameEngine.gameState === 'playing') {
-                GameEngine.pauseGame();
-            } else if (GameEngine.gameState === 'paused') {
-                GameEngine.resumeGame();
-            }
+            if (GameEngine.gameState === 'playing') GameEngine.pauseGame();
+            else if (GameEngine.gameState === 'paused') GameEngine.resumeGame();
         });
     }
 };

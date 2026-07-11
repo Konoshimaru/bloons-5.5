@@ -9,6 +9,7 @@ import { Enemy } from './enemy.js';
 import { Hero } from './hero.js';
 import { InputManager } from './input.js';
 import { UI } from './ui.js';
+import { MapEditor } from './mapEditor.js'; // PRO FIX: Import Map Editor
 
 const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 600;
@@ -24,7 +25,8 @@ const dom = {
     continueBtn: document.getElementById('continue-btn'),
     abandonBtn: document.getElementById('abandon-btn'),
     goMenuBtn: document.getElementById('go-menu-btn'),
-    shopBtn: document.getElementById('shop-btn'), // PRO FIX: Added shop button
+    shopBtn: document.getElementById('shop-btn'),
+    mapEditorBtn: document.getElementById('map-editor-btn'), // PRO FIX: Map Editor Button
     
     hmPrevBtn: document.getElementById('hm-prev-btn'),
     hmNextBtn: document.getElementById('hm-next-btn'),
@@ -196,7 +198,6 @@ function updateShopPrices() {
     });
 }
 
-// PRO FIX: Added function to update Monkey Shop UI
 function updateShopUI() {
     document.querySelectorAll('.shop-item').forEach(item => {
         const unlockKey = item.dataset.unlock;
@@ -230,7 +231,7 @@ function applyConfigToUI() {
     refreshMapSelector();
     refreshHeroSelector();
     updateHeroShopCard();
-    updateShopUI(); // PRO FIX
+    updateShopUI();
 }
 
 async function startGameUI(isSandbox) {
@@ -288,7 +289,11 @@ function _setupMenuListeners() {
     dom.playBtn?.addEventListener('click', () => GameEngine.toggleMenus('difficulty-menu'));
     dom.sandboxBtn?.addEventListener('click', () => startGameUI(true));
     dom.heroBtn?.addEventListener('click', () => GameEngine.toggleMenus('hero-select-menu'));
-    dom.shopBtn?.addEventListener('click', () => GameEngine.toggleMenus('shop-menu')); // PRO FIX
+    dom.shopBtn?.addEventListener('click', () => GameEngine.toggleMenus('shop-menu'));
+    dom.mapEditorBtn?.addEventListener('click', () => { // PRO FIX: Map Editor Listener
+        MapEditor.init();
+        UI.toggleMenus('map-editor-menu');
+    });
     
     dom.diffBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -312,13 +317,12 @@ function _setupMenuListeners() {
         document.getElementById('top-ui-right').classList.add('hidden');
         AudioEngine.pause();
         UI.updateMetaStats();
-        updateShopUI(); // PRO FIX
+        updateShopUI();
     });
     
     dom.hmPrevBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: -300, behavior: 'smooth' }));
     dom.hmNextBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: 300, behavior: 'smooth' }));
 
-    // PRO FIX: Added listeners for shop items
     document.querySelectorAll('.shop-item').forEach(item => {
         item.addEventListener('click', () => {
             const unlockKey = item.dataset.unlock;
@@ -356,13 +360,23 @@ function _setupSettingsListeners() {
             const json = dom.mapJsonInput.value;
             const mapData = JSON.parse(json);
             let isValid = true;
-            if (!mapData.waypoints || mapData.waypoints.length < 2) isValid = false;
+            
+            // Backward compatibility: convert old 'waypoints' to 'paths'
+            if (mapData.waypoints && !mapData.paths) {
+                mapData.paths = [{ waypoints: mapData.waypoints }];
+                delete mapData.waypoints;
+            }
+            
+            if (!mapData.paths || mapData.paths.length === 0) isValid = false;
             else {
-                for (let wp of mapData.waypoints) {
-                    if (typeof wp.x !== 'number' || typeof wp.y !== 'number') { isValid = false; break; }
+                for (let p of mapData.paths) {
+                    if (!p.waypoints || p.waypoints.length < 2) { isValid = false; break; }
+                    for (let wp of p.waypoints) {
+                        if (typeof wp.x !== 'number' || typeof wp.y !== 'number') { isValid = false; break; }
+                    }
                 }
             }
-            if (!isValid) { alert('Invalid map JSON. Must contain a "waypoints" array of {x, y} numbers.'); return; }
+            if (!isValid) { alert('Invalid map JSON. Must contain a "paths" array with at least one path of 2+ {x, y} waypoints.'); return; }
             
             Config.data.customMaps.push(mapData);
             Config.save();
@@ -404,7 +418,7 @@ function _setupGameListeners() {
         document.getElementById('top-ui-right').classList.add('hidden');
         AudioEngine.pause();
         UI.updateMetaStats();
-        updateShopUI(); // PRO FIX
+        updateShopUI();
     });
     
     dom.sbPrev?.addEventListener('click', () => GameEngine.skipWave(-1));
@@ -477,7 +491,8 @@ function _setupShopListeners() {
         card.addEventListener('click', () => {
             if (!GameEngine.isSandbox || !GameEngine.map) return;
             const tier = parseInt(card.dataset.enemy, 10);
-            GameEngine.enemies.push(new Enemy(tier, GameEngine.map, sandboxCamoOn, sandboxRegenOn, tier, sandboxFortifiedOn));
+            // PRO FIX: Pass pathIndex 0 to Enemy constructor for sandbox
+            GameEngine.enemies.push(new Enemy(tier, GameEngine.map, sandboxCamoOn, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0));
         });
     });
 

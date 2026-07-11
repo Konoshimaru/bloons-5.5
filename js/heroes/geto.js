@@ -2,6 +2,7 @@ import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { AudioEngine } from '../audio.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 
 const _UZUMAKI_FACE_TYPES = ['screaming', 'cyclops', 'hollow'];
 
@@ -224,8 +225,7 @@ export default {
                     }
                 }
             }
-            if (s.life <= 0 || s.x < -50 || s.x > 1050 || s.y < -50 || s.y > 750) {
-                tower.squids.splice(i, 1);
+if (s.life <= 0 || s.x < -100 || s.x > CANVAS_WIDTH + 100 || s.y < -100 || s.y > CANVAS_HEIGHT + 100) {                tower.squids.splice(i, 1);
             }
         }
         if (tower.uzumaki) {

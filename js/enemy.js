@@ -18,13 +18,14 @@ const LIVES_LOST_CERAMIC_BASE = 94;
 const LIVES_LOST_FORTIFIED_LEAD = 26;
 
 export class Enemy {
-    constructor(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null) {
+    constructor(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null, pathIndex = 0) {
         this.tier = tier;
         this.map = map;
         this.isCamo = isCamo;
         this.isRegen = isRegen;
         this.maxTier = maxTier;
         this.isFortified = isFortified;
+        this.pathIndex = pathIndex; // PRO FIX: Store path index
 
         this.data = { ...EnemyTypes[tier] };
         const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
@@ -36,8 +37,8 @@ export class Enemy {
         this.hpMod = hpMod;
 
         this.distanceTraveled = 0;
-        this.x = map.waypoints[0].x;
-        this.y = map.waypoints[0].y;
+        this.x = map.paths[pathIndex].segments[0].p1.x;
+        this.y = map.paths[pathIndex].segments[0].p1.y;
         this.alive = true;
         this.angle = 0;
 
@@ -60,7 +61,6 @@ export class Enemy {
         this.unstableConcoction = false;
         this.isGoldified = false;
         
-        // PRO FIX: Cripple Debuff state
         this.crippled = false;
         this.crippleTimer = 0;
 
@@ -87,7 +87,6 @@ export class Enemy {
     _updateTimers(dt) {
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
         
-        // PRO FIX: Handle Cripple Timer
         if (this.crippleTimer > 0) {
             this.crippleTimer -= dt;
             if (this.crippleTimer <= 0) this.crippled = false;
@@ -127,14 +126,16 @@ export class Enemy {
 
     _updateMovement(dt) {
         this.distanceTraveled += this.data.speed * this.slowFactor * this.gojoSlow * dt;
-        const pos = this.map.getPositionAtDistance(this.distanceTraveled);
+        
+        // PRO FIX: Pass pathIndex to getPositionAtDistance
+        const pos = this.map.getPositionAtDistance(this.distanceTraveled, this.pathIndex);
         this.x = pos.x + this.offsetX;
         this.y = pos.y + this.offsetY;
         this.offsetX *= 0.9;
         this.offsetY *= 0.9;
         
         if (this.tier >= 13 && !pos.finished) {
-            const nextPos = this.map.getPositionAtDistance(this.distanceTraveled + 5);
+            const nextPos = this.map.getPositionAtDistance(this.distanceTraveled + 5, this.pathIndex);
             if (nextPos && !nextPos.finished) {
                 this.angle = Utils.angle(pos.x, pos.y, nextPos.x, nextPos.y);
             }
@@ -207,7 +208,7 @@ export class Enemy {
             for (let i = 0; i < child.count; i++) {
                 const childCamo = child.forceCamo !== undefined ? child.forceCamo : this.isCamo;
                 const childRegen = child.forceRegen !== undefined ? child.forceRegen : this.isRegen;
-                const c = new Enemy(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified);
+                const c = new Enemy(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified, this.hpMod, this.pathIndex);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
                 if (carryOverDamage > 0) {
                     let dmg = dmgPerChild;
@@ -223,7 +224,6 @@ export class Enemy {
         if (this._isImmune(dmgType, effects)) return -1;
         if (isNaN(damage)) damage = 0;
         
-        // PRO FIX: Cripple Debuff (+5 damage taken from all sources)
         if (this.crippled) damage += 5;
         
         if (dmgType.moabDmg && this.data.isMoab) damage += (dmgType.moabDmg || 0);
@@ -265,9 +265,7 @@ export class Enemy {
 
     _isImmune(dmgType, effects) {
         if (this.data.blocksDamageType && this.data.blocksDamageType(dmgType)) {
-            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead) {
-                AudioEngine.playSfx('lead_hit');
-            }
+            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead) AudioEngine.playSfx('lead_hit');
             return true;
         }
         if (this.isFrozen && dmgType.isSharp && !dmgType.canHitLead) {
@@ -301,9 +299,7 @@ export class Enemy {
             const carryOver = damage - previousHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
-            if (dmgDealt > 0) {
-                AudioEngine.playSfx('moab_hit');
-            }
+            if (dmgDealt > 0) AudioEngine.playSfx('moab_hit');
         }
         return Math.ceil(dmgDealt);
     }
@@ -321,9 +317,7 @@ export class Enemy {
             const carryOver = damage - shellHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
-            if (dmgDealt > 0) {
-                AudioEngine.playSfx('ceramic_hit');
-            }
+            if (dmgDealt > 0) AudioEngine.playSfx('ceramic_hit');
         }
         return Math.ceil(dmgDealt);
     }
@@ -364,9 +358,7 @@ export class Enemy {
             currentTier = EnemyTypes[currentTier].nextTier;
             layersPopped++;
             AudioEngine.playSfx('pop');
-            
             if (layersPopped === 1) GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-            
             if (++safetyCounter > SAFETY_LOOP_LIMIT) break;
         }
         
@@ -393,10 +385,7 @@ export class Enemy {
         else if (this.data.isMoab) this._drawMoabFallback(ctx);
         else this._drawStandardFallback(ctx);
 
-        // PRO FIX: Stun overlay is correctly checked and drawn
-        if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) {
-            this._drawStunOverlay(ctx);
-        }
+        if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) this._drawStunOverlay(ctx);
     }
 
     _drawSprite(ctx, asset) {

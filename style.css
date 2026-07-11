@@ -13,16 +13,22 @@ body {
 }
 
 #game-container { 
-    position: relative; width: 900px; height: 600px; 
+    position: relative; 
+    /* PRO FIX: Updated to 1280x720 */
+    width: 1280px; height: 720px; 
     box-shadow: 0 0 30px rgba(0,0,0,0.8); 
     transform-origin: center center; 
     background: #000;
     overflow: hidden;
+    /* PRO FIX: Prevent touch scrolling/zooming */
+    touch-action: none;
 }
 
 #gameCanvas { 
     background: #8acc4d; display: block; cursor: pointer; 
     position: absolute; top: 0; left: 0; z-index: 1;
+    /* PRO FIX: Prevent touch scrolling/zooming */
+    touch-action: none;
 }
 
 #top-ui-left, #top-ui-right { position: absolute; top: 10px; display: flex; gap: 10px; z-index: 10; align-items: center; }
@@ -139,7 +145,7 @@ body {
 .diff-btn { width: 100%; padding: 15px; background: var(--panel); border: 2px solid #7f8c8d; color: white; cursor: pointer; border-radius: 6px; font-weight: bold; margin-bottom: 5px;}
 .diff-btn:hover { border-color: var(--accent); }
 
-/* PRO FIX: Added Monkey Shop item styles */
+/* Monkey Shop Items */
 .shop-item {
     background: var(--panel); border: 2px solid #7f8c8d; border-radius: 6px; padding: 15px; margin-bottom: 10px;
     display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.2s;
@@ -154,6 +160,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 input[type="text"], textarea { width: 100%; padding: 8px; margin-bottom: 10px; background: var(--bg); border: 1px solid #7f8c8d; color: white; border-radius: 4px; }
 label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
 #shop-tooltip, #upgrade-tooltip { position: absolute; background: rgba(0,0,0,0.95); padding: 8px 12px; border-radius: 4px; pointer-events: none; z-index: 30; max-width: 220px; font-size: 12px; opacity: 0; transition: opacity 0.2s; border: 1px solid var(--accent); color: white; }
+
 /* HERO MENU V2 */
 .hm-container { width: 800px; height: 600px; background: var(--bg); border: 2px solid var(--accent); border-radius: 12px; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
 .hm-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #7f8c8d; padding-bottom: 15px; margin-bottom: 20px; }
@@ -184,3 +191,36 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 }
 .hm-carousel-item:hover { transform: translateY(-5px); border-color: var(--accent) !important; }
 .hm-carousel-item.active { border-color: var(--gold) !important; box-shadow: 0 0 10px var(--gold) !important; background: var(--accent) !important; }
+
+/* Map Editor */
+.editor-container { 
+    display: flex; flex-direction: column; background: var(--bg); padding: 15px; border-radius: 12px; 
+    width: 95vw; max-width: 940px; max-height: 95vh; overflow-y: auto; 
+}
+.editor-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.editor-toolbar input { flex-grow: 1; min-width: 150px; }
+.tool-group { display: flex; gap: 5px; background: var(--panel); padding: 4px; border-radius: 6px; }
+.tool-btn { padding: 6px 12px; background: transparent; border: none; color: var(--text); cursor: pointer; border-radius: 4px; }
+.tool-btn.active { background: var(--accent); color: white; }
+.tool-options { display: flex; gap: 5px; align-items: center; background: var(--panel); padding: 4px; border-radius: 6px; }
+.tool-options.hidden { display: none; }
+#editor-canvas { 
+    background: #8acc4d; border: 2px solid var(--accent); border-radius: 8px; cursor: crosshair; 
+    width: 100%; max-width: 900px; height: auto; margin-top: 10px; 
+}
+.editor-bottom-bar { 
+    display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center; 
+}
+.editor-bottom-bar button { padding: 8px 16px; background: var(--panel); border: 1px solid #7f8c8d; color: white; cursor: pointer; border-radius: 6px; font-weight: bold; }
+.editor-bottom-bar button:hover { background: #3e5771; border-color: var(--accent); }
+#editor-undo { background: #e67e22 !important; border-color: #d35400 !important; }
+#editor-json-viewer { margin-top: 10px; width: 100%; }
+#editor-json-text { width: 100%; height: 150px; background: #1a1a1a; color: #0f0; border: 1px solid var(--accent); border-radius: 4px; padding: 10px; font-family: monospace; box-sizing: border-box; }
+
+/* PRO FIX: Screen Too Small Overlay */
+#screen-too-small-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; color: #fff;
+    display: flex; justify-content: center; align-items: center; text-align: center; z-index: 9999;
+    flex-direction: column; padding: 20px; box-sizing: border-box;
+}
+#screen-too-small-overlay.hidden { display: none !important; }

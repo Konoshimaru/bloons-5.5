@@ -1,6 +1,4 @@
 ﻿// waveManager.js
-// Spawns enemy waves and drives round progression.
-
 import { Waves } from './data.js';
 import { Enemy } from './enemy.js';
 import { GameEngine } from './engine.js';
@@ -10,11 +8,8 @@ const SPAWN_INTERVAL_DEFAULT = 0.35;
 const AUTO_WAVE_DELAY = 0.1;
 const ENDLESS_BASE_ROUND = 141;
 
-// WaveManager is responsible for constructing enemy waves and feeding them into the game over time.
-// It decides when bloons spawn, when rounds end, and how the game rewards players after a wave clears.
 export class WaveManager {
     constructor() {
-        // Wave state for the current game session.
         this.currentWave = 0;
         this.spawnQueue = [];
         this.waveTime = 0;
@@ -34,7 +29,6 @@ export class WaveManager {
     }
 
     startWave() {
-        // Starting a wave advances the round counter and queues up the enemies for that round.
         this.currentWave++;
         this.waveActive = true;
         this.waveTime = 0;
@@ -83,8 +77,7 @@ export class WaveManager {
             const start = group.s;
             const end = group.e;
 
-            // Spread the group over a time window so bloons do not all appear instantly.
-        const interval = count > 1 ? (end - start) / (count - 1) : 0;
+            const interval = count > 1 ? (end - start) / (count - 1) : 0;
 
             for (let i = 0; i < count; i++) {
                 this.spawnQueue.push({
@@ -113,8 +106,6 @@ export class WaveManager {
         this.waveTime += dt;
         this._processSpawns();
 
-        // PRO FIX: Check for alive enemies EXCLUDING the Knight (tier 99)
-        // This allows the wave to complete and the next one to spawn while he is alive!
         let activeEnemies = GameEngine.enemies.some(e => e.alive && e.tier !== 99);
         if (this.spawnQueue.length === 0 && !activeEnemies) {
             this._completeWave();
@@ -122,9 +113,13 @@ export class WaveManager {
     }
 
     _processSpawns() {
-        // The spawn queue is time-based, so bloons appear gradually rather than all at once.
         while (this.spawnQueue.length > 0 && this.spawnQueue[0].time <= this.waveTime) {
             const spawn = this.spawnQueue.shift();
+            
+            // PRO FIX: Assign pathIndex randomly if multiple paths exist
+            const pathCount = GameEngine.map.paths.length;
+            const pathIndex = pathCount > 1 ? Math.floor(Math.random() * pathCount) : 0;
+            
             GameEngine.enemies.push(new Enemy(
                 spawn.tier,
                 GameEngine.map,
@@ -132,7 +127,8 @@ export class WaveManager {
                 spawn.regen,
                 spawn.tier,
                 spawn.fort,
-                spawn.hpMod
+                spawn.hpMod,
+                pathIndex
             ));
         }
     }
@@ -140,7 +136,6 @@ export class WaveManager {
     _completeWave() {
         this.waveActive = false;
 
-        // PRO FIX: Check for noIncome, but allow the wave cash exception for Post CHIMPS
         if (!GameEngine.difficulty || !GameEngine.difficulty.noIncome || GameEngine.difficulty.allowWaveCash) {
             const cashEarned = 100 + this.currentWave;
             GameEngine.addCash(cashEarned);
@@ -152,8 +147,6 @@ export class WaveManager {
         if (GameEngine.hero) {
             this._grantHeroXP();
         }
-        
-        // ... rest of the method ...
 
         GameEngine.updateUI();
 

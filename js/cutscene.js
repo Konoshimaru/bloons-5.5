@@ -5,14 +5,13 @@ import { UI } from './ui.js';
 import Assets from './assets.js';
 import { Enemy } from './enemy.js';
 import { EnemyTypes } from './data.js';
-import { Config } from './config.js';
+import { Config, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js'; // PRO FIX: Import Constants
 
 // --- CONFIG ---
 const knightScale = 1.5; 
 const trailScale = 1.1; 
 const slashScale = 1.5;  
 
-// PRO FIX: Extracted magic number timers into named constants
 const PHASE_SLASH_DURATION = 0.7;
 const PHASE_RIP_WAIT_DURATION = 0.4;
 const PHASE_RIP_DURATION = 0.8;
@@ -25,9 +24,10 @@ for (let i = 1; i <= 14; i++) {
     Assets.get(`effect_slash_${i}`);
 }
 
+// PRO FIX: Use shared constants for offscreen canvas size
 const offscreenCanvas = document.createElement('canvas');
-offscreenCanvas.width = 900;
-offscreenCanvas.height = 600;
+offscreenCanvas.width = CANVAS_WIDTH;
+offscreenCanvas.height = CANVAS_HEIGHT;
 const offCtx = offscreenCanvas.getContext('2d');
 
 const bossMusic = new Audio('music/boss/blackknife.mp3');
@@ -168,7 +168,6 @@ export const CutsceneManager = {
     },
 
     update(dt) {
-        // PRO FIX: Continuously sync boss music volume with game settings
         if (!bossMusic.paused) {
             bossMusic.volume = Config.data.musicVolume ?? 0.3;
         }
@@ -265,10 +264,11 @@ export const CutsceneManager = {
 
         if (['slashing', 'waiting_to_rip', 'ripping'].includes(this.state)) {
             ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 900, 600);
+            // PRO FIX: Use shared constants
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
             if (this.target) {
-                offCtx.clearRect(0, 0, 900, 600);
+                offCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                 offCtx.imageSmoothingEnabled = false;
                 
                 let originalMaxHp = this.target._maxHp;
@@ -278,7 +278,7 @@ export const CutsceneManager = {
                 
                 offCtx.globalCompositeOperation = 'source-in';
                 offCtx.fillStyle = 'white';
-                offCtx.fillRect(0, 0, 900, 600);
+                offCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                 offCtx.globalCompositeOperation = 'source-over';
 
                 if (this.state === 'slashing' || this.state === 'waiting_to_rip') {

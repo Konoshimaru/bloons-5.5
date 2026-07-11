@@ -1,74 +1,36 @@
 ﻿// utils.js
-// Holds shared utility functions used across the game.
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 
-export const CANVAS_WIDTH = 900;
-export const CANVAS_HEIGHT = 600;
+// PRO FIX: Re-export shared constants
+export { CANVAS_WIDTH, CANVAS_HEIGHT };
 
-/**
- * Calculates the Euclidean distance between two points.
- * Optimized to use multiplication instead of Math.hypot for V8 performance.
- */
 export const distance = (x1, y1, x2, y2) => {
     const dx = x2 - x1;
     const dy = y2 - y1;
     return Math.sqrt(dx * dx + dy * dy);
 };
 
-/**
- * Linear interpolation between a and b by t.
- */
 export const lerp = (a, b, t) => a + (b - a) * t;
 
-/**
- * Calculates the angle in radians from point 1 to point 2.
- */
 export const angle = (x1, y1, x2, y2) => Math.atan2(y2 - y1, x2 - x1);
 
-/**
- * Calculates the shortest distance from a point to a line segment.
- * Optimized to minimize allocations and use multiplication over Math.hypot.
- */
 export const distToSegment = (px, py, x1, y1, x2, y2) => {
     const dx = x2 - x1;
     const dy = y2 - y1;
     const lenSq = dx * dx + dy * dy;
-    
     let param = -1;
-    if (lenSq !== 0) {
-        param = ((px - x1) * dx + (py - y1) * dy) / lenSq;
-    }
-    
+    if (lenSq !== 0) param = ((px - x1) * dx + (py - y1) * dy) / lenSq;
     let xx, yy;
-    if (param < 0) {
-        xx = x1;
-        yy = y1;
-    } else if (param > 1) {
-        xx = x2;
-        yy = y2;
-    } else {
-        xx = x1 + param * dx;
-        yy = y1 + param * dy;
-    }
-    
+    if (param < 0) { xx = x1; yy = y1; } 
+    else if (param > 1) { xx = x2; yy = y2; } 
+    else { xx = x1 + param * dx; yy = y1 + param * dy; }
     const ddx = px - xx;
     const ddy = py - yy;
     return Math.sqrt(ddx * ddx + ddy * ddy);
 };
 
-/**
- * Backward-compatible Utils object.
- * Future refactors should import the standalone functions directly for minor V8 optimizations.
- */
-export const Utils = {
-    distance,
-    lerp,
-    angle,
-    distToSegment
-};
+export const Utils = { distance, lerp, angle, distToSegment };
 
-/**
- * Draws a fast, flat ellipse shadow.
- */
 export function drawShadow(ctx, x, y, r) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
     ctx.beginPath();
@@ -76,15 +38,7 @@ export function drawShadow(ctx, x, y, r) {
     ctx.fill();
 }
 
-/**
- * Draws an image centered at the current context origin, scaled to fit within targetSize.
- */
-/**
- * Recursively freezes an object and all its nested values.
- * Used to deep-freeze immutable game data (EnemyTypes, Waves, DamageType, etc.).
- */
 export function deepFreeze(obj) {
-    // Freeze configuration data so gameplay tables cannot be accidentally mutated at runtime.
     if (obj && typeof obj === 'object') {
         Object.values(obj).forEach(deepFreeze);
         Object.freeze(obj);
@@ -94,10 +48,8 @@ export function deepFreeze(obj) {
 
 export function drawImageCentered(ctx, asset, targetSize, offsetX = 0, offsetY = 0) {
     if (!asset || !asset.loaded) return;
-    
     const maxDim = Math.max(asset.width, asset.height);
     if (maxDim === 0) return;
-    
     const scale = targetSize / maxDim;
     const w = asset.width * scale;
     const h = asset.height * scale;

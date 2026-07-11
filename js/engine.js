@@ -1,5 +1,5 @@
 ﻿// engine.js
-import { Config, Difficulties, HeroStats, TargetingModes } from './config.js';
+import { Config, Difficulties, HeroStats, TargetingModes, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js'; // PRO FIX: Import Constants
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
@@ -183,7 +183,6 @@ export const GameEngine = {
         this.projectilePool.clear();
         this.particlePool.clear();
         
-        // PRO FIX: Monkey Money unlocks do NOT apply in CHIMPS or Post CHIMPS (noSelling flag)
         if (!isSandbox && !diff.noSelling) {
             if (Config.data.unlocks.extraStartingLives) this.lives += 10;
             if (Config.data.unlocks.extraStartingCash) this.cash += 200;
@@ -249,7 +248,6 @@ export const GameEngine = {
         const state = Config.data.savedRun;
         
         this.currentMap = state.mapIndex;
-        // PRO FIX: Remove spaces from difficulty string ("Post CHIMPS" -> "postchimps")
         Config.data.currentDifficulty = state.difficulty.toLowerCase().replace(/\s+/g, '');
         this.startGame(false);
         
@@ -349,9 +347,14 @@ export const GameEngine = {
 
         for (const t of this.towers) {
             if (t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + 5)) {
-                this.deselectAll();
-                this.selectedPlacedTower = t;
-                UI.showUpgradeUI(t, this);
+                // PRO FIX: Tap same tower again to deselect (Mobile friendly)
+                if (this.selectedPlacedTower === t) {
+                    this.deselectAll();
+                } else {
+                    this.deselectAll();
+                    this.selectedPlacedTower = t;
+                    UI.showUpgradeUI(t, this);
+                }
                 return;
             }
         }
@@ -361,7 +364,6 @@ export const GameEngine = {
         const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
         let cost = this.getCost(stats.cost);
         
-        // PRO FIX: Free First Dart Monkey unlock (overrides cost to 0)
         if (this.selectedTowerType === 'dart' && Config.data.unlocks.freeFirstDartMonkey && !this.isSandbox && !this.difficulty.noSelling) {
             if (!this.towers.some(t => t.type === 'dart')) {
                 cost = 0;
@@ -383,9 +385,10 @@ export const GameEngine = {
 
         let canPlace = false;
         if (stats.waterOnly) {
-            canPlace = this.map.props.some(p => p.type === 'pond' && Utils.distance(x, y, p.x, p.y) < 25);
+            canPlace = this.map.props.some(p => p.type === 'pond' && Utils.distance(x, y, p.x + this.map.offsetX, p.y + this.map.offsetY) < (p.r || 30));
         } else {
-            canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < 600 && x < 720;
+            // PRO FIX: Updated bounds to use CANVAS_WIDTH - 300 (leaves room for sidebar) and CANVAS_HEIGHT
+            canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300;
         }
 
         if (!canPlace) {
@@ -412,9 +415,17 @@ export const GameEngine = {
     cycleTargeting() {
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
-        let idx = TargetingModes.indexOf(t.targetingMode);
-        idx = (idx + 1) % TargetingModes.length;
-        t.targetingMode = TargetingModes[idx];
+        
+        let modes = ['First', 'Last', 'Strong', 'Close'];
+        if (t.stats.unlocksElite) {
+            modes.push('Elite');
+        }
+        
+        let idx = modes.indexOf(t.targetingMode);
+        if (idx === -1) idx = 0; 
+        idx = (idx + 1) % modes.length;
+        t.targetingMode = modes[idx];
+        
         UI.showUpgradeUI(t, this);
     },
 

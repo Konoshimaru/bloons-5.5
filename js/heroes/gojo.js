@@ -60,15 +60,12 @@ export default {
                 }
             }
             
-            if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > 1000 || tower.hollowProjectile.y < -100 || tower.hollowProjectile.y > 700) {
-                tower.hollowProjectile = null;
+if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH + 100 || tower.hollowProjectile.y < -100 || tower.hollowProjectile.y > CANVAS_HEIGHT + 100) {                tower.hollowProjectile = null;
             }
         }
 
-        // PRO FIX: Gojo Awakening Logic
-        // Only awakens if a bloon is in the last 5% of the track AND leaking it would cause a game over.
         if (tower.phase === 1 && GameEngine.difficulty && GameEngine.map) {
-            const totalLen = GameEngine.map.getTotalLength();
+            const totalLen = GameEngine.map.getTotalLength(0); // Check path 0 for leak
             let wouldDie = false;
             
             for (let e of GameEngine.enemies) {
@@ -94,7 +91,7 @@ export default {
         if (tower.reverseWell) {
             tower.reverseWell.life -= dt; tower.reverseWell.dist -= 200 * dt; 
             if (tower.reverseWell.dist < 0) tower.reverseWell.dist = 0;
-            const pos = GameEngine.map.getPositionAtDistance(tower.reverseWell.dist);
+            const pos = GameEngine.map.getPositionAtDistance(tower.reverseWell.dist, 0);
             tower.reverseWell.x = pos.x; tower.reverseWell.y = pos.y;
             for (let e of GameEngine.enemies) {
                 if (!e.alive) continue;
@@ -110,9 +107,11 @@ export default {
         }
 
         if (tower.stats.limitlessPassive && GameEngine.map) {
-            const totalLen = GameEngine.map.getTotalLength(); const maxSlow = tower.phase === 2 ? 0.50 : 0.25;
             for (let e of GameEngine.enemies) {
                 if (!e.alive) continue;
+                // PRO FIX: Use the specific enemy's path length
+                const totalLen = GameEngine.map.getTotalLength(e.pathIndex || 0);
+                const maxSlow = tower.phase === 2 ? 0.50 : 0.25;
                 let progress = Math.min(1, e.distanceTraveled / totalLen);
                 let slowVal = 1 - (progress * maxSlow); e.gojoSlow = slowVal; e.infinityTint = progress;
             }

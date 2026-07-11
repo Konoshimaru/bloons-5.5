@@ -279,8 +279,7 @@ export class Projectile {
     }
 
     _isOffscreen() {
-        return this.x < -OFFSCREEN_PADDING || this.x > CANVAS_W + OFFSCREEN_PADDING || this.y < -OFFSCREEN_PADDING || this.y > CANVAS_H + OFFSCREEN_PADDING;
-    }
+return this.x < -OFFSCREEN_PADDING || this.x > CANVAS_WIDTH + OFFSCREEN_PADDING || this.y < -OFFSCREEN_PADDING || this.y > CANVAS_HEIGHT + OFFSCREEN_PADDING;    }
 
     _checkCollisions() {
         const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.radius + 40);
