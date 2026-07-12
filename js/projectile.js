@@ -3,7 +3,8 @@
 
 import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
-import { Utils, CANVAS_WIDTH, CANVAS_HEIGHT, drawImageCentered } from './utils.js';
+import { Utils, drawImageCentered } from './utils.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js'; // PRO FIX: Direct import to break circular dependency
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
@@ -15,11 +16,8 @@ const SEEKING_TURN_SPEED = 12;
 const SPIKE_FRICTION = 0.9;
 const OFFSCREEN_PADDING = 50;
 
-// Projectile instances represent the moving objects fired by towers or heroes.
-// They handle travel, hit detection, special movement curves, and the effects they apply on impact.
 export class Projectile {
     constructor() {
-        // Projectiles are pooled, so they need a reset-friendly initial state.
         this.active = false;
         this.hitEnemies = new Set();
         this.reset();
@@ -50,7 +48,6 @@ export class Projectile {
         this.tower = tower;
         this.dmgType = dmgType;
         
-        // Some towers add special bonus behavior based on their current upgrade state.
         this.bonusCeramic = tower ? tower.stats.bonusCeramic : 0;
         this.isCrit = false;
         this.hasSplit = false;
@@ -185,9 +182,6 @@ export class Projectile {
     }
 
     _updateMortarShell(dt) {
-        // Mortar shells are simple travel-time projectiles that move along a straight line between the tower and target point.
-        // Their impact is handled when the timer finishes, which gives the shell a visible arc-and-detonate feel.
-        // Mortar shells advance through their lifespan and explode once the timer expires.
         this.life -= dt;
         this.t = 1 - (this.life / this.maxLife);
         if (this.t >= 1) {
@@ -279,7 +273,9 @@ export class Projectile {
     }
 
     _isOffscreen() {
-return this.x < -OFFSCREEN_PADDING || this.x > CANVAS_WIDTH + OFFSCREEN_PADDING || this.y < -OFFSCREEN_PADDING || this.y > CANVAS_HEIGHT + OFFSCREEN_PADDING;    }
+        // PRO FIX: Use the imported CANVAS_WIDTH and CANVAS_HEIGHT
+        return this.x < -OFFSCREEN_PADDING || this.x > CANVAS_WIDTH + OFFSCREEN_PADDING || this.y < -OFFSCREEN_PADDING || this.y > CANVAS_HEIGHT + OFFSCREEN_PADDING;
+    }
 
     _checkCollisions() {
         const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.radius + 40);

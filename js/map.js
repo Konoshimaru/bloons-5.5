@@ -27,9 +27,6 @@ export class GameMap {
             delete this.data.waypoints;
         }
         if (!this.data.paths) this.data.paths = [];
-        
-        this.offsetX = this.data.offsetX || 0;
-        this.offsetY = this.data.offsetY || 0;
 
         this._initPathfinding();
         this._initBackground();
@@ -46,11 +43,11 @@ export class GameMap {
             let totalLength = 0;
 
             for (let i = 0; i < waypoints.length - 1; i++) {
-                const p1 = { x: waypoints[i].x + this.offsetX, y: waypoints[i].y + this.offsetY };
-                const p2 = { x: waypoints[i+1].x + this.offsetX, y: waypoints[i+1].y + this.offsetY };
+                const p1 = { x: waypoints[i].x, y: waypoints[i].y };
+                const p2 = { x: waypoints[i+1].x, y: waypoints[i+1].y };
                 
                 if (p2.curve) {
-                    const cp = { x: p2.curve.cx + this.offsetX, y: p2.curve.cy + this.offsetY };
+                    const cp = { x: p2.curve.cx, y: p2.curve.cy };
                     const subdiv = 15;
                     let prevPt = p1;
                     for (let s = 1; s <= subdiv; s++) {
@@ -110,12 +107,12 @@ export class GameMap {
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.beginPath();
-            ctx.moveTo(brush.points[0].x + this.offsetX, brush.points[0].y + this.offsetY);
+            ctx.moveTo(brush.points[0].x, brush.points[0].y);
             for (let i = 1; i < brush.points.length; i++) {
-                ctx.lineTo(brush.points[i].x + this.offsetX, brush.points[i].y + this.offsetY);
+                ctx.lineTo(brush.points[i].x, brush.points[i].y);
             }
             if (brush.points.length === 1) {
-                ctx.arc(brush.points[0].x + this.offsetX, brush.points[0].y + this.offsetY, brush.thickness / 2, 0, Math.PI * 2);
+                ctx.arc(brush.points[0].x, brush.points[0].y, brush.thickness / 2, 0, Math.PI * 2);
             }
             ctx.stroke();
         }
@@ -130,30 +127,30 @@ export class GameMap {
             ctx.lineWidth = PATH_WIDTH + 8;
             ctx.lineJoin = 'round'; ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.moveTo(waypoints[0].x + this.offsetX, waypoints[0].y + this.offsetY + 4);
+            ctx.moveTo(waypoints[0].x, waypoints[0].y + 4);
             for (let i = 1; i < waypoints.length; i++) {
                 const wp = waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx + this.offsetX, wp.curve.cy + this.offsetY, wp.x + this.offsetX, wp.y + this.offsetY + 4);
-                else ctx.lineTo(wp.x + this.offsetX, wp.y + this.offsetY + 4);
+                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y + 4);
+                else ctx.lineTo(wp.x, wp.y + 4);
             }
             ctx.stroke();
             
             ctx.strokeStyle = '#a8825a';
             ctx.lineWidth = PATH_WIDTH;
             ctx.beginPath();
-            ctx.moveTo(waypoints[0].x + this.offsetX, waypoints[0].y + this.offsetY);
+            ctx.moveTo(waypoints[0].x, waypoints[0].y);
             for (let i = 1; i < waypoints.length; i++) {
                 const wp = waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx + this.offsetX, wp.curve.cy + this.offsetY, wp.x + this.offsetX, wp.y + this.offsetY);
-                else ctx.lineTo(wp.x + this.offsetX, wp.y + this.offsetY);
+                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y);
+                else ctx.lineTo(wp.x, wp.y);
             }
             ctx.stroke();
         }
     }
 
     _drawProp(ctx, p) {
-        const px = p.x + this.offsetX;
-        const py = p.y + this.offsetY;
+        const px = p.x;
+        const py = p.y;
         if (p.type === 'tree') {
             ctx.fillStyle = '#6e552f'; ctx.fillRect(px - 3, py - 5, 6, 15);
             ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(px, py - 10, 15, 0, Math.PI * 2); ctx.fill();
@@ -237,17 +234,17 @@ export class GameMap {
         for (let p of this.props) {
             if (p.type === 'pond') {
                 const r = p.r || 30;
-                if (Utils.distance(x, y, p.x + this.offsetX, p.y + this.offsetY) < r) return true;
+                if (Utils.distance(x, y, p.x, p.y) < r) return true;
             }
         }
         for (let brush of this.waterBrushes) {
             const r = brush.thickness / 2;
             if (brush.points.length === 1) {
-                if (Utils.distance(x, y, brush.points[0].x + this.offsetX, brush.points[0].y + this.offsetY) < r) return true;
+                if (Utils.distance(x, y, brush.points[0].x, brush.points[0].y) < r) return true;
             } else {
                 for (let i = 0; i < brush.points.length - 1; i++) {
-                    const p1 = { x: brush.points[i].x + this.offsetX, y: brush.points[i].y + this.offsetY };
-                    const p2 = { x: brush.points[i+1].x + this.offsetX, y: brush.points[i+1].y + this.offsetY };
+                    const p1 = { x: brush.points[i].x, y: brush.points[i].y };
+                    const p2 = { x: brush.points[i+1].x, y: brush.points[i+1].y };
                     if (Utils.distToSegment(x, y, p1.x, p1.y, p2.x, p2.y) < r) return true;
                 }
             }
@@ -259,7 +256,7 @@ export class GameMap {
         for (let p of this.props) {
             if (p.type === 'pond') continue; 
             const r = p.type === 'pond' ? (p.r || 30) : PROP_RADIUS_SMALL; 
-            if (Utils.distance(x, y, p.x + this.offsetX, p.y + this.offsetY) < r) return true;
+            if (Utils.distance(x, y, p.x, p.y) < r) return true;
         }
         return false;
     }

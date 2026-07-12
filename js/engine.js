@@ -166,7 +166,6 @@ export const GameEngine = {
     startGame(isSandbox = false) {
         this.isSandbox = isSandbox;
         
-        // PRO FIX: Try to load the map, but catch errors so the engine doesn't crash silently
         try {
             this.map = new GameMap(this.currentMap);
         } catch (e) {
@@ -580,7 +579,7 @@ export const GameEngine = {
             if (this._rafId) cancelAnimationFrame(this._rafId);
             this._rafId = requestAnimationFrame(this._boundLoop);
         }
-    },    
+    },
 
     update(dt) {
         this._updateLimitsAndTimers(dt);
@@ -639,7 +638,7 @@ export const GameEngine = {
     },
 
     _updateAcidPools(dt) {
-        for (let i = this.acidPools.length - 1; i >= 0; i++) {
+        for (let i = this.acidPools.length - 1; i >= 0; i--) {
             const pool = this.acidPools[i];
             pool.life -= dt;
             pool.tick -= dt;
@@ -738,7 +737,7 @@ export const GameEngine = {
 
     _updateProjectiles(dt) {
         const projectiles = this.projectilePool.active;
-        for (let i = projectiles.length - 1; i >= 0; i++) {
+        for (let i = projectiles.length - 1; i >= 0; i--) {
             const p = projectiles[i];
             if (!p) continue;
             
@@ -751,7 +750,7 @@ export const GameEngine = {
     },
 
     _updateExplosions(dt) {
-        for (let i = this.explosions.length - 1; i >= 0; i++) {
+        for (let i = this.explosions.length - 1; i >= 0; i--) {
             const exp = this.explosions[i];
             if (!exp) continue;
             

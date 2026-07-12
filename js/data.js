@@ -162,13 +162,13 @@ const _waves = [
     { groups: [ {t:17, c:1, s:0, e:2.30, fort:true}, {t:17, c:1, s:43.70, e:46} ] }
 ];
 
-// PRO FIX: Added offsetX/offsetY to center old 900x600 maps in the new 1280x720 canvas
+// PRO FIX: Scaled all maps by 1.2x to perfectly fit the new 1280x720 aspect ratio!
 let _maps = [
-    { name: "The Park", image: "park", offsetX: 190, offsetY: 60, paths: [{ waypoints: [{x:-20,y:150},{x:200,y:150},{x:200,y:450},{x:450,y:450},{x:450,y:100},{x:680,y:100}] }], props: [ {type:'tree',x:100,y:50}, {type:'tree',x:600,y:400}, {type:'bush',x:350,y:250}, {type:'rock',x:100,y:500}, {type:'pond',x:550,y:300, r:30} ] },
-    { name: "The Ripples", image: "ripples", offsetX: 190, offsetY: 60, paths: [{ waypoints: [{x:-20,y:300},{x:150,y:300},{x:150,y:100},{x:400,y:100},{x:400,y:500},{x:550,y:500},{x:550,y:300},{x:680,y:300}] }], props: [ {type:'tree',x:50,y:500}, {type:'tree',x:600,y:100}, {type:'rock',x:250,y:300}, {type:'bush',x:500,y:400}, {type:'pond',x:50,y:100, r:30} ] },
-    { name: "The Maze", offsetX: 190, offsetY: 60, paths: [{ waypoints: [{x:-20,y:50},{x:600,y:50},{x:600,y:150},{x:100,y:150},{x:100,y:250},{x:600,y:250},{x:600,y:350},{x:100,y:350},{x:100,y:450},{x:600,y:450},{x:600,y:550},{x:-20,y:550}] }], props: [ {type:'tree',x:300,y:100}, {type:'tree',x:300,y:300}, {type:'rock',x:300,y:500} ] },
-    { name: "The Spiral", offsetX: 190, offsetY: 60, paths: [{ waypoints: [{x:-20,y:300},{x:150,y:300},{x:150,y:100},{x:300,y:100},{x:300,y:500},{x:150,y:500},{x:150,y:300},{x:400,y:300},{x:400,y:100},{x:550,y:100},{x:550,y:500},{x:400,y:500},{x:400,y:300},{x:680,y:300}] }], props: [ {type:'tree',x:50,y:50}, {type:'tree',x:650,y:500}, {type:'bush',x:250,y:300} ] },
-    { name: "The Intersection", offsetX: 190, offsetY: 60, paths: [{ waypoints: [{x:300,y:-20},{x:300,y:200},{x:100,y:200},{x:100,y:400},{x:300,y:400},{x:300,y:550},{x:400,y:550},{x:400,y:400},{x:600,y:400},{x:600,y:200},{x:400,y:200},{x:400,y:-20}] }], props: [ {type:'rock',x:200,y:300}, {type:'pond',x:500,y:300, r:30} ] }
+    { name: "The Park", image: "park", paths: [{ waypoints: [{x:-24,y:180},{x:240,y:180},{x:240,y:540},{x:540,y:540},{x:540,y:120},{x:816,y:120}] }], props: [ {type:'tree',x:120,y:60}, {type:'tree',x:720,y:480}, {type:'bush',x:420,y:300}, {type:'rock',x:120,y:600}, {type:'pond',x:660,y:360, r:36} ] },
+    { name: "The Ripples", image: "ripples", paths: [{ waypoints: [{x:-24,y:360},{x:180,y:360},{x:180,y:120},{x:480,y:120},{x:480,y:600},{x:660,y:600},{x:660,y:360},{x:816,y:360}] }], props: [ {type:'tree',x:60,y:600}, {type:'tree',x:720,y:120}, {type:'rock',x:300,y:360}, {type:'bush',x:600,y:480}, {type:'pond',x:60,y:120, r:36} ] },
+    { name: "The Maze", paths: [{ waypoints: [{x:-24,y:60},{x:720,y:60},{x:720,y:180},{x:120,y:180},{x:120,y:300},{x:720,y:300},{x:720,y:420},{x:120,y:420},{x:120,y:540},{x:720,y:540},{x:720,y:660},{x:-24,y:660}] }], props: [ {type:'tree',x:360,y:120}, {type:'tree',x:360,y:360}, {type:'rock',x:360,y:600} ] },
+    { name: "The Spiral", paths: [{ waypoints: [{x:-24,y:360},{x:180,y:360},{x:180,y:120},{x:360,y:120},{x:360,y:600},{x:180,y:600},{x:180,y:360},{x:480,y:360},{x:480,y:120},{x:660,y:120},{x:660,y:600},{x:480,y:600},{x:480,y:360},{x:816,y:360}] }], props: [ {type:'tree',x:60,y:60}, {type:'tree',x:780,y:600}, {type:'bush',x:300,y:360} ] },
+    { name: "The Intersection", paths: [{ waypoints: [{x:360,y:-24},{x:360,y:240},{x:120,y:240},{x:120,y:480},{x:360,y:480},{x:360,y:660},{x:480,y:660},{x:480,y:480},{x:720,y:480},{x:720,y:240},{x:480,y:240},{x:480,y:-24}] }], props: [ {type:'rock',x:240,y:360}, {type:'pond',x:600,y:360, r:36} ] }
 ];
 
 import { deepFreeze } from './utils.js';
