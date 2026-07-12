@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Offset Editor</title>
+    <style>
+        :root {
+            --bg: #1a1a1a; --panel: #2c3e50; --text: #ecf0f1;
+            --accent: #e67e22; --danger: #e74c3c; --success: #27ae60;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; height: 100vh; margin: 0; overflow: hidden;
+        }
+        
+        /* Sidebar Layout */
+        #controls {
+            background: var(--panel); padding: 20px; width: 360px; height: 100%;
+            display: flex; flex-direction: column; gap: 15px; flex-shrink: 0;
+            overflow-y: auto; border-right: 3px solid var(--accent);
+        }
+        #controls::-webkit-scrollbar { width: 8px; }
+        #controls::-webkit-scrollbar-track { background: #1a1a1a; }
+        #controls::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+        h2, h3 { margin: 0; color: var(--accent); }
+        hr { border: 0; border-top: 1px solid #7f8c8d; margin: 5px 0; width: 100%; }
+        
+        label { font-size: 13px; display: block; margin-bottom: 5px; color: #bdc3c7; }
+        input[type="text"], select, input[type="number"] {
+            width: 100%; padding: 8px; background: var(--bg); color: white;
+            border: 1px solid #7f8c8d; border-radius: 4px; font-size: 14px;
+        }
+        button {
+            padding: 10px; background: #34495e; border: 1px solid #7f8c8d;
+            color: white; cursor: pointer; border-radius: 4px; font-weight: bold;
+            transition: background 0.2s; font-size: 14px;
+        }
+        button:hover { background: #3e5771; }
+        button.active { background: var(--accent); border-color: #d35400; }
+        
+        .btn-group { display: flex; gap: 5px; }
+        .btn-group button { flex: 1; text-align: center; }
+        
+        textarea {
+            width: 100%; height: 120px; background: #111; color: #0f0;
+            border: 1px solid var(--accent); border-radius: 4px; padding: 8px;
+            font-family: monospace; font-size: 12px; resize: none;
+        }
+        
+        .transform-row { display: flex; align-items: center; gap: 10px; }
+        .transform-row input[type="range"] { flex: 1; }
+        .transform-row input[type="number"] { width: 70px; text-align: center; padding: 6px; }
+        
+        /* Canvas Area Layout */
+        #canvas-wrap {
+            flex-grow: 1; display: flex; justify-content: center; align-items: center;
+            position: relative; background: #111; overflow: hidden;
+        }
+        #preview { background: #2c3e50; display: block; box-shadow: 0 0 30px rgba(0,0,0,0.5); cursor: grab; }
+        #preview:active { cursor: grabbing; }
+        
+        .info-text { font-size: 12px; color: #95a5a6; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Controls -->
+    <div id="controls">
+        <h2>Sprite Offset Editor</h2>
+        
+        <div>
+            <label>1. Load Sprites Folder</label>
+            <input type="file" id="folderInput" webkitdirectory multiple>
+            <p class="info-text">Select your root "sprites" folder. It will automatically scan for towers and heroes.</p>
+        </div>
+
+        <hr>
+        <h3>Select Tower</h3>
+        <div>
+            <label>Discovered Towers</label>
+            <select id="towerSelect" onchange="loadTower(this.value)">
+                <option value="">-- Select a Tower --</option>
+            </select>
+        </div>
+        <div>
+            <label>Or Create New ID</label>
+            <div class="btn-group">
+                <input type="text" id="manualId" placeholder="e.g., ninja">
+                <button onclick="addManualTower()" style="flex: 0 0 auto; padding: 8px 12px;">Add</button>
+            </div>
+        </div>
+
+        <hr>
+        <h3>Preview Mode</h3>
+        <div class="btn-group">
+            <button id="modeBase" class="active" onclick="setMode('base')">Base</button>
+            <button id="modeArm" onclick="setMode('arm')">Base + Arm</button>
+            <button id="modeFull" onclick="setMode('full')">Full Body</button>
+        </div>
+
+        <div class="btn-group">
+            <button onclick="prevFrame()">◄ Prev</button>
+            <button id="playBtn" onclick="togglePlay()">Play</button>
+            <button onclick="nextFrame()">Next ►</button>
+        </div>
+        <div style="text-align: center;">Frame: <span id="frameNum">0</span></div>
+
+        <hr>
+        <h3>Transform & Offsets</h3>
+        <div>
+            <label>X Offset</label>
+            <div class="transform-row">
+                <input type="range" id="xSlider" min="-50" max="50" step="0.5" value="0" oninput="updateTransform('slider')">
+                <input type="number" id="xInput" step="0.5" value="0" oninput="updateTransform('input')">
+            </div>
+        </div>
+        <div>
+            <label>Y Offset</label>
+            <div class="transform-row">
+                <input type="range" id="ySlider" min="-50" max="50" step="0.5" value="0" oninput="updateTransform('slider')">
+                <input type="number" id="yInput" step="0.5" value="0" oninput="updateTransform('input')">
+            </div>
+        </div>
+        <div>
+            <label>Sprite Scale</label>
+            <div class="transform-row">
+                <input type="range" id="scaleSlider" min="0.5" max="3" step="0.1" value="1" oninput="updateTransform('slider')">
+                <input type="number" id="scaleInput" step="0.1" value="1" oninput="updateTransform('input')">
+            </div>
+        </div>
+        
+        <div class="btn-group" style="margin-top: 5px;">
+            <button onclick="centerImage()" style="background: var(--danger); border-color: #c0392b;">Center to Grid (0,0)</button>
+        </div>
+
+        <hr>
+        <h3>Copy / Paste / Apply</h3>
+        <div class="btn-group">
+            <button onclick="copyTransform()">Copy Values</button>
+            <button onclick="pasteTransform()">Paste Values</button>
+        </div>
+        <div class="btn-group">
+            <button onclick="applyToAllFrames()">Apply to All Frames</button>
+        </div>
+        <p class="info-text">Copy/Paste works between different towers. "Apply to All" copies the current frame's values to all frames of the current tower.</p>
+
+        <hr>
+        <h3>Display Options</h3>
+        <div class="btn-group" style="margin-bottom: 10px;">
+            <button id="circleBtn" onclick="toggleCircle()">Show Game Circles</button>
+            <button id="centerBtn" onclick="toggleImageCenter()">Show Image Center</button>
+        </div>
+        <div>
+            <label>Scale Comparison Tower (Ghost)</label>
+            <select id="compareSelect" onchange="loadCompare(this.value)">
+                <option value="">-- None --</option>
+            </select>
+        </div>
+        
+        <hr>
+        <h3>Canvas View</h3>
+        <p class="info-text">Tip: Use mouse wheel to zoom, click & drag to pan.</p>
+
+        <hr>
+        <h3>Import Config</h3>
+        <textarea id="importText" placeholder="Paste your existing config JSON here..."></textarea>
+        <button onclick="importJSON()" style="background: var(--accent); border-color: #d35400; margin-top: 5px;">Load Config from Text</button>
+
+        <hr>
+        <h3>Export Config</h3>
+        <button onclick="exportJSON()" style="background: var(--success); border-color: #2ecc71;">Generate Global JSON</button>
+        <textarea id="exportText" readonly placeholder="Click Generate to get your config..."></textarea>
+        <button onclick="copyToClipboard()" style="margin-top: 5px;">Copy to Clipboard</button>
+    </div>
+
+    <!-- Canvas Area -->
+    <div id="canvas-wrap">
+        <canvas id="preview" width="900" height="600"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('preview');
+        const ctx = canvas.getContext('2d');
+        
+        // Registry of loaded images: { dart: { base: Image, arm: [Image, Image...], full: [Image...] } }
+        let registry = {};
+        
+        // Pre-loaded Config Merged from User Data
+        let config = {
+            "ace": { "base": { "x": 0, "y": 3, "scale": 1.7 } },
+            "boomerang_p1_t1": { "base": { "x": 3, "y": 3, "scale": 1.3 } },
+            "boomerang_p2_t3": { "base": { "x": 6.5, "y": -3.5, "scale": 1.2 } },
+            "dart": { "base": { "x": 1, "y": 3, "scale": 1 } },
+            "dart_p1_t3": { "base": { "x": -5.5, "y": -10, "scale": 2 } },
+            "dart_p3_t3": { "base": { "x": 1, "y": -1, "scale": 1.2 } },
+            "engineer": { "base": { "x": 0, "y": -3, "scale": 1.2 } },
+            "geto": { "base": { "x": 0, "y": 6, "scale": 1 } },
+            "glue": { "base": { "x": 2, "y": 0, "scale": 1.1 } },
+            "gojo": { "base": { "x": 0, "y": 6, "scale": 1 } },
+            "ice_p2_t3": { "base": { "x": 0, "y": 6, "scale": 1 } }
+        };
+        
+        let currentTower = '';
+        let currentMode = 'base';
+        let currentFrame = 0;
+        let isPlaying = false;
+        let playInterval = null;
+
+        // View State
+        let zoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let showCircle = false;
+        let showImageCenter = false;
+        let compareTower = '';
+
+        // Clipboard
+        let clipboard = { x: 0, y: 0, scale: 1.0 };
+
+        // Drag State
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+
+        // Resize canvas to fit screen
+        function resizeCanvas() {
+            const wrap = document.getElementById('canvas-wrap');
+            const w = wrap.clientWidth - 40;
+            const h = wrap.clientHeight - 40;
+            const aspect = 900 / 600;
+            let cw = w, ch = w / aspect;
+            if (ch > h) { ch = h; cw = h * aspect; }
+            canvas.style.width = cw + 'px';
+            canvas.style.height = ch + 'px';
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // 1. Folder Reading Logic
+        document.getElementById('folderInput').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                const path = file.webkitRelativePath;
+                if (!path.includes('/towers/') && !path.includes('/heroes/')) continue;
+                if (!file.type.startsWith('image/')) continue;
+
+                const name = file.name.replace('.png', '');
+                
+                const baseMatch = name.match(/^(.*?)_base$/);
+                const armMatch = name.match(/^(.*?)_arm$/);
+                const attackMatch = name.match(/^(.*?)_attack_(\d+)$/);
+                const fullMatch = name.match(/^(.*?)_attack_full_(\d+)$/);
+
+                let towerId = null;
+                let type = null;
+                let frame = 0;
+
+                if (baseMatch) { towerId = baseMatch[1]; type = 'base'; } 
+                else if (armMatch) { towerId = armMatch[1]; type = 'arm'; frame = 0; } 
+                else if (fullMatch) { towerId = fullMatch[1]; type = 'full'; frame = parseInt(fullMatch[2]); } 
+                else if (attackMatch) { towerId = attackMatch[1]; type = 'arm'; frame = parseInt(attackMatch[2]); }
+
+                if (towerId) {
+                    if (!registry[towerId]) registry[towerId] = { base: null, arm: [], full: [] };
+                    if (!config[towerId]) config[towerId] = {}; // Ensure config exists for loaded towers
+                    
+                    const img = new Image();
+                    img.src = URL.createObjectURL(file);
+                    await img.decode(); 
+                    
+                    if (type === 'base') registry[towerId].base = img;
+                    if (type === 'arm') registry[towerId].arm[frame] = img;
+                    if (type === 'full') registry[towerId].full[frame] = img;
+                }
+            }
+            updateDropdowns();
+        });
+
+        function updateDropdowns() {
+            const select = document.getElementById('towerSelect');
+            const compareSelect = document.getElementById('compareSelect');
+            
+            select.innerHTML = '<option value="">-- Select a Tower --</option>';
+            compareSelect.innerHTML = '<option value="">-- None --</option>';
+            
+            for (const id in registry) {
+                let opt1 = document.createElement('option');
+                opt1.value = id; opt1.innerText = id; select.appendChild(opt1);
+                
+                let opt2 = document.createElement('option');
+                opt2.value = id; opt2.innerText = id; compareSelect.appendChild(opt2);
+            }
+        }
+
+        function addManualTower() {
+            const id = document.getElementById('manualId').value.trim();
+            if (!id) return;
+            if (!registry[id]) registry[id] = { base: null, arm: [], full: [] };
+            if (!config[id]) config[id] = {};
+            updateDropdowns();
+            document.getElementById('towerSelect').value = id;
+            loadTower(id);
+        }
+
+        function loadTower(id) {
+            currentTower = id;
+            currentFrame = 0;
+            if (!config[currentTower]) config[currentTower] = {};
+            syncSliders();
+        }
+
+        function loadCompare(id) { compareTower = id; }
+
+        // 2. Transform Logic
+        function getFrameKey() {
+            if (currentMode === 'base') return 'base';
+            if (currentMode === 'arm') return currentFrame === 0 ? 'arm' : `attack_${currentFrame}`;
+            if (currentMode === 'full') return `attack_full_${currentFrame}`;
+        }
+
+        function updateTransform(source) {
+            if (!currentTower) return;
+            if (!config[currentTower]) config[currentTower] = {};
+            const key = getFrameKey();
+            
+            let x, y, scale;
+            if (source === 'slider') {
+                x = parseFloat(document.getElementById('xSlider').value);
+                y = parseFloat(document.getElementById('ySlider').value);
+                scale = parseFloat(document.getElementById('scaleSlider').value);
+                document.getElementById('xInput').value = x;
+                document.getElementById('yInput').value = y;
+                document.getElementById('scaleInput').value = scale;
+            } else {
+                x = parseFloat(document.getElementById('xInput').value) || 0;
+                y = parseFloat(document.getElementById('yInput').value) || 0;
+                scale = parseFloat(document.getElementById('scaleInput').value) || 1;
+                document.getElementById('xSlider').value = x;
+                document.getElementById('ySlider').value = y;
+                document.getElementById('scaleSlider').value = scale;
+            }
+            
+            config[currentTower][key] = { x, y, scale };
+            document.getElementById('xVal').innerText = x.toFixed(1);
+            document.getElementById('yVal').innerText = y.toFixed(1);
+            document.getElementById('scaleVal').innerText = scale.toFixed(1);
+        }
+
+        function centerImage() {
+            document.getElementById('xSlider').value = 0;
+            document.getElementById('ySlider').value = 0;
+            updateTransform('slider');
+        }
+
+        function copyTransform() {
+            if (!currentTower) return;
+            clipboard = { ...config[currentTower]?.[getFrameKey()] };
+            alert("Transform copied!");
+        }
+
+        function pasteTransform() {
+            if (!currentTower) return;
+            if (!config[currentTower]) config[currentTower] = {};
+            config[currentTower][getFrameKey()] = { ...clipboard };
+            syncSliders();
+        }
+
+        function applyToAllFrames() {
+            if (!currentTower) return;
+            const off = config[currentTower]?.[getFrameKey()];
+            if (!off) return alert("Set a transform first!");
+            
+            if (!config[currentTower]) config[currentTower] = {};
+            
+            // Base
+            config[currentTower]['base'] = { ...off };
+            
+            // Arm
+            const armCount = registry[currentTower]?.arm.length || 0;
+            for (let i = 0; i < armCount; i++) {
+                const key = i === 0 ? 'arm' : `attack_${i}`;
+                config[currentTower][key] = { ...off };
+            }
+            
+            // Full
+            const fullCount = registry[currentTower]?.full.length || 0;
+            for (let i = 0; i < fullCount; i++) {
+                const key = `attack_full_${i}`;
+                config[currentTower][key] = { ...off };
+            }
+            alert(`Applied to all frames for ${currentTower}!`);
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            currentFrame = 0;
+            document.getElementById('modeBase').classList.remove('active');
+            document.getElementById('modeArm').classList.remove('active');
+            document.getElementById('modeFull').classList.remove('active');
+            document.getElementById('mode' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active');
+            syncSliders();
+        }
+
+        function syncSliders() {
+            if (!currentTower) return;
+            const key = getFrameKey();
+            const off = config[currentTower]?.[key] || { x: 0, y: 0, scale: 1.0 };
+            
+            document.getElementById('xSlider').value = off.x;
+            document.getElementById('ySlider').value = off.y;
+            document.getElementById('scaleSlider').value = off.scale;
+            document.getElementById('xInput').value = off.x;
+            document.getElementById('yInput').value = off.y;
+            document.getElementById('scaleInput').value = off.scale;
+            document.getElementById('frameNum').innerText = currentFrame;
+        }
+
+        function prevFrame() { currentFrame = Math.max(0, currentFrame - 1); syncSliders(); }
+        function nextFrame() { currentFrame++; syncSliders(); }
+        
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            document.getElementById('playBtn').innerText = isPlaying ? 'Pause' : 'Play';
+            if (isPlaying) {
+                playInterval = setInterval(() => {
+                    nextFrame();
+                    let arr = currentMode === 'arm' ? registry[currentTower]?.arm : registry[currentTower]?.full;
+                    if (!arr || currentFrame >= arr.length) currentFrame = 0;
+                    syncSliders();
+                }, 100); 
+            } else {
+                clearInterval(playInterval);
+            }
+        }
+
+        // 3. View Controls
+        function adjustZoom(delta) { zoom = Math.max(0.5, Math.min(15, zoom + delta)); }
+        function toggleCircle() {
+            showCircle = !showCircle;
+            document.getElementById('circleBtn').classList.toggle('active', showCircle);
+        }
+        function toggleImageCenter() {
+            showImageCenter = !showImageCenter;
+            document.getElementById('centerBtn').classList.toggle('active', showImageCenter);
+        }
+
+        // Canvas Mouse Interactions
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.2 : 0.2;
+            adjustZoom(delta);
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            dragStartX = (e.clientX - rect.left) * scaleX - panX;
+            dragStartY = (e.clientY - rect.top) * scaleY - panY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            panX = (e.clientX - rect.left) * scaleX - dragStartX;
+            panY = (e.clientY - rect.top) * scaleY - dragStartY;
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        // 4. Import / Export Logic
+        function importJSON() {
+            try {
+                const text = document.getElementById('importText').value;
+                if (!text) return alert("Please paste a config first.");
+                const imported = JSON.parse(text);
+                
+                // Merge imported into existing config
+                for (let towerId in imported) {
+                    if (!config[towerId]) config[towerId] = {};
+                    for (let key in imported[towerId]) {
+                        config[towerId][key] = imported[towerId][key];
+                    }
+                }
+                alert("Config imported successfully!");
+                if (currentTower) syncSliders();
+            } catch (e) {
+                alert("Invalid JSON format! Error: " + e.message);
+            }
+        }
+
+        function exportJSON() {
+            let cleanConfig = {};
+            for (let t in config) {
+                if (Object.keys(config[t]).length > 0) {
+                    cleanConfig[t] = config[t];
+                }
+            }
+            document.getElementById('exportText').value = JSON.stringify(cleanConfig, null, 4);
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('exportText');
+            text.select();
+            document.execCommand('copy');
+            alert("Copied to clipboard!");
+        }
+
+        // 5. Render Loop
+        function draw() {
+            ctx.clearRect(0, 0, 900, 600);
+            
+            ctx.save();
+            ctx.translate(450 + panX, 300 + panY);
+            ctx.scale(zoom, zoom);
+
+            // Dynamic Grid Logic
+            let gridSize = 50;
+            while (gridSize * zoom < 30) gridSize *= 2;
+            while (gridSize * zoom > 80) gridSize /= 2;
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1 / zoom;
+            for(let x = Math.ceil(-450 / gridSize) * gridSize; x <= 450; x += gridSize) { 
+                ctx.beginPath(); ctx.moveTo(x, -300); ctx.lineTo(x, 300); ctx.stroke(); 
+            }
+            for(let y = Math.ceil(-300 / gridSize) * gridSize; y <= 300; y += gridSize) { 
+                ctx.beginPath(); ctx.moveTo(-450, y); ctx.lineTo(450, y); ctx.stroke(); 
+            }
+
+            // Crosshair
+            ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+            ctx.lineWidth = 2 / zoom;
+            ctx.beginPath(); ctx.moveTo(0, -300); ctx.lineTo(0, 300); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-450, 0); ctx.lineTo(450, 0); ctx.stroke();
+
+            // Selection Circle
+            if (showCircle) {
+                ctx.strokeStyle = 'rgba(230, 126, 34, 0.3)';
+                ctx.lineWidth = 2 / zoom;
+                ctx.beginPath(); ctx.arc(0, 0, 45, 0, Math.PI * 2); ctx.stroke();
+                
+                ctx.strokeStyle = 'rgba(230, 126, 34, 0.8)';
+                ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.stroke();
+            }
+
+            // Draw Comparison Tower (Ghosted)
+            if (compareTower && registry[compareTower] && registry[compareTower].base) {
+                ctx.globalAlpha = 0.3;
+                const img = registry[compareTower].base;
+                const size = 45;
+                const aspect = img.width / img.height;
+                let w = size, h = size;
+                if (aspect > 1) h = size / aspect; else w = size * aspect;
+                ctx.drawImage(img, -w/2, -h/2, w, h);
+                ctx.globalAlpha = 1.0;
+            }
+
+            if (currentTower && registry[currentTower]) {
+                const towerData = registry[currentTower];
+                const configData = config[currentTower] || {};
+                const baseSize = 45; 
+                let drawnImg = null;
+                let off = {x:0, y:0, scale:1};
+
+                if (towerData.base && (currentMode === 'base' || currentMode === 'arm')) {
+                    const key = 'base';
+                    off = configData[key] || {x:0, y:0, scale:1};
+                    drawnImg = towerData.base;
+                    const scale = off.scale || 1;
+                    const size = baseSize * scale;
+                    const aspect = drawnImg.width / drawnImg.height;
+                    let w = size, h = size;
+                    if (aspect > 1) h = size / aspect; else w = size * aspect;
+                    ctx.drawImage(drawnImg, -w/2 + off.x, -h/2 + off.y, w, h);
+                }
+
+                if (currentMode === 'arm' && towerData.arm[currentFrame]) {
+                    drawnImg = towerData.arm[currentFrame];
+                    const key = currentFrame === 0 ? 'arm' : `attack_${currentFrame}`;
+                    off = configData[key] || {x:0, y:0, scale:1};
+                    const scale = off.scale || 1;
+                    const size = baseSize * scale;
+                    const aspect = drawnImg.width / drawnImg.height;
+                    let w = size, h = size;
+                    if (aspect > 1) h = size / aspect; else w = size * aspect;
+                    ctx.drawImage(drawnImg, -w/2 + off.x, -h/2 + off.y, w, h);
+                }
+
+                if (currentMode === 'full' && towerData.full[currentFrame]) {
+                    drawnImg = towerData.full[currentFrame];
+                    const key = `attack_full_${currentFrame}`;
+                    off = configData[key] || {x:0, y:0, scale:1};
+                    const scale = off.scale || 1;
+                    const size = baseSize * scale;
+                    const aspect = drawnImg.width / drawnImg.height;
+                    let w = size, h = size;
+                    if (aspect > 1) h = size / aspect; else w = size * aspect;
+                    ctx.drawImage(drawnImg, -w/2 + off.x, -h/2 + off.y, w, h);
+                }
+
+                // Draw Image Center Marker
+                if (showImageCenter && drawnImg) {
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 1.5 / zoom;
+                    ctx.beginPath(); ctx.arc(off.x, off.y, 3 / zoom, 0, Math.PI * 2); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(off.x - 8/zoom, off.y); ctx.lineTo(off.x + 8/zoom, off.y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(off.x, off.y - 8/zoom); ctx.lineTo(off.x, off.y + 8/zoom); ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+            
+            // UI overlay
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Tower: ${currentTower || 'None'} | Mode: ${currentMode} | Frame: ${currentFrame} | Zoom: ${zoom.toFixed(1)}x`, 10, 20);
+            
+            requestAnimationFrame(draw);
+        }
+
+        // Initialize
+        resizeCanvas();
+        draw();
+    </script>
+</body>
+</html>

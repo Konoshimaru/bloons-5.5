@@ -7,6 +7,7 @@ import { getBehavior } from './registry.js';
 import { drawImageCentered, drawShadow } from './utils.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
+import { SpriteConfig } from './spriteConfig.js'; // Import custom offsets
 import * as TowerBehavior from './towerBehavior.js';
 
 const FARM_VILLAGE_TYPES = new Set(['farm', 'village']);
@@ -14,15 +15,12 @@ const DEFAULT_HIT_RADIUS = 18;
 const SHADOW_SCALE = 22;
 const MIN_FIRE_RATE = 0.05;
 
-// Base tower class shared by all tower types.
-// It stores stats, handles upgrades, and delegates combat behavior to the tower behavior system.
 export class Tower {
     constructor(x, y, type) {
         this.x = x;
         this.y = y;
         this.type = type;
         
-        // Shallow copy base stats to avoid mutating the registry
         this.stats = { ...(TowerStats[type] || HeroStats[type]) };
         
         this._initializeState();
@@ -30,7 +28,6 @@ export class Tower {
     }
 
     _initializeState() {
-        // Core combat state for each tower.
         this.cooldown = 0;
         this.angle = -Math.PI / 2;
         this.upgrades = [0, 0, 0];
@@ -41,7 +38,6 @@ export class Tower {
         this.stats.canSeeCamo = this.stats.canSeeCamo || false;
         this.stats.canHitLead = this.stats.canHitLead || false;
         
-        // Economy and animation tracking for special tower behaviors.
         this.bananasSpawnedThisWave = 0;
         this.lastWave = 0;
         this.bananaTimer = 0;
@@ -66,7 +62,6 @@ export class Tower {
         this.hitRadius = this.stats.hitRadius || DEFAULT_HIT_RADIUS;
         this._losBlockers = null;
         
-        // Animation and targeting state used by the visual and combat systems.
         this.attackAnimActive = false;
         this.attackAnimFrame = 0;
         this.attackAnimTimer = 0;
@@ -92,12 +87,7 @@ export class Tower {
         TowerBehavior.update(this, dt, engine);
     }
 
-    /**
-     * Caches the base cooldown and calculates the multiplicative cooldown modifier
-     * based on purchased upgrades. This prevents O(N*M) lookups every frame in TowerBehavior.
-     */
     _recalculateStats() {
-        // Cache the base cooldown once and then apply upgrade-based multipliers on top.
         this._baseCooldown = this.stats.baseCooldown || this.stats.fireRate;
         this._cooldownMult = 1.0;
         
@@ -116,7 +106,6 @@ export class Tower {
         if (!upgradeData) return;
 
         if (upgradeData.stat) {
-            // Most upgrades simply raise or change one of the tower's existing stats.
             if (typeof upgradeData.amount === 'number') {
                 this.stats[upgradeData.stat] = (this.stats[upgradeData.stat] || 0) + upgradeData.amount;
             } else {
@@ -125,7 +114,6 @@ export class Tower {
         }
 
         if (upgradeData.extraMods) {
-            // Extra mods can unlock new behavior such as abilities, new damage types, or special visuals.
             for (const key in upgradeData.extraMods) {
                 const val = upgradeData.extraMods[key];
                 if (key === 'scale') {
@@ -157,16 +145,10 @@ export class Tower {
                 this._applyUpgradeStats(upgradeData);
             }
         }
-
         this._postUpgradeHook(3);
         this._recalculateStats();
     }
 
-    /**
-     * Type-specific side-effects that depend on the final upgrade state.
-     * Called after stats are applied both during live upgrades and save loads.
-     * Keeps tower-type special-cases out of the generic upgrade flow.
-     */
     _postUpgradeHook(path) {
         if (this.type === 'engineer' && this.upgrades[2] === 5 && this.activeTrap) {
             this.activeTrap.maxRbe = this.stats.trapRbe;
@@ -310,12 +292,6 @@ export class Tower {
         this._drawBaseTower(ctx, isPreview);
     }
 
-    /**
-     * Public entry point for tower/hero draw behaviors to render the base
-     * sprite stack (shadow, body, upgrade overlays). Delegates to the
-     * internal implementation. External behavior modules call this in
-     * their `draw(ctx, tower, isPreview)` hooks after drawing custom VFX.
-     */
     drawBaseTower(ctx, isPreview = false) {
         this._drawBaseTower(ctx, isPreview);
     }
@@ -377,6 +353,22 @@ export class Tower {
         this._drawFallbackSprite(ctx, isStatic);
     }
 
+    // PRO FIX: Centralized asset drawing with config overrides
+    // If a config exists for this asset, size becomes 45 * config.scale. Otherwise, it uses defaultSize.
+    _drawAsset(ctx, asset, type, key, defaultSize) {
+        if (!asset || !asset.loaded) return;
+        const off = SpriteConfig[type]?.[key] || { x: 0, y: 0, scale: 1 };
+        const size = SpriteConfig[type]?.[key] ? (45 * (off.scale || 1)) : defaultSize;
+        
+        const maxDim = Math.max(asset.width, asset.height);
+        if (maxDim === 0) return;
+        const scale = size / maxDim;
+        const w = asset.width * scale;
+        const h = asset.height * scale;
+        
+        ctx.drawImage(asset, -w / 2 + (off.x || 0), -h / 2 + (off.y || 0), w, h);
+    }
+
     _drawFullBodyAnimation(ctx, isStatic, targetSize, isCustomBase) {
         if (!this.attackAnimActive || !this.isFullAnim) return false;
         
@@ -386,18 +378,22 @@ export class Tower {
         ctx.save();
         ctx.translate(this.x, this.y);
         if (!isStatic) ctx.rotate(this.angle + Math.PI / 2);
-        drawImageCentered(ctx, animAsset, targetSize);
+        
+        this._drawAsset(ctx, animAsset, this.type, `attack_full_${this.attackAnimFrame}`, targetSize);
+        
         ctx.restore();
 
         if (!isCustomBase) {
             ctx.save();
             ctx.translate(this.x, this.y);
+            if (!isStatic) ctx.rotate(this.angle + Math.PI / 2);
             for (let p = 1; p <= 3; p++) {
                 const t = this.upgrades[p - 1];
                 if (t > 0) {
                     const ovAsset = Assets.get(`tower_${this.type}_p${p}_t${t}`);
                     if (ovAsset && ovAsset.loaded) {
-                        drawImageCentered(ctx, ovAsset, targetSize);
+                        const overlayId = `${this.type}_p${p}_t${t}`;
+                        this._drawAsset(ctx, ovAsset, overlayId, "base", targetSize);
                     }
                 }
             }
@@ -411,8 +407,9 @@ export class Tower {
         ctx.translate(this.x, this.y);
         if (!isStatic) ctx.rotate(this.angle + Math.PI / 2);
         
-        if (armAsset) {
-            drawImageCentered(ctx, activeArmAsset, targetSize);
+        if (armAsset && activeArmAsset && activeArmAsset.loaded) {
+            let key = this.attackAnimFrame === 0 ? "arm" : `attack_${this.attackAnimFrame}`;
+            this._drawAsset(ctx, activeArmAsset, this.type, key, targetSize);
         }
         
         if (!isCustomBase) {
@@ -421,13 +418,14 @@ export class Tower {
                 if (t > 0) {
                     const ovAsset = Assets.get(`tower_${this.type}_p${p}_t${t}_a`);
                     if (ovAsset && ovAsset.loaded) {
-                        drawImageCentered(ctx, ovAsset, targetSize);
+                        const overlayId = `${this.type}_p${p}_t${t}`;
+                        this._drawAsset(ctx, ovAsset, overlayId, "base", targetSize);
                     }
                 }
             }
         }
         
-        drawImageCentered(ctx, baseAsset, targetSize);
+        this._drawAsset(ctx, baseAsset, this.type, "base", targetSize);
         
         if (!isCustomBase) {
             for (let p = 1; p <= 3; p++) {
@@ -435,7 +433,8 @@ export class Tower {
                 if (t > 0) {
                     const ovAsset = Assets.get(`tower_${this.type}_p${p}_t${t}`);
                     if (ovAsset && ovAsset.loaded) {
-                        drawImageCentered(ctx, ovAsset, targetSize);
+                        const overlayId = `${this.type}_p${p}_t${t}`;
+                        this._drawAsset(ctx, ovAsset, overlayId, "base", targetSize);
                     }
                 }
             }

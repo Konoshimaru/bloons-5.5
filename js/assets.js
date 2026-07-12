@@ -1,4 +1,6 @@
 ﻿// assets.js
+// Loads and tracks game art, sprites, and asset references used by the game.
+
 import { Names } from './names.js';
 
 const FOLDER_MAP = Object.freeze({
