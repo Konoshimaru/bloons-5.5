@@ -3,31 +3,35 @@
     --accent: #e67e22; --danger: #e74c3c; --gold: #f1c40f;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+/* PRO FIX: Reset all margins for itch.io iframe compatibility */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+}
 
 body { 
-    background: #1a1a1a; color: var(--text); 
+    color: var(--text); 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    display: flex; justify-content: center; align-items: center; 
-    min-height: 100vh; overflow: hidden; 
 }
 
 #game-container { 
-    position: relative; 
-    /* PRO FIX: Updated to 1280x720 */
+    position: absolute; 
+    top: 0; left: 0;
     width: 1280px; height: 720px; 
     box-shadow: 0 0 30px rgba(0,0,0,0.8); 
-    transform-origin: center center; 
+    transform-origin: top left; 
     background: #000;
     overflow: hidden;
-    /* PRO FIX: Prevent touch scrolling/zooming */
     touch-action: none;
 }
 
 #gameCanvas { 
     background: #8acc4d; display: block; cursor: pointer; 
     position: absolute; top: 0; left: 0; z-index: 1;
-    /* PRO FIX: Prevent touch scrolling/zooming */
     touch-action: none;
 }
 
@@ -67,11 +71,27 @@ body {
     display: flex; justify-content: center; align-items: center; font-size: 14px; color: white;
 }
 
+/* PRO FIX: Centered cancel button with a larger hitbox for mobile */
 #cancel-btn {
-    position: absolute; bottom: 10px; left: 340px; transform: translateX(-50%);
-    width: 45px; height: 45px; background: var(--danger); border: 2px solid #c0392b;
-    color: white; border-radius: 50%; cursor: pointer; font-size: 18px; font-weight: bold; 
-    z-index: 6; box-shadow: 0 2px 5px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;
+    position: absolute; 
+    bottom: 20px; 
+    left: 50%; 
+    transform: translateX(-50%);
+    width: 60px; 
+    height: 60px; 
+    background: var(--danger); 
+    border: 3px solid #c0392b;
+    color: white; 
+    border-radius: 50%; 
+    cursor: pointer; 
+    font-size: 24px; 
+    font-weight: bold; 
+    z-index: 15; /* Raised z-index so it's always tappable on top */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.6); 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    touch-action: none; /* Prevent mobile scroll gestures when tapping it */
 }
 #cancel-btn:hover { background: #c0392b; }
 
@@ -109,7 +129,12 @@ body {
 
 .tower-card { 
     background: var(--panel); border: 2px solid #7f8c8d; border-radius: 6px; padding: 6px; margin-bottom: 6px; 
-    cursor: pointer; display: flex; align-items: center; gap: 8px; color: white; transition: all 0.1s;
+    cursor: grab; /* Changed to grab cursor */
+    display: flex; align-items: center; gap: 8px; color: white; transition: all 0.1s;
+    touch-action: none; /* PRO FIX: Prevent mobile scrolling when trying to drag a tower card */
+}
+.tower-card:active {
+    cursor: grabbing;
 }
 .tower-card:hover { border-color: var(--accent); transform: translateX(-2px); }
 .tower-card.selected { border-color: var(--gold); background: #3e5771; }
@@ -135,10 +160,7 @@ body {
 .menu-content { 
     background: var(--bg); padding: 30px; border-radius: 12px; border: 2px solid var(--accent); 
     text-align: center; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px;
-    /* PRO FIX: Prevent menu from getting cut off */
-    max-height: 90vh;
-    overflow-y: auto;
-    scrollbar-width: thin;
+    max-height: 90vh; overflow-y: auto; scrollbar-width: thin;
 }
 .menu-content h1, .menu-content h2 { color: var(--accent); letter-spacing: 1px; }
 .menu-content button, .back-btn { 
@@ -149,7 +171,6 @@ body {
 .diff-btn { width: 100%; padding: 15px; background: var(--panel); border: 2px solid #7f8c8d; color: white; cursor: pointer; border-radius: 6px; font-weight: bold; margin-bottom: 5px;}
 .diff-btn:hover { border-color: var(--accent); }
 
-/* Monkey Shop Items */
 .shop-item {
     background: var(--panel); border: 2px solid #7f8c8d; border-radius: 6px; padding: 15px; margin-bottom: 10px;
     display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all 0.2s;
@@ -165,13 +186,7 @@ input[type="text"], textarea { width: 100%; padding: 8px; margin-bottom: 10px; b
 label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
 #shop-tooltip, #upgrade-tooltip { position: absolute; background: rgba(0,0,0,0.95); padding: 8px 12px; border-radius: 4px; pointer-events: none; z-index: 30; max-width: 220px; font-size: 12px; opacity: 0; transition: opacity 0.2s; border: 1px solid var(--accent); color: white; }
 
-/* HERO MENU V2 */
-.hm-container { 
-    width: 800px; max-height: 90vh; background: var(--bg); border: 2px solid var(--accent); border-radius: 12px; 
-    display: flex; flex-direction: column; padding: 20px; box-sizing: border-box;
-    /* PRO FIX: Replace fixed height with max-height + overflow */
-    overflow-y: auto;
-}
+.hm-container { width: 800px; max-height: 90vh; background: var(--bg); border: 2px solid var(--accent); border-radius: 12px; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; }
 .hm-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #7f8c8d; padding-bottom: 15px; margin-bottom: 20px; }
 .hm-top-text h2 { margin: 0; font-size: 28px; color: var(--accent); }
 .hm-top-text h3 { margin: 4px 0 0 0; font-size: 14px; color: #bdc3c7; }
@@ -201,26 +216,13 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 .hm-carousel-item:hover { transform: translateY(-5px); border-color: var(--accent) !important; }
 .hm-carousel-item.active { border-color: var(--gold) !important; box-shadow: 0 0 10px var(--gold) !important; background: var(--accent) !important; }
 
-/* Map Editor */
 .editor-container { 
-    display: flex; 
-    background: var(--bg); 
-    padding: 10px; 
-    border-radius: 12px; 
-    width: 95vw; 
-    max-width: 1340px; 
-    max-height: 95vh; 
+    display: flex; background: var(--bg); padding: 10px; border-radius: 12px; 
+    width: 95vw; max-width: 1340px; max-height: 95vh; 
 }
 .editor-sidebar { 
-    width: 200px; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 10px; 
-    padding: 10px; 
-    background: var(--panel); 
-    border-radius: 8px; 
-    margin-right: 10px; 
-    overflow-y: auto; 
+    width: 200px; display: flex; flex-direction: column; gap: 10px; padding: 10px; 
+    background: var(--panel); border-radius: 8px; margin-right: 10px; overflow-y: auto; 
 }
 .editor-sidebar input { margin-bottom: 5px; }
 .tool-group { display: flex; flex-direction: column; gap: 5px; background: var(--bg); padding: 4px; border-radius: 6px; }
@@ -234,21 +236,11 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 
 .editor-main { flex: 1; display: flex; flex-direction: column; }
 #editor-canvas { 
-    background: #8acc4d; 
-    border: 2px solid var(--accent); 
-    border-radius: 8px; 
-    cursor: crosshair; 
-    width: 100%; 
-    max-width: 1280px; 
-    height: auto; 
-    flex-grow: 1; 
+    background: #8acc4d; border: 2px solid var(--accent); border-radius: 8px; cursor: crosshair; 
+    width: 100%; max-width: 1280px; height: auto; flex-grow: 1; 
 }
 .editor-bottom-bar { 
-    display: flex; 
-    gap: 10px; 
-    margin-top: 10px; 
-    flex-wrap: wrap; 
-    justify-content: center; 
+    display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center; 
 }
 .editor-bottom-bar button { padding: 8px 16px; background: var(--panel); border: 1px solid #7f8c8d; color: white; cursor: pointer; border-radius: 6px; font-weight: bold; }
 .editor-bottom-bar button:hover { background: #3e5771; border-color: var(--accent); }
@@ -258,7 +250,7 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 
 #editor-json-viewer { margin-top: 10px; width: 100%; }
 #editor-json-text { width: 100%; height: 120px; background: #1a1a1a; color: #0f0; border: 1px solid var(--accent); border-radius: 4px; padding: 10px; font-family: monospace; box-sizing: border-box; }
-/* PRO FIX: Screen Too Small Overlay */
+
 #screen-too-small-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; color: #fff;
     display: flex; justify-content: center; align-items: center; text-align: center; z-index: 9999;

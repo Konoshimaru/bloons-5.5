@@ -1,10 +1,8 @@
 ﻿// projectile.js
-// Defines projectiles and their travel, impact, and special behavior.
-
 import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js'; // PRO FIX: Direct import to break circular dependency
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
@@ -273,7 +271,6 @@ export class Projectile {
     }
 
     _isOffscreen() {
-        // PRO FIX: Use the imported CANVAS_WIDTH and CANVAS_HEIGHT
         return this.x < -OFFSCREEN_PADDING || this.x > CANVAS_WIDTH + OFFSCREEN_PADDING || this.y < -OFFSCREEN_PADDING || this.y > CANVAS_HEIGHT + OFFSCREEN_PADDING;
     }
 
@@ -311,7 +308,7 @@ export class Projectile {
     }
 
     _isExplosive() {
-        return this.type === 'bomb' || this.type === 'mortar_shell' || this.type === 'potion' || this.type === 'flash_bomb' || this.type === 'sticky_bomb' || (this.effects && this.effects.isExplosive);
+        return this.type === 'bomb' || this.type === 'mortar_shell' || this.type === 'potion' || this.type === 'flash_bomb' || this.type === 'sticky_bomb' || this.type === 'ice_bomb' || (this.effects && this.effects.isExplosive);
     }
 
     _handleExplosiveHit() {
@@ -327,13 +324,42 @@ export class Projectile {
             if (hits >= maxPierce) break;
             if (!e.alive) continue;
             if (e.data.blocksDamageType && e.data.blocksDamageType(bombDmgType)) continue;
-            if (e.isCamo && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
+            
+            // PRO FIX: Check camo/lead/MOAB immunities from effects (for ice bombs)
+            if (e.isCamo && !(this.effects && this.effects.canSeeCamo) && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
+            if (e.data.isLead && !(this.effects && this.effects.canHitLead) && !(bombDmgType.canHitLead)) continue;
+            if (e.data.isMoab && !(this.effects && this.effects.canHitMoab)) continue;
             
             if (Utils.distance(this.x, this.y, e.x, e.y) < expRadius) {
                 const expDmg = this._getExplosionDamage();
                 const dmg = e.takeDamage(expDmg, bombDmgType, this.effects);
                 if (dmg === -1) continue;
                 if (this.tower) this.tower.damageDealt += dmg;
+                
+                // PRO FIX: Apply freeze effects from ice bombs
+                if (this.effects && this.effects.freeze) {
+                    if (e.data.isMoab) {
+                        // Embrittlement on MOABs from ice bombs
+                        if (this.effects.superBrittle) {
+                            e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0; e.isCamo = false;
+                        } else if (this.effects.embrittlement) {
+                            e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 4.0; e.isCamo = false;
+                        }
+                    } else {
+                        // Skip already frozen unless reFreeze
+                        if (!e.isFrozen || this.effects.reFreeze) {
+                            if (!(e.data.isWhite || e.data.isZebra)) {
+                                e.applySlow(0.0, this.effects.freezeDuration || 1.5, true);
+                            }
+                        }
+                    }
+                }
+                
+                // Permafrost from ice bombs
+                if (this.effects && this.effects.permafrost) {
+                    e.permafrostSlow = 0.5;
+                }
+                
                 hits++;
             }
         }
@@ -351,11 +377,13 @@ export class Projectile {
     }
 
     _getExplosionColor() {
-        return this.type === 'potion' ? '#9b59b6' : '#e67e22';
+        if (this.type === 'potion') return '#9b59b6';
+        if (this.type === 'ice_bomb') return '#1abc9c';
+        return '#e67e22';
     }
 
     _createBombDmgType() {
-        const bombCanHitLead = this.tower ? (this.tower.stats.canHitLead || this.tower.buffedLead) : true;
+        const bombCanHitLead = this.tower ? (this.tower.stats.canHitLead || this.tower.buffedLead || (this.effects && this.effects.canHitLead)) : true;
         return createDmgType(DamageType.EXPLOSION, {
             isFire: this.dmgType.isFire,
             isAcid: this.type === 'potion',
@@ -384,6 +412,34 @@ export class Projectile {
         }
         
         if (this.tower) this.tower.damageDealt += actualDmg;
+        
+        // PRO FIX: Apply freeze effects from icicle projectiles
+        if (this.effects && this.effects.freeze) {
+            if (enemy.data.isMoab) {
+                // Icicle Impale: freeze/stun MOABs (except BAD)
+                if (!enemy.data.isBAD) {
+                    enemy.applySlow(0.0, this.effects.freezeDuration || 2.0, false); // isIce=false to bypass White/Zebra/Lead checks
+                }
+                // Embrittlement on MOABs
+                if (this.effects.superBrittle) {
+                    enemy.brittle = true; enemy.brittleBonus = 5; enemy.brittleTimer = 4.0; enemy.isCamo = false;
+                } else if (this.effects.embrittlement) {
+                    enemy.brittle = true; enemy.brittleBonus = 1; enemy.brittleTimer = 4.0; enemy.isCamo = false;
+                }
+            } else {
+                if (!(enemy.data.isWhite || enemy.data.isZebra)) {
+                    if (!enemy.isFrozen || this.effects.reFreeze) {
+                        enemy.applySlow(0.0, this.effects.freezeDuration || 1.5, true);
+                    }
+                }
+            }
+        }
+        
+        // Permafrost from icicles
+        if (this.effects && this.effects.permafrost) {
+            enemy.permafrostSlow = 0.5;
+        }
+        
         if (this.effects && this.effects.slow) {
             enemy.applySlow(this.effects.slow, this.effects.slowDuration, this.type === 'ice');
         }
@@ -447,6 +503,8 @@ export class Projectile {
             case 'ninja': return 20;
             case 'flash_bomb': return 24;
             case 'sticky_bomb': return 20;
+            case 'ice_bomb': return 20;
+            case 'icicle': return 24;
             default: return 18;
         }
     }

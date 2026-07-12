@@ -11,8 +11,6 @@ import { InputManager } from './input.js';
 import { UI } from './ui.js';
 import { MapEditor } from './mapEditor.js';
 
-const SCALE_MARGIN = 0.98;
-
 const dom = {
     playBtn: document.getElementById('play-btn'),
     sandboxBtn: document.getElementById('sandbox-btn'),
@@ -100,11 +98,12 @@ function resizeGame() {
     const tooSmallOverlay = document.getElementById('screen-too-small-overlay');
     if (!container) return;
 
-    const scaleX = window.innerWidth / CANVAS_WIDTH;
-    const scaleY = window.innerHeight / CANVAS_HEIGHT;
-    const scale = Math.min(scaleX, scaleY) * SCALE_MARGIN;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
 
-    const MIN_PLAYABLE_SCALE = 0.4; 
+    const scale = Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT);
+
+    const MIN_PLAYABLE_SCALE = 0.3; 
     if (scale < MIN_PLAYABLE_SCALE) {
         container.style.visibility = 'hidden';
         tooSmallOverlay?.classList.remove('hidden');
@@ -113,7 +112,16 @@ function resizeGame() {
 
     container.style.visibility = 'visible';
     tooSmallOverlay?.classList.add('hidden');
+    
+    container.style.transformOrigin = 'top left';
     container.style.transform = `scale(${scale})`;
+    
+    const scaledWidth = CANVAS_WIDTH * scale;
+    const scaledHeight = CANVAS_HEIGHT * scale;
+    
+    container.style.position = 'absolute';
+    container.style.left = `${(w - scaledWidth) / 2}px`;
+    container.style.top = `${(h - scaledHeight) / 2}px`;
 }
 window.addEventListener('resize', resizeGame);
 
@@ -244,7 +252,6 @@ function applyConfigToUI() {
 }
 
 async function startGameUI(isSandbox) {
-    // PRO FIX: Hide menus immediately so the user sees the game canvas
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('difficulty-menu').classList.add('hidden');
     document.getElementById('maps-menu').classList.add('hidden');
@@ -514,14 +521,30 @@ function _setupShopListeners() {
         });
     });
 
+    // PRO FIX: 150ms confirmation buffer & drag-back-to-cancel
+    let activeDrag = null;
+
+    const cleanupDrag = () => {
+        if (activeDrag) {
+            window.removeEventListener('pointermove', activeDrag.onMove);
+            window.removeEventListener('pointerup', activeDrag.onUp);
+            window.removeEventListener('pointerdown', activeDrag.resumeDrag);
+            if (activeDrag.placeTimer) clearTimeout(activeDrag.placeTimer);
+            activeDrag = null;
+        }
+    };
+
     dom.towerCards.forEach(card => {
-        card.addEventListener('mousedown', (e) => {
-            e.preventDefault();
+        card.addEventListener('pointerdown', (e) => {
+            e.preventDefault(); // Prevent mobile scrolling/zooming
+            
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
             if (GameEngine.cash < GameEngine.getCost(stats.cost)) {
                 GameEngine.log("Not enough cash!");
                 return;
             }
+            
+            cleanupDrag(); // Clear any previous unfinished drags
             
             GameEngine.deselectAll();
             dom.towerCards.forEach(c => c.classList.remove('selected'));
@@ -529,17 +552,68 @@ function _setupShopListeners() {
             GameEngine.selectedTowerType = card.dataset.tower;
             document.getElementById('cancel-btn').classList.remove('hidden');
 
-            const handleMouseUp = (ev) => {
-                window.removeEventListener('mouseup', handleMouseUp);
-                const rect = GameEngine.canvas.getBoundingClientRect();
-                
-                if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
-                    GameEngine.handleCanvasClick({ clientX: ev.clientX, clientY: ev.clientY });
-                } else {
-                    GameEngine.deselectAll();
+            const canvasRect = GameEngine.canvas.getBoundingClientRect();
+            const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
+            const scaleX = GameEngine.canvas.width / canvasRect.width;
+            const scaleY = GameEngine.canvas.height / canvasRect.height;
+
+            // Instantly update mouse position
+            GameEngine.mouse.x = (e.clientX - canvasRect.left) * scaleX;
+            GameEngine.mouse.y = (e.clientY - canvasRect.top) * scaleY;
+
+            activeDrag = {
+                onMove: (ev) => {
+                    GameEngine.mouse.x = (ev.clientX - canvasRect.left) * scaleX;
+                    GameEngine.mouse.y = (ev.clientY - canvasRect.top) * scaleY;
+                },
+                onUp: (ev) => {
+                    window.removeEventListener('pointermove', activeDrag.onMove);
+                    window.removeEventListener('pointerup', activeDrag.onUp);
+                    
+                    // 1. If dropped on the sidebar -> Cancel immediately
+                    if (ev.clientX >= sidebarRect.left && ev.clientX <= sidebarRect.right) {
+                        GameEngine.deselectAll();
+                        cleanupDrag();
+                        return;
+                    }
+                    
+                    // 2. If dropped on the canvas -> Start 150ms buffer
+                    if (ev.clientX >= canvasRect.left && ev.clientX <= canvasRect.right && ev.clientY >= canvasRect.top && ev.clientY <= canvasRect.bottom) {
+                        // PRO FIX: Reduced from 500ms to 150ms for better responsiveness
+                        activeDrag.placeTimer = setTimeout(() => {
+                            // 150ms passed without resuming -> Place the tower!
+                            GameEngine.handleCanvasClick({ clientX: ev.clientX, clientY: ev.clientY });
+                            cleanupDrag();
+                        }, 150);
+                        
+                        // Listen for a finger to come back down to resume dragging
+                        window.addEventListener('pointerdown', activeDrag.resumeDrag);
+                    } else {
+                        // 3. Dropped outside both -> Cancel
+                        GameEngine.deselectAll();
+                        cleanupDrag();
+                    }
+                },
+                resumeDrag: (ev) => {
+                    // The user put their finger back down within 150ms!
+                    if (activeDrag && activeDrag.placeTimer) {
+                        clearTimeout(activeDrag.placeTimer);
+                        activeDrag.placeTimer = null;
+                        window.removeEventListener('pointerdown', activeDrag.resumeDrag);
+                        
+                        // Update preview to new touch position
+                        GameEngine.mouse.x = (ev.clientX - canvasRect.left) * scaleX;
+                        GameEngine.mouse.y = (ev.clientY - canvasRect.top) * scaleY;
+                        
+                        // Re-attach move and up listeners to continue dragging
+                        window.addEventListener('pointermove', activeDrag.onMove);
+                        window.addEventListener('pointerup', activeDrag.onUp);
+                    }
                 }
             };
-            window.addEventListener('mouseup', handleMouseUp);
+
+            window.addEventListener('pointermove', activeDrag.onMove);
+            window.addEventListener('pointerup', activeDrag.onUp);
         });
 
         card.addEventListener('mouseenter', () => {
