@@ -61,12 +61,12 @@ export class Enemy {
         this.unstableConcoction = false;
         this.isGoldified = false;
         
-        // PRO FIX: Ice Monkey status effects
-        this.permafrostSlow = 1.0;     // 1.0 = no slow, 0.5 = 50% slow
-        this.brittle = false;           // Embrittlement/Super Brittle debuff
+        this.permafrostSlow = 1.0;     
+        this.brittle = false;           
         this.brittleTimer = 0;
-        this.brittleBonus = 0;          // +1 or +5 extra damage taken
-        this.deepFreezeLayers = 0;      // Deep Freeze: children spawn frozen
+        this.brittleBonus = 0;          
+        this.deepFreezeLayers = 0;      
+        this.leadStripped = false;       // PRO FIX: For Embrittlement removing Lead immunity
 
         this._maxHp = this.data.maxHp;
         if (this.isFortified && (this.data.isMoab || this.data.isCeramic)) {
@@ -91,12 +91,12 @@ export class Enemy {
     _updateTimers(dt) {
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
         
-        // PRO FIX: Handle Brittle timer
         if (this.brittleTimer > 0) {
             this.brittleTimer -= dt;
             if (this.brittleTimer <= 0) {
                 this.brittle = false;
                 this.brittleBonus = 0;
+                this.leadStripped = false; // Restore Lead immunity when Brittle wears off
             }
         }
         
@@ -133,7 +133,6 @@ export class Enemy {
     }
 
     _updateMovement(dt) {
-        // PRO FIX: Apply permafrostSlow to movement speed
         this.distanceTraveled += this.data.speed * this.slowFactor * this.gojoSlow * this.permafrostSlow * dt;
         const pos = this.map.getPositionAtDistance(this.distanceTraveled, this.pathIndex);
         this.x = pos.x + this.offsetX;
@@ -182,7 +181,7 @@ export class Enemy {
 
     applySlow(factor, duration, isIce = true) {
         if (this.data.isBAD) return;
-        if (isIce && (this.data.isWhite || this.data.isZebra || this.data.isLead)) return;
+        if (isIce && (this.data.isWhite || this.data.isZebra || this.data.isLead) && !this.leadStripped) return;
         if (factor <= this.slowFactor || this.slowTimer <= 0) {
             this.slowFactor = factor;
             this.slowTimer = duration;
@@ -218,16 +217,12 @@ export class Enemy {
                 const c = new Enemy(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified, this.hpMod, this.pathIndex);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
                 
-                // PRO FIX: Deep Freeze - children spawn frozen
                 if (this.deepFreezeLayers > 0) {
                     c.deepFreezeLayers = this.deepFreezeLayers - 1;
                     c.applySlow(0.0, 1.5, true);
                 }
-                
-                // Inherit permafrost
-                if (this.permafrostSlow < 1.0) {
-                    c.permafrostSlow = this.permafrostSlow;
-                }
+                if (this.permafrostSlow < 1.0) c.permafrostSlow = this.permafrostSlow;
+                if (this.leadStripped) c.leadStripped = true;
                 
                 if (carryOverDamage > 0) {
                     let dmg = dmgPerChild;
@@ -239,16 +234,19 @@ export class Enemy {
         }
     }
 
-    // PRO FIX: Spawn ice shards when a frozen bloon is popped
     _spawnIceShards() {
         if (!this.isFrozen) return;
+        if (!GameEngine.hasIceShardTower) return; 
+        
+        if (GameEngine.projectilePool.active.length > 1200) return; 
+        
         for (let t of GameEngine.towers) {
             if (t && t.type === 'ice' && t.upgrades[0] >= 3) {
-                let shardCount = 3;
+                // PRO FIX: Super Brittle shoots 6 shards instead of 3
+                let shardCount = t.stats.superBrittle ? 6 : 3;
                 let shardDmg = 2;
                 let shardPierce = 3;
                 
-                // Deep Shards cross-path: more damage and pierce
                 if (t.upgrades[1] >= 2) {
                     shardDmg = 3;
                     shardPierce = 5;
@@ -268,7 +266,6 @@ export class Enemy {
         if (this._isImmune(dmgType, effects)) return -1;
         if (isNaN(damage)) damage = 0;
         
-        // PRO FIX: Apply Brittle debuff bonus damage
         if (this.brittle) damage += this.brittleBonus;
         
         if (dmgType.moabDmg && this.data.isMoab) damage += (dmgType.moabDmg || 0);
@@ -310,13 +307,13 @@ export class Enemy {
 
     _isImmune(dmgType, effects) {
         if (this.data.blocksDamageType && this.data.blocksDamageType(dmgType)) {
-            // PRO FIX: Brittle removes Lead immunity
-            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && !this.brittle) {
+            // PRO FIX: Brittle temporarily removes Lead immunity
+            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && this.leadStripped) {
+                return false; 
+            }
+            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && !this.leadStripped) {
                 AudioEngine.playSfx('lead_hit');
                 return true;
-            }
-            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && this.brittle) {
-                return false; // Brittle allows sharp to hit Lead
             }
             return true;
         }
@@ -324,8 +321,7 @@ export class Enemy {
             AudioEngine.playSfx('frozen_hit');
             return true;
         }
-        // PRO FIX: Brittle removes Lead immunity for sharp damage
-        if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && !this.brittle) {
+        if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && !this.leadStripped) {
             AudioEngine.playSfx('lead_hit');
             return true;
         }
@@ -367,7 +363,6 @@ export class Enemy {
         this.hp -= damage;
         
         if (this.hp <= 0) {
-            // PRO FIX: Spawn ice shards if frozen
             if (this.isFrozen) this._spawnIceShards();
             
             this.alive = false;
@@ -389,7 +384,6 @@ export class Enemy {
             return 0;
         }
         
-        // PRO FIX: Spawn ice shards if frozen
         if (this.isFrozen) this._spawnIceShards();
         
         this.alive = false;
@@ -402,7 +396,6 @@ export class Enemy {
     }
 
     _handleSplitDamage(damage, dmgType, effects, canSpawn) {
-        // PRO FIX: Spawn ice shards if frozen
         if (this.isFrozen) this._spawnIceShards();
         
         this.alive = false;
@@ -430,7 +423,6 @@ export class Enemy {
         }
         
         if (currentTier === null) {
-            // PRO FIX: Spawn ice shards if frozen
             if (this.isFrozen) this._spawnIceShards();
             
             this.alive = false;
@@ -483,7 +475,6 @@ export class Enemy {
             ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 3, 0, Math.PI * 2); ctx.stroke();
         }
         
-        // PRO FIX: Brittle visual indicator
         if (this.brittle) {
             ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.arc(this.x, this.y, this.data.radius + 6, 0, Math.PI * 2); ctx.stroke();

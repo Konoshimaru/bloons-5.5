@@ -406,12 +406,14 @@ export class Projectile {
         if (this.bonusCeramic && enemy.data.isCeramic) dmg += this.bonusCeramic;
         
         const actualDmg = enemy.takeDamage(dmg, this.dmgType, this.effects);
-        if (actualDmg === -1) {
+        // PRO FIX: Guard against -1 (immune) and NaN to prevent stat corruption
+        if (actualDmg === -1 || isNaN(actualDmg)) {
             this.alive = false;
             return;
         }
         
         if (this.tower) this.tower.damageDealt += actualDmg;
+        // ... rest remains the same
         
         // PRO FIX: Apply freeze effects from icicle projectiles
         if (this.effects && this.effects.freeze) {

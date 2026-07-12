@@ -214,7 +214,8 @@ export default {
                 if (!e.alive || s.hitEnemies.has(e)) continue;
                 if (Utils.distance(s.x, s.y, e.x, e.y) < e.data.radius + s.hitRadius) {
                     let dmg = e.takeDamage(s.dmg, { isMagic: true, canHitLead: true });
-                    tower.damageDealt += dmg;
+                    // PRO FIX: Guard against -1 and NaN
+                    if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                     s.hitEnemies.add(e);
                     if (s.slowOnHit) e.applySlow(0.85, 0.5, false);
                     if (s.isWorm && s.wormStun && !e.data.isMoab) e.applySlow(0.0, 0.3, false);

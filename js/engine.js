@@ -68,6 +68,8 @@ export const GameEngine = {
     isSandbox: false,
     leakFlash: 0,
     
+    hasIceShardTower: false, // PRO FIX: Cache for Ice Shards performance
+    
     lastCash: -1,
     lastLives: -1,
     frames: 0,
@@ -568,7 +570,6 @@ export const GameEngine = {
             }
         }
         
-        // PRO FIX: Wrap rendering in try/catch to prevent hidden canvas errors from freezing the game
         try {
             Renderer.render(this, rawDt);
         } catch (err) {
@@ -689,11 +690,17 @@ export const GameEngine = {
             t.buffedValueMult = 0;
         }
         
+        // PRO FIX: Cache Ice Shards tower existence for performance
+        this.hasIceShardTower = false;
+        
         for (const t of this.towers) {
             if (!t) continue;
             const behavior = getBehavior(t.type);
             if (behavior && behavior.updateSupport) {
                 behavior.updateSupport(t, dt);
+            }
+            if (t.type === 'ice' && t.upgrades[0] >= 3) {
+                this.hasIceShardTower = true;
             }
         }
         

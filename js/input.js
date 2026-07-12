@@ -5,7 +5,7 @@ export const InputManager = {
     init(canvas = GameEngine.canvas) {
         if (!canvas) return;
         this._setupMouseEvents(canvas);
-        this._setupTouchEvents(canvas); // PRO FIX: Add Touch Events
+        this._setupTouchEvents(canvas); 
         this._setupKeyboardEvents();
     },
 
@@ -18,7 +18,6 @@ export const InputManager = {
         });
     },
 
-    // PRO FIX: Shared coordinate mapping helper
     _updateMousePosFromClientCoords(clientX, clientY, canvas) {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -27,17 +26,22 @@ export const InputManager = {
         GameEngine.mouse.y = (clientY - rect.top) * scaleY;
     },
 
-    // PRO FIX: Touch Event Setup
     _setupTouchEvents(canvas) {
         canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Stop scrolling/zooming
+            e.preventDefault(); 
+            // PRO FIX: Explicitly ignore multi-touch to prevent unpredictable behavior
+            if (e.touches.length > 1) return; 
+            
             const touch = e.touches[0];
             this._updateMousePosFromClientCoords(touch.clientX, touch.clientY, canvas);
             GameEngine.handleCanvasClick({ clientX: touch.clientX, clientY: touch.clientY });
         }, { passive: false });
 
         canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // Stop scrolling/zooming
+            e.preventDefault();
+            // PRO FIX: Ignore multi-touch during move as well
+            if (e.touches.length > 1) return; 
+            
             const touch = e.touches[0];
             this._updateMousePosFromClientCoords(touch.clientX, touch.clientY, canvas);
         }, { passive: false });

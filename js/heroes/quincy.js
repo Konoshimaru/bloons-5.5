@@ -44,7 +44,10 @@ export default {
                         if (Math.random() < soa.chance) {
                             let dmgType = { isSharp: true, canHitLead: true }; let dmg = soa.dmg;
                             if (e.data.isMoab) dmg += soa.moabDmg; if (e.data.isCeramic) dmg += soa.ceramicDmg;
-                            let actualDmg = e.takeDamage(dmg, dmgType); tower.damageDealt += actualDmg; e.stormHitTimer = 0.05;
+                            let actualDmg = e.takeDamage(dmg, dmgType); 
+                            // PRO FIX: Guard against -1 and NaN
+                            if (!isNaN(actualDmg) && actualDmg !== -1) tower.damageDealt += actualDmg;
+                            e.stormHitTimer = 0.05;
                         }
                     }
                 }
