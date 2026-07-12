@@ -239,7 +239,7 @@
         <!-- Map Editor Menu -->
         <div id="map-editor-menu" class="overlay hidden">
             <div class="editor-container">
-                <div class="editor-toolbar">
+                <div class="editor-sidebar">
                     <input type="text" id="editor-map-name" placeholder="Map Name" value="New Custom Map">
                     <div class="tool-group">
                         <button class="tool-btn active" data-tool="track">Track</button>
@@ -249,10 +249,11 @@
                     <div class="tool-options" id="track-options">
                         <button id="editor-new-path">New Path</button>
                         <button id="editor-toggle-curve">Toggle Curve</button>
+                        <button id="editor-reverse-path">Reverse Path</button>
                     </div>
                     <div class="tool-options hidden" id="water-options">
-                        <label>Size: <input type="range" id="water-brush-size" min="10" max="60" value="30"></label>
-                        <button id="water-erase-toggle">Erase</button>
+                        <label>Size: <input type="range" id="water-brush-size" min="20" max="120" value="60"></label>
+                        <button id="water-erase-toggle">Erase Mode</button>
                     </div>
                     <div class="tool-options hidden" id="objects-options">
                         <button class="obj-btn active" data-obj="tree">Tree</button>
@@ -260,17 +261,20 @@
                         <button class="obj-btn" data-obj="rock">Rock</button>
                     </div>
                 </div>
-                <canvas id="editor-canvas" width="900" height="600"></canvas>
-                <div class="editor-bottom-bar">
-                    <button id="editor-undo">↩ Undo</button>
-                    <button id="editor-save">Save Map</button>
-                    <button id="editor-load">Load Map</button>
-                    <button id="editor-toggle-json">View/Edit JSON</button>
-                    <button class="back-btn" data-target="main-menu">Exit</button>
-                </div>
-                <div id="editor-json-viewer" class="hidden">
-                    <textarea id="editor-json-text"></textarea>
-                    <button id="editor-apply-json">Apply JSON</button>
+                <div class="editor-main">
+                    <canvas id="editor-canvas" width="1280" height="720"></canvas>
+                    <div class="editor-bottom-bar">
+                        <button id="editor-undo">↩ Undo</button>
+                        <button id="editor-redo">↪ Redo</button>
+                        <button id="editor-save">Save Map</button>
+                        <button id="editor-load">Load Map</button>
+                        <button id="editor-toggle-json">View/Edit JSON</button>
+                        <button id="editor-exit">Exit</button>
+                    </div>
+                    <div id="editor-json-viewer" class="hidden">
+                        <textarea id="editor-json-text"></textarea>
+                        <button id="editor-apply-json">Apply JSON</button>
+                    </div>
                 </div>
             </div>
         </div>

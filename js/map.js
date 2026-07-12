@@ -2,7 +2,7 @@
 import { Utils } from './utils.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js'; // PRO FIX: Import shared constants
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 
 const GRID_SIZE = 40;
 const PATH_WIDTH = 45;
@@ -20,8 +20,8 @@ export class GameMap {
 
         this.data = JSON.parse(JSON.stringify(mapData)); 
         this.props = this.data.props || []; 
+        this.waterBrushes = this.data.waterBrushes || []; 
         
-        // PRO FIX: Backward compatibility & Offset for old 900x600 maps
         if (this.data.waypoints && !this.data.paths) {
             this.data.paths = [{ waypoints: this.data.waypoints }];
             delete this.data.waypoints;
@@ -46,7 +46,6 @@ export class GameMap {
             let totalLength = 0;
 
             for (let i = 0; i < waypoints.length - 1; i++) {
-                // Apply offset to path points for the runtime pathfinding
                 const p1 = { x: waypoints[i].x + this.offsetX, y: waypoints[i].y + this.offsetY };
                 const p2 = { x: waypoints[i+1].x + this.offsetX, y: waypoints[i+1].y + this.offsetY };
                 
@@ -103,6 +102,23 @@ export class GameMap {
         ctx.lineWidth = 1;
         for(let x = 0; x < CANVAS_WIDTH; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke(); }
         for(let y = 0; y < CANVAS_HEIGHT; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke(); }
+
+        for (let brush of this.waterBrushes) {
+            if (brush.points.length === 0) continue;
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = brush.thickness;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(brush.points[0].x + this.offsetX, brush.points[0].y + this.offsetY);
+            for (let i = 1; i < brush.points.length; i++) {
+                ctx.lineTo(brush.points[i].x + this.offsetX, brush.points[i].y + this.offsetY);
+            }
+            if (brush.points.length === 1) {
+                ctx.arc(brush.points[0].x + this.offsetX, brush.points[0].y + this.offsetY, brush.thickness / 2, 0, Math.PI * 2);
+            }
+            ctx.stroke();
+        }
 
         this.props.forEach(p => this._drawProp(ctx, p));
 
@@ -217,9 +233,32 @@ export class GameMap {
         return bestPoint;
     }
 
+    isInWater(x, y) {
+        for (let p of this.props) {
+            if (p.type === 'pond') {
+                const r = p.r || 30;
+                if (Utils.distance(x, y, p.x + this.offsetX, p.y + this.offsetY) < r) return true;
+            }
+        }
+        for (let brush of this.waterBrushes) {
+            const r = brush.thickness / 2;
+            if (brush.points.length === 1) {
+                if (Utils.distance(x, y, brush.points[0].x + this.offsetX, brush.points[0].y + this.offsetY) < r) return true;
+            } else {
+                for (let i = 0; i < brush.points.length - 1; i++) {
+                    const p1 = { x: brush.points[i].x + this.offsetX, y: brush.points[i].y + this.offsetY };
+                    const p2 = { x: brush.points[i+1].x + this.offsetX, y: brush.points[i+1].y + this.offsetY };
+                    if (Utils.distToSegment(x, y, p1.x, p1.y, p2.x, p2.y) < r) return true;
+                }
+            }
+        }
+        return false;
+    }
+
     isOnProp(x, y) {
         for (let p of this.props) {
-            const r = p.type === 'pond' ? (p.r || 30) : PROP_RADIUS_SMALL;
+            if (p.type === 'pond') continue; 
+            const r = p.type === 'pond' ? (p.r || 30) : PROP_RADIUS_SMALL; 
             if (Utils.distance(x, y, p.x + this.offsetX, p.y + this.offsetY) < r) return true;
         }
         return false;

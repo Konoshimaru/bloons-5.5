@@ -1,5 +1,5 @@
 ﻿// engine.js
-import { Config, Difficulties, HeroStats, TargetingModes, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js'; // PRO FIX: Import Constants
+import { Config, Difficulties, HeroStats, TargetingModes, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
@@ -165,7 +165,18 @@ export const GameEngine = {
 
     startGame(isSandbox = false) {
         this.isSandbox = isSandbox;
-        this.map = new GameMap(this.currentMap);
+        
+        // PRO FIX: Try to load the map, but catch errors so the engine doesn't crash silently
+        try {
+            this.map = new GameMap(this.currentMap);
+        } catch (e) {
+            this.log("Error loading map: " + e.message);
+            this.gameState = 'gameover';
+            UI.toggleMenus('game-over-menu');
+            document.getElementById('go-wave-stat').innerText = `Map Load Error: ${e.message}`;
+            return;
+        }
+        
         this.gameState = 'playing';
         
         const diff = isSandbox ? Difficulties.medium : Difficulties[Config.data.currentDifficulty];
@@ -347,7 +358,6 @@ export const GameEngine = {
 
         for (const t of this.towers) {
             if (t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + 5)) {
-                // PRO FIX: Tap same tower again to deselect (Mobile friendly)
                 if (this.selectedPlacedTower === t) {
                     this.deselectAll();
                 } else {
@@ -385,9 +395,8 @@ export const GameEngine = {
 
         let canPlace = false;
         if (stats.waterOnly) {
-            canPlace = this.map.props.some(p => p.type === 'pond' && Utils.distance(x, y, p.x + this.map.offsetX, p.y + this.map.offsetY) < (p.r || 30));
+            canPlace = this.map.isInWater(x, y);
         } else {
-            // PRO FIX: Updated bounds to use CANVAS_WIDTH - 300 (leaves room for sidebar) and CANVAS_HEIGHT
             canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300;
         }
 
@@ -560,13 +569,18 @@ export const GameEngine = {
             }
         }
         
-        Renderer.render(this, rawDt);
+        // PRO FIX: Wrap rendering in try/catch to prevent hidden canvas errors from freezing the game
+        try {
+            Renderer.render(this, rawDt);
+        } catch (err) {
+            console.error("Render Error (skipped frame):", err);
+        }
         
         if (!document.hidden) {
             if (this._rafId) cancelAnimationFrame(this._rafId);
             this._rafId = requestAnimationFrame(this._boundLoop);
         }
-    },
+    },    
 
     update(dt) {
         this._updateLimitsAndTimers(dt);
@@ -625,7 +639,7 @@ export const GameEngine = {
     },
 
     _updateAcidPools(dt) {
-        for (let i = this.acidPools.length - 1; i >= 0; i--) {
+        for (let i = this.acidPools.length - 1; i >= 0; i++) {
             const pool = this.acidPools[i];
             pool.life -= dt;
             pool.tick -= dt;
@@ -724,7 +738,7 @@ export const GameEngine = {
 
     _updateProjectiles(dt) {
         const projectiles = this.projectilePool.active;
-        for (let i = projectiles.length - 1; i >= 0; i--) {
+        for (let i = projectiles.length - 1; i >= 0; i++) {
             const p = projectiles[i];
             if (!p) continue;
             
@@ -737,7 +751,7 @@ export const GameEngine = {
     },
 
     _updateExplosions(dt) {
-        for (let i = this.explosions.length - 1; i >= 0; i--) {
+        for (let i = this.explosions.length - 1; i >= 0; i++) {
             const exp = this.explosions[i];
             if (!exp) continue;
             

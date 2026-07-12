@@ -135,6 +135,10 @@ body {
 .menu-content { 
     background: var(--bg); padding: 30px; border-radius: 12px; border: 2px solid var(--accent); 
     text-align: center; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 600px;
+    /* PRO FIX: Prevent menu from getting cut off */
+    max-height: 90vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
 }
 .menu-content h1, .menu-content h2 { color: var(--accent); letter-spacing: 1px; }
 .menu-content button, .back-btn { 
@@ -162,7 +166,12 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 #shop-tooltip, #upgrade-tooltip { position: absolute; background: rgba(0,0,0,0.95); padding: 8px 12px; border-radius: 4px; pointer-events: none; z-index: 30; max-width: 220px; font-size: 12px; opacity: 0; transition: opacity 0.2s; border: 1px solid var(--accent); color: white; }
 
 /* HERO MENU V2 */
-.hm-container { width: 800px; height: 600px; background: var(--bg); border: 2px solid var(--accent); border-radius: 12px; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+.hm-container { 
+    width: 800px; max-height: 90vh; background: var(--bg); border: 2px solid var(--accent); border-radius: 12px; 
+    display: flex; flex-direction: column; padding: 20px; box-sizing: border-box;
+    /* PRO FIX: Replace fixed height with max-height + overflow */
+    overflow-y: auto;
+}
 .hm-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #7f8c8d; padding-bottom: 15px; margin-bottom: 20px; }
 .hm-top-text h2 { margin: 0; font-size: 28px; color: var(--accent); }
 .hm-top-text h3 { margin: 4px 0 0 0; font-size: 14px; color: #bdc3c7; }
@@ -194,29 +203,61 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 
 /* Map Editor */
 .editor-container { 
-    display: flex; flex-direction: column; background: var(--bg); padding: 15px; border-radius: 12px; 
-    width: 95vw; max-width: 940px; max-height: 95vh; overflow-y: auto; 
+    display: flex; 
+    background: var(--bg); 
+    padding: 10px; 
+    border-radius: 12px; 
+    width: 95vw; 
+    max-width: 1340px; 
+    max-height: 95vh; 
 }
-.editor-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-.editor-toolbar input { flex-grow: 1; min-width: 150px; }
-.tool-group { display: flex; gap: 5px; background: var(--panel); padding: 4px; border-radius: 6px; }
-.tool-btn { padding: 6px 12px; background: transparent; border: none; color: var(--text); cursor: pointer; border-radius: 4px; }
+.editor-sidebar { 
+    width: 200px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+    padding: 10px; 
+    background: var(--panel); 
+    border-radius: 8px; 
+    margin-right: 10px; 
+    overflow-y: auto; 
+}
+.editor-sidebar input { margin-bottom: 5px; }
+.tool-group { display: flex; flex-direction: column; gap: 5px; background: var(--bg); padding: 4px; border-radius: 6px; }
+.tool-btn { padding: 8px 12px; background: transparent; border: none; color: var(--text); cursor: pointer; border-radius: 4px; text-align: left; }
 .tool-btn.active { background: var(--accent); color: white; }
-.tool-options { display: flex; gap: 5px; align-items: center; background: var(--panel); padding: 4px; border-radius: 6px; }
+.tool-options { display: flex; flex-direction: column; gap: 5px; background: var(--bg); padding: 8px; border-radius: 6px; }
 .tool-options.hidden { display: none; }
+.tool-options button { padding: 6px; background: var(--panel); border: 1px solid #7f8c8d; color: white; border-radius: 4px; cursor: pointer; }
+.tool-options button:hover { background: #3e5771; }
+.tool-options label { font-size: 12px; }
+
+.editor-main { flex: 1; display: flex; flex-direction: column; }
 #editor-canvas { 
-    background: #8acc4d; border: 2px solid var(--accent); border-radius: 8px; cursor: crosshair; 
-    width: 100%; max-width: 900px; height: auto; margin-top: 10px; 
+    background: #8acc4d; 
+    border: 2px solid var(--accent); 
+    border-radius: 8px; 
+    cursor: crosshair; 
+    width: 100%; 
+    max-width: 1280px; 
+    height: auto; 
+    flex-grow: 1; 
 }
 .editor-bottom-bar { 
-    display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; justify-content: center; 
+    display: flex; 
+    gap: 10px; 
+    margin-top: 10px; 
+    flex-wrap: wrap; 
+    justify-content: center; 
 }
 .editor-bottom-bar button { padding: 8px 16px; background: var(--panel); border: 1px solid #7f8c8d; color: white; cursor: pointer; border-radius: 6px; font-weight: bold; }
 .editor-bottom-bar button:hover { background: #3e5771; border-color: var(--accent); }
 #editor-undo { background: #e67e22 !important; border-color: #d35400 !important; }
-#editor-json-viewer { margin-top: 10px; width: 100%; }
-#editor-json-text { width: 100%; height: 150px; background: #1a1a1a; color: #0f0; border: 1px solid var(--accent); border-radius: 4px; padding: 10px; font-family: monospace; box-sizing: border-box; }
+#editor-redo { background: #2980b9 !important; border-color: #206080 !important; }
+#editor-exit { background: var(--danger) !important; border-color: #c0392b !important; }
 
+#editor-json-viewer { margin-top: 10px; width: 100%; }
+#editor-json-text { width: 100%; height: 120px; background: #1a1a1a; color: #0f0; border: 1px solid var(--accent); border-radius: 4px; padding: 10px; font-family: monospace; box-sizing: border-box; }
 /* PRO FIX: Screen Too Small Overlay */
 #screen-too-small-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; color: #fff;

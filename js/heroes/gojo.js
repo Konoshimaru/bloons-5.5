@@ -3,6 +3,7 @@ import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { AudioEngine } from '../audio.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
 
 export default {
     stats: { 
@@ -55,24 +56,27 @@ export default {
                 
                 if (Utils.distance(tower.hollowProjectile.x, tower.hollowProjectile.y, e.x, e.y) < e.data.radius + 40) {
                     let dmg = e.takeDamage(10000, { isMagic: true, canHitLead: true });
-                    tower.damageDealt += dmg;
+                    if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                     tower.hollowProjectile.hitEnemies.add(e); 
                 }
             }
             
-if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH + 100 || tower.hollowProjectile.y < -100 || tower.hollowProjectile.y > CANVAS_HEIGHT + 100) {                tower.hollowProjectile = null;
+            if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH + 100 || tower.hollowProjectile.y < -100 || tower.hollowProjectile.y > CANVAS_HEIGHT + 100) {
+                tower.hollowProjectile = null;
             }
         }
 
         if (tower.phase === 1 && GameEngine.difficulty && GameEngine.map) {
-            const totalLen = GameEngine.map.getTotalLength(0); // Check path 0 for leak
+            const totalLen = GameEngine.map.getTotalLength(0); 
             let wouldDie = false;
             
-            for (let e of GameEngine.enemies) {
-                if (e.alive && e.distanceTraveled >= totalLen * 0.95) {
-                    if (GameEngine.lives - e.getLivesLost() <= 0) {
-                        wouldDie = true;
-                        break;
+            if (totalLen > 0) {
+                for (let e of GameEngine.enemies) {
+                    if (e.alive && e.distanceTraveled >= totalLen * 0.95) {
+                        if (GameEngine.lives - e.getLivesLost() <= 0) {
+                            wouldDie = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -100,7 +104,8 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
                     e.offsetX *= 0.5; e.offsetY *= 0.5; 
                 }
                 if (Utils.distance(tower.reverseWell.x, tower.reverseWell.y, e.x, e.y) < 150) {
-                    let dmg = e.takeDamage(5000 * dt, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg;
+                    let dmg = e.takeDamage(5000 * dt, { isMagic: true, canHitLead: true }); 
+                    if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                 }
             }
             if (tower.reverseWell.life <= 0 || tower.reverseWell.dist <= 0) tower.reverseWell = null;
@@ -109,11 +114,18 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
         if (tower.stats.limitlessPassive && GameEngine.map) {
             for (let e of GameEngine.enemies) {
                 if (!e.alive) continue;
-                // PRO FIX: Use the specific enemy's path length
                 const totalLen = GameEngine.map.getTotalLength(e.pathIndex || 0);
-                const maxSlow = tower.phase === 2 ? 0.50 : 0.25;
-                let progress = Math.min(1, e.distanceTraveled / totalLen);
-                let slowVal = 1 - (progress * maxSlow); e.gojoSlow = slowVal; e.infinityTint = progress;
+                if (totalLen > 0) {
+                    const maxSlow = tower.phase === 2 ? 0.50 : 0.25;
+                    let progress = Math.min(1, Math.max(0, e.distanceTraveled / totalLen));
+                    if (isNaN(progress)) progress = 0;
+                    let slowVal = 1 - (progress * maxSlow); 
+                    e.gojoSlow = isNaN(slowVal) ? 1.0 : slowVal; 
+                    e.infinityTint = progress;
+                } else {
+                    e.gojoSlow = 1.0; 
+                    e.infinityTint = 0;
+                }
             }
         }
 
@@ -127,7 +139,7 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
                 let rx = tower.reversalRed.x, ry = tower.reversalRed.y;
                 GameEngine.explosions.push({ x: rx, y: ry, radius: 0, maxRadius: 150, life: 0.4, maxLife: 0.4, color: '#ff0000' });
                 const nearby = GameEngine.enemyGrid.query(rx, ry, 150);
-                for (let e of nearby) { if (e.alive && Utils.distance(rx, ry, e.x, e.y) < 150) { let dmg = e.takeDamage(tower.stats.damage * 20, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg; e.applySlow(0.0, 3.0, false); } }
+                for (let e of nearby) { if (e.alive && Utils.distance(rx, ry, e.x, e.y) < 150) { let dmg = e.takeDamage(tower.stats.damage * 20, { isMagic: true, canHitLead: true }); if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg; e.applySlow(0.0, 3.0, false); } }
                 tower.reversalRed = null;
             }
         }
@@ -140,33 +152,55 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
             for (let e of nearby) {
                 if (!e.alive) continue; let dx = mx - e.x; let dy = my - e.y; let dist = Math.hypot(dx, dy);
                 if (dist > 1) { e.offsetX += dx * 0.1; e.offsetY += dy * 0.1; }
-                let dmg = e.takeDamage(tower.maxBlue.dmg * dt * 5, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg;
+                let dmg = e.takeDamage(tower.maxBlue.dmg * dt * 5, { isMagic: true, canHitLead: true }); 
+                if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
             }
             if (tower.maxBlue.life <= 0) {
                 GameEngine.explosions.push({ x: mx, y: my, radius: 0, maxRadius: 200, life: 0.5, maxLife: 0.5, color: '#0000ff' });
-                for (let e of nearby) { if (!e.alive) continue; let dmg = e.takeDamage(tower.maxBlue.dmg * 50, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg; }
+                for (let e of nearby) { if (!e.alive) continue; let dmg = e.takeDamage(tower.maxBlue.dmg * 50, { isMagic: true, canHitLead: true }); if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg; }
                 tower.maxBlue = null;
             }
         }
 
         if (tower.blueWells && tower.blueWells.length > 0) {
             for (let i = tower.blueWells.length - 1; i >= 0; i--) {
-                let w = tower.blueWells[i]; w.life -= dt; w.rot += dt * 10;
-                const nearby = GameEngine.enemyGrid.query(w.x, w.y, w.radius); let pullHits = 0;
+                let w = tower.blueWells[i]; 
+                w.life -= dt; 
+                w.rot += dt * 10;
+                
+                const nearby = GameEngine.enemyGrid.query(w.x, w.y, w.radius); 
+                let pullHits = 0;
+                
                 for (let e of nearby) {
-                    if (pullHits >= w.maxHits) break; if (!e.alive) continue;
-                    let dx = w.x - e.x; let dy = w.y - e.y; let dist = Math.hypot(dx, dy);
-                    if (dist < w.radius && dist > 1) { 
+                    if (pullHits >= 50) break; 
+                    if (!e.alive) continue;
+                    
+                    let dx = w.x - e.x; 
+                    let dy = w.y - e.y; 
+                    let dist = Math.hypot(dx, dy);
+                    
+                    if (!isNaN(dist) && dist < w.radius && dist > 5) { 
                         let pullStrength = 20 * dt * (w.life / w.maxLife); 
                         e.offsetX += dx * pullStrength; 
                         e.offsetY += dy * pullStrength; 
                         pullHits++; 
                     }
                 }
+                
                 if (w.life <= 0) {
-                    tower.blueWells.splice(i, 1); GameEngine.explosions.push({ x: w.x, y: w.y, radius: 0, maxRadius: w.radius, life: 0.3, maxLife: 0.3, color: '#0000ff' });
+                    tower.blueWells.splice(i, 1); 
+                    GameEngine.explosions.push({ x: w.x, y: w.y, radius: 0, maxRadius: w.radius, life: 0.3, maxLife: 0.3, color: '#0000ff' });
+                    
                     let explosionHits = 0;
-                    for (let e of nearby) { if (explosionHits >= w.maxHits) break; if (!e.alive) continue; if (Utils.distance(w.x, w.y, e.x, e.y) < w.radius) { let dmg = e.takeDamage(w.dmg * 5, { isMagic: true, canHitLead: true }); tower.damageDealt += dmg; e.offsetX = 0; e.offsetY = 0; explosionHits++; } }
+                    for (let e of nearby) { 
+                        if (explosionHits >= 50) break; 
+                        if (!e.alive) continue; 
+                        if (Utils.distance(w.x, w.y, e.x, e.y) < w.radius) { 
+                            let dmg = e.takeDamage(w.dmg * 5, { isMagic: true, canHitLead: true }); 
+                            if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg; 
+                            explosionHits++; 
+                        } 
+                    }
                 }
             }
         }
@@ -193,11 +227,17 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
             for (let w of tower.blueWells) {
                 let alpha = Math.min(1, w.life / w.maxLife);
                 ctx.globalAlpha = alpha * 0.6;
-                const grad = ctx.createRadialGradient(w.x, w.y, 0, w.x, w.y, w.radius);
+                
+                // PRO FIX: Prevent canvas crashes by ensuring valid coordinates
+                const wx = isNaN(w.x) ? tower.x : w.x;
+                const wy = isNaN(w.y) ? tower.y : w.y;
+                const wr = Math.max(1, w.radius || 50);
+                
+                const grad = ctx.createRadialGradient(wx, wy, 0, wx, wy, wr);
                 grad.addColorStop(0, 'rgba(0, 0, 0, 1)'); grad.addColorStop(0.5, 'rgba(0, 50, 255, 0.8)'); grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(w.x, w.y, w.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(wx, wy, wr, 0, Math.PI * 2); ctx.fill();
                 ctx.globalAlpha = alpha; ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3;
-                for(let i=0; i<4; i++) { ctx.beginPath(); let startAng = w.rot + (i * Math.PI / 2); ctx.arc(w.x, w.y, 10 + (i*5), startAng, startAng + Math.PI * 1.5); ctx.stroke(); }
+                for(let i=0; i<4; i++) { ctx.beginPath(); let startAng = w.rot + (i * Math.PI / 2); ctx.arc(wx, wy, 10 + (i*5), startAng, startAng + Math.PI * 1.5); ctx.stroke(); }
                 ctx.globalAlpha = 1;
             }
         }
@@ -227,7 +267,12 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
         }
     },
     drawMaxBlueVFX(ctx, x, y, baseR) {
-        let t = performance.now() / 1000; let pulse = 1 + Math.sin(t * 4) * 0.15; let r = baseR * pulse; let points = 16;
+        // PRO FIX: Sanitize all inputs to prevent NaN canvas crashes
+        if (isNaN(x) || isNaN(y) || isNaN(baseR)) return;
+        let t = performance.now() / 1000; 
+        let pulse = 1 + Math.sin(t * 4) * 0.15; 
+        let r = Math.max(1, baseR * pulse); 
+        let points = 16;
         ctx.save(); ctx.translate(x, y); ctx.shadowBlur = 80 + Math.sin(t * 4) * 30; ctx.shadowColor = 'rgba(0, 85, 255, 0.7)'; ctx.globalCompositeOperation = 'screen';
         ctx.save(); ctx.rotate(t * 1.5); let scaleA = 1 + Math.sin(t * 3) * 0.05; ctx.scale(scaleA, scaleA);
         const gradA = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.2); gradA.addColorStop(0, 'rgba(0, 210, 255, 0.6)'); gradA.addColorStop(0.6, 'rgba(0, 85, 255, 0.2)'); gradA.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -244,7 +289,11 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
         ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
     },
     drawRedTyphoonVFX(ctx, x, y, rot, baseR) {
-        let t = performance.now() / 1000; let pulse = 1 + Math.sin(t * 5) * 0.15; let r = baseR * pulse;
+        // PRO FIX: Sanitize all inputs to prevent NaN canvas crashes
+        if (isNaN(x) || isNaN(y) || isNaN(baseR) || isNaN(rot)) return;
+        let t = performance.now() / 1000; 
+        let pulse = 1 + Math.sin(t * 5) * 0.15; 
+        let r = Math.max(1, baseR * pulse);
         ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'screen';
         for(let i=0; i<3; i++) {
             ctx.save(); ctx.rotate(rot + (i * Math.PI * 2 / 3)); ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255, 0, 43, 0.8)';
@@ -256,18 +305,22 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
         ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
     },
     drawHollowPurpleVFX(ctx, x, y, progress) {
-        let t = performance.now() / 1000; let trembleX = (Math.random() - 0.5) * 4; let trembleY = (Math.random() - 0.5) * 4;
+        // PRO FIX: Sanitize all inputs to prevent NaN canvas crashes
+        if (isNaN(x) || isNaN(y) || isNaN(progress)) return;
+        let t = performance.now() / 1000; 
+        let trembleX = (Math.random() - 0.5) * 4; 
+        let trembleY = (Math.random() - 0.5) * 4;
         ctx.save(); ctx.translate(x + trembleX, y + trembleY); ctx.globalCompositeOperation = 'screen';
         let shroudR = 100 + Math.sin(t * 2) * 20;
-        const shroudGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, shroudR); shroudGrad.addColorStop(0, `rgba(148, 0, 211, 0.9)`); shroudGrad.addColorStop(0.7, `rgba(75, 0, 130, 0.5)`); shroudGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = shroudGrad; ctx.beginPath(); ctx.arc(0, 0, shroudR * progress, 0, Math.PI * 2); ctx.fill();
+        const shroudGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(1, shroudR * progress)); shroudGrad.addColorStop(0, `rgba(148, 0, 211, 0.9)`); shroudGrad.addColorStop(0.7, `rgba(75, 0, 130, 0.5)`); shroudGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = shroudGrad; ctx.beginPath(); ctx.arc(0, 0, Math.max(1, shroudR * progress), 0, Math.PI * 2); ctx.fill();
         let ringR = 80 + Math.sin(t * 3) * 10; ctx.shadowBlur = 30; ctx.shadowColor = 'rgba(148, 0, 211, 0.8)'; ctx.strokeStyle = `rgba(255, 255, 255, 0.5)`; ctx.lineWidth = 5;
-        ctx.beginPath(); ctx.arc(0, 0, ringR * progress, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.arc(0, 0, Math.max(1, ringR * progress), 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
         ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.8})`; ctx.lineWidth = 2;
         for(let i=0; i<3; i++) { let ang = t * 10 + (i * Math.PI * 2 / 3); ctx.beginPath(); ctx.moveTo(0, 0); let len = 60 * progress; let x1 = Math.cos(ang) * len * 0.5; let y1 = Math.sin(ang) * len * 0.5; let x2 = Math.cos(ang + Math.random()*0.5) * len; let y2 = Math.sin(ang + Math.random()*0.5) * len; ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
         ctx.globalCompositeOperation = 'source-over'; let eyeR = 40 * progress;
-        const eyeGrad = ctx.createRadialGradient(0,0,0, 0,0, eyeR); eyeGrad.addColorStop(0, '#ffffff'); eyeGrad.addColorStop(0.5, '#e6beff'); eyeGrad.addColorStop(0.8, 'rgba(148, 0, 211, 0.8)'); eyeGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = eyeGrad; ctx.beginPath(); ctx.arc(0, 0, eyeR, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+        const eyeGrad = ctx.createRadialGradient(0,0,0, 0,0, Math.max(1, eyeR)); eyeGrad.addColorStop(0, '#ffffff'); eyeGrad.addColorStop(0.5, '#e6beff'); eyeGrad.addColorStop(0.8, 'rgba(148, 0, 211, 0.8)'); eyeGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = eyeGrad; ctx.beginPath(); ctx.arc(0, 0, Math.max(1, eyeR), 0, Math.PI * 2); ctx.fill(); ctx.restore();
     },
     ability(tower, engine) {
         if (tower.phase === 2) {
@@ -295,13 +348,15 @@ if (tower.hollowProjectile.x < -100 || tower.hollowProjectile.x > CANVAS_WIDTH +
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
         let wellCount = tower.phase === 2 ? 2 : 1;
+        tower.blueWells = tower.blueWells || [];
+        if (tower.blueWells.length > 15) return; 
+
         for (let i = 0; i < wellCount; i++) {
             let offsetX = wellCount > 1 ? (i === 0 ? -15 : 15) : 0; let offsetY = wellCount > 1 ? (i === 0 ? -15 : 15) : 0;
-            tower.blueWells = tower.blueWells || [];
             tower.blueWells.push({ 
                 x: target.x + offsetX, y: target.y + offsetY, targetDist: target.distanceTraveled, 
                 life: 1.0, maxLife: 1.0, radius: 50 + (tower.stats.range * 0.5), rot: 0, 
-                maxHits: 9999, dmg: damage 
+                maxHits: 50, dmg: damage 
             });
         }
     }

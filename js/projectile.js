@@ -3,7 +3,7 @@
 
 import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
-import { Utils, CANVAS_WIDTH as CANVAS_W, CANVAS_HEIGHT as CANVAS_H, drawImageCentered } from './utils.js';
+import { Utils, CANVAS_WIDTH, CANVAS_HEIGHT, drawImageCentered } from './utils.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { Names } from './names.js';

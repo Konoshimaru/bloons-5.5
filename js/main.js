@@ -1,6 +1,6 @@
 // main.js
 import { GameEngine } from './engine.js';
-import { Config, HeroStats } from './config.js';
+import { Config, HeroStats, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { Maps } from './data.js';
@@ -9,10 +9,8 @@ import { Enemy } from './enemy.js';
 import { Hero } from './hero.js';
 import { InputManager } from './input.js';
 import { UI } from './ui.js';
-import { MapEditor } from './mapEditor.js'; // PRO FIX: Import Map Editor
+import { MapEditor } from './mapEditor.js';
 
-const CANVAS_WIDTH = 900;
-const CANVAS_HEIGHT = 600;
 const SCALE_MARGIN = 0.98;
 
 const dom = {
@@ -26,7 +24,7 @@ const dom = {
     abandonBtn: document.getElementById('abandon-btn'),
     goMenuBtn: document.getElementById('go-menu-btn'),
     shopBtn: document.getElementById('shop-btn'),
-    mapEditorBtn: document.getElementById('map-editor-btn'), // PRO FIX: Map Editor Button
+    mapEditorBtn: document.getElementById('map-editor-btn'),
     
     hmPrevBtn: document.getElementById('hm-prev-btn'),
     hmNextBtn: document.getElementById('hm-next-btn'),
@@ -99,11 +97,22 @@ window.addEventListener('error', (e) => {
 
 function resizeGame() {
     const container = document.getElementById('game-container');
+    const tooSmallOverlay = document.getElementById('screen-too-small-overlay');
     if (!container) return;
-    
+
     const scaleX = window.innerWidth / CANVAS_WIDTH;
     const scaleY = window.innerHeight / CANVAS_HEIGHT;
     const scale = Math.min(scaleX, scaleY) * SCALE_MARGIN;
+
+    const MIN_PLAYABLE_SCALE = 0.4; 
+    if (scale < MIN_PLAYABLE_SCALE) {
+        container.style.visibility = 'hidden';
+        tooSmallOverlay?.classList.remove('hidden');
+        return;
+    }
+
+    container.style.visibility = 'visible';
+    tooSmallOverlay?.classList.add('hidden');
     container.style.transform = `scale(${scale})`;
 }
 window.addEventListener('resize', resizeGame);
@@ -235,15 +244,14 @@ function applyConfigToUI() {
 }
 
 async function startGameUI(isSandbox) {
-    await AudioEngine.init();
-    AudioEngine.play();
-    GameEngine.startGame(isSandbox);
-    updateShopPrices();
-    
+    // PRO FIX: Hide menus immediately so the user sees the game canvas
     document.getElementById('main-menu').classList.add('hidden');
     document.getElementById('difficulty-menu').classList.add('hidden');
     document.getElementById('maps-menu').classList.add('hidden');
     document.getElementById('settings-menu').classList.add('hidden');
+    document.getElementById('hero-select-menu').classList.add('hidden');
+    document.getElementById('shop-menu').classList.add('hidden');
+    document.getElementById('map-editor-menu').classList.add('hidden');
     
     document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('top-ui-left').classList.remove('hidden');
@@ -263,6 +271,18 @@ async function startGameUI(isSandbox) {
     document.getElementById('shop-view').classList.remove('hidden');
     document.getElementById('enemy-view').classList.add('hidden');
     if (dom.sbViewToggle) dom.sbViewToggle.innerText = '🎈 Spawn Bloons';
+
+    try {
+        await AudioEngine.init();
+        AudioEngine.play();
+        GameEngine.startGame(isSandbox);
+        updateShopPrices();
+    } catch (err) {
+        console.error("Failed to start game:", err);
+        GameEngine.gameState = 'gameover';
+        UI.toggleMenus('game-over-menu');
+        document.getElementById('go-wave-stat').innerText = `Game Crash: ${err.message}. Check console (F12).`;
+    }
 }
 
 function _setupMenuListeners() {
@@ -290,7 +310,7 @@ function _setupMenuListeners() {
     dom.sandboxBtn?.addEventListener('click', () => startGameUI(true));
     dom.heroBtn?.addEventListener('click', () => GameEngine.toggleMenus('hero-select-menu'));
     dom.shopBtn?.addEventListener('click', () => GameEngine.toggleMenus('shop-menu'));
-    dom.mapEditorBtn?.addEventListener('click', () => { // PRO FIX: Map Editor Listener
+    dom.mapEditorBtn?.addEventListener('click', () => {
         MapEditor.init();
         UI.toggleMenus('map-editor-menu');
     });
@@ -361,7 +381,6 @@ function _setupSettingsListeners() {
             const mapData = JSON.parse(json);
             let isValid = true;
             
-            // Backward compatibility: convert old 'waypoints' to 'paths'
             if (mapData.waypoints && !mapData.paths) {
                 mapData.paths = [{ waypoints: mapData.waypoints }];
                 delete mapData.waypoints;
@@ -491,7 +510,6 @@ function _setupShopListeners() {
         card.addEventListener('click', () => {
             if (!GameEngine.isSandbox || !GameEngine.map) return;
             const tier = parseInt(card.dataset.enemy, 10);
-            // PRO FIX: Pass pathIndex 0 to Enemy constructor for sandbox
             GameEngine.enemies.push(new Enemy(tier, GameEngine.map, sandboxCamoOn, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0));
         });
     });

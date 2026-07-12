@@ -1,7 +1,8 @@
 // js/mapEditor.js
-import { Config } from './config.js';
+import { Config, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { Maps } from './data.js';
 import { UI } from './ui.js';
+import { Utils } from './utils.js';
 
 export const MapEditor = {
     canvas: null,
@@ -14,12 +15,14 @@ export const MapEditor = {
     isDragging: false,
     isDrawingWater: false,
     waterEraseMode: false,
-    waterBrushSize: 30,
+    waterBrushSize: 60,
+    currentWaterStroke: null,
     currentObject: 'tree',
     mouse: { x: 0, y: 0 },
     _initialized: false,
     _rafId: null,
-    undoStack: [], // PRO FIX: Added Undo Stack
+    undoStack: [],
+    redoStack: [],
 
     init() {
         if (this._initialized) {
@@ -52,7 +55,12 @@ export const MapEditor = {
             this.pushUndo();
             this.toggleCurve();
         });
-        document.getElementById('editor-undo').addEventListener('click', () => this.undo()); // PRO FIX: Undo Button
+        document.getElementById('editor-reverse-path').addEventListener('click', () => {
+            this.pushUndo();
+            this.reversePath();
+        });
+        document.getElementById('editor-undo').addEventListener('click', () => this.undo());
+        document.getElementById('editor-redo').addEventListener('click', () => this.redo());
         
         document.getElementById('water-brush-size').addEventListener('input', (e) => this.waterBrushSize = parseInt(e.target.value));
         document.getElementById('water-erase-toggle').addEventListener('click', (e) => {
@@ -70,6 +78,7 @@ export const MapEditor = {
         
         document.getElementById('editor-save').addEventListener('click', () => this.saveMap());
         document.getElementById('editor-load').addEventListener('click', () => this.loadMap());
+        document.getElementById('editor-exit').addEventListener('click', () => this.exitEditor());
         document.getElementById('editor-toggle-json').addEventListener('click', () => this.toggleJSON());
         document.getElementById('editor-apply-json').addEventListener('click', () => {
             this.pushUndo();
@@ -79,9 +88,18 @@ export const MapEditor = {
         this.startLoop();
     },
     
+    exitEditor() {
+        if (this._rafId) {
+            cancelAnimationFrame(this._rafId);
+            this._rafId = null;
+        }
+        UI.toggleMenus('main-menu');
+    },
+    
     pushUndo() {
         this.undoStack.push(JSON.parse(JSON.stringify(this.mapData)));
-        if (this.undoStack.length > 25) this.undoStack.shift(); // Limit history
+        if (this.undoStack.length > 25) this.undoStack.shift();
+        this.redoStack = []; 
     },
     
     undo() {
@@ -89,10 +107,23 @@ export const MapEditor = {
             UI.log("Nothing to undo.");
             return;
         }
+        this.redoStack.push(JSON.parse(JSON.stringify(this.mapData)));
         this.mapData = this.undoStack.pop();
         this.selectedPoint = null;
         this.selectedProp = null;
         UI.log("Undo performed.");
+    },
+    
+    redo() {
+        if (this.redoStack.length === 0) {
+            UI.log("Nothing to redo.");
+            return;
+        }
+        this.undoStack.push(JSON.parse(JSON.stringify(this.mapData)));
+        this.mapData = this.redoStack.pop();
+        this.selectedPoint = null;
+        this.selectedProp = null;
+        UI.log("Redo performed.");
     },
     
     startLoop() {
@@ -116,12 +147,14 @@ export const MapEditor = {
         this.mapData = {
             name: "New Custom Map",
             paths: [],
-            props: []
+            props: [],
+            waterBrushes: [] 
         };
         this.selectedPath = -1;
         this.selectedPoint = null;
         this.selectedProp = null;
-        this.undoStack = []; // Clear history on new map
+        this.undoStack = [];
+        this.redoStack = [];
         document.getElementById('editor-map-name').value = "New Custom Map";
     },
     
@@ -136,14 +169,26 @@ export const MapEditor = {
     },
     
     newPath() {
+        if (this.mapData.paths.length > 0 && this.selectedPath !== -1) {
+            const current = this.mapData.paths[this.selectedPath];
+            if (current && current.waypoints.length === 0) {
+                UI.log("Current path is already empty. Place points on the canvas!");
+                return;
+            }
+        }
         this.mapData.paths.push({ waypoints: [] });
         this.selectedPath = this.mapData.paths.length - 1;
         this.selectedPoint = null;
+        UI.log("New Path started. Click on the map to place the entrance (green flag).");
+    },
+    
+    reversePath() {
+        if (this.selectedPath === -1 || !this.mapData.paths[this.selectedPath]) return;
+        this.mapData.paths[this.selectedPath].waypoints.reverse();
     },
     
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
-        // PRO FIX: Proper scaling for responsive CSS canvas size
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
         return {
@@ -159,9 +204,13 @@ export const MapEditor = {
         if (this.currentTool === 'track') {
             this.handleTrackMouseDown(pos, e.button);
         } else if (this.currentTool === 'water') {
-            this.pushUndo(); // Save state before painting
-            this.isDrawingWater = true;
-            this.paintWater(pos);
+            if (this.waterEraseMode) {
+                this.eraseWaterAt(pos);
+            } else {
+                this.pushUndo();
+                this.currentWaterStroke = { thickness: this.waterBrushSize, points: [{x: pos.x, y: pos.y}] };
+                this.isDrawingWater = true;
+            }
         } else if (this.currentTool === 'objects') {
             this.handleObjectsMouseDown(pos);
         }
@@ -174,24 +223,21 @@ export const MapEditor = {
         
         const path = this.mapData.paths[this.selectedPath];
         
-        // Check curve handle drag
         if (this.selectedPoint && this.selectedPoint.curve) {
             const dx = pos.x - this.selectedPoint.curve.cx;
             const dy = pos.y - this.selectedPoint.curve.cy;
             if (Math.hypot(dx, dy) < 10) {
-                this.pushUndo(); // Save state before dragging
                 this.isDragging = 'curve';
                 return;
             }
         }
         
-        // Check existing point click
         let clickedPoint = null;
         let clickedPathIdx = -1;
         for (let p = 0; p < this.mapData.paths.length; p++) {
             for (let i = 0; i < this.mapData.paths[p].waypoints.length; i++) {
                 const wp = this.mapData.paths[p].waypoints[i];
-                if (Math.hypot(pos.x - wp.x, pos.y - wp.y) < 10) {
+                if (Math.hypot(pos.x - wp.x, pos.y - wp.y) < 12) {
                     clickedPoint = wp;
                     clickedPathIdx = p;
                     break;
@@ -208,13 +254,12 @@ export const MapEditor = {
                 this.pushUndo();
                 this.insertPoint(clickedPoint);
             } else {
-                this.pushUndo(); // Save state before dragging
+                this.pushUndo();
                 this.isDragging = 'point';
             }
             return;
         }
         
-        // Add new point
         this.pushUndo();
         this.selectedPoint = null;
         path.waypoints.push({ x: pos.x, y: pos.y });
@@ -268,27 +313,34 @@ export const MapEditor = {
         if (clickedProp) {
             this.selectedProp = clickedProp;
             this.selectedPoint = null;
-            this.pushUndo(); // Save state before dragging
+            this.pushUndo();
             this.isDragging = 'prop';
         } else {
-            this.pushUndo(); // Save state before adding
+            this.pushUndo();
             this.mapData.props.push({ type: this.currentObject, x: pos.x, y: pos.y });
             this.selectedProp = this.mapData.props[this.mapData.props.length - 1];
         }
     },
     
-    paintWater(pos) {
-        if (this.waterEraseMode) {
-            this.mapData.props = this.mapData.props.filter(p => {
-                if (p.type === 'pond') {
-                    return Math.hypot(pos.x - p.x, pos.y - p.y) > this.waterBrushSize / 2;
+    eraseWaterAt(pos) {
+        if (!this.mapData.waterBrushes) return;
+        for (let i = this.mapData.waterBrushes.length - 1; i >= 0; i--) {
+            const brush = this.mapData.waterBrushes[i];
+            const r = brush.thickness / 2;
+            let hit = false;
+            if (brush.points.length === 1) {
+                if (Math.hypot(pos.x - brush.points[0].x, pos.y - brush.points[0].y) < r) hit = true;
+            } else {
+                for (let j = 0; j < brush.points.length - 1; j++) {
+                    if (Utils.distToSegment(pos.x, pos.y, brush.points[j].x, brush.points[j].y, brush.points[j+1].x, brush.points[j+1].y) < r) {
+                        hit = true; break;
+                    }
                 }
-                return true;
-            });
-        } else {
-            const lastPond = this.mapData.props.filter(p => p.type === 'pond').pop();
-            if (!lastPond || Math.hypot(pos.x - lastPond.x, pos.y - lastPond.y) > 10) {
-                this.mapData.props.push({ type: 'pond', x: pos.x, y: pos.y, r: this.waterBrushSize / 2 });
+            }
+            if (hit) {
+                this.pushUndo();
+                this.mapData.waterBrushes.splice(i, 1);
+                return;
             }
         }
     },
@@ -308,23 +360,32 @@ export const MapEditor = {
             this.selectedProp.y = pos.y;
         }
         
-        if (this.isDrawingWater) {
-            this.paintWater(pos);
+        if (this.isDrawingWater && this.currentWaterStroke) {
+            const lastPt = this.currentWaterStroke.points[this.currentWaterStroke.points.length - 1];
+            if (Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 4) {
+                this.currentWaterStroke.points.push({x: pos.x, y: pos.y});
+            }
         }
     },
     
     handleMouseUp() {
+        if (this.currentWaterStroke) {
+            this.mapData.waterBrushes.push(this.currentWaterStroke);
+            this.currentWaterStroke = null;
+        }
         this.isDragging = false;
         this.isDrawingWater = false;
     },
     
     handleKeyDown(e) {
-        // Only run if editor is open
         if (document.getElementById('map-editor-menu').classList.contains('hidden')) return;
 
         if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             this.undo();
+        } else if ((e.key === 'y' || e.key === 'Y') && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            this.redo();
         } else if (e.key === 'Delete' || e.key === 'Backspace') {
             if (this.selectedPoint) {
                 this.pushUndo();
@@ -347,6 +408,14 @@ export const MapEditor = {
     
     saveMap() {
         this.mapData.name = document.getElementById('editor-map-name').value || "Custom Map";
+        
+        this.mapData.paths = this.mapData.paths.filter(p => p.waypoints.length > 0);
+        
+        if (this.mapData.paths.length === 0) {
+            alert("Please draw at least one path with 2 or more points.");
+            return;
+        }
+        
         for (let p of this.mapData.paths) {
             if (p.waypoints.length < 2) {
                 alert("Each path must have at least 2 waypoints.");
@@ -358,13 +427,13 @@ export const MapEditor = {
         const mapCopy = JSON.parse(JSON.stringify(this.mapData));
         if (existingIdx > -1) {
             Config.data.customMaps[existingIdx] = mapCopy;
-            Maps[existingIdx + 5] = mapCopy; // Assuming 5 default maps
+            if (Maps[existingIdx + 5]) Maps[existingIdx + 5] = mapCopy;
         } else {
             Config.data.customMaps.push(mapCopy);
             Maps.push(mapCopy);
         }
         Config.save();
-        alert("Map saved!");
+        alert("Map saved successfully!");
     },
     
     loadMap() {
@@ -377,8 +446,9 @@ export const MapEditor = {
         if (name) {
             const map = Config.data.customMaps.find(m => m.name === name);
             if (map) {
-                this.pushUndo(); // Save current state before loading over it
+                this.pushUndo();
                 this.mapData = JSON.parse(JSON.stringify(map));
+                if (!this.mapData.waterBrushes) this.mapData.waterBrushes = [];
                 this.selectedPath = -1;
                 this.selectedPoint = null;
                 this.selectedProp = null;
@@ -404,6 +474,7 @@ export const MapEditor = {
         try {
             const textArea = document.getElementById('editor-json-text');
             this.mapData = JSON.parse(textArea.value);
+            if (!this.mapData.waterBrushes) this.mapData.waterBrushes = [];
             this.selectedPath = -1;
             this.selectedPoint = null;
             this.selectedProp = null;
@@ -414,16 +485,40 @@ export const MapEditor = {
         }
     },
     
+    drawWaterStroke(ctx, brush) {
+        if (brush.points.length === 0) return;
+        ctx.strokeStyle = 'rgba(52, 152, 219, 0.6)';
+        ctx.lineWidth = brush.thickness;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(brush.points[0].x, brush.points[0].y);
+        for (let i = 1; i < brush.points.length; i++) {
+            ctx.lineTo(brush.points[i].x, brush.points[i].y);
+        }
+        if (brush.points.length === 1) ctx.arc(brush.points[0].x, brush.points[0].y, brush.thickness / 2, 0, Math.PI * 2);
+        ctx.stroke();
+    },
+    
     draw() {
         const ctx = this.ctx;
         ctx.fillStyle = '#8acc4d';
-        ctx.fillRect(0, 0, 900, 600);
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         
         ctx.strokeStyle = 'rgba(0,0,0,0.1)';
         ctx.lineWidth = 1;
-        for (let x = 0; x < 900; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 600); ctx.stroke(); }
-        for (let y = 0; y < 600; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(900, y); ctx.stroke(); }
+        for (let x = 0; x < CANVAS_WIDTH; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke(); }
+        for (let y = 0; y < CANVAS_HEIGHT; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke(); }
         
+        if (this.mapData.waterBrushes) {
+            for (let brush of this.mapData.waterBrushes) {
+                this.drawWaterStroke(ctx, brush);
+            }
+        }
+        if (this.currentWaterStroke) {
+            this.drawWaterStroke(ctx, this.currentWaterStroke);
+        }
+
         for (let p of this.mapData.props) {
             this.drawEditorProp(ctx, p);
         }
@@ -439,17 +534,35 @@ export const MapEditor = {
             ctx.moveTo(path.waypoints[0].x, path.waypoints[0].y);
             for (let i = 1; i < path.waypoints.length; i++) {
                 const wp = path.waypoints[i];
-                if (wp.curve) {
-                    ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y);
-                } else {
-                    ctx.lineTo(wp.x, wp.y);
-                }
+                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y);
+                else ctx.lineTo(wp.x, wp.y);
             }
             ctx.stroke();
             
             for (let i = 0; i < path.waypoints.length; i++) {
                 const wp = path.waypoints[i];
-                ctx.fillStyle = (i === 0) ? '#2ecc71' : (i === path.waypoints.length - 1) ? '#e74c3c' : '#fff';
+                
+                if (i === 0) {
+                    ctx.fillStyle = '#2ecc71'; 
+                    ctx.beginPath();
+                    ctx.moveTo(wp.x - 6, wp.y - 15);
+                    ctx.lineTo(wp.x + 6, wp.y - 10);
+                    ctx.lineTo(wp.x - 6, wp.y - 5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillRect(wp.x - 8, wp.y - 15, 2, 15);
+                } else if (i === path.waypoints.length - 1) {
+                    ctx.fillStyle = '#e74c3c'; 
+                    ctx.beginPath();
+                    ctx.moveTo(wp.x - 6, wp.y - 15);
+                    ctx.lineTo(wp.x + 6, wp.y - 10);
+                    ctx.lineTo(wp.x - 6, wp.y - 5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillRect(wp.x - 8, wp.y - 15, 2, 15);
+                }
+                
+                ctx.fillStyle = '#fff';
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -505,9 +618,6 @@ export const MapEditor = {
             ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, Math.PI * 2); ctx.fill();
         } else if (p.type === 'rock') {
             ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.moveTo(p.x - 15, p.y); ctx.lineTo(p.x - 5, p.y - 15); ctx.lineTo(p.x + 10, p.y - 10); ctx.lineTo(p.x + 15, p.y); ctx.fill();
-        } else if (p.type === 'pond') {
-            ctx.fillStyle = 'rgba(52, 152, 219, 0.5)'; 
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r || 25, 0, Math.PI * 2); ctx.fill();
         }
     }
 };

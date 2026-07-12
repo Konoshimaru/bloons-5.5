@@ -11,9 +11,8 @@ function el(id) {
     return elements[id];
 }
 
-const MENUS = ['main-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'custom-maps-menu', 'difficulty-menu', 'hero-select-menu', 'shop-menu'];
-const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
-
+const MENUS = ['main-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'custom-maps-menu', 'difficulty-menu', 'hero-select-menu', 'shop-menu', 'map-editor-menu'];
+const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"]; // <--- MAKE SURE THIS LINE EXISTS!
 export const UI = {
     _towerCardCache: null,
 
