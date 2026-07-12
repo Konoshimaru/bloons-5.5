@@ -3,7 +3,7 @@ import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { AudioEngine } from '../audio.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants.js';
 
 export default {
     stats: { 

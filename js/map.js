@@ -2,7 +2,7 @@
 import { Utils } from './utils.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 
 const GRID_SIZE = 40;
 const PATH_WIDTH = 45;

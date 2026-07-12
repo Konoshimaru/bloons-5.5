@@ -2,8 +2,8 @@
 import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engine.js'; // PRO FIX: Restored missing GameEngine import!
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
 import { ProjectileDrawers } from './projectileDrawers.js';
@@ -325,7 +325,6 @@ export class Projectile {
             if (!e.alive) continue;
             if (e.data.blocksDamageType && e.data.blocksDamageType(bombDmgType)) continue;
             
-            // PRO FIX: Check camo/lead/MOAB immunities from effects (for ice bombs)
             if (e.isCamo && !(this.effects && this.effects.canSeeCamo) && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
             if (e.data.isLead && !(this.effects && this.effects.canHitLead) && !(bombDmgType.canHitLead)) continue;
             if (e.data.isMoab && !(this.effects && this.effects.canHitMoab)) continue;
@@ -336,17 +335,14 @@ export class Projectile {
                 if (dmg === -1) continue;
                 if (this.tower) this.tower.damageDealt += dmg;
                 
-                // PRO FIX: Apply freeze effects from ice bombs
                 if (this.effects && this.effects.freeze) {
                     if (e.data.isMoab) {
-                        // Embrittlement on MOABs from ice bombs
                         if (this.effects.superBrittle) {
                             e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0; e.isCamo = false;
                         } else if (this.effects.embrittlement) {
                             e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 4.0; e.isCamo = false;
                         }
                     } else {
-                        // Skip already frozen unless reFreeze
                         if (!e.isFrozen || this.effects.reFreeze) {
                             if (!(e.data.isWhite || e.data.isZebra)) {
                                 e.applySlow(0.0, this.effects.freezeDuration || 1.5, true);
@@ -355,7 +351,6 @@ export class Projectile {
                     }
                 }
                 
-                // Permafrost from ice bombs
                 if (this.effects && this.effects.permafrost) {
                     e.permafrostSlow = 0.5;
                 }
@@ -406,23 +401,18 @@ export class Projectile {
         if (this.bonusCeramic && enemy.data.isCeramic) dmg += this.bonusCeramic;
         
         const actualDmg = enemy.takeDamage(dmg, this.dmgType, this.effects);
-        // PRO FIX: Guard against -1 (immune) and NaN to prevent stat corruption
         if (actualDmg === -1 || isNaN(actualDmg)) {
             this.alive = false;
             return;
         }
         
         if (this.tower) this.tower.damageDealt += actualDmg;
-        // ... rest remains the same
         
-        // PRO FIX: Apply freeze effects from icicle projectiles
         if (this.effects && this.effects.freeze) {
             if (enemy.data.isMoab) {
-                // Icicle Impale: freeze/stun MOABs (except BAD)
                 if (!enemy.data.isBAD) {
-                    enemy.applySlow(0.0, this.effects.freezeDuration || 2.0, false); // isIce=false to bypass White/Zebra/Lead checks
+                    enemy.applySlow(0.0, this.effects.freezeDuration || 2.0, false); 
                 }
-                // Embrittlement on MOABs
                 if (this.effects.superBrittle) {
                     enemy.brittle = true; enemy.brittleBonus = 5; enemy.brittleTimer = 4.0; enemy.isCamo = false;
                 } else if (this.effects.embrittlement) {
@@ -437,7 +427,6 @@ export class Projectile {
             }
         }
         
-        // Permafrost from icicles
         if (this.effects && this.effects.permafrost) {
             enemy.permafrostSlow = 0.5;
         }

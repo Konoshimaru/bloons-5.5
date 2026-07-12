@@ -5,7 +5,8 @@ import { UI } from './ui.js';
 import Assets from './assets.js';
 import { Enemy } from './enemy.js';
 import { EnemyTypes } from './data.js';
-import { Config, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js'; // PRO FIX: Import Constants
+import { Config } from './config.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 
 // --- CONFIG ---
 const knightScale = 1.5; 

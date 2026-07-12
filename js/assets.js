@@ -1,6 +1,4 @@
 ﻿// assets.js
-// Loads and tracks game art, sprites, and asset references used by the game.
-
 import { Names } from './names.js';
 
 const FOLDER_MAP = Object.freeze({
@@ -13,6 +11,7 @@ const FOLDER_MAP = Object.freeze({
 
 const CRACK_NAMES = Object.freeze(['ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad']);
 const MAX_CRACK_STAGES = 10;
+const DAMAGE_STAGE_SUFFIXES = Object.freeze(['_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9', '_10']);
 
 class AssetsManager {
     #images = new Map();
@@ -40,7 +39,8 @@ class AssetsManager {
         
         img.onerror = () => {
             img.loaded = false;
-            console.warn(`Asset failed to load: ${path} (Key: ${key})`);
+            // PRO FIX: Suppress 404 warnings to keep the console clean
+            // console.warn(`Asset failed to load: ${path} (Key: ${key})`);
         };
         
         img.src = path;
@@ -55,7 +55,7 @@ class AssetsManager {
         
         const path = this._resolvePath(key);
         if (!path) {
-            console.warn(`Unknown asset prefix for key: ${key}`);
+            // console.warn(`Unknown asset prefix for key: ${key}`);
             return null;
         }
         
@@ -67,17 +67,16 @@ class AssetsManager {
             let loadedCount = 0;
             
             for (let stage = 1; stage <= MAX_CRACK_STAGES; stage++) {
-                const key = `${Names.PREFIXES.ENEMY}${name}_${stage}`;
+                const suffix = DAMAGE_STAGE_SUFFIXES[stage - 1] || `_${stage}`;
+                const key = `${Names.PREFIXES.ENEMY}${name}${suffix}`;
                 const img = this.get(key);
                 
+                if (img.loaded) {
+                    loadedCount = stage;
+                    continue;
+                }
+
                 await new Promise(resolve => {
-                    // If it already loaded previously, skip waiting
-                    if (img.loaded) {
-                        resolve();
-                        return;
-                    }
-                    
-                    // PRO FIX: Actually mark the image as loaded when it finishes!
                     img.addEventListener('load', () => { 
                         img.loaded = true; 
                         resolve(); 
@@ -90,14 +89,14 @@ class AssetsManager {
                 if (img.loaded) {
                     loadedCount = stage;
                 } else {
-                    break; // Stop checking if an image is missing
+                    break; 
                 }
             }
             
             this.#maxCracks.set(name, loadedCount);
-            if (loadedCount > 0) {
-                console.log(`Preloaded ${loadedCount} damage stages for ${name}`);
-            }
+            // if (loadedCount > 0) {
+            //     console.log(`Preloaded ${loadedCount} damage stages for ${name}`);
+            // }
         }
     }
 

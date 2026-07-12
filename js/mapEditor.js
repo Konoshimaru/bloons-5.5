@@ -1,5 +1,6 @@
 // js/mapEditor.js
-import { Config, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
+import { Config } from './config.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 import { Maps } from './data.js';
 import { UI } from './ui.js';
 import { Utils } from './utils.js';
