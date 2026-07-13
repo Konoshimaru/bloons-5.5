@@ -25,13 +25,12 @@ export default {
         ],
         2: [
             {name:"Enhanced Freeze", cost:200, desc:"Attacks faster and freezes longer.", cooldownMult: 0.75, extraMods:{freezeDuration: 1.75}},
-            // PRO FIX: Freeze duration 2.2s
             {name:"Deep Freeze", cost:300, stat:"pierce", amount:5, desc:"+5 pierce. Freeze penetrates 2 layers. 2.2s duration.", extraMods:{deepFreeze: true, freezeDuration: 2.2}},
             {name:"Arctic Wind", cost:2750, stat:"arcticWind", amount:true, desc:"Passive 40% slow aura. Can freeze water for towers.", extraMods:{arcticSlowFactor: 0.6}},
-            // PRO FIX: Range 20 -> 30
-            {name:"Snowstorm", cost:4000, stat:"isAbility", amount:true, desc:"Ability: Freeze all non-MOAB bloons for 6s.", extraMods:{unlocksAbility:true, abilityName:"Snowstorm", abilityCd:30}, stat:"range", amount:10},
-            // PRO FIX: Pierce 300, Range 40
-            {name:"Absolute Zero", cost:21000, stat:"absoluteZero", amount:true, desc:"Freezes screen for 10s. Buffs Ice Monkeys +50%.", extraMods:{}, stat:"pierce", amount:255, stat2:"range", amount2:10}
+            // PRO FIX: Removed duplicate 'stat' key so range applies correctly
+            {name:"Snowstorm", cost:4000, stat:"range", amount:10, desc:"Ability: Freeze all non-MOAB bloons for 6s.", extraMods:{unlocksAbility:true, abilityName:"Snowstorm", abilityCd:30}},
+            // PRO FIX: Removed duplicate 'stat' keys so absoluteZero applies correctly
+            {name:"Absolute Zero", cost:21000, stat:"absoluteZero", amount:true, desc:"Freezes screen for 10s. Buffs Ice Monkeys +50%.", extraMods:{range: 10}}
         ],
         3: [
             // PRO FIX: +7 range

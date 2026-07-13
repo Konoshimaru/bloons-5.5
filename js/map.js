@@ -120,6 +120,9 @@ export class GameMap {
         this.props.forEach(p => this._drawProp(ctx, p));
 
         for (let p = 0; p < this.data.paths.length; p++) {
+            // PRO FIX: Skip drawing the path in-game if it's marked as invisible
+            if (this.data.paths[p].visible === false) continue;
+            
             const waypoints = this.data.paths[p].waypoints;
             if (waypoints.length < 2) continue;
             
@@ -127,22 +130,22 @@ export class GameMap {
             ctx.lineWidth = PATH_WIDTH + 8;
             ctx.lineJoin = 'round'; ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.moveTo(waypoints[0].x, waypoints[0].y + 4);
+            ctx.moveTo(waypoints[0].x + this.offsetX, waypoints[0].y + this.offsetY + 4);
             for (let i = 1; i < waypoints.length; i++) {
                 const wp = waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y + 4);
-                else ctx.lineTo(wp.x, wp.y + 4);
+                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx + this.offsetX, wp.curve.cy + this.offsetY, wp.x + this.offsetX, wp.y + this.offsetY + 4);
+                else ctx.lineTo(wp.x + this.offsetX, wp.y + this.offsetY + 4);
             }
             ctx.stroke();
             
             ctx.strokeStyle = '#a8825a';
             ctx.lineWidth = PATH_WIDTH;
             ctx.beginPath();
-            ctx.moveTo(waypoints[0].x, waypoints[0].y);
+            ctx.moveTo(waypoints[0].x + this.offsetX, waypoints[0].y + this.offsetY);
             for (let i = 1; i < waypoints.length; i++) {
                 const wp = waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y);
-                else ctx.lineTo(wp.x, wp.y);
+                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx + this.offsetX, wp.curve.cy + this.offsetY, wp.x + this.offsetX, wp.y + this.offsetY);
+                else ctx.lineTo(wp.x + this.offsetX, wp.y + this.offsetY);
             }
             ctx.stroke();
         }

@@ -265,15 +265,21 @@
 
                 if (towerId) {
                     if (!registry[towerId]) registry[towerId] = { base: null, arm: [], full: [] };
-                    if (!config[towerId]) config[towerId] = {}; // Ensure config exists for loaded towers
+                    if (!config[towerId]) config[towerId] = {}; 
                     
-                    const img = new Image();
-                    img.src = URL.createObjectURL(file);
-                    await img.decode(); 
-                    
-                    if (type === 'base') registry[towerId].base = img;
-                    if (type === 'arm') registry[towerId].arm[frame] = img;
-                    if (type === 'full') registry[towerId].full[frame] = img;
+                    // PRO FIX: Add try/catch to prevent one bad file from aborting the whole folder import
+                    try {
+                        const img = new Image();
+                        img.src = URL.createObjectURL(file);
+                        await img.decode(); 
+                        
+                        if (type === 'base') registry[towerId].base = img;
+                        if (type === 'arm') registry[towerId].arm[frame] = img;
+                        if (type === 'full') registry[towerId].full[frame] = img;
+                    } catch (err) {
+                        console.warn(`Skipped ${file.name}: failed to decode.`, err);
+                        continue;
+                    }
                 }
             }
             updateDropdowns();
@@ -419,7 +425,12 @@
         }
 
         function prevFrame() { currentFrame = Math.max(0, currentFrame - 1); syncSliders(); }
-        function nextFrame() { currentFrame++; syncSliders(); }
+        function nextFrame() {
+            const arr = currentMode === 'arm' ? registry[currentTower]?.arm : registry[currentTower]?.full;
+            const maxFrame = arr ? arr.length - 1 : 0;
+            currentFrame = Math.min(maxFrame, currentFrame + 1);
+            syncSliders();
+        }
         
         function togglePlay() {
             isPlaying = !isPlaying;

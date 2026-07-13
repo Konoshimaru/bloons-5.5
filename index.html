@@ -236,7 +236,7 @@
             </div>
         </div>
 
-        <!-- Map Editor Menu -->
+         <!-- Map Editor Menu -->
         <div id="map-editor-menu" class="overlay hidden">
             <div class="editor-container">
                 <div class="editor-sidebar">
@@ -245,11 +245,19 @@
                         <button class="tool-btn active" data-tool="track">Track</button>
                         <button class="tool-btn" data-tool="water">Water</button>
                         <button class="tool-btn" data-tool="objects">Objects</button>
+                        <button class="tool-btn" data-tool="reference">Reference</button>
                     </div>
-                    <div class="tool-options" id="track-options">
-                        <button id="editor-new-path">New Path</button>
-                        <button id="editor-toggle-curve">Toggle Curve</button>
-                        <button id="editor-reverse-path">Reverse Path</button>
+                    <div class="tool-options" id="track-options" style="display: flex; flex-direction: column; gap: 5px;">
+                        <select id="editor-active-path" style="width: 100%; padding: 5px; background: var(--bg); color: white; border: 1px solid #7f8c8d; border-radius: 4px;"></select>
+                        <div class="btn-group">
+                            <button id="editor-new-path">New Path</button>
+                            <button id="editor-hide-path">Hide Path</button>
+                        </div>
+                        <div class="btn-group">
+                            <button id="editor-toggle-curve">Toggle Curve</button>
+                            <button id="editor-reverse-path">Reverse Path</button>
+                        </div>
+                        <button id="editor-snap-grid">Snap to Grid: Off</button>
                     </div>
                     <div class="tool-options hidden" id="water-options">
                         <label>Size: <input type="range" id="water-brush-size" min="20" max="120" value="60"></label>
@@ -260,17 +268,23 @@
                         <button class="obj-btn" data-obj="bush">Bush</button>
                         <button class="obj-btn" data-obj="rock">Rock</button>
                     </div>
+                    <div class="tool-options hidden" id="reference-options">
+                        <label>Reference Image: <input type="file" id="editor-ref-input" accept="image/*"></label>
+                        <p class="info-text">Mouse wheel to scale. Drag to move.</p>
+                    </div>
                 </div>
                 <div class="editor-main">
                     <canvas id="editor-canvas" width="1280" height="720"></canvas>
                     <div class="editor-bottom-bar">
                         <button id="editor-undo">↩ Undo</button>
                         <button id="editor-redo">↪ Redo</button>
+                        <button id="editor-delete-sel" style="background: var(--danger); border-color: #c0392b;">Delete Selected</button>
                         <button id="editor-save">Save Map</button>
                         <button id="editor-load">Load Map</button>
                         <button id="editor-toggle-json">View/Edit JSON</button>
                         <button id="editor-exit">Exit</button>
                     </div>
+                    <p class="info-text" style="text-align: center; margin-top: 10px;">Tip: Hold SHIFT while dragging to lock to one axis.</p>
                     <div id="editor-json-viewer" class="hidden">
                         <textarea id="editor-json-text"></textarea>
                         <button id="editor-apply-json">Apply JSON</button>

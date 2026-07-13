@@ -149,16 +149,25 @@ export const GameEngine = {
         this.cash += rawAmount;
     },
 
-    handleWaveSpeedClick() {
+    handleWaveSpeedClick(direction = 1) {
         const isExtreme = Config.data.extremeSpeedEnabled === true;
         const maxSpeed = isExtreme ? MAX_SPEED_EXTREME : MAX_SPEED_NORMAL;
         
-        if (this.waveManager.waveActive || this.speedState > 0) {
-            this.speedState++;
-            if (this.speedState > maxSpeed) this.speedState = 1;
+        if (direction > 0) {
+            // Forward cycle (Left-click or Spacebar)
+            if (this.waveManager.waveActive || this.speedState > 0) {
+                this.speedState++;
+                if (this.speedState > maxSpeed) this.speedState = 1;
+            } else {
+                this.waveManager.startWave();
+                this.speedState = 1;
+            }
         } else {
-            this.waveManager.startWave();
-            this.speedState = 1;
+            // Backward cycle (Right-click)
+            if (this.speedState > 0) {
+                this.speedState--;
+                if (this.speedState < 1) this.speedState = maxSpeed; // Wrap around to max speed
+            }
         }
         
         this.timeScale = SPEED_MULTIPLIERS[this.speedState] || 1;

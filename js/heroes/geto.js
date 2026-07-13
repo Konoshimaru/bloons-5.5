@@ -178,7 +178,7 @@ export default {
             if (tower.captureTime >= 1.5) {
                 if (tower.captureTarget && tower.captureTarget.alive) {
                     let dmg = tower.captureTarget.takeDamage(99999, { isMagic: true, canHitLead: true });
-                    tower.damageDealt += dmg;
+                    if (dmg > 0) tower.damageDealt += dmg; // PRO FIX: Guard against -1
                 }
                 tower.captureBuffTime = 5.0;
                 tower.isCapturing = false;
@@ -242,15 +242,16 @@ if (s.life <= 0 || s.x < -100 || s.x > CANVAS_WIDTH + 100 || s.y < -100 || s.y >
                 }
             } else if (u.phase === 'firing') {
                 u.fireTime -= dt;
+                // Same damage-per-second math as the old straight beam, unchanged.
                 const dpsMult = u.isUpgraded ? 12 : 8;
                 const moabDps = u.isUpgraded ? 60 : 25;
                 for (let e of GameEngine.enemies) {
                     if (!e.alive) continue;
                     let dmg = e.takeDamage(tower.stats.damage * dpsMult * dt, { isMagic: true, canHitLead: true });
-                    tower.damageDealt += dmg;
+                    if (dmg > 0) tower.damageDealt += dmg; // PRO FIX: Guard against -1
                     if (e.data.isMoab) {
                         let moabDmg = e.takeDamage(moabDps * dt, { isMagic: true, canHitLead: true });
-                        tower.damageDealt += moabDmg;
+                        if (moabDmg > 0) tower.damageDealt += moabDmg; // PRO FIX: Guard against -1
                     }
                 }
                 const progress = 1 - Math.max(u.fireTime, 0) / u.fireDuration;

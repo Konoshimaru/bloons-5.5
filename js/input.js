@@ -29,9 +29,7 @@ export const InputManager = {
     _setupTouchEvents(canvas) {
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault(); 
-            // PRO FIX: Explicitly ignore multi-touch to prevent unpredictable behavior
             if (e.touches.length > 1) return; 
-            
             const touch = e.touches[0];
             this._updateMousePosFromClientCoords(touch.clientX, touch.clientY, canvas);
             GameEngine.handleCanvasClick({ clientX: touch.clientX, clientY: touch.clientY });
@@ -39,9 +37,7 @@ export const InputManager = {
 
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            // PRO FIX: Ignore multi-touch during move as well
             if (e.touches.length > 1) return; 
-            
             const touch = e.touches[0];
             this._updateMousePosFromClientCoords(touch.clientX, touch.clientY, canvas);
         }, { passive: false });
@@ -49,6 +45,12 @@ export const InputManager = {
 
     _setupKeyboardEvents() {
         window.addEventListener('keydown', (e) => {
+            // PRO FIX: Spacebar starts wave / cycles speed
+            if (e.code === 'Space' && GameEngine.gameState === 'playing') {
+                e.preventDefault();
+                GameEngine.handleWaveSpeedClick();
+                return;
+            }
             if (e.key !== 'Escape') return;
             if (GameEngine.gameState === 'playing') GameEngine.pauseGame();
             else if (GameEngine.gameState === 'paused') GameEngine.resumeGame();

@@ -449,8 +449,16 @@ function _setupGameListeners() {
     
     dom.sbPrev?.addEventListener('click', () => GameEngine.skipWave(-1));
     dom.sbNext?.addEventListener('click', () => GameEngine.skipWave(1));
-    dom.sbSpeedBtn?.addEventListener('click', () => GameEngine.handleWaveSpeedClick());
-    dom.waveSpeedBtn?.addEventListener('click', () => GameEngine.handleWaveSpeedClick());
+
+    // PRO FIX: Right-click speed buttons to cycle backwards
+    const handleSpeedRightClick = (e) => {
+        e.preventDefault();
+        GameEngine.handleWaveSpeedClick(-1);
+    };
+    dom.waveSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
+    dom.sbSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
+    dom.waveSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
+    dom.sbSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
     
     dom.sbResetCooldowns?.addEventListener('click', () => {
         if (!GameEngine.isSandbox) return;

@@ -35,9 +35,14 @@ export default {
         ]
     },
     update(tower, dt, engine) {
-        // Elite Defender speed scaling
+        // PRO FIX: Reset per-round ability use counter on wave start
+        if (!tower._waveActive && GameEngine.waveManager.waveActive) {
+            tower.abilityUsesThisRound = 0;
+        }
+        tower._waveActive = GameEngine.waveManager.waveActive;
+        
+        // Existing Elite Defender speed scaling logic
         if (tower.stats.eliteDefender) {
-            // Life loss frenzy
             if (engine.lives < (tower._lastLives || engine.lives)) {
                 tower.frenzyTimer = 4.0;
             }
@@ -53,13 +58,12 @@ export default {
                 }
                 let totalLen = engine.map.getTotalLength();
                 let progress = Math.min(1, maxDist / totalLen);
-                // Up to 2x faster (0.5 cooldown)
                 tower.eliteDefenderSpeedMod = 1 - progress * 0.5; 
             }
         } else {
             tower.eliteDefenderSpeedMod = 1;
         }
-    },
+    }, 
     
     // PRO FIX: Global Elite Sniper Buff
     updateSupport(tower, dt) {
@@ -106,52 +110,52 @@ export default {
         let currentTarget = target;
         
         for (let i = 0; i <= bounces; i++) {
-            if (!currentTarget || !currentTarget.alive) break;
-            
-            // Fire shrapnel from this target
+            // PRO FIX: Fire shrapnel from the bloon we just hit, even if it died instantly!
             if (tower.stats.shrapnel) {
                 this._fireShrapnel(tower, currentTarget, dmgType, engine);
             }
             
-            // Find next bounce
-            if (i < bounces) {
-                const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40);
-                let nextTarget = null;
-                let bestDist = Infinity;
-                for (let e of nearby) {
-                    if (!e.alive || hitSet.has(e)) continue;
-                    let dist = Utils.distance(currentTarget.x, currentTarget.y, e.x, e.y);
-                    if (dist < bestDist) { bestDist = dist; nextTarget = e; }
+            // If we are out of bounces, we're done
+            if (i >= bounces) break;
+            
+            // Find next bounce target from the current target's position
+            const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40);
+            let nextTarget = null;
+            let bestDist = Infinity;
+            for (let e of nearby) {
+                if (!e.alive || hitSet.has(e)) continue;
+                let dist = Utils.distance(currentTarget.x, currentTarget.y, e.x, e.y);
+                if (dist < bestDist) { bestDist = dist; nextTarget = e; }
+            }
+            
+            if (nextTarget) {
+                tower.hitscans.push({ x1: currentTarget.x, y1: currentTarget.y, x2: nextTarget.x, y2: nextTarget.y, life: 0.1 });
+                hitSet.add(nextTarget);
+                currentTarget = nextTarget;
+                
+                // Deal damage to bounced target
+                let bounceDmg = actualDmg;
+                if (tower.stats.eliteDefender && currentTarget.data.isMoab) bounceDmg *= 2;
+                if (tower.stats.bonusCeramic && currentTarget.data.isCeramic) bounceDmg += tower.stats.bonusCeramic;
+                if (tower.stats.bonusCamo && currentTarget.isCamo) bounceDmg += tower.stats.bonusCamo;
+                
+                if (tower.stats.crippleDebuff) {
+                    currentTarget.crippled = true;
+                    currentTarget.crippleTimer = 4.0;
                 }
-                if (nextTarget) {
-                    tower.hitscans.push({ x1: currentTarget.x, y1: currentTarget.y, x2: nextTarget.x, y2: nextTarget.y, life: 0.1 });
-                    hitSet.add(nextTarget);
-                    currentTarget = nextTarget;
-                    
-                    // Deal damage to bounced target
-                    let bounceDmg = actualDmg;
-                    if (tower.stats.eliteDefender && currentTarget.data.isMoab) bounceDmg *= 2;
-                    if (tower.stats.bonusCeramic && currentTarget.data.isCeramic) bounceDmg += tower.stats.bonusCeramic;
-                    if (tower.stats.bonusCamo && currentTarget.isCamo) bounceDmg += tower.stats.bonusCamo;
-                    
-                    if (tower.stats.crippleDebuff) {
-                        currentTarget.crippled = true;
-                        currentTarget.crippleTimer = 4.0;
-                    }
-                    
-                    let bounceStun = 0;
-                    if (currentTarget.data.isMoab) {
-                        if (currentTarget.tier === 13) bounceStun = tower.stats.stunMoab || 0;
-                        else if (currentTarget.tier === 14) bounceStun = tower.stats.stunBfb || 0;
-                        else if (currentTarget.tier === 15) bounceStun = tower.stats.stunZomg || 0;
-                        else if (currentTarget.tier === 16) bounceStun = tower.stats.stunDdt || 0;
-                    }
-                    
-                    let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, { stun: bounceStun });
-                    if (bounceDmgDealt > 0) tower.damageDealt += bounceDmgDealt;
-                } else {
-                    break;
+                
+                let bounceStun = 0;
+                if (currentTarget.data.isMoab) {
+                    if (currentTarget.tier === 13) bounceStun = tower.stats.stunMoab || 0;
+                    else if (currentTarget.tier === 14) bounceStun = tower.stats.stunBfb || 0;
+                    else if (currentTarget.tier === 15) bounceStun = tower.stats.stunZomg || 0;
+                    else if (currentTarget.tier === 16) bounceStun = tower.stats.stunDdt || 0;
                 }
+                
+                let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, { stun: bounceStun });
+                if (bounceDmgDealt > 0) tower.damageDealt += bounceDmgDealt;
+            } else {
+                break; // No more targets in range for bouncing
             }
         }
     },
