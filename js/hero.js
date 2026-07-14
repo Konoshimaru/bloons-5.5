@@ -1,6 +1,4 @@
 ﻿// hero.js
-// Contains shared hero logic for abilities, progression, and combat.
-
 import { Tower } from './tower.js';
 import { HeroRegistry } from './heroes/index.js';
 
@@ -10,7 +8,6 @@ export class Hero extends Tower {
     constructor(x, y, type) {
         super(x, y, type);
         
-        // Heroes grow in power through XP rather than through tower upgrades.
         this.level = 1;
         this.xp = 0;
         this.xpTable = HeroRegistry[this.type].xpTable;
@@ -27,7 +24,6 @@ export class Hero extends Tower {
     gainXp(amount) {
         if (this.level >= MAX_LEVEL) return;
         
-        // Accumulate XP until the hero reaches the next milestone, then level up.
         this.xp += amount;
         
         while (this.level < MAX_LEVEL && this.xp >= this.xpToNext) {
@@ -39,7 +35,6 @@ export class Hero extends Tower {
     buyLevel(engine) {
         if (this.level >= MAX_LEVEL) return;
         
-        // Buying a level spends the remaining XP needed to fill the current progression bar.
         const cost = this.xpToNext - this.xp;
         if (engine.cash < cost) {
             engine.log("Not enough cash to buy level!");
@@ -53,7 +48,6 @@ export class Hero extends Tower {
     }
 
     _levelUp(engine) {
-        // Advance the hero to the next rank and immediately refresh its stats and unlocks.
         this.level++;
         
         if (this.level < MAX_LEVEL) {
@@ -70,13 +64,11 @@ export class Hero extends Tower {
     }
 
     _applyLevelStats() {
-        // Each level applies a small set of stat modifiers defined by the hero configuration.
-        const levelData = HeroRegistry[this.type].levels[this.level - 1];
+        // PRO FIX: Use this.level directly because the levels object is 1-indexed
+        const levelData = HeroRegistry[this.type].levels[this.level];
         if (!levelData) return;
         
         for (const mod of levelData) {
-            // The original branching logic (if fireRate / else) was functionally identical.
-            // Simplified to a single coherent operation.
             const currentVal = this.stats[mod.stat] || 0;
             this.stats[mod.stat] = currentVal + mod.amount;
         }
@@ -88,7 +80,6 @@ export class Hero extends Tower {
     }
 
     update(dt, engine) {
-        // Delegates entirely to the TowerBehavior ECS system
         super.update(dt, engine);
     }
 }

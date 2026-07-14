@@ -1,14 +1,15 @@
 ﻿// tower.js
-// Defines the shared tower class and its upgrade logic.
-
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
 import { drawImageCentered, drawShadow } from './utils.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
-import { SpriteConfig } from './spriteConfig.js'; // Import custom offsets
+import { SpriteConfig } from './spriteConfig.js';
 import * as TowerBehavior from './towerBehavior.js';
+import { GLOBAL_SCALE } from './constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const FARM_VILLAGE_TYPES = new Set(['farm', 'village']);
 const DEFAULT_HIT_RADIUS = 18;
@@ -59,7 +60,7 @@ export class Tower {
         this.fanClubType = null;
         this.animTimer = 0;
         this.animFrame = 0;
-        this.hitRadius = this.stats.hitRadius || DEFAULT_HIT_RADIUS;
+        this.hitRadius = (this.stats.hitRadius || DEFAULT_HIT_RADIUS) * GS;
         this._losBlockers = null;
         
         this.attackAnimActive = false;
@@ -133,7 +134,7 @@ export class Tower {
                 }
             }
             if (upgradeData.extraMods.scale) {
-                this.hitRadius = (TowerStats[this.type].hitRadius || DEFAULT_HIT_RADIUS) * upgradeData.extraMods.scale;
+                this.hitRadius = (TowerStats[this.type].hitRadius || DEFAULT_HIT_RADIUS) * upgradeData.extraMods.scale * GS;
             }
         }
     }
@@ -159,7 +160,7 @@ export class Tower {
     getActiveAssets() {
         let baseAsset = Assets.get(`tower_${this.type}_base`);
         let armAsset = Assets.get(`tower_${this.type}_arm`);
-        const targetSize = this.stats.drawSize || (45 * (this.stats.scale || 1.0));
+        const targetSize = (this.stats.drawSize || (45 * (this.stats.scale || 1.0))) * GS;
         let isCustomBase = false;
 
         let bestTier = 0, bestPath = 0;
@@ -188,27 +189,31 @@ export class Tower {
     }
 
     static drawPreview(ctx, x, y, type) {
+        const stats = TowerStats[type] || HeroStats[type];
+        const scaleVal = (stats?.scale || 1.0) * GS;
         const asset = Assets.get(`tower_${type}_base`);
         if (asset && asset.loaded) {
             ctx.save();
             ctx.translate(x, y);
-            drawImageCentered(ctx, asset, 45);
+            // PRO FIX: Use stats.drawSize if it exists (like Sniper's 150)
+            const targetSize = (stats?.drawSize ? stats.drawSize * GS : 45 * scaleVal);
+            drawImageCentered(ctx, asset, targetSize);
             ctx.restore();
         } else {
             ctx.fillStyle = '#795548';
             ctx.beginPath();
-            ctx.arc(x, y, 15, 0, Math.PI * 2);
+            ctx.arc(x, y, 15 * scaleVal, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.fillStyle = '#D7BCA3';
             ctx.beginPath();
-            ctx.arc(x, y, 10, 0, Math.PI * 2);
+            ctx.arc(x, y, 10 * scaleVal, 0, Math.PI * 2);
             ctx.fill();
             
             ctx.fillStyle = '#795548';
             ctx.beginPath();
-            ctx.arc(x - 12, y - 8, 5, 0, Math.PI * 2);
-            ctx.arc(x + 12, y - 8, 5, 0, Math.PI * 2);
+            ctx.arc(x - 12 * scaleVal, y - 8 * scaleVal, 5 * scaleVal, 0, Math.PI * 2);
+            ctx.arc(x + 12 * scaleVal, y - 8 * scaleVal, 5 * scaleVal, 0, Math.PI * 2);
             ctx.fill();
         }
     }
@@ -277,7 +282,7 @@ export class Tower {
 
     draw(ctx, isPreview = false) {
         if (!isPreview) {
-            drawShadow(ctx, this.x, this.y, SHADOW_SCALE * (this.stats.scale || 1.0));
+            drawShadow(ctx, this.x, this.y, SHADOW_SCALE * (this.stats.scale || 1.0) * GS);
         }
         
         this._drawHitscans(ctx);
@@ -314,12 +319,12 @@ export class Tower {
         for (const b of this.bananas) {
             ctx.globalAlpha = Math.min(1, b.life / 2);
             if (bananaAsset && bananaAsset.loaded) {
-                const s = b.isCrate ? 40 : 25;
+                const s = (b.isCrate ? 40 : 25) * GS;
                 ctx.drawImage(bananaAsset, b.x - s / 2, (b.y - b.arc) - s / 2, s, s);
             } else {
                 ctx.fillStyle = '#f1c40f';
                 ctx.beginPath();
-                ctx.arc(b.x, b.y - b.arc, 4, Math.PI * 0.2, Math.PI * 1.2);
+                ctx.arc(b.x, b.y - b.arc, 4 * GS, Math.PI * 0.2, Math.PI * 1.2);
                 ctx.fill();
             }
             ctx.globalAlpha = 1;
@@ -353,15 +358,13 @@ export class Tower {
         this._drawFallbackSprite(ctx, isStatic);
     }
 
-    // PRO FIX: Centralized asset drawing with config overrides
-    // If a config exists for this asset, size becomes 45 * config.scale. Otherwise, it uses defaultSize.
     _drawAsset(ctx, asset, type, key, defaultSize) {
         if (!asset || !asset.loaded) return;
         const off = SpriteConfig[type]?.[key] || { x: 0, y: 0, scale: 1 };
-        const size = SpriteConfig[type]?.[key] ? (45 * (off.scale || 1)) : defaultSize;
+        const size = SpriteConfig[type]?.[key] ? (45 * (off.scale || 1) * GS) : defaultSize;
         
         const maxDim = Math.max(asset.width, asset.height);
-        if (maxDim === 0) return;
+        if (maxDim === 0 || isNaN(size)) return; 
         const scale = size / maxDim;
         const w = asset.width * scale;
         const h = asset.height * scale;
@@ -448,25 +451,25 @@ export class Tower {
         if (this.type === 'village') {
             ctx.fillStyle = 'rgba(155, 89, 182, 0.1)';
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.stats.range, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, this.stats.range * GS, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = 'rgba(155, 89, 182, 0.4)';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.stats.range, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, this.stats.range * GS, 0, Math.PI * 2);
             ctx.stroke();
         }
 
         if (asset && asset.loaded) {
             ctx.save();
             ctx.translate(this.x, this.y);
-            drawImageCentered(ctx, asset, 45);
+            drawImageCentered(ctx, asset, 45 * GS);
             for (let p = 1; p <= 3; p++) {
                 const t = this.upgrades[p - 1];
                 if (t > 0) {
                     const ovAsset = Assets.get(`tower_${this.type}_p${p}_t${t}`);
                     if (ovAsset && ovAsset.loaded) {
-                        drawImageCentered(ctx, ovAsset, 45);
+                        drawImageCentered(ctx, ovAsset, 45 * GS);
                     }
                 }
             }
@@ -474,34 +477,34 @@ export class Tower {
         } else {
             if (this.type === 'farm') {
                 ctx.fillStyle = '#8b6b3f';
-                ctx.fillRect(this.x - 12, this.y - 2, 24, 16);
+                ctx.fillRect(this.x - 12 * GS, this.y - 2 * GS, 24 * GS, 16 * GS);
                 ctx.fillStyle = '#795548';
                 ctx.beginPath();
-                ctx.moveTo(this.x - 14, this.y - 2);
-                ctx.lineTo(this.x, this.y - 14);
-                ctx.lineTo(this.x + 14, this.y - 2);
+                ctx.moveTo(this.x - 14 * GS, this.y - 2 * GS);
+                ctx.lineTo(this.x, this.y - 14 * GS);
+                ctx.lineTo(this.x + 14 * GS, this.y - 2 * GS);
                 ctx.fill();
                 ctx.fillStyle = '#27ae60';
                 ctx.beginPath();
-                ctx.arc(this.x + 15, this.y - 10, 12, 0, Math.PI * 2);
+                ctx.arc(this.x + 15 * GS, this.y - 10 * GS, 12 * GS, 0, Math.PI * 2);
                 ctx.fill();
                 if (this.stats.isBank) {
                     ctx.fillStyle = '#f1c40f';
-                    ctx.font = '10px Arial';
+                    ctx.font = `${10 * GS}px Arial`;
                     ctx.textAlign = 'center';
-                    ctx.fillText('$', this.x, this.y + 10);
+                    ctx.fillText('$', this.x, this.y + 10 * GS);
                 }
             }
             if (this.type === 'village') {
                 ctx.fillStyle = '#8e44ad';
                 ctx.beginPath();
-                ctx.moveTo(this.x, this.y - 15);
-                ctx.lineTo(this.x + 15, this.y + 10);
-                ctx.lineTo(this.x - 15, this.y + 10);
+                ctx.moveTo(this.x, this.y - 15 * GS);
+                ctx.lineTo(this.x + 15 * GS, this.y + 10 * GS);
+                ctx.lineTo(this.x - 15 * GS, this.y + 10 * GS);
                 ctx.fill();
                 ctx.fillStyle = '#f1c40f';
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, 5, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, 5 * GS, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
@@ -512,7 +515,7 @@ export class Tower {
         ctx.translate(this.x, this.y);
         if (!isStatic) ctx.rotate(this.angle);
         
-        const scale = this.stats.scale || 1.0;
+        const scale = (this.stats.scale || 1.0) * GS;
         ctx.fillStyle = '#795548';
         ctx.beginPath();
         ctx.arc(0, 0, 15 * scale, 0, Math.PI * 2);
@@ -525,8 +528,8 @@ export class Tower {
         
         ctx.fillStyle = '#795548';
         ctx.beginPath();
-        ctx.arc(-12, -8, 5, 0, Math.PI * 2);
-        ctx.arc(12, -8, 5, 0, Math.PI * 2);
+        ctx.arc(-12 * scale, -8 * scale, 5 * scale, 0, Math.PI * 2);
+        ctx.arc(12 * scale, -8 * scale, 5 * scale, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
     }

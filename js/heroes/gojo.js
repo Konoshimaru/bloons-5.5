@@ -3,7 +3,10 @@ import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { AudioEngine } from '../audio.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
+
+// PRO FIX: Safe fallback to prevent NaN crashes if import fails
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: { 
@@ -248,21 +251,22 @@ export default {
             ctx.globalAlpha = 1;
         }
         
-        const baseAsset = Assets.get(`tower_gojo_base`);
+        // PRO FIX: Use getActiveAssets to get the dynamically scaled targetSize
+        const { baseAsset, targetSize } = tower.getActiveAssets();
         if (baseAsset && baseAsset.loaded) {
             ctx.save(); 
             ctx.translate(tower.x, tower.y);
             if (!isPreview && !tower.stats.isStaticRotation) {
                 ctx.rotate(tower.angle + Math.PI / 2); 
             }
-            drawImageCentered(ctx, baseAsset, 45);
+            drawImageCentered(ctx, baseAsset, targetSize); // Apply targetSize
             ctx.restore();
         } else {
             ctx.save(); ctx.translate(tower.x, tower.y);
             if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2);
-            ctx.fillStyle = tower.phase === 2 ? '#ff00ff' : '#9b59b6'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.arc(0, 2, 10, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = tower.phase === 2 ? '#ff00ff' : '#9b59b6'; ctx.beginPath(); ctx.arc(0, 0, 15 * GS, 0, Math.PI * 2); ctx.fill(); // Apply GS
+            ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.arc(0, 2 * GS, 10 * GS, 0, Math.PI * 2); ctx.fill(); // Apply GS
+            ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 4 * GS, 0, Math.PI * 2); ctx.fill(); // Apply GS
             ctx.restore();
         }
     },

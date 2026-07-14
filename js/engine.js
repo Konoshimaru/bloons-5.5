@@ -19,6 +19,7 @@ import Assets from './assets.js';
 import { UI } from './ui.js';
 import { Renderer } from './renderer.js';
 import { CutsceneManager } from './cutscene.js';
+import { GLOBAL_SCALE } from './constants.js';
 
 const MAX_SUBSTEPS = 10;
 const MAX_PROJECTILES = 1500;
@@ -68,7 +69,7 @@ export const GameEngine = {
     isSandbox: false,
     leakFlash: 0,
     
-    hasIceShardTower: false, // PRO FIX: Cache for Ice Shards performance
+    hasIceShardTower: false, 
     
     lastCash: -1,
     lastLives: -1,
@@ -154,7 +155,6 @@ export const GameEngine = {
         const maxSpeed = isExtreme ? MAX_SPEED_EXTREME : MAX_SPEED_NORMAL;
         
         if (direction > 0) {
-            // Forward cycle (Left-click or Spacebar)
             if (this.waveManager.waveActive || this.speedState > 0) {
                 this.speedState++;
                 if (this.speedState > maxSpeed) this.speedState = 1;
@@ -163,10 +163,9 @@ export const GameEngine = {
                 this.speedState = 1;
             }
         } else {
-            // Backward cycle (Right-click)
             if (this.speedState > 0) {
                 this.speedState--;
-                if (this.speedState < 1) this.speedState = maxSpeed; // Wrap around to max speed
+                if (this.speedState < 1) this.speedState = maxSpeed; 
             }
         }
         
@@ -395,7 +394,7 @@ export const GameEngine = {
             return;
         }
 
-        const placementRadius = stats.hitRadius || 18;
+        const placementRadius = (stats.hitRadius || 18) * GLOBAL_SCALE;
         const isOverlapping = this.towers.some(t => t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + placementRadius));
         
         if (isOverlapping) {
@@ -431,7 +430,7 @@ export const GameEngine = {
         this.deselectAll();
     },
 
-    cycleTargeting() {
+    cycleTargeting(direction = 1) {
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
         
@@ -442,7 +441,7 @@ export const GameEngine = {
         
         let idx = modes.indexOf(t.targetingMode);
         if (idx === -1) idx = 0; 
-        idx = (idx + 1) % modes.length;
+        idx = (idx + direction + modes.length) % modes.length; 
         t.targetingMode = modes[idx];
         
         UI.showUpgradeUI(t, this);
@@ -451,6 +450,10 @@ export const GameEngine = {
     handleUpgrade(path) {
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
+        
+        // PRO FIX: Prevent crashing when clicking paths on a hero
+        if (t.stats.isHero) return; 
+        
         const tier = t.upgrades[path - 1];
         const upgradeData = Upgrades[t.type][path][tier];
         
@@ -566,12 +569,21 @@ export const GameEngine = {
 
         if (this.gameState === 'playing') {
             const targetDt = Math.min(rawDt, 0.1) * this.timeScale;
-            const steps = Math.min(Math.ceil(targetDt / FIXED_TIMESTEP), MAX_SUBSTEPS);
+            const steps = Math.max(1, Math.min(Math.ceil(targetDt / FIXED_TIMESTEP), MAX_SUBSTEPS));
             const stepDt = targetDt / steps;
             
+            const watchdog = setTimeout(() => {
+                console.error("INFINITE LOOP DETECTED IN UPDATE!");
+                this.gameState = 'gameover';
+                UI.toggleMenus('game-over-menu');
+                document.getElementById('go-wave-stat').innerText = `Game Freeze: Infinite loop detected.`;
+            }, 1000);
+
             try {
                 for (let i = 0; i < steps; i++) this.update(stepDt);
+                clearTimeout(watchdog);
             } catch (err) {
+                clearTimeout(watchdog);
                 console.error("FATAL SIMULATION ERROR:", err);
                 this.gameState = 'gameover';
                 UI.toggleMenus('game-over-menu');
@@ -579,10 +591,15 @@ export const GameEngine = {
             }
         }
         
-        try {
-            Renderer.render(this, rawDt);
-        } catch (err) {
-            console.error("Render Error (skipped frame):", err);
+        if (this.gameState === 'playing' || this.gameState === 'paused') {
+            try {
+                Renderer.render(this, rawDt);
+            } catch (err) {
+                console.error("FATAL RENDER ERROR:", err);
+                this.gameState = 'gameover';
+                UI.toggleMenus('game-over-menu');
+                document.getElementById('go-wave-stat').innerText = `Render Crash: ${err.message}.`;
+            }
         }
         
         if (!document.hidden) {
@@ -699,7 +716,6 @@ export const GameEngine = {
             t.buffedValueMult = 0;
         }
         
-        // PRO FIX: Cache Ice Shards tower existence for performance
         this.hasIceShardTower = false;
         
         for (const t of this.towers) {

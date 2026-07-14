@@ -1,10 +1,8 @@
-﻿// config.js
-import { Maps } from './data.js';
+﻿import { Maps } from './data.js';
 import { HeroStats, HeroLevels } from './heroes/index.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 
 export { HeroStats, HeroLevels, CANVAS_WIDTH, CANVAS_HEIGHT };
-
 export const RANGE_SCALE = 3.0;
 
 const STORAGE_KEY = 'td_config_v11';
@@ -38,7 +36,6 @@ const DEFAULT_DATA = {
 
 export const Config = {
     data: { ...DEFAULT_DATA },
-
     load() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -46,7 +43,6 @@ export const Config = {
                 const parsed = JSON.parse(saved);
                 this.data = { ...DEFAULT_DATA, ...parsed };
             }
-
             if (!Array.isArray(this.data.customMaps)) this.data.customMaps = [];
             if (typeof this.data.currentMap !== 'number') this.data.currentMap = 0;
             if (!this.data.currentDifficulty) this.data.currentDifficulty = 'medium';
@@ -55,12 +51,10 @@ export const Config = {
             if (!this.data.playerXP) this.data.playerXP = 0;
             if (!this.data.playerXPToNext) this.data.playerXPToNext = 1000;
             if (!this.data.extremeSpeedEnabled) this.data.extremeSpeedEnabled = false;
-            
             if (!this.data.unlocks) this.data.unlocks = {};
             if (this.data.unlocks.extraStartingCash === undefined) this.data.unlocks.extraStartingCash = false;
             if (this.data.unlocks.extraStartingLives === undefined) this.data.unlocks.extraStartingLives = false;
             if (this.data.unlocks.freeFirstDartMonkey === undefined) this.data.unlocks.freeFirstDartMonkey = false;
-
             if (this.data.customMaps.length > 0) {
                 Maps.push(...this.data.customMaps);
             }
@@ -69,7 +63,6 @@ export const Config = {
             this.data = { ...DEFAULT_DATA };
         }
     },
-
     save() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));

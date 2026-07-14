@@ -27,6 +27,10 @@ export class GameMap {
             delete this.data.waypoints;
         }
         if (!this.data.paths) this.data.paths = [];
+        if (!this.data.imageScale) this.data.imageScale = 1.0;
+        if (!this.data.imageOffsetX) this.data.imageOffsetX = 0;
+        if (!this.data.imageOffsetY) this.data.imageOffsetY = 0;
+        if (!this.data.imageMaintainRatio) this.data.imageMaintainRatio = false;
 
         this._initPathfinding();
         this._initBackground();
@@ -85,20 +89,31 @@ export class GameMap {
 
     draw(ctx) {
         if (this.backgroundImage && this.backgroundImage.loaded) {
-            ctx.drawImage(this.backgroundImage, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            const scale = this.data.imageScale || 1;
+            const offX = this.data.imageOffsetX || 0;
+            const offY = this.data.imageOffsetY || 0;
+            let w = CANVAS_WIDTH * scale;
+            let h = CANVAS_HEIGHT * scale;
+            
+            if (this.data.imageMaintainRatio && this.backgroundImage.width > 0) {
+                const ratio = this.backgroundImage.height / this.backgroundImage.width;
+                h = w * ratio;
+            }
+            
+            ctx.drawImage(this.backgroundImage, offX, offY, w, h);
         } else {
-            ctx.drawImage(this.cacheCanvas, 0, 0);
+            ctx.fillStyle = '#8acc4d';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         }
+        // Always draw the cache canvas (paths, water, props) on top of the background!
+        ctx.drawImage(this.cacheCanvas, 0, 0);
     }
 
     drawToCache(ctx) {
-        ctx.fillStyle = '#8acc4d';
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        // PRO FIX: Clear instead of filling green so backgrounds show through
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        ctx.strokeStyle = 'rgba(0,0,0,0.05)';
-        ctx.lineWidth = 1;
-        for(let x = 0; x < CANVAS_WIDTH; x += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke(); }
-        for(let y = 0; y < CANVAS_HEIGHT; y += GRID_SIZE) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke(); }
+        // Removed the grid drawing loop so it doesn't show up in the normal game!
 
         for (let brush of this.waterBrushes) {
             if (brush.points.length === 0) continue;
@@ -120,7 +135,6 @@ export class GameMap {
         this.props.forEach(p => this._drawProp(ctx, p));
 
         for (let p = 0; p < this.data.paths.length; p++) {
-            // PRO FIX: Skip drawing the path in-game if it's marked as invisible
             if (this.data.paths[p].visible === false) continue;
             
             const waypoints = this.data.paths[p].waypoints;
@@ -130,22 +144,22 @@ export class GameMap {
             ctx.lineWidth = PATH_WIDTH + 8;
             ctx.lineJoin = 'round'; ctx.lineCap = 'round';
             ctx.beginPath();
-            ctx.moveTo(waypoints[0].x + this.offsetX, waypoints[0].y + this.offsetY + 4);
+            ctx.moveTo(waypoints[0].x, waypoints[0].y + 4);
             for (let i = 1; i < waypoints.length; i++) {
                 const wp = waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx + this.offsetX, wp.curve.cy + this.offsetY, wp.x + this.offsetX, wp.y + this.offsetY + 4);
-                else ctx.lineTo(wp.x + this.offsetX, wp.y + this.offsetY + 4);
+                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y + 4);
+                else ctx.lineTo(wp.x, wp.y + 4);
             }
             ctx.stroke();
             
             ctx.strokeStyle = '#a8825a';
             ctx.lineWidth = PATH_WIDTH;
             ctx.beginPath();
-            ctx.moveTo(waypoints[0].x + this.offsetX, waypoints[0].y + this.offsetY);
+            ctx.moveTo(waypoints[0].x, waypoints[0].y);
             for (let i = 1; i < waypoints.length; i++) {
                 const wp = waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx + this.offsetX, wp.curve.cy + this.offsetY, wp.x + this.offsetX, wp.y + this.offsetY);
-                else ctx.lineTo(wp.x + this.offsetX, wp.y + this.offsetY);
+                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y);
+                else ctx.lineTo(wp.x, wp.y);
             }
             ctx.stroke();
         }
@@ -172,6 +186,9 @@ export class GameMap {
     }
 
     _findSegmentIndex(distance, cumulativeDistances) {
+        // PRO FIX: Prevent infinite loop if distance is NaN
+        if (isNaN(distance)) return 0; 
+        
         let low = 0, high = cumulativeDistances.length - 1, mid = 0;
         while (low <= high) {
             mid = Math.floor((low + high) / 2);

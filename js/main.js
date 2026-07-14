@@ -68,8 +68,9 @@ const dom = {
     enemyCards: document.querySelectorAll('#enemy-view .tower-card[data-enemy]'),
     towerCards: document.querySelectorAll('.tower-card[data-tower]'),
     waveSpeedBtn: document.getElementById('wave-speed-btn'),
-    upTargeting: document.getElementById('up-targeting'),
-    upTargetingTower: document.getElementById('up-targeting-tower'),
+    
+    upTargetPrev: document.getElementById('up-target-prev'),
+    upTargetNext: document.getElementById('up-target-next'),
     upBuyLevel: document.getElementById('up-buy-level'),
     upPaths: [
         document.getElementById('up-path1'),
@@ -244,7 +245,6 @@ function applyConfigToUI() {
     if (dom.fpsCheckbox) dom.fpsCheckbox.checked = Config.data.showFps;
     if (dom.fpsDisplay) dom.fpsDisplay.style.display = Config.data.showFps ? 'block' : 'none';
     if (dom.extremeSpeedCheckbox) dom.extremeSpeedCheckbox.checked = Config.data.extremeSpeedEnabled;
-    
     refreshMapSelector();
     refreshHeroSelector();
     updateHeroShopCard();
@@ -450,13 +450,13 @@ function _setupGameListeners() {
     dom.sbPrev?.addEventListener('click', () => GameEngine.skipWave(-1));
     dom.sbNext?.addEventListener('click', () => GameEngine.skipWave(1));
 
-    // PRO FIX: Right-click speed buttons to cycle backwards
+    dom.waveSpeedBtn?.addEventListener('click', () => GameEngine.handleWaveSpeedClick(1));
+    dom.sbSpeedBtn?.addEventListener('click', () => GameEngine.handleWaveSpeedClick(1));
+
     const handleSpeedRightClick = (e) => {
         e.preventDefault();
         GameEngine.handleWaveSpeedClick(-1);
     };
-    dom.waveSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
-    dom.sbSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
     dom.waveSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
     dom.sbSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
     
@@ -483,6 +483,9 @@ function _setupGameListeners() {
         if (val !== null && !isNaN(val)) { GameEngine.lives = Math.max(0, parseInt(val)); GameEngine.updateUI(); }
     });
     dom.cancelBtn?.addEventListener('click', () => GameEngine.deselectAll());
+    
+    dom.upTargetPrev?.addEventListener('click', () => GameEngine.cycleTargeting(-1));
+    dom.upTargetNext?.addEventListener('click', () => GameEngine.cycleTargeting(1));
 }
 
 function _setupShopListeners() {
@@ -529,7 +532,6 @@ function _setupShopListeners() {
         });
     });
 
-    // PRO FIX: 150ms confirmation buffer & drag-back-to-cancel
     let activeDrag = null;
 
     const cleanupDrag = () => {
@@ -544,7 +546,7 @@ function _setupShopListeners() {
 
     dom.towerCards.forEach(card => {
         card.addEventListener('pointerdown', (e) => {
-            e.preventDefault(); // Prevent mobile scrolling/zooming
+            e.preventDefault(); 
             
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
             if (GameEngine.cash < GameEngine.getCost(stats.cost)) {
@@ -552,7 +554,7 @@ function _setupShopListeners() {
                 return;
             }
             
-            cleanupDrag(); // Clear any previous unfinished drags
+            cleanupDrag(); 
             
             GameEngine.deselectAll();
             dom.towerCards.forEach(c => c.classList.remove('selected'));
@@ -565,7 +567,6 @@ function _setupShopListeners() {
             const scaleX = GameEngine.canvas.width / canvasRect.width;
             const scaleY = GameEngine.canvas.height / canvasRect.height;
 
-            // Instantly update mouse position
             GameEngine.mouse.x = (e.clientX - canvasRect.left) * scaleX;
             GameEngine.mouse.y = (e.clientY - canvasRect.top) * scaleY;
 
@@ -577,43 +578,34 @@ function _setupShopListeners() {
                 onUp: (ev) => {
                     window.removeEventListener('pointermove', activeDrag.onMove);
                     window.removeEventListener('pointerup', activeDrag.onUp);
-                    
-                    // 1. If dropped on the sidebar -> Cancel immediately
+
                     if (ev.clientX >= sidebarRect.left && ev.clientX <= sidebarRect.right) {
                         GameEngine.deselectAll();
                         cleanupDrag();
                         return;
                     }
                     
-                    // 2. If dropped on the canvas -> Start 150ms buffer
                     if (ev.clientX >= canvasRect.left && ev.clientX <= canvasRect.right && ev.clientY >= canvasRect.top && ev.clientY <= canvasRect.bottom) {
-                        // PRO FIX: Reduced from 500ms to 150ms for better responsiveness
                         activeDrag.placeTimer = setTimeout(() => {
-                            // 150ms passed without resuming -> Place the tower!
                             GameEngine.handleCanvasClick({ clientX: ev.clientX, clientY: ev.clientY });
                             cleanupDrag();
                         }, 150);
                         
-                        // Listen for a finger to come back down to resume dragging
                         window.addEventListener('pointerdown', activeDrag.resumeDrag);
                     } else {
-                        // 3. Dropped outside both -> Cancel
                         GameEngine.deselectAll();
                         cleanupDrag();
                     }
                 },
                 resumeDrag: (ev) => {
-                    // The user put their finger back down within 150ms!
                     if (activeDrag && activeDrag.placeTimer) {
                         clearTimeout(activeDrag.placeTimer);
                         activeDrag.placeTimer = null;
                         window.removeEventListener('pointerdown', activeDrag.resumeDrag);
                         
-                        // Update preview to new touch position
                         GameEngine.mouse.x = (ev.clientX - canvasRect.left) * scaleX;
                         GameEngine.mouse.y = (ev.clientY - canvasRect.top) * scaleY;
                         
-                        // Re-attach move and up listeners to continue dragging
                         window.addEventListener('pointermove', activeDrag.onMove);
                         window.addEventListener('pointerup', activeDrag.onUp);
                     }
@@ -636,6 +628,9 @@ function _setupShopListeners() {
         el.addEventListener('mouseenter', () => {
             if (!GameEngine.selectedPlacedTower) return;
             const t = GameEngine.selectedPlacedTower;
+            // PRO FIX: Prevent crash when hovering upgrades on a Hero
+            if (t.stats.isHero) return; 
+            
             const tier = t.upgrades[path - 1];
             const data = Upgrades[t.type][path][tier];
             const tip = document.getElementById('upgrade-tooltip');
@@ -656,8 +651,6 @@ function _setupShopListeners() {
     
     dom.upPaths.forEach((el, i) => upHover(el, i + 1));
     
-    dom.upTargeting?.addEventListener('click', () => GameEngine.cycleTargeting());
-    dom.upTargetingTower?.addEventListener('click', () => GameEngine.cycleTargeting());
     dom.upBuyLevel?.addEventListener('click', () => GameEngine.buyHeroLevel());
     dom.upPaths.forEach((el, i) => el?.addEventListener('click', () => GameEngine.handleUpgrade(i + 1)));
     dom.upSell?.addEventListener('click', () => GameEngine.sellTower());

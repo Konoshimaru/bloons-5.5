@@ -2,6 +2,10 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import Assets from '../assets.js';
+import { GLOBAL_SCALE } from '../constants.js';
+
+// PRO FIX: Safe fallback to prevent NaN crashes if import fails
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: { 
@@ -94,7 +98,8 @@ export default {
             return;
         }
         ctx.save(); ctx.translate(tower.x, tower.y);
-        let scaleVal = tower.stats.scale || 1.0; 
+        // PRO FIX: Apply GS to scaleVal so fallback shape matches preview size
+        let scaleVal = (tower.stats.scale || 1.0) * GS; 
         let bodyColor = '#e74c3c';
         if (tower.upgrades[0] >= 4) bodyColor = '#d35400'; 
         if (tower.upgrades[1] >= 3) bodyColor = '#95a5a6'; 

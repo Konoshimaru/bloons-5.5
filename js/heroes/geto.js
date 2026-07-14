@@ -2,10 +2,11 @@ import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { AudioEngine } from '../audio.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../config.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _UZUMAKI_FACE_TYPES = ['screaming', 'cyclops', 'hollow'];
-
 class _UzumakiSpirit {
     constructor(cx, cy, maxDim) { this.reset(cx, cy, maxDim, true); }
     reset(cx, cy, maxDim, initialSpread = false) {
@@ -37,8 +38,8 @@ class _UzumakiSpirit {
         const left = [], right = [];
         for (let i = 0; i < spine.length; i++) {
             let dx, dy;
-            if (i === 0) { dx = spine[1].x - spine[0].x; dy = spine[1].y - spine[0].y; } 
-            else if (i === spine.length - 1) { dx = spine[i].x - spine[i - 1].x; dy = spine[i].y - spine[i - 1].y; } 
+            if (i === 0) { dx = spine[1].x - spine[0].x; dy = spine[1].y - spine[0].y; }
+            else if (i === spine.length - 1) { dx = spine[i].x - spine[i - 1].x; dy = spine[i].y - spine[i - 1].y; }
             else { dx = spine[i + 1].x - spine[i - 1].x; dy = spine[i + 1].y - spine[i - 1].y; }
             const len = Math.hypot(dx, dy) || 1;
             const nx = -(dy / len), ny = (dx / len);
@@ -59,7 +60,6 @@ class _UzumakiSpirit {
         for (let i = right.length - 1; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
         ctx.closePath();
         ctx.fill(); ctx.stroke();
-
         const facePt = spine[Math.min(1, spine.length - 1)];
         const faceAngle = Math.atan2(spine[2].y - spine[0].y, spine[2].x - spine[0].x) + Math.PI;
         ctx.save();
@@ -85,7 +85,6 @@ class _UzumakiSpirit {
         ctx.restore();
     }
 }
-
 class _StretchedHand {
     constructor(startX, startY, angle) {
         this.x = startX; this.y = startY; this.angle = angle;
@@ -134,7 +133,6 @@ class _StretchedHand {
         ctx.restore();
     }
 }
-
 export default {
     stats: {
         name: "Geto", cost: 720, range: 40, fireRate: 1.2, damage: 1, pierce: 2,
@@ -178,7 +176,7 @@ export default {
             if (tower.captureTime >= 1.5) {
                 if (tower.captureTarget && tower.captureTarget.alive) {
                     let dmg = tower.captureTarget.takeDamage(99999, { isMagic: true, canHitLead: true });
-                    if (dmg > 0) tower.damageDealt += dmg; // PRO FIX: Guard against -1
+                    tower.damageDealt += dmg;
                 }
                 tower.captureBuffTime = 5.0;
                 tower.isCapturing = false;
@@ -214,7 +212,6 @@ export default {
                 if (!e.alive || s.hitEnemies.has(e)) continue;
                 if (Utils.distance(s.x, s.y, e.x, e.y) < e.data.radius + s.hitRadius) {
                     let dmg = e.takeDamage(s.dmg, { isMagic: true, canHitLead: true });
-                    // PRO FIX: Guard against -1 and NaN
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                     s.hitEnemies.add(e);
                     if (s.slowOnHit) e.applySlow(0.85, 0.5, false);
@@ -226,7 +223,8 @@ export default {
                     }
                 }
             }
-if (s.life <= 0 || s.x < -100 || s.x > CANVAS_WIDTH + 100 || s.y < -100 || s.y > CANVAS_HEIGHT + 100) {                tower.squids.splice(i, 1);
+            if (s.life <= 0 || s.x < -100 || s.x > CANVAS_WIDTH + 100 || s.y < -100 || s.y > CANVAS_HEIGHT + 100) {
+                tower.squids.splice(i, 1);
             }
         }
         if (tower.uzumaki) {
@@ -242,16 +240,15 @@ if (s.life <= 0 || s.x < -100 || s.x > CANVAS_WIDTH + 100 || s.y < -100 || s.y >
                 }
             } else if (u.phase === 'firing') {
                 u.fireTime -= dt;
-                // Same damage-per-second math as the old straight beam, unchanged.
                 const dpsMult = u.isUpgraded ? 12 : 8;
                 const moabDps = u.isUpgraded ? 60 : 25;
                 for (let e of GameEngine.enemies) {
                     if (!e.alive) continue;
                     let dmg = e.takeDamage(tower.stats.damage * dpsMult * dt, { isMagic: true, canHitLead: true });
-                    if (dmg > 0) tower.damageDealt += dmg; // PRO FIX: Guard against -1
+                    tower.damageDealt += dmg;
                     if (e.data.isMoab) {
                         let moabDmg = e.takeDamage(moabDps * dt, { isMagic: true, canHitLead: true });
-                        if (moabDmg > 0) tower.damageDealt += moabDmg; // PRO FIX: Guard against -1
+                        tower.damageDealt += moabDmg;
                     }
                 }
                 const progress = 1 - Math.max(u.fireTime, 0) / u.fireDuration;
@@ -299,23 +296,23 @@ if (s.life <= 0 || s.x < -100 || s.x > CANVAS_WIDTH + 100 || s.y < -100 || s.y >
             ctx.stroke();
             ctx.globalAlpha = 1;
         }
-        const baseAsset = Assets.get('tower_geto_base');
+        const { baseAsset, targetSize } = tower.getActiveAssets();
         if (baseAsset && baseAsset.loaded) {
             ctx.save();
             ctx.translate(tower.x, tower.y);
             if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2);
-            drawImageCentered(ctx, baseAsset, 45);
+            drawImageCentered(ctx, baseAsset, targetSize);
             ctx.restore();
         } else {
             ctx.save();
             ctx.translate(tower.x, tower.y);
             if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2);
             ctx.fillStyle = '#3a0060';
-            ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, 15 * GS, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#1a1a1a';
-            ctx.beginPath(); ctx.arc(0, 2, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 2 * GS, 10 * GS, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#ffcc00';
-            ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, 4 * GS, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
         }
     },
@@ -490,7 +487,6 @@ if (s.life <= 0 || s.x < -100 || s.x > CANVAS_WIDTH + 100 || s.y < -100 || s.y >
         let isWorm = false;
         if (wormEvery5th) isWorm = (tower.shotCounter % 5 === 0);
         else if (wormEvery8th) isWorm = (tower.shotCounter % 8 === 0);
-
         if (isWorm) {
             let dx = target.x - tower.x, dy = target.y - tower.y;
             let dist = Math.hypot(dx, dy);

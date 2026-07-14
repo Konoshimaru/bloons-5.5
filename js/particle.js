@@ -1,6 +1,7 @@
 ﻿// particle.js
 import Assets from './assets.js';
 import { Names } from './names.js';
+import { GLOBAL_SCALE } from './constants.js';
 
 const ALPHA_MAX = 1;
 const BASE_SIZE = 45;
@@ -58,7 +59,7 @@ export class Particle {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
 
-        const s = BASE_SIZE * this.size;
+        const s = BASE_SIZE * this.size * GLOBAL_SCALE; // PRO FIX: Apply global scale to particle size
         ctx.drawImage(asset, -s / 2, -s / 2, s, s);
 
         ctx.restore();

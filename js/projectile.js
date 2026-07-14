@@ -2,12 +2,15 @@
 import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
-import { GameEngine } from './engine.js'; // PRO FIX: Restored missing GameEngine import!
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
+import { GameEngine } from './engine.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
 import { ProjectileDrawers } from './projectileDrawers.js';
 import { DamageType, createDmgType } from './damageTypes.js';
+
+// PRO FIX: Safe fallback to prevent NaN crashes if import fails
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const MORTAR_ARC_HEIGHT = 150;
 const SEEKING_TURN_SPEED = 12;
@@ -38,7 +41,7 @@ export class Projectile {
         const baseAngle = fixedAngle !== null ? fixedAngle : (target ? Utils.angle(this.x, this.y, target.x, target.y) : 0);
         this.angle = baseAngle + (angleOffset * Math.PI / 180);
         
-        this.radius = this._getRadius(type);
+        this.radius = this._getRadius(type) * GS;
         this.alive = true;
         this.active = true;
         this.effects = effects;
@@ -246,6 +249,10 @@ export class Projectile {
 
         const targetAngle = Utils.angle(this.x, this.y, this.target.x, this.target.y);
         let diff = targetAngle - this.angle;
+        
+        // PRO FIX: Prevent infinite loop if diff is NaN
+        if (isNaN(diff)) return; 
+        
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
 
@@ -280,7 +287,8 @@ export class Projectile {
             if (!e.alive || this.hitEnemies.has(e)) continue;
             if (e.isCamo && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
             
-            if (Utils.distance(this.x, this.y, e.x, e.y) < e.data.radius + this.radius) {
+            const eRad = e.radius || e.data.radius || 10;
+            if (Utils.distance(this.x, this.y, e.x, e.y) < eRad + this.radius) {
                 this.hit(e);
                 this.hitEnemies.add(e);
                 if (!this.alive) break;
@@ -465,7 +473,7 @@ export class Projectile {
         const asset = Assets.get(assetKey);
         
         if (asset && asset.loaded) {
-            const targetSize = this._getDrawSize();
+            const targetSize = this._getDrawSize() * GS;
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.rotate(this.angle);
@@ -477,6 +485,7 @@ export class Projectile {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
+        ctx.scale(GS, GS); 
         const drawer = ProjectileDrawers[this.type] || ProjectileDrawers.dart;
         drawer(ctx, this);
         ctx.restore();

@@ -1,15 +1,13 @@
 ﻿// renderer.js
-// Renders the map, entities, effects, and selection overlays.
-
-import { Config, RANGE_SCALE } from './config.js';
-import { TowerStats, Upgrades } from './towers/index.js';
-import { HeroStats } from './config.js';
+import { Config, RANGE_SCALE, HeroStats } from './config.js';
+import { TowerStats } from './towers/index.js';
 import { Utils } from './utils.js';
 import { Tower } from './tower.js';
 import { CutsceneManager } from './cutscene.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
 
-const CANVAS_WIDTH = 900;
-const CANVAS_HEIGHT = 600;
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
+
 const PLACEMENT_RADIUS = 18;
 const TOWER_HIT_RADIUS_PADDING = 4;
 const TOWER_SELECTION_LINE_WIDTH = 3;
@@ -21,8 +19,6 @@ const TOWER_OVERLAP_COLOR = 'red';
 const EXPLOSION_INNER_COLOR = '#f1c40f';
 const LEAK_FLASH_COLOR = '#e74c3c';
 const LEAK_FLASH_LINE_WIDTH = 10;
-const FLAVOR_OPACITY_VISIBLE = 1;
-const FLAVOR_OPACITY_HIDDEN = 0;
 
 export const Renderer = {
     render(engine, dt) {
@@ -31,13 +27,10 @@ export const Renderer = {
 
         this._setupContext(ctx);
         
-        // PRO FIX: Camera pan logic for Cutscene
         let camOffset = CutsceneManager.cameraOffsetX || 0;
         if (camOffset !== 0) {
-            // Fill the empty space with the map's grass color first
             ctx.fillStyle = '#8acc4d';
-            ctx.fillRect(0, 0, camOffset, 600);
-            
+            ctx.fillRect(0, 0, camOffset, CANVAS_HEIGHT);
             ctx.save();
             ctx.translate(camOffset, 0);
         }
@@ -53,7 +46,6 @@ export const Renderer = {
             ctx.restore();
         }
         
-        // Draw cutscene overlays (slash/black screen) on top
         CutsceneManager.draw(ctx);
     },
 
@@ -111,6 +103,8 @@ export const Renderer = {
         const mouse = engine.mouse;
         const map = engine.map;
         
+        const placementRadius = Math.max(1, (stats.hitRadius || PLACEMENT_RADIUS) * GS);
+        
         const onPath = map.isOnPath(mouse.x, mouse.y) || map.isOnProp(mouse.x, mouse.y) || mouse.y > CANVAS_HEIGHT || mouse.x > CANVAS_WIDTH;
         const cost = engine.getCost(stats.cost);
         const canAfford = engine.cash >= cost;
@@ -118,7 +112,7 @@ export const Renderer = {
         ctx.globalAlpha = 0.6;
 
         if (stats.range < 9999) {
-            const effRange = stats.range * RANGE_SCALE;
+            const effRange = Math.max(1, stats.range * RANGE_SCALE * GS);
             ctx.fillStyle = canAfford ? TOWER_AFFORDABLE_COLOR : TOWER_OUT_OF_BOUNDS_COLOR;
             ctx.beginPath();
             ctx.arc(mouse.x, mouse.y, effRange, 0, Math.PI * 2);
@@ -131,7 +125,7 @@ export const Renderer = {
             if (isOverlapping) {
                 ctx.fillStyle = TOWER_OVERLAP_COLOR;
                 ctx.beginPath();
-                ctx.arc(mouse.x, mouse.y, PLACEMENT_RADIUS, 0, Math.PI * 2);
+                ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
                 ctx.fill();
             } else {
                 Tower.drawPreview(ctx, mouse.x, mouse.y, engine.selectedTowerType);
@@ -139,7 +133,7 @@ export const Renderer = {
         } else {
             ctx.fillStyle = TOWER_OVERLAP_COLOR;
             ctx.beginPath();
-            ctx.arc(mouse.x, mouse.y, PLACEMENT_RADIUS, 0, Math.PI * 2);
+            ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
             ctx.fill();
         }
 
@@ -147,7 +141,7 @@ export const Renderer = {
     },
 
     _checkPlacementOverlap(engine, stats, x, y) {
-        const placementRadius = stats.hitRadius || 18;
+        const placementRadius = (stats.hitRadius || PLACEMENT_RADIUS) * GS;
         for (const t of engine.towers) {
             if (t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + placementRadius)) {
                 return true;
@@ -163,14 +157,14 @@ export const Renderer = {
         ctx.strokeStyle = '#e67e22';
         ctx.lineWidth = TOWER_SELECTION_LINE_WIDTH;
         ctx.beginPath();
-        ctx.arc(t.x, t.y, t.hitRadius + TOWER_HIT_RADIUS_PADDING, 0, Math.PI * 2);
+        ctx.arc(t.x, t.y, Math.max(1, t.hitRadius + TOWER_HIT_RADIUS_PADDING), 0, Math.PI * 2);
         ctx.stroke();
 
         if (t.stats.range < 9999) {
             const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
             const buffMult = typeof t.buffedRange === 'number' ? t.buffedRange : 0;
             const alchBuff = t.alchBuff ? t.alchBuff.range : 0;
-            const effRange = t.stats.range * scale * (1 + buffMult + alchBuff);
+            const effRange = Math.max(1, t.stats.range * scale * (1 + buffMult + alchBuff) * GS);
 
             ctx.fillStyle = TOWER_RANGE_FILL_COLOR;
             ctx.globalAlpha = TOWER_SELECTION_FILL_ALPHA;
@@ -186,6 +180,7 @@ export const Renderer = {
             ctx.globalAlpha = engine.leakFlash;
             ctx.strokeStyle = LEAK_FLASH_COLOR;
             ctx.lineWidth = LEAK_FLASH_LINE_WIDTH;
+            // PRO FIX: Use CANVAS_WIDTH and CANVAS_HEIGHT from constants (1280x720)
             ctx.strokeRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             ctx.globalAlpha = 1;
         }

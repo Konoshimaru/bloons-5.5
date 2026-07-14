@@ -1,5 +1,6 @@
 ﻿// towerBehavior.js
 import { RANGE_SCALE } from './config.js';
+import { GLOBAL_SCALE } from './constants.js';
 import { TowerRegistry, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
@@ -7,6 +8,9 @@ import { Utils } from './utils.js';
 import { AudioEngine } from './audio.js';
 import Assets from './assets.js';
 import { DamageType, createDmgType, resolveDmgType } from './damageTypes.js';
+
+// PRO FIX: Safe fallback to prevent NaN crashes if import fails
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const MIN_FIRE_RATE = 0.01;
 const ANIM_FRAME_DURATION = 0.03;
@@ -23,7 +27,6 @@ export function getEffectiveCooldown(tower) {
     if (tower.abilityActiveTime > 0) finalCooldown /= (tower.stats.rapidShotMult || 3);
     if (tower.alchBuff) finalCooldown /= (1 + tower.alchBuff.speed);
     
-    // PRO FIX: Elite Defender speed scaling
     if (tower.eliteDefenderSpeedMod) finalCooldown *= tower.eliteDefenderSpeedMod;
 
     return finalCooldown < MIN_FIRE_RATE ? MIN_FIRE_RATE : finalCooldown;
@@ -128,10 +131,9 @@ function _findTarget(tower, engine) {
     const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
     const alchRange = tower.alchBuff ? tower.alchBuff.range : 0;
     
-    const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange);
+    const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange) * GS;
     const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
     
-    // PRO FIX: Elite Targeting Logic
     let currentTargeting = tower.targetingMode;
     if (currentTargeting === 'Elite') {
         let totalLen = engine.map.getTotalLength();
@@ -153,7 +155,7 @@ function _findTarget(tower, engine) {
         
         const dist = Utils.distance(tower.x, tower.y, e.x, e.y);
         if (baseRange !== 9999 && dist > effRange) continue;
-        if (tower.stats.minRange && dist < (tower.stats.minRange * scale)) continue; 
+        if (tower.stats.minRange && dist < (tower.stats.minRange * scale * GS)) continue; 
 
         if (!_hasLineOfSight(tower, e, engine)) continue;
 
@@ -281,7 +283,6 @@ function _calculateDamage(tower) {
     let damage = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0); 
     let isCrit = tower.stats.critChance && Math.random() < tower.stats.critChance;
     if (isCrit) damage = tower.stats.critDmg;
-    // PRO FIX: Removed the 'heavy' dmgType override that was causing undefined damage for Snipers
     return damage;
 }
 

@@ -38,32 +38,59 @@
         <div id="ability-bar" class="hidden"></div>
         <button id="cancel-btn" class="hidden">✖</button>
 
-        <div id="upgrade-panel" class="hidden">
-            <div id="hero-ui" class="hidden">
-                <div class="hero-header">
-                    <div id="hero-icon"></div>
-                    <div class="hero-info">
-                        <h3 id="hero-title">Hero</h3>
-                        <div id="hero-pops">Pops: 0</div>
-                    </div>
+         <!-- Upgrade Sidebar (Left Side) -->
+        <div id="upgrade-sidebar" class="hidden">
+            <div class="up-header">
+                <div id="up-portrait"></div>
+                <div class="up-info">
+                    <h3 id="up-title">Tower</h3>
+                    <div id="up-counters">Pops: 0</div>
                 </div>
-                <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
-                <div id="hero-level-text">Level 1</div>
-                <button id="up-targeting">Target: First</button>
-                <button id="up-buy-level" class="hidden">Buy Level: $0</button>
             </div>
             
-            <div id="tower-ui">
-                <h3 id="up-title">Tower</h3>
-                <div id="up-stats"></div>
-                <div id="up-counters"></div>
-                <button id="up-targeting-tower">Target: First</button>
-                <div class="up-card" id="up-path1"><span class="up-name">Path 1</span><span class="cost">$0</span></div>
-                <div class="up-card" id="up-path2"><span class="up-name">Path 2</span><span class="cost">$0</span></div>
-                <div class="up-card" id="up-path3"><span class="up-name">Path 3</span><span class="cost">$0</span></div>
+            <div id="hero-ui" class="hidden" style="flex-direction: column; gap: 8px; margin-bottom: 5px;">
+                <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
+                <div id="hero-level-text">Level 1</div>
+                <div id="hero-current-desc" class="hero-desc-box"></div>
+                <button id="up-buy-level" class="hidden">Buy Level: $0</button>
+                <div id="hero-next-desc" class="hero-desc-box"></div>
             </div>
-            <button id="up-sell">Sell Tower</button>
-            <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
+
+            <div class="up-targeting-row">
+                <button id="up-target-prev">◀</button>
+                <span id="up-target-text">First</span>
+                <button id="up-target-next">▶</button>
+            </div>
+
+            <!-- PRO FIX: Added id="up-paths" so JavaScript can hide it for heroes -->
+            <div id="up-paths" class="up-paths">
+                <div class="up-card" id="up-path1">
+                    <div class="up-card-info">
+                        <span class="up-name">Path 1</span>
+                        <span class="cost">$0</span>
+                    </div>
+                    <div class="tier-boxes" id="tier-boxes-1"></div>
+                </div>
+                <div class="up-card" id="up-path2">
+                    <div class="up-card-info">
+                        <span class="up-name">Path 2</span>
+                        <span class="cost">$0</span>
+                    </div>
+                    <div class="tier-boxes" id="tier-boxes-2"></div>
+                </div>
+                <div class="up-card" id="up-path3">
+                    <div class="up-card-info">
+                        <span class="up-name">Path 3</span>
+                        <span class="cost">$0</span>
+                    </div>
+                    <div class="tier-boxes" id="tier-boxes-3"></div>
+                </div>
+            </div>
+
+            <div class="up-bottom">
+                <button id="up-sell">Sell ($0)</button>
+                <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
+            </div>
         </div>
 
         <div id="sidebar" class="hidden">
@@ -246,6 +273,7 @@
                         <button class="tool-btn" data-tool="water">Water</button>
                         <button class="tool-btn" data-tool="objects">Objects</button>
                         <button class="tool-btn" data-tool="reference">Reference</button>
+                        <button class="tool-btn" data-tool="bg">Background</button>
                     </div>
                     <div class="tool-options" id="track-options" style="display: flex; flex-direction: column; gap: 5px;">
                         <select id="editor-active-path" style="width: 100%; padding: 5px; background: var(--bg); color: white; border: 1px solid #7f8c8d; border-radius: 4px;"></select>
@@ -271,6 +299,20 @@
                     <div class="tool-options hidden" id="reference-options">
                         <label>Reference Image: <input type="file" id="editor-ref-input" accept="image/*"></label>
                         <p class="info-text">Mouse wheel to scale. Drag to move.</p>
+                    </div>
+                    <div class="tool-options hidden" id="bg-options">
+                        <label>Image Name (in sprites/maps/):</label>
+                        <input type="text" id="bg-image-name" placeholder="e.g., monkey_meadow">
+                        <button id="editor-load-bg">Load Preview</button>
+                        <button id="editor-clear-bg" style="background:#e74c3c; margin-top:5px;">Clear Background</button>
+                        <hr>
+                        <label><input type="checkbox" id="bg-maintain-ratio" style="width: auto; margin-bottom: 0;"> Maintain Aspect Ratio</label>
+                        <label>Scale: <span id="bg-scale-val">1.0</span></label>
+                        <input type="range" id="bg-image-scale" min="0.1" max="3" step="0.05" value="1">
+                        <label>X Offset: <span id="bg-x-val">0</span></label>
+                        <input type="range" id="bg-image-x" min="-500" max="500" step="5" value="0">
+                        <label>Y Offset: <span id="bg-y-val">0</span></label>
+                        <input type="range" id="bg-image-y" min="-500" max="500" step="5" value="0">
                     </div>
                 </div>
                 <div class="editor-main">

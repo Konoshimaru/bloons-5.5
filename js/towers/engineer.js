@@ -1,16 +1,18 @@
-// js/towers/engineer.js
 import { GameEngine } from '../engine.js';
 import { Utils, drawShadow } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 import { createDmgType, resolveDmgType } from '../damageTypes.js';
+import { GLOBAL_SCALE } from '../constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
-    stats: { 
-        name: "Engineer Monkey", scale:1.2, cost: 350, range: 35, 
-        baseCooldown: 0.70, fireRate: 0.70, 
-        damage: 1, pierce: 3, projectileSpeed: 600, 
-        desc: "Wields a nailgun. Upgrades into sentries, foam, and traps.", 
-        dmgType: 'sharp', projectileType: 'nail', hitRadius: 18, maxSentries: 0 
+    stats: {
+        name: "Engineer Monkey", scale:1.2, cost: 350, range: 35,
+        baseCooldown: 0.70, fireRate: 0.70,
+        damage: 1, pierce: 3, projectileSpeed: 600,
+        desc: "Wields a nailgun. Upgrades into sentries, foam, and traps.",
+        dmgType: 'sharp', projectileType: 'nail', hitRadius: 18, maxSentries: 0
     },
     upgrades: {
         1: [
@@ -94,12 +96,10 @@ export default {
                 }
             }
         }
-        
-        // PRO FIX: Removed tower.acquireAndFire(dt). The ECS System handles this automatically!
     },
     draw(ctx, tower, isPreview) {
-        for (let s of tower.sentries) { drawShadow(ctx, s.x, s.y, 15); ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, 8, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#34495e'; ctx.fillRect(s.x-3, s.y-15, 6, 8); }
-        if (tower.activeTrap) { let trap = tower.activeTrap; ctx.fillStyle = trap.rbe >= trap.maxRbe ? '#e74c3c' : '#e67e22'; ctx.fillRect(trap.x - 12, trap.y - 12, 24, 24); ctx.fillStyle = '#000'; ctx.font = '10px Arial'; ctx.textAlign = 'center'; ctx.fillText(`${trap.rbe}/${trap.maxRbe}`, trap.x, trap.y + 3); }
+        for (let s of tower.sentries) { drawShadow(ctx, s.x, s.y, 15 * GS); ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, 8 * GS, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#34495e'; ctx.fillRect(s.x-3 * GS, s.y-15 * GS, 6 * GS, 8 * GS); }
+        if (tower.activeTrap) { let trap = tower.activeTrap; ctx.fillStyle = trap.rbe >= trap.maxRbe ? '#e74c3c' : '#e67e22'; ctx.fillRect(trap.x - 12 * GS, trap.y - 12 * GS, 24 * GS, 24 * GS); ctx.fillStyle = '#000'; ctx.font = `${10 * GS}px Arial`; ctx.textAlign = 'center'; ctx.fillText(`${trap.rbe}/${trap.maxRbe}`, trap.x, trap.y + 3 * GS); }
         tower.drawBaseTower(ctx, isPreview);
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
@@ -109,7 +109,7 @@ export default {
     ability(tower, engine) {
         let target = null; let maxCost = 0; let effRange = tower.stats.range * RANGE_SCALE * 3.0;
         for (let ot of engine.towers) { if (ot === tower || ot.type === 'farm' || ot.type === 'village') continue; if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < effRange) { if (ot.totalSpent > maxCost) { maxCost = ot.totalSpent; target = ot; } } }
-        if (target) { target.overclockTimer = 10; if (tower.upgrades[1] === 5) { target.ultraboostStacks = Math.min(10, (target.ultraboostStacks || 0) + 1); } engine.log("Overclock Activated on " + target.type + "!"); } 
+        if (target) { target.overclockTimer = 10; if (tower.upgrades[1] === 5) { target.ultraboostStacks = Math.min(10, (target.ultraboostStacks || 0) + 1); } engine.log("Overclock Activated on " + target.type + "!"); }
         else { engine.log("No valid towers in range for Overclock!"); }
     }
 };

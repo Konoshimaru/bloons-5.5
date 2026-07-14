@@ -2,6 +2,7 @@
 import { TowerStats, Upgrades } from './towers/index.js';
 import { Config, HeroStats } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
+import { HeroRegistry } from './heroes/index.js';
 
 const elements = {};
 function el(id) {
@@ -12,7 +13,8 @@ function el(id) {
 }
 
 const MENUS = ['main-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'custom-maps-menu', 'difficulty-menu', 'hero-select-menu', 'shop-menu', 'map-editor-menu'];
-const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"]; // <--- MAKE SURE THIS LINE EXISTS!
+const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
+
 export const UI = {
     _towerCardCache: null,
 
@@ -67,7 +69,7 @@ export const UI = {
     hideUpgradePanel() {
         const cards = document.querySelectorAll('.tower-card[data-tower]');
         cards.forEach(c => c.classList.remove('selected'));
-        const panel = el('upgrade-panel');
+        const panel = el('upgrade-sidebar');
         if (panel) panel.classList.add('hidden');
     },
 
@@ -114,7 +116,7 @@ export const UI = {
         const selected = engine.selectedPlacedTower;
         if (!selected) return;
 
-        const panel = el('upgrade-panel');
+        const panel = el('upgrade-sidebar');
         if (!panel || panel.classList.contains('hidden')) return;
 
         if (selected.stats.isHero) {
@@ -229,7 +231,7 @@ export const UI = {
     },
 
     showUpgradeUI(t, engine) {
-        const panel = el('upgrade-panel');
+        const panel = el('upgrade-sidebar');
         if (!panel) return;
         panel.classList.remove('hidden');
         
@@ -240,14 +242,6 @@ export const UI = {
         } else {
             this._showTowerUI(t, engine);
         }
-        
-        if (t.x > 360) {
-            panel.style.left = '20px';
-            panel.style.right = 'auto';
-        } else {
-            panel.style.right = '200px';
-            panel.style.left = 'auto';
-        }
     },
 
     _setupSellAndBankButtons(panel, t) {
@@ -255,9 +249,18 @@ export const UI = {
         if (sellBtn && sellBtn.parentElement !== panel) {
             panel.appendChild(sellBtn);
         }
-        if (sellBtn) sellBtn.classList.remove('hidden');
+        if (sellBtn) {
+            sellBtn.classList.remove('hidden');
+            let resaleRate = 0.70;
+            if (t.type === 'farm' && t.upgrades[2] >= 2) resaleRate = 0.80;
+            const sellValue = Math.floor(t.totalSpent * resaleRate);
+            sellBtn.innerText = `Sell ($${sellValue})`;
+        }
         
         const bankBtn = el('up-collect-bank');
+        if (bankBtn && bankBtn.parentElement !== panel) {
+            panel.appendChild(bankBtn);
+        }
         if (bankBtn) {
             const showBank = t.type === 'farm' && t.stats.isBank && t.bankBalance > 0;
             if (showBank) {
@@ -271,34 +274,54 @@ export const UI = {
 
     _showHeroUI(t, engine) {
         const heroUI = el('hero-ui');
-        const towerUI = el('tower-ui');
         if (heroUI) heroUI.classList.remove('hidden');
-        if (towerUI) towerUI.classList.add('hidden');
         
-        const heroTitle = el('hero-title');
-        if (heroTitle) {
-            let title = t.stats.name;
-            if (t.type === 'gojo') title += t.phase === 2 ? " (Awakened)" : " (Teen)";
-            heroTitle.innerText = title;
+        // PRO FIX: Hide the tower upgrade paths when showing Hero UI
+        const pathsEl = el('up-paths');
+        if (pathsEl) pathsEl.classList.add('hidden');
+        
+        const title = el('up-title');
+        if (title) {
+            let titleStr = t.stats.name;
+            if (t.type === 'gojo') titleStr += t.phase === 2 ? " (Awakened)" : " (Teen)";
+            title.innerText = titleStr;
         }
         
-        const heroPops = el('hero-pops');
-        if (heroPops) heroPops.innerText = `Pops: ${t.damageDealt}`;
+        const counters = el('up-counters');
+        if (counters) counters.innerText = `Pops: ${t.damageDealt}`;
         
-        const heroLevelText = el('hero-level-text');
-        if (heroLevelText) {
-            heroLevelText.innerText = `Level ${t.level} / 20 | XP: ${t.xp} / ${t.xpToNext}`;
+        const levelText = el('hero-level-text');
+        if (levelText) {
+            levelText.innerText = `Level ${t.level} / 20 | XP: ${t.xp} / ${t.xpToNext}`;
         }
         
-        const heroExpFill = el('hero-exp-fill');
-        if (heroExpFill) {
-            heroExpFill.style.width = `${(t.xp / t.xpToNext) * 100}%`;
+        const expFill = el('hero-exp-fill');
+        if (expFill) {
+            expFill.style.width = `${(t.xp / t.xpToNext) * 100}%`;
         }
         
-        const upTargeting = el('up-targeting');
-        if (upTargeting) upTargeting.innerText = `Target: ${t.targetingMode}`;
+        const currentDesc = el('hero-current-desc');
+        if (currentDesc) {
+            currentDesc.innerText = this._getHeroLevelDescription(t.type, t.level);
+        }
+        
+        const nextDesc = el('hero-next-desc');
+        if (nextDesc) {
+            nextDesc.innerText = t.level < 20 ? `Next: ${this._getHeroLevelDescription(t.type, t.level + 1)}` : "Max Level Reached";
+        }
         
         this._updateHeroBuyButton(t, engine);
+        this._updateTargetingText(t);
+    },
+
+    _getHeroLevelDescription(type, level) {
+        const levelData = HeroRegistry[type].levels[level];
+        if (!levelData || levelData.length === 0) return `Level ${level}: Base Stats`;
+        return `Level ${level}: ` + levelData.map(mod => {
+            if (typeof mod.amount === 'boolean') return `Unlocks ${mod.stat}`;
+            if (mod.amount > 0) return `+${mod.amount} ${mod.stat}`;
+            return `${mod.amount} ${mod.stat}`;
+        }).join(', ');
     },
 
     _updateHeroBuyButton(t, engine) {
@@ -321,105 +344,61 @@ export const UI = {
 
     _showTowerUI(t, engine) {
         const heroUI = el('hero-ui');
-        const towerUI = el('tower-ui');
         if (heroUI) heroUI.classList.add('hidden');
-        if (towerUI) towerUI.classList.remove('hidden');
         
-        const upTitle = el('up-title');
-        if (upTitle) upTitle.innerText = TowerStats[t.type].name;
+        // PRO FIX: Show the tower upgrade paths when showing Tower UI
+        const pathsEl = el('up-paths');
+        if (pathsEl) pathsEl.classList.remove('hidden');
         
-        this._updateTowerStats(t);
-        this._updateTowerCounters(t);
+        const title = el('up-title');
+        if (title) title.innerText = TowerStats[t.type].name;
         
-        const upTargetingTower = el('up-targeting-tower');
-        if (upTargetingTower) upTargetingTower.innerText = `Target: ${t.targetingMode}`;
+        const counters = el('up-counters');
+        if (counters) counters.innerText = `Pops: ${t.damageDealt}`;
         
+        this._updateTargetingText(t);
         this._updateUpgradeCards(t, engine);
     },
 
-    _updateTowerStats(t) {
-        const upStats = el('up-stats');
-        if (!upStats) return;
-        
-        const effRate = getEffectiveCooldown(t);
-        const effPierce = t.stats.pierce + (t.buffedPierce || 0) + (t.alchBuff ? t.alchBuff.pierce : 0);
-        const effDmg = t.stats.damage + (t.buffedDmg || 0) + (t.alchBuff ? t.alchBuff.dmg : 0);
-        
-        upStats.innerText = `DMG: ${effDmg} | RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`;
-    },
-
-    _updateTowerCounters(t) {
-        const upCounters = el('up-counters');
-        if (!upCounters) return;
-        
-        let counters = "";
-        if (t.type === 'farm' && t.stats.isBank) {
-            counters = `Bank: $${Math.floor(t.bankBalance)}`;
-        } else if (t.type === 'farm') {
-            counters = `Cash Gen: $${t.cashGenerated}`;
-        } else if (t.type === 'engineer' && t.activeTrap) {
-            counters = `Trap: ${t.activeTrap.rbe}/${t.activeTrap.maxRbe}`;
-        } else {
-            counters = `Dmg Dealt: ${t.damageDealt}`;
-        }
-        upCounters.innerText = counters;
+    _updateTargetingText(t) {
+        const targetText = el('up-target-text');
+        if (targetText) targetText.innerText = t.targetingMode;
     },
 
     _updateUpgradeCards(t, engine) {
-        this._updateUpgradeCard('up-path1', t, 1, engine);
-        this._updateUpgradeCard('up-path2', t, 2, engine);
-        this._updateUpgradeCard('up-path3', t, 3, engine);
-    },
+        for (let i = 1; i <= 3; i++) {
+            const card = el(`up-path${i}`);
+            const tierBoxes = el(`tier-boxes-${i}`);
+            if (!card || !tierBoxes) continue;
 
-    updateUpgradeCard(id, tower, path, engine) {
-        this._updateUpgradeCard(id, tower, path, engine);
-    },
+            const tier = t.upgrades[i - 1];
+            const upgradeData = Upgrades[t.type][i][tier];
+            
+            // Update Tier Boxes
+            tierBoxes.innerHTML = '';
+            for (let j = 0; j < 5; j++) {
+                const box = document.createElement('div');
+                box.className = 'tier-box';
+                if (j < tier) box.classList.add('filled');
+                tierBoxes.appendChild(box);
+            }
 
-    _updateUpgradeCard(id, tower, path, engine) {
-        const card = el(id);
-        if (!card) return;
-        
-        const tier = tower.upgrades[path - 1];
-        const upgradeData = Upgrades[tower.type][path][tier];
-        
-        card.classList.remove('locked');
-        
-        if (!upgradeData) {
+            card.classList.remove('locked');
             const nameEl = card.querySelector('.up-name');
             const costEl = card.querySelector('.cost');
-            if (nameEl) nameEl.innerText = "MAXED (5/5)";
-            if (costEl) costEl.innerText = "";
-            card.classList.add('locked');
-            return;
-        }
-        
-        const cost = engine.getCost(upgradeData.cost);
-        const nameEl = card.querySelector('.up-name');
-        const costEl = card.querySelector('.cost');
-        
-        if (nameEl) nameEl.innerText = `${upgradeData.name} (${tier + 1}/5)`;
-        if (costEl) costEl.innerText = `$${cost}`;
-        
-        if (engine.cash < cost || !tower.canUpgrade(path, engine)) {
-            card.classList.add('locked');
-        }
-    },
 
-    // PRO FIX: Dynamically add 'Elite' targeting mode if the tower unlocks it
-    cycleTargeting() {
-        if (!this.selectedPlacedTower) return;
-        const t = this.selectedPlacedTower;
-        
-        let modes = ['First', 'Last', 'Strong', 'Close'];
-        if (t.stats.unlocksElite) {
-            modes.push('Elite');
+            if (!upgradeData) {
+                if (nameEl) nameEl.innerText = "MAXED";
+                if (costEl) costEl.innerText = "";
+                card.classList.add('locked');
+            } else {
+                const cost = engine.getCost(upgradeData.cost);
+                if (nameEl) nameEl.innerText = `${upgradeData.name}`;
+                if (costEl) costEl.innerText = `$${cost}`;
+                if (engine.cash < cost || !t.canUpgrade(i, engine)) {
+                    card.classList.add('locked');
+                }
+            }
         }
-        
-        let idx = modes.indexOf(t.targetingMode);
-        if (idx === -1) idx = 0; // Fallback if current mode isn't in the list
-        idx = (idx + 1) % modes.length;
-        t.targetingMode = modes[idx];
-        
-        UI.showUpgradeUI(t, GameEngine);
     }
 };

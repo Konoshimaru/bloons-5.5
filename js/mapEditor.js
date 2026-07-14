@@ -30,6 +30,7 @@ export const MapEditor = {
     isDraggingRef: false,
     snapToGrid: false,
     dragStartPos: null,
+    bgImage: null,
 
     init() {
         if (this._initialized) {
@@ -102,6 +103,28 @@ export const MapEditor = {
             });
         });
         
+        document.getElementById('bg-image-name').addEventListener('input', (e) => this.mapData.image = e.target.value);
+        document.getElementById('editor-load-bg').addEventListener('click', () => this.loadBackgroundPreview());
+        document.getElementById('editor-clear-bg').addEventListener('click', () => this.clearBackground());
+        document.getElementById('bg-maintain-ratio').addEventListener('change', (e) => {
+            this.mapData.imageMaintainRatio = e.target.checked;
+        });
+        document.getElementById('bg-image-scale').addEventListener('input', (e) => {
+            this.mapData.imageScale = parseFloat(e.target.value);
+            document.getElementById('bg-scale-val').innerText = this.mapData.imageScale.toFixed(2);
+        });
+        document.getElementById('bg-image-x').addEventListener('input', (e) => {
+            this.mapData.imageOffsetX = parseInt(e.target.value);
+            document.getElementById('bg-x-val').innerText = this.mapData.imageOffsetX;
+        });
+        document.getElementById('bg-image-y').addEventListener('input', (e) => {
+            this.mapData.imageOffsetY = parseInt(e.target.value);
+            document.getElementById('bg-y-val').innerText = this.mapData.imageOffsetY;
+        });
+
+        this.bgImage = new Image();
+        this.bgImage.loaded = false;
+
         document.getElementById('editor-save').addEventListener('click', () => this.saveMap());
         document.getElementById('editor-load').addEventListener('click', () => this.loadMap());
         document.getElementById('editor-exit').addEventListener('click', () => this.exitEditor());
@@ -170,13 +193,34 @@ export const MapEditor = {
     },
     
     resetMapData() {
-        this.mapData = { name: "New Custom Map", paths: [], props: [], waterBrushes: [] };
+        this.mapData = {
+            name: "New Custom Map",
+            paths: [],
+            props: [],
+            waterBrushes: [],
+            image: null,
+            imageScale: 1.0,
+            imageOffsetX: 0,
+            imageOffsetY: 0,
+            imageMaintainRatio: false
+        };
         this.selectedPath = -1;
         this.selectedPoint = null;
         this.selectedProp = null;
         this.undoStack = [];
         this.redoStack = [];
         document.getElementById('editor-map-name').value = "New Custom Map";
+        
+        document.getElementById('bg-image-name').value = "";
+        document.getElementById('bg-maintain-ratio').checked = false;
+        document.getElementById('bg-image-scale').value = 1;
+        document.getElementById('bg-image-x').value = 0;
+        document.getElementById('bg-image-y').value = 0;
+        document.getElementById('bg-scale-val').innerText = "1.00";
+        document.getElementById('bg-x-val').innerText = "0";
+        document.getElementById('bg-y-val').innerText = "0";
+        if (this.bgImage) this.bgImage.loaded = false;
+        
         this.updatePathDropdown();
     },
     
@@ -187,6 +231,7 @@ export const MapEditor = {
         document.getElementById('water-options').classList.toggle('hidden', tool !== 'water');
         document.getElementById('objects-options').classList.toggle('hidden', tool !== 'objects');
         document.getElementById('reference-options').classList.toggle('hidden', tool !== 'reference');
+        document.getElementById('bg-options').classList.toggle('hidden', tool !== 'bg');
         this.selectedPoint = null;
         this.selectedProp = null;
     },
@@ -479,6 +524,28 @@ export const MapEditor = {
             this.deleteSelected();
         }
     },
+
+    loadBackgroundPreview() {
+        const name = document.getElementById('bg-image-name').value.trim();
+        if (!name) {
+            this.clearBackground();
+            return;
+        }
+        this.mapData.image = name;
+        this.bgImage.onload = () => { this.bgImage.loaded = true; };
+        this.bgImage.onerror = () => { 
+            this.bgImage.loaded = false; 
+            alert('Could not load image. Make sure it is in the sprites/maps/ folder!'); 
+        };
+        this.bgImage.src = `sprites/maps/${name}.png`;
+    },
+
+    clearBackground() {
+        this.mapData.image = null;
+        this.bgImage.loaded = false;
+        document.getElementById('bg-image-name').value = "";
+        UI.log("Background cleared.");
+    },
     
     saveMap() {
         this.mapData.name = document.getElementById('editor-map-name').value || "Custom Map";
@@ -513,10 +580,30 @@ export const MapEditor = {
                 this.pushUndo();
                 this.mapData = JSON.parse(JSON.stringify(map));
                 if (!this.mapData.waterBrushes) this.mapData.waterBrushes = [];
+                if (!this.mapData.imageScale) this.mapData.imageScale = 1.0;
+                if (!this.mapData.imageOffsetX) this.mapData.imageOffsetX = 0;
+                if (!this.mapData.imageOffsetY) this.mapData.imageOffsetY = 0;
+                if (!this.mapData.imageMaintainRatio) this.mapData.imageMaintainRatio = false;
                 this.selectedPath = -1;
                 this.selectedPoint = null;
                 this.selectedProp = null;
                 document.getElementById('editor-map-name').value = this.mapData.name;
+                
+                document.getElementById('bg-image-name').value = this.mapData.image || "";
+                document.getElementById('bg-maintain-ratio').checked = this.mapData.imageMaintainRatio;
+                document.getElementById('bg-image-scale').value = this.mapData.imageScale;
+                document.getElementById('bg-image-x').value = this.mapData.imageOffsetX;
+                document.getElementById('bg-image-y').value = this.mapData.imageOffsetY;
+                document.getElementById('bg-scale-val').innerText = this.mapData.imageScale.toFixed(2);
+                document.getElementById('bg-x-val').innerText = this.mapData.imageOffsetX;
+                document.getElementById('bg-y-val').innerText = this.mapData.imageOffsetY;
+                
+                if (this.mapData.image) {
+                    this.loadBackgroundPreview();
+                } else {
+                    this.bgImage.loaded = false;
+                }
+                
                 this.updatePathDropdown();
             } else { alert("Map not found."); }
         }
@@ -538,10 +625,30 @@ export const MapEditor = {
             const textArea = document.getElementById('editor-json-text');
             this.mapData = JSON.parse(textArea.value);
             if (!this.mapData.waterBrushes) this.mapData.waterBrushes = [];
+            if (!this.mapData.imageScale) this.mapData.imageScale = 1.0;
+            if (!this.mapData.imageOffsetX) this.mapData.imageOffsetX = 0;
+            if (!this.mapData.imageOffsetY) this.mapData.imageOffsetY = 0;
+            if (!this.mapData.imageMaintainRatio) this.mapData.imageMaintainRatio = false;
             this.selectedPath = -1;
             this.selectedPoint = null;
             this.selectedProp = null;
             document.getElementById('editor-map-name').value = this.mapData.name || "Custom Map";
+            
+            document.getElementById('bg-image-name').value = this.mapData.image || "";
+            document.getElementById('bg-maintain-ratio').checked = this.mapData.imageMaintainRatio;
+            document.getElementById('bg-image-scale').value = this.mapData.imageScale;
+            document.getElementById('bg-image-x').value = this.mapData.imageOffsetX;
+            document.getElementById('bg-image-y').value = this.mapData.imageOffsetY;
+            document.getElementById('bg-scale-val').innerText = this.mapData.imageScale.toFixed(2);
+            document.getElementById('bg-x-val').innerText = this.mapData.imageOffsetX;
+            document.getElementById('bg-y-val').innerText = this.mapData.imageOffsetY;
+            
+            if (this.mapData.image) {
+                this.loadBackgroundPreview();
+            } else {
+                this.bgImage.loaded = false;
+            }
+            
             this.updatePathDropdown();
             alert("JSON applied!");
         } catch (e) { alert("Invalid JSON: " + e.message); }
@@ -562,8 +669,21 @@ export const MapEditor = {
     
     draw() {
         const ctx = this.ctx;
-        ctx.fillStyle = '#8acc4d';
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        if (this.bgImage.loaded && this.mapData.image) {
+            const scale = this.mapData.imageScale || 1;
+            const offX = this.mapData.imageOffsetX || 0;
+            const offY = this.mapData.imageOffsetY || 0;
+            let w = CANVAS_WIDTH * scale;
+            let h = CANVAS_HEIGHT * scale;
+            if (this.mapData.imageMaintainRatio && this.bgImage.width > 0) {
+                const ratio = this.bgImage.height / this.bgImage.width;
+                h = w * ratio;
+            }
+            ctx.drawImage(this.bgImage, offX, offY, w, h);
+        } else {
+            ctx.fillStyle = '#8acc4d';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        }
         
         if (this.refImage) {
             ctx.globalAlpha = 0.5;
