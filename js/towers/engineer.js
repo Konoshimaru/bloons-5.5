@@ -20,7 +20,7 @@ export default {
             {name:"Faster Engineering",cost:400,stat:"sentrySpawnMod",amount:0.6,desc:"Produces sentries 66% faster."},
             {name:"Sprockets",cost:575,desc:"Nailgun and sentries attack twice as fast.", cooldownMult: 0.5, extraMods: {sentryFireRateMod: 0.5}},
             {name:"Sentry Expert",cost:2500,stat:"maxSentries",amount:3,desc:"Spawns 4 specialized sentries."},
-            {name:"Sentry Champion",cost:32000,stat:"maxSentries",amount:0,desc:"Super-powerful unstable plasma sentries.", extraMods: {sentryDmg: 3, sentryPierce: 5, sentryFireRate: 0.06, sentryDmgType: 'plasma', sentryExplode: true}}
+            {name:"Sentry Champion",cost:32000,stat:"maxSentries",amount:0,desc:"Super-powerful unstable plasma sentries.", extraMods: {sentryDmg: 3, sentryPierce: 5, sentryFireRate: 0.06, sentryExplode: true}}
         ],
         2: [
             {name:"Larger Service Area",cost:250,stat:"range",amount:62.5,desc:"Shoots further and deploys sentries in a larger area.", extraMods: {sentryRange: 12.5}},

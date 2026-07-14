@@ -276,9 +276,11 @@ export const UI = {
         const heroUI = el('hero-ui');
         if (heroUI) heroUI.classList.remove('hidden');
         
-        // PRO FIX: Hide the tower upgrade paths when showing Hero UI
         const pathsEl = el('up-paths');
         if (pathsEl) pathsEl.classList.add('hidden');
+        
+        const statsEl = el('up-stats');
+        if (statsEl) statsEl.classList.add('hidden');
         
         const title = el('up-title');
         if (title) {
@@ -346,7 +348,6 @@ export const UI = {
         const heroUI = el('hero-ui');
         if (heroUI) heroUI.classList.add('hidden');
         
-        // PRO FIX: Show the tower upgrade paths when showing Tower UI
         const pathsEl = el('up-paths');
         if (pathsEl) pathsEl.classList.remove('hidden');
         
@@ -354,10 +355,37 @@ export const UI = {
         if (title) title.innerText = TowerStats[t.type].name;
         
         const counters = el('up-counters');
-        if (counters) counters.innerText = `Pops: ${t.damageDealt}`;
+        if (counters) counters.innerText = this._getTowerCounterText(t);
+        
+        // PRO FIX: Restore stats display logic
+        const statsEl = el('up-stats');
+        if (Config.data.showTowerStats) {
+            if (statsEl) {
+                statsEl.classList.remove('hidden');
+                this._updateTowerStats(t);
+            }
+        } else {
+            if (statsEl) statsEl.classList.add('hidden');
+        }
         
         this._updateTargetingText(t);
         this._updateUpgradeCards(t, engine);
+    },
+
+    _getTowerCounterText(t) {
+        if (t.type === 'farm' && t.stats.isBank) return `Bank: $${Math.floor(t.bankBalance)}`;
+        if (t.type === 'farm') return `Cash Gen: $${t.cashGenerated}`;
+        if (t.type === 'engineer' && t.activeTrap) return `Trap: ${t.activeTrap.rbe}/${t.activeTrap.maxRbe}`;
+        return `Dmg Dealt: ${t.damageDealt}`;
+    },
+
+    _updateTowerStats(t) {
+        const upStats = el('up-stats');
+        if (!upStats) return;
+        const effRate = getEffectiveCooldown(t);
+        const effPierce = t.stats.pierce + (t.buffedPierce || 0) + (t.alchBuff ? t.alchBuff.pierce : 0);
+        const effDmg = t.stats.damage + (t.buffedDmg || 0) + (t.alchBuff ? t.alchBuff.dmg : 0);
+        upStats.innerText = `DMG: ${effDmg} | RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`;
     },
 
     _updateTargetingText(t) {
@@ -374,7 +402,6 @@ export const UI = {
             const tier = t.upgrades[i - 1];
             const upgradeData = Upgrades[t.type][i][tier];
             
-            // Update Tier Boxes
             tierBoxes.innerHTML = '';
             for (let j = 0; j < 5; j++) {
                 const box = document.createElement('div');

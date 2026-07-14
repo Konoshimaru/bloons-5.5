@@ -21,8 +21,7 @@ export default {
             {name:"Permanent Brew", cost:60000, stat:"isPermBrew", amount:true, desc:"Brew and Dip become permanent."}
         ],
         2: [
-            {name:"Stronger Acid", cost:250, stat:"dotTick", amount:-0.5, desc:"Acid dissolves Bloons faster.", extraMods:{dotTimer:4.5}},
-            {name:"Perishing Potions", cost:475, stat:"moabDmg", amount:5, desc:"Deals 5 dmg to MOABs, 20 to Fortified. Strips Fortified off non-blimps.", extraMods:{brewShots:35, brewTimer:6}},
+{name:"Stronger Acid", cost:250, stat:"dot", amount:1, desc:"Acid deals +1 damage per tick."}, // Fixed            {name:"Perishing Potions", cost:475, stat:"moabDmg", amount:5, desc:"Deals 5 dmg to MOABs, 20 to Fortified. Strips Fortified off non-blimps.", extraMods:{brewShots:35, brewTimer:6}},
             {name:"Unstable Concoction", cost:3000, stat:"unstableConcoction", amount:true, desc:"Coats MOABs. Explodes on death for 10% base health."},
             {name:"Transforming Tonic", cost:4500, stat:"isAbility", amount:true, desc:"Ability: Turns into a laser monster for 20s.", extraMods:{unlocksAbility:true, abilityName:"Tonic", abilityCd:40}},
             {name:"Total Transformation", cost:45000, stat:"damage", amount:1, desc:"Ability affects 5 nearby monkeys."}

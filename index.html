@@ -38,60 +38,61 @@
         <div id="ability-bar" class="hidden"></div>
         <button id="cancel-btn" class="hidden">✖</button>
 
-         <!-- Upgrade Sidebar (Left Side) -->
-        <div id="upgrade-sidebar" class="hidden">
-            <div class="up-header">
-                <div id="up-portrait"></div>
-                <div class="up-info">
-                    <h3 id="up-title">Tower</h3>
-                    <div id="up-counters">Pops: 0</div>
-                </div>
-            </div>
-            
-            <div id="hero-ui" class="hidden" style="flex-direction: column; gap: 8px; margin-bottom: 5px;">
-                <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
-                <div id="hero-level-text">Level 1</div>
-                <div id="hero-current-desc" class="hero-desc-box"></div>
-                <button id="up-buy-level" class="hidden">Buy Level: $0</button>
-                <div id="hero-next-desc" class="hero-desc-box"></div>
-            </div>
-
-            <div class="up-targeting-row">
-                <button id="up-target-prev">◀</button>
-                <span id="up-target-text">First</span>
-                <button id="up-target-next">▶</button>
-            </div>
-
-            <!-- PRO FIX: Added id="up-paths" so JavaScript can hide it for heroes -->
-            <div id="up-paths" class="up-paths">
-                <div class="up-card" id="up-path1">
-                    <div class="up-card-info">
-                        <span class="up-name">Path 1</span>
-                        <span class="cost">$0</span>
-                    </div>
-                    <div class="tier-boxes" id="tier-boxes-1"></div>
-                </div>
-                <div class="up-card" id="up-path2">
-                    <div class="up-card-info">
-                        <span class="up-name">Path 2</span>
-                        <span class="cost">$0</span>
-                    </div>
-                    <div class="tier-boxes" id="tier-boxes-2"></div>
-                </div>
-                <div class="up-card" id="up-path3">
-                    <div class="up-card-info">
-                        <span class="up-name">Path 3</span>
-                        <span class="cost">$0</span>
-                    </div>
-                    <div class="tier-boxes" id="tier-boxes-3"></div>
-                </div>
-            </div>
-
-            <div class="up-bottom">
-                <button id="up-sell">Sell ($0)</button>
-                <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
-            </div>
+    <!-- Replace your upgrade-sidebar block with this -->
+<div id="upgrade-sidebar" class="hidden">
+    <div class="up-header">
+        <div id="up-portrait"></div>
+        <div class="up-info">
+            <h3 id="up-title">Tower</h3>
+            <div id="up-counters">Pops: 0</div>
         </div>
+    </div>
+    
+    <div id="hero-ui" class="hidden" style="flex-direction: column; gap: 8px; margin-bottom: 5px;">
+        <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
+        <div id="hero-level-text">Level 1</div>
+        <div id="hero-current-desc" class="hero-desc-box"></div>
+        <button id="up-buy-level" class="hidden">Buy Level: $0</button>
+        <div id="hero-next-desc" class="hero-desc-box"></div>
+    </div>
+
+    <div id="up-stats" class="hero-desc-box hidden"></div>
+
+    <div class="up-targeting-row">
+        <button id="up-target-prev">◀</button>
+        <span id="up-target-text">First</span>
+        <button id="up-target-next">▶</button>
+    </div>
+
+    <div id="up-paths" class="up-paths">
+        <div class="up-card" id="up-path1">
+            <div class="up-card-info">
+                <span class="up-name">Path 1</span>
+                <span class="cost">$0</span>
+            </div>
+            <div class="tier-boxes" id="tier-boxes-1"></div>
+        </div>
+        <div class="up-card" id="up-path2">
+            <div class="up-card-info">
+                <span class="up-name">Path 2</span>
+                <span class="cost">$0</span>
+            </div>
+            <div class="tier-boxes" id="tier-boxes-2"></div>
+        </div>
+        <div class="up-card" id="up-path3">
+            <div class="up-card-info">
+                <span class="up-name">Path 3</span>
+                <span class="cost">$0</span>
+            </div>
+            <div class="tier-boxes" id="tier-boxes-3"></div>
+        </div>
+    </div>
+
+    <div class="up-bottom">
+        <button id="up-sell">Sell ($0)</button>
+        <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
+    </div>
+</div>
 
         <div id="sidebar" class="hidden">
             <div class="sidebar-scroll">
@@ -340,7 +341,8 @@
                 <h2>Settings</h2>
                 <div class="setting-item"><label>SFX Volume: <span id="vol-display">50%</span></label><input type="range" id="volume-slider" min="0" max="100" value="50"></div>
                 <div class="setting-item"><label>Music Volume: <span id="music-vol-display">30%</span></label><input type="range" id="music-slider" min="0" max="100" value="30"></div>
-                
+                <div class="setting-item"><label><input type="checkbox" id="show-stats-checkbox"> Show Tower Stats in Upgrade Menu</label></div>
+
                 <div class="setting-item"><label><input type="checkbox" id="shuffle-music-checkbox"> Shuffle Music</label></div>
                 <div class="setting-item"><label><input type="checkbox" id="random-start-checkbox"> Random Starting Track</label></div>
                 

@@ -1,4 +1,4 @@
-// sniper.js
+// js/towers/sniper.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
@@ -31,17 +31,16 @@ export default {
             {name:"Even Faster Firing", cost:400, desc:"Attacks even faster.", cooldownMult: 0.70},
             {name:"Semi-Automatic", cost:2700, desc:"Attacks 3x faster.", cooldownMult: 0.333},
             {name:"Full Auto Rifle", cost:4100, desc:"Attacks incredibly fast. Can pop Lead.", cooldownMult: 0.33, extraMods:{dmgType:'heavy'}},
-            {name:"Elite Defender", cost:14000, desc:"Hyper-flurry. 2x dmg to MOABs. Speed scales with track distance. Life-loss frenzy.", extraMods:{eliteDefender:true, cooldownMult: 0.5}}
+            // PRO FIX: cooldownMult moved to top level
+            {name:"Elite Defender", cost:14000, desc:"Hyper-flurry. 2x dmg to MOABs. Speed scales with track distance. Life-loss frenzy.", cooldownMult: 0.5, extraMods:{eliteDefender:true}}
         ]
     },
     update(tower, dt, engine) {
-        // PRO FIX: Reset per-round ability use counter on wave start
         if (!tower._waveActive && GameEngine.waveManager.waveActive) {
             tower.abilityUsesThisRound = 0;
         }
         tower._waveActive = GameEngine.waveManager.waveActive;
         
-        // Existing Elite Defender speed scaling logic
         if (tower.stats.eliteDefender) {
             if (engine.lives < (tower._lastLives || engine.lives)) {
                 tower.frenzyTimer = 4.0;
@@ -50,7 +49,7 @@ export default {
             
             if (tower.frenzyTimer > 0) {
                 tower.frenzyTimer -= dt;
-                tower.eliteDefenderSpeedMod = 0.25; // 4x speed
+                tower.eliteDefenderSpeedMod = 0.25;
             } else {
                 let maxDist = 0;
                 for (let e of engine.enemies) {
@@ -65,12 +64,11 @@ export default {
         }
     }, 
     
-    // PRO FIX: Global Elite Sniper Buff
     updateSupport(tower, dt) {
         if (tower.stats.globalSniperBuff) {
             for (let t of GameEngine.towers) {
                 if (t && t.type === 'sniper' && t !== tower) {
-                    t.buffedFireRate = Math.max(t.buffedFireRate, 0.33); // 33% faster
+                    t.buffedFireRate = Math.max(t.buffedFireRate, 0.33);
                 }
             }
         }
@@ -82,13 +80,11 @@ export default {
         if (tower.stats.bonusCeramic && target.data.isCeramic) actualDmg += tower.stats.bonusCeramic;
         if (tower.stats.bonusCamo && target.isCamo) actualDmg += tower.stats.bonusCamo;
         
-        // Cripple Debuff
         if (tower.stats.crippleDebuff) {
             target.crippled = true;
             target.crippleTimer = 4.0;
         }
         
-        // Stun
         let stunDur = 0;
         if (target.data.isMoab) {
             if (target.tier === 13) stunDur = tower.stats.stunMoab || 0;
@@ -97,28 +93,22 @@ export default {
             else if (target.tier === 16) stunDur = tower.stats.stunDdt || 0;
         }
         
-        // PRO FIX: Only add to damageDealt if the damage dealt is a valid number > 0
         let dmgDealt = target.takeDamage(actualDmg, dmgType, { stun: stunDur });
         if (dmgDealt > 0) tower.damageDealt += dmgDealt;
         
-        // Hitscan visual
         tower.hitscans.push({ x1: tower.x, y1: tower.y, x2: target.x, y2: target.y, life: 0.1 });
         
-        // Shrapnel & Bouncing
         let bounces = tower.stats.bounces || 0;
         let hitSet = new Set([target]);
         let currentTarget = target;
         
         for (let i = 0; i <= bounces; i++) {
-            // PRO FIX: Fire shrapnel from the bloon we just hit, even if it died instantly!
             if (tower.stats.shrapnel) {
                 this._fireShrapnel(tower, currentTarget, dmgType, engine);
             }
             
-            // If we are out of bounces, we're done
             if (i >= bounces) break;
             
-            // Find next bounce target from the current target's position
             const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40);
             let nextTarget = null;
             let bestDist = Infinity;
@@ -133,7 +123,6 @@ export default {
                 hitSet.add(nextTarget);
                 currentTarget = nextTarget;
                 
-                // Deal damage to bounced target
                 let bounceDmg = actualDmg;
                 if (tower.stats.eliteDefender && currentTarget.data.isMoab) bounceDmg *= 2;
                 if (tower.stats.bonusCeramic && currentTarget.data.isCeramic) bounceDmg += tower.stats.bonusCeramic;
@@ -155,7 +144,7 @@ export default {
                 let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, { stun: bounceStun });
                 if (bounceDmgDealt > 0) tower.damageDealt += bounceDmgDealt;
             } else {
-                break; // No more targets in range for bouncing
+                break;
             }
         }
     },
@@ -163,10 +152,10 @@ export default {
     _fireShrapnel(tower, originTarget, dmgType, engine) {
         let count = 5;
         let baseAngle = Math.atan2(originTarget.y - tower.y, originTarget.x - tower.x);
-        let spread = Math.PI / 4; // 45 degrees
+        let spread = Math.PI / 4;
         let startAngle = baseAngle - spread / 2;
         
-        // Crosspath damage scaling
+        // Base damage from Path 1
         let shrapDmg = 1;
         if (tower.upgrades[0] >= 1) shrapDmg = 2;
         if (tower.upgrades[0] >= 2) shrapDmg = 3;
@@ -174,9 +163,11 @@ export default {
         if (tower.upgrades[0] >= 4) shrapDmg = 6;
         if (tower.upgrades[0] >= 5) shrapDmg = 12;
         
+        // PRO FIX: Add bonus damage from Path 2 if it exists
+        if (tower.stats.shrapnelDmg) shrapDmg += tower.stats.shrapnelDmg;
+        
         let shrapPierce = tower.upgrades[0] >= 5 ? 3 : (tower.stats.shrapnelPierce || 3);
         let shrapDmgType = { isSharp: true, canHitLead: dmgType.canHitLead };
-        
         let shrapEffects = {};
         if (tower.stats.stunMoab) {
             shrapEffects.stun = tower.stats.stunMoab; 

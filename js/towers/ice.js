@@ -19,7 +19,7 @@ export default {
             {name:"Permafrost", cost:150, desc:"Frozen bloons move 50% slower even after thawing.", extraMods:{permafrost: true}},
             {name:"Cold Snap", cost:350, stat:"canHitLead", amount:true, desc:"Can freeze Lead and detect Camo.", extraMods:{canSeeCamo: true}},
             {name:"Ice Shards", cost:1500, stat:"iceShards", amount:true, desc:"Frozen bloons erupt into 3 shards. Strips Camo/Regrow.", extraMods:{range: 5}},
-            {name:"Embrittlement", cost:2300, stat:"embrittlement", amount:true, desc:"Can hit MOABs. Targets take +1 damage. Permanently strips Camo/Regrow/Lead.", extraMods:{canHitMoab: true}},
+{name:"Embrittlement", cost:2300, stat:"embrittlement", amount:true, desc:"Can hit MOABs. Targets take +1 damage. Permanently strips Camo/Regrow/Lead."}, // Removed extraMods
             // PRO FIX: Attacks 100% faster (0.5x cooldown)
             {name:"Super Brittle", cost:28000, stat:"superBrittle", amount:true, desc:"+5 damage taken. 6 shards. Attacked 100% faster.", cooldownMult: 0.5}
         ],
@@ -28,8 +28,7 @@ export default {
             {name:"Deep Freeze", cost:300, stat:"pierce", amount:5, desc:"+5 pierce. Freeze penetrates 2 layers. 2.2s duration.", extraMods:{deepFreeze: true, freezeDuration: 2.2}},
             {name:"Arctic Wind", cost:2750, stat:"arcticWind", amount:true, desc:"Passive 40% slow aura. Can freeze water for towers.", extraMods:{arcticSlowFactor: 0.6}},
             // PRO FIX: Removed duplicate 'stat' key so range applies correctly
-            {name:"Snowstorm", cost:4000, stat:"range", amount:10, desc:"Ability: Freeze all non-MOAB bloons for 6s.", extraMods:{unlocksAbility:true, abilityName:"Snowstorm", abilityCd:30}},
-            // PRO FIX: Removed duplicate 'stat' keys so absoluteZero applies correctly
+{name:"Snowstorm", cost:4000, stat:"range", amount:10, desc:"Ability: Freeze all non-MOAB bloons for 6s.", extraMods:{unlocksAbility:true, abilityName:"Snowstorm", abilityCd:30}}, // Fixed duplicate key            // PRO FIX: Removed duplicate 'stat' keys so absoluteZero applies correctly
             {name:"Absolute Zero", cost:21000, stat:"absoluteZero", amount:true, desc:"Freezes screen for 10s. Buffs Ice Monkeys +50%.", extraMods:{range: 10}}
         ],
         3: [

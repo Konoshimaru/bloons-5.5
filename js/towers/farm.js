@@ -15,12 +15,12 @@ export default {
     },
     upgrades: {
         1: [
-            {name:"Increased Production", cost:500, stat:"bananaCount", amount:6, desc:"Produces 6 bananas per round."},
-            {name:"Greater Production", cost:600, stat:"bananaCount", amount:8, desc:"Produces 8 bananas per round."},
-            {name:"Banana Plantation", cost:3000, stat:"bananaCount", amount:16, desc:"Produces 16 bananas per round."},
-            {name:"Banana Research Facility", cost:19000, stat:"bananaCount", amount:5, desc:"Produces 5 crates worth $300 each.", extraMods:{bananaValue:300, isCrate:true}},
-            {name:"Banana Central", cost:115000, stat:"bananaValue", amount:1200, desc:"Produces 5 giant crates worth $1200 each."}
-        ],
+// Path 1 upgrades
+{name:"Increased Production", cost:500, desc:"Produces 6 bananas per round."},
+{name:"Greater Production", cost:600, desc:"Produces 8 bananas per round."},
+{name:"Banana Plantation", cost:3000, desc:"Produces 16 bananas per round."},
+{name:"Banana Research Facility", cost:19000, desc:"Produces 5 crates worth $300 each.", extraMods:{bananaValue:300, isCrate:true}},
+{name:"Banana Central", cost:115000, stat:"bananaValue", amount:1200, desc:"Produces 5 giant crates worth $1200 each."}        ],
         2: [
             {name:"Long Life Bananas", cost:300, stat:"bananaLifespan", amount:30, desc:"Bananas last 30 seconds instead of 15."},
             {name:"Valuable Bananas", cost:800, stat:"bananaValueMult", amount:0.25, desc:"Bananas are worth 25% more cash."},

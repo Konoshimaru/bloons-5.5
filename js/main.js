@@ -43,6 +43,7 @@ const dom = {
     smoothingCheckbox: document.getElementById('smoothing-checkbox'),
     fpsCheckbox: document.getElementById('fps-checkbox'),
     fpsDisplay: document.getElementById('fps-display'),
+    showStatsCheckbox: document.getElementById('show-stats-checkbox'),
     extremeSpeedCheckbox: document.getElementById('extreme-speed-checkbox'),
     shuffleMusicCheckbox: document.getElementById('shuffle-music-checkbox'),
     randomStartCheckbox: document.getElementById('random-start-checkbox'),
@@ -244,6 +245,7 @@ function applyConfigToUI() {
     if (dom.smoothingCheckbox) dom.smoothingCheckbox.checked = Config.data.smoothingEnabled;
     if (dom.fpsCheckbox) dom.fpsCheckbox.checked = Config.data.showFps;
     if (dom.fpsDisplay) dom.fpsDisplay.style.display = Config.data.showFps ? 'block' : 'none';
+    if (dom.showStatsCheckbox) dom.showStatsCheckbox.checked = Config.data.showTowerStats;
     if (dom.extremeSpeedCheckbox) dom.extremeSpeedCheckbox.checked = Config.data.extremeSpeedEnabled;
     refreshMapSelector();
     refreshHeroSelector();
@@ -378,6 +380,7 @@ function _setupSettingsListeners() {
     dom.flavorTextCheckbox?.addEventListener('change', (e) => { Config.data.showFlavor = e.target.checked; Config.save(); });
     dom.smoothingCheckbox?.addEventListener('change', (e) => { Config.data.smoothingEnabled = e.target.checked; Config.save(); });
     dom.fpsCheckbox?.addEventListener('change', (e) => { Config.data.showFps = e.target.checked; Config.save(); if (dom.fpsDisplay) dom.fpsDisplay.style.display = e.target.checked ? 'block' : 'none'; });
+    dom.showStatsCheckbox?.addEventListener('change', (e) => { Config.data.showTowerStats = e.target.checked; Config.save(); });
     dom.extremeSpeedCheckbox?.addEventListener('change', (e) => { Config.data.extremeSpeedEnabled = e.target.checked; Config.save(); });
     dom.shuffleMusicCheckbox?.addEventListener('change', (e) => { Config.data.musicShuffle = e.target.checked; Config.save(); });
     dom.randomStartCheckbox?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });

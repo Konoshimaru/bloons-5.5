@@ -238,6 +238,7 @@ export default {
                     u.fireTime = u.fireDuration;
                     GameEngine.log(u.isUpgraded ? "Maximum Output: Uzumaki!" : "Maximum: Uzumaki!");
                 }
+// Inside update(tower, dt) -> uzumaki firing phase
             } else if (u.phase === 'firing') {
                 u.fireTime -= dt;
                 const dpsMult = u.isUpgraded ? 12 : 8;
@@ -245,10 +246,10 @@ export default {
                 for (let e of GameEngine.enemies) {
                     if (!e.alive) continue;
                     let dmg = e.takeDamage(tower.stats.damage * dpsMult * dt, { isMagic: true, canHitLead: true });
-                    tower.damageDealt += dmg;
+                    if (!isNaN(dmg) && dmg > 0) tower.damageDealt += dmg; // PRO FIX
                     if (e.data.isMoab) {
                         let moabDmg = e.takeDamage(moabDps * dt, { isMagic: true, canHitLead: true });
-                        tower.damageDealt += moabDmg;
+                        if (!isNaN(moabDmg) && moabDmg > 0) tower.damageDealt += moabDmg; // PRO FIX
                     }
                 }
                 const progress = 1 - Math.max(u.fireTime, 0) / u.fireDuration;
