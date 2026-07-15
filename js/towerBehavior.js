@@ -27,6 +27,7 @@ export function getEffectiveCooldown(tower) {
     if (tower.abilityActiveTime > 0) finalCooldown /= (tower.stats.rapidShotMult || 3);
     if (tower.alchBuff) finalCooldown /= (1 + tower.alchBuff.speed);
     
+    // PRO FIX: Elite Defender speed scaling
     if (tower.eliteDefenderSpeedMod) finalCooldown *= tower.eliteDefenderSpeedMod;
 
     return finalCooldown < MIN_FIRE_RATE ? MIN_FIRE_RATE : finalCooldown;
@@ -131,9 +132,11 @@ function _findTarget(tower, engine) {
     const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
     const alchRange = tower.alchBuff ? tower.alchBuff.range : 0;
     
+    // PRO FIX: Apply global scale to effective range
     const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange) * GS;
     const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
     
+    // PRO FIX: Elite Targeting Logic
     let currentTargeting = tower.targetingMode;
     if (currentTargeting === 'Elite') {
         let totalLen = engine.map.getTotalLength();
@@ -143,18 +146,16 @@ function _findTarget(tower, engine) {
 
     let target = null;
     let bestVal = (currentTargeting === 'First' || currentTargeting === 'Strong') ? -Infinity : Infinity;
-    const seen = new Set();
     
+    // ISSUE 2 FIX: Removed redundant 'seen' Set allocation
     for (const e of candidates) {
-        if (seen.has(e)) continue;
-        seen.add(e);
-        
         if (!e.alive) continue;
         if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
         if (tower.type === 'glue' && e.data.isMoab) continue; 
         
         const dist = Utils.distance(tower.x, tower.y, e.x, e.y);
         if (baseRange !== 9999 && dist > effRange) continue;
+        // PRO FIX: Apply global scale to minRange
         if (tower.stats.minRange && dist < (tower.stats.minRange * scale * GS)) continue; 
 
         if (!_hasLineOfSight(tower, e, engine)) continue;
@@ -283,6 +284,7 @@ function _calculateDamage(tower) {
     let damage = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0); 
     let isCrit = tower.stats.critChance && Math.random() < tower.stats.critChance;
     if (isCrit) damage = tower.stats.critDmg;
+    // PRO FIX: Removed the 'heavy' dmgType override that was causing undefined damage for Snipers
     return damage;
 }
 

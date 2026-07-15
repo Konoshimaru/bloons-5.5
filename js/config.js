@@ -28,7 +28,8 @@ const DEFAULT_DATA = {
     savedRun: null,
     unlockedPerks: [],
     extremeSpeedEnabled: false,
-    showTowerStats: false, // NEW: Toggle tower stats in upgrade menu
+    showTowerStats: false,
+    uncapFps: false, // NEW: FPS uncap option
     unlocks: {
         extraStartingCash: false,
         extraStartingLives: false,
@@ -54,6 +55,7 @@ export const Config = {
             if (!this.data.playerXPToNext) this.data.playerXPToNext = 1000;
             if (!this.data.extremeSpeedEnabled) this.data.extremeSpeedEnabled = false;
             if (this.data.showTowerStats === undefined) this.data.showTowerStats = false;
+            if (this.data.uncapFps === undefined) this.data.uncapFps = false; // NEW
             if (!this.data.unlocks) this.data.unlocks = {};
             if (this.data.unlocks.extraStartingCash === undefined) this.data.unlocks.extraStartingCash = false;
             if (this.data.unlocks.extraStartingLives === undefined) this.data.unlocks.extraStartingLives = false;

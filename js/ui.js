@@ -34,7 +34,6 @@ export const UI = {
                 anyOverlayVisible = true;
             }
             
-            // PRO FIX: Hide main menu UI if an overlay is open, show it if we explicitly target it
             if (mainUI) {
                 if (anyOverlayVisible && menuId !== 'main-menu-ui') {
                     mainUI.classList.add('hidden');
@@ -43,7 +42,6 @@ export const UI = {
                 }
             }
         } else {
-            // PRO FIX: If menuId is null, hide ALL menus and the main menu UI (we are entering the game)
             if (mainUI) mainUI.classList.add('hidden');
         }
     },
@@ -420,35 +418,58 @@ export const UI = {
     _updateUpgradeCards(t, engine) {
         for (let i = 1; i <= 3; i++) {
             const card = el(`up-path${i}`);
+            if (!card) continue;
+            
             const tierBoxes = el(`tier-boxes-${i}`);
-            if (!card || !tierBoxes) continue;
-
             const tier = t.upgrades[i - 1];
             const upgradeData = Upgrades[t.type][i][tier];
-            
-            tierBoxes.innerHTML = '';
-            for (let j = 0; j < 5; j++) {
-                const box = document.createElement('div');
-                box.className = 'tier-box';
-                if (j < tier) box.classList.add('filled');
-                tierBoxes.appendChild(box);
-            }
 
-            card.classList.remove('locked');
-            const nameEl = card.querySelector('.up-name');
-            const costEl = card.querySelector('.cost');
+            let newName = "";
+            let newCost = "";
+            let newLocked = false;
 
             if (!upgradeData) {
-                if (nameEl) nameEl.innerText = "MAXED";
-                if (costEl) costEl.innerText = "";
-                card.classList.add('locked');
+                newName = "MAXED";
+                newCost = "";
+                newLocked = true;
             } else {
                 const cost = engine.getCost(upgradeData.cost);
-                if (nameEl) nameEl.innerText = `${upgradeData.name}`;
-                if (costEl) costEl.innerText = `$${cost}`;
+                newName = upgradeData.name;
+                newCost = `$${cost}`;
                 if (engine.cash < cost || !t.canUpgrade(i, engine)) {
-                    card.classList.add('locked');
+                    newLocked = true;
                 }
+            }
+
+            // ISSUE 1 FIX: Cache state to prevent unnecessary DOM updates
+            if (!card._cache) card._cache = { tier: -1, name: "", cost: "", locked: null };
+            const cache = card._cache;
+            
+            // Rebuild tier boxes only if tier changed
+            if (cache.tier !== tier && tierBoxes) {
+                tierBoxes.innerHTML = '';
+                for (let j = 0; j < 5; j++) {
+                    const box = document.createElement('div');
+                    box.className = 'tier-box';
+                    if (j < tier) box.classList.add('filled');
+                    tierBoxes.appendChild(box);
+                }
+                cache.tier = tier;
+            }
+
+            // Update text and locked state only if changed
+            if (cache.name !== newName || cache.cost !== newCost || cache.locked !== newLocked) {
+                const nameEl = card.querySelector('.up-name');
+                const costEl = card.querySelector('.cost');
+                if (nameEl) nameEl.innerText = newName;
+                if (costEl) costEl.innerText = newCost;
+                
+                card.classList.remove('locked');
+                if (newLocked) card.classList.add('locked');
+                
+                cache.name = newName;
+                cache.cost = newCost;
+                cache.locked = newLocked;
             }
         }
     }

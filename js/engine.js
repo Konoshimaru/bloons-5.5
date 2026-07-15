@@ -31,6 +31,7 @@ const FPS_UPDATE_INTERVAL = 1000;
 const SPEED_MULTIPLIERS = [1, 1, 2, 3, 5, 10, 20];
 const MAX_SPEED_NORMAL = 3;
 const MAX_SPEED_EXTREME = 6;
+const HANG_THRESHOLD_MS = 500; // ISSUE 4: Threshold for infinite loop detection
 
 export const GameEngine = {
     canvas: null,
@@ -39,6 +40,7 @@ export const GameEngine = {
     bgInterval: null,
     ui: UI,
     _rafId: null,
+    _timeoutId: null,
     fpsEl: null,
     
     enemies: [],
@@ -84,7 +86,7 @@ export const GameEngine = {
     
     imfDebt: 0,
     acidPools: [],
-    menuClickables: [], // NEW: For main menu events
+    menuClickables: [],
 
     init() {
         Config.load();
@@ -114,8 +116,7 @@ export const GameEngine = {
         document.addEventListener("visibilitychange", () => this._handleVisibilityChange());
         
         this._boundLoop = this.loop.bind(this);
-        if (this._rafId) cancelAnimationFrame(this._rafId);
-        this._rafId = requestAnimationFrame(this._boundLoop);
+        this.restartLoop(); 
     },
 
     _handleVisibilityChange() {
@@ -200,7 +201,7 @@ export const GameEngine = {
         this.enemies.length = 0;
         this.explosions.length = 0;
         this.acidPools.length = 0;
-        this.menuClickables.length = 0; // Clear menu items when game starts
+        this.menuClickables.length = 0;
         
         this.projectilePool.clear();
         this.particlePool.clear();
@@ -356,7 +357,6 @@ export const GameEngine = {
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
 
-        // PRO FIX: Handle clickable menu events first!
         if (this.gameState === 'menu') {
             for (let i = this.menuClickables.length - 1; i >= 0; i--) {
                 let item = this.menuClickables[i];
@@ -573,7 +573,21 @@ export const GameEngine = {
         UI.refreshSelectedTower(this);
     },
 
+    restartLoop() {
+        if (this._rafId) cancelAnimationFrame(this._rafId);
+        if (this._timeoutId) clearTimeout(this._timeoutId);
+        this._rafId = null;
+        this._timeoutId = null;
+        this.lastTime = performance.now(); 
+        this.loop(performance.now());
+    },
+
     loop(timestamp) {
+        // PRO FIX: Ensure timestamp is valid (setTimeout doesn't pass one automatically)
+        if (timestamp === undefined || timestamp === null) {
+            timestamp = performance.now();
+        }
+        
         const rawDt = (timestamp - this.lastTime) / 1000;
         this.lastTime = timestamp;
         
@@ -590,23 +604,25 @@ export const GameEngine = {
             const steps = Math.max(1, Math.min(Math.ceil(targetDt / FIXED_TIMESTEP), MAX_SUBSTEPS));
             const stepDt = targetDt / steps;
             
-            const watchdog = setTimeout(() => {
-                console.error("INFINITE LOOP DETECTED IN UPDATE!");
-                this.gameState = 'gameover';
-                UI.toggleMenus('game-over-menu');
-                document.getElementById('go-wave-stat').innerText = `Game Freeze: Infinite loop detected.`;
-            }, 1000);
-
+            // ISSUE 4 FIX: Replaced setTimeout watchdog with a performance.now() check
+            const updateStartTime = performance.now();
             try {
-                for (let i = 0; i < steps; i++) this.update(stepDt);
-                clearTimeout(watchdog);
+                for (let i = 0; i < steps; i++) {
+                    this.update(stepDt);
+                    if (performance.now() - updateStartTime > HANG_THRESHOLD_MS) {
+                        throw new Error("Game Freeze: Infinite loop detected.");
+                    }
+                }
             } catch (err) {
-                clearTimeout(watchdog);
                 console.error("FATAL SIMULATION ERROR:", err);
                 this.gameState = 'gameover';
                 UI.toggleMenus('game-over-menu');
                 document.getElementById('go-wave-stat').innerText = `Game Crash: ${err.message}.`;
             }
+            
+            // Issue 1 Fix: Update UI only once per loop, not inside update()
+            UI.updateAbilityBar(this);
+            this.updateUI();
         }
         
         if (this.gameState !== 'gameover') {
@@ -621,8 +637,17 @@ export const GameEngine = {
         }
         
         if (!document.hidden) {
-            if (this._rafId) cancelAnimationFrame(this._rafId);
-            this._rafId = requestAnimationFrame(this._boundLoop);
+            // Uncap FPS logic
+            if (Config.data.uncapFps) {
+                if (this._rafId) cancelAnimationFrame(this._rafId);
+                this._rafId = null;
+                // PRO FIX: Pass performance.now() explicitly to the loop
+                this._timeoutId = setTimeout(() => this.loop(performance.now()), 0);
+            } else {
+                if (this._timeoutId) clearTimeout(this._timeoutId);
+                this._timeoutId = null;
+                this._rafId = requestAnimationFrame(this._boundLoop);
+            }
         }
     },
 
@@ -635,8 +660,6 @@ export const GameEngine = {
         }
         
         if (CutsceneManager.update(dt)) {
-            UI.updateAbilityBar(this);
-            this.updateUI();
             return; 
         }
 
@@ -659,9 +682,6 @@ export const GameEngine = {
         
         this._updateExplosions(dt);
         this._updateParticles(dt);
-        
-        UI.updateAbilityBar(this);
-        this.updateUI();
         
         if (this.lives <= 0) {
             AudioEngine.pause();

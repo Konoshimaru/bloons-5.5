@@ -46,7 +46,7 @@ const dom = {
     btnMonkeys: document.getElementById('btn-monkeys'),
     btnHeroes: document.getElementById('btn-heroes'),
     btnPlay: document.getElementById('btn-play'),
-    btnSandbox: document.getElementById('btn-sandbox'), // RESTORED SANDBOX DOM
+    btnSandbox: document.getElementById('btn-sandbox'),
     btnPowers: document.getElementById('btn-powers'),
     btnKnowledge: document.getElementById('btn-knowledge'),
     btnSettings: document.getElementById('btn-settings'),
@@ -83,6 +83,7 @@ const dom = {
     shuffleMusicCheckbox: document.getElementById('shuffle-music-checkbox'),
     randomStartCheckbox: document.getElementById('random-start-checkbox'),
     showStatsCheckbox: document.getElementById('show-stats-checkbox'),
+    uncapFpsCheckbox: document.getElementById('uncap-fps-checkbox'), // NEW: Uncap FPS
     prevSongBtn: document.getElementById('prev-song-btn'),
     nextSongBtn: document.getElementById('next-song-btn'),
     pausePrevSong: document.getElementById('pause-prev-song'),
@@ -259,6 +260,7 @@ function applyConfigToUI() {
     if (dom.fpsDisplay) dom.fpsDisplay.style.display = Config.data.showFps ? 'block' : 'none';
     if (dom.extremeSpeedCheckbox) dom.extremeSpeedCheckbox.checked = Config.data.extremeSpeedEnabled;
     if (dom.showStatsCheckbox) dom.showStatsCheckbox.checked = Config.data.showTowerStats;
+    if (dom.uncapFpsCheckbox) dom.uncapFpsCheckbox.checked = Config.data.uncapFps;
     refreshMapSelector();
     refreshHeroSelector();
     updateHeroShopCard();
@@ -305,7 +307,7 @@ async function startGameUI(isSandbox) {
 function _setupMenuListeners() {
     // Main Menu Buttons
     dom.btnPlay?.addEventListener('click', () => UI.toggleMenus('play-menu'));
-    dom.btnSandbox?.addEventListener('click', () => startGameUI(true)); // RESTORED SANDBOX LISTENER
+    dom.btnSandbox?.addEventListener('click', () => startGameUI(true)); 
     dom.btnHeroes?.addEventListener('click', () => UI.toggleMenus('hero-select-menu'));
     dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
     dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
@@ -384,6 +386,12 @@ function _setupSettingsListeners() {
     dom.shuffleMusicCheckbox?.addEventListener('change', (e) => { Config.data.musicShuffle = e.target.checked; Config.save(); });
     dom.randomStartCheckbox?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });
     dom.showStatsCheckbox?.addEventListener('change', (e) => { Config.data.showTowerStats = e.target.checked; Config.save(); });
+    // NEW: Uncap FPS listener
+    dom.uncapFpsCheckbox?.addEventListener('change', (e) => { 
+        Config.data.uncapFps = e.target.checked; 
+        Config.save(); 
+        GameEngine.restartLoop(); // Restart loop to apply setting immediately
+    });
 
     const autoToggle = (e) => {
         GameEngine.waveManager.autoWaveEnabled = e.target.checked;
@@ -408,7 +416,7 @@ function _setupGameListeners() {
     dom.quitBtn?.addEventListener('click', () => {
         GameEngine.saveGame();
         GameEngine.gameState = 'menu';
-        GameEngine.map = null; // PRO FIX: Clear map
+        GameEngine.map = null; 
         UI.toggleMenus(null);
         showMainMenuUI(true);
         document.getElementById('sidebar').classList.add('hidden');
