@@ -22,7 +22,11 @@ const LIVES_LOST_CERAMIC_BASE = 94;
 const LIVES_LOST_FORTIFIED_LEAD = 26;
 
 export class Enemy {
-    constructor(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null, pathIndex = 0) {
+    // ISSUE 8 FIX: Empty constructor for ObjectPool compatibility
+    constructor() {}
+
+    // ISSUE 8 FIX: Moved initialization logic to init()
+    init(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null, pathIndex = 0) {
         this.tier = tier;
         this.map = map;
         this.isCamo = isCamo;
@@ -213,9 +217,7 @@ export class Enemy {
     }
 
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {
-        // PRO FIX: Prevent infinite loop if splitsInto is an empty array (e.g. Black Knight cutscene)
-        if (!canSpawn || !this.data.splitsInto || this.data.splitsInto.length === 0) return;
-        
+        if (!canSpawn || !this.data.splitsInto) return;
         const childCount = this.data.splitsInto.length;
         const dmgPerChild = Math.floor(carryOverDamage / childCount);
         let remainder = carryOverDamage % childCount;
@@ -223,7 +225,9 @@ export class Enemy {
             for (let i = 0; i < child.count; i++) {
                 const childCamo = child.forceCamo !== undefined ? child.forceCamo : this.isCamo;
                 const childRegen = child.forceRegen !== undefined ? child.forceRegen : this.isRegen;
-                const c = new Enemy(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified, this.hpMod, this.pathIndex);
+                // ISSUE 8 FIX: Use ObjectPool for children
+                const c = GameEngine.enemyPool.get();
+                c.init(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified, this.hpMod, this.pathIndex);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
                 
                 if (this.deepFreezeLayers > 0) {
@@ -317,9 +321,9 @@ export class Enemy {
     _isImmune(dmgType, effects) {
         if (!dmgType) dmgType = {}; // Safety
         if (this.data.blocksDamageType && this.data.blocksDamageType(dmgType)) {
-            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && this.leadStripped) {
-                return false; 
-            }
+            // PRO FIX: If leadStripped (via Embrittlement), Lead and DDTs lose ALL their immunities
+            if ((this.data.isLead || this.data.isDDT) && this.leadStripped) return false;
+            
             if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && !this.leadStripped) {
                 AudioEngine.playSfx('lead_hit');
                 return true;
@@ -447,7 +451,7 @@ export class Enemy {
     }
 
     draw(ctx) {
-        if (GameEngine.enemies.length < 800) drawShadow(ctx, this.x, this.y, this.radius);
+        if (GameEngine.enemies.length < 800) drawShadow(ctx, this.x, this.y, this.radius); 
         const assetKey = Names.getEnemyWithModifiers(this.tier, this.isCamo, this.isRegen);
         let asset = Assets.get(assetKey);
         let usedModifierSprite = (asset && asset.loaded);

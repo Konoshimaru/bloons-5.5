@@ -46,10 +46,13 @@ export const GameEngine = {
     enemies: [],
     towers: [],
     explosions: [],
+      // Add to the GameEngine object properties (e.g., right under enemyGrid):
     enemyGrid: new SpatialGrid(80),
+    towerGrid: new SpatialGrid(80), // ISSUE 7: Grid for support tower buffs
     
     projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
+    enemyPool: new ObjectPool(() => new Enemy(), (e) => { e.alive = false; }, 200), // ISSUE 8: Enemy pool
     
     lives: 100,
     cash: 650,
@@ -441,6 +444,8 @@ export const GameEngine = {
 
         const newTower = stats.isHero ? new Hero(x, y, this.selectedTowerType) : new Tower(x, y, this.selectedTowerType);
         if (stats.isHero) this.hero = newTower;
+        // PRO FIX: Set default targeting mode for Spike Factory
+        if (newTower.type === 'spike') newTower.targetingMode = 'Normal';
         
         this.towers.push(newTower);
         this.cash -= cost;
@@ -457,6 +462,15 @@ export const GameEngine = {
         let modes = ['First', 'Last', 'Strong', 'Close'];
         if (t.stats.unlocksElite) {
             modes.push('Elite');
+        }
+        
+        // PRO FIX: Spike Factory specific targeting modes
+        if (t.type === 'spike') {
+            if (t.stats.smartSpikes) {
+                modes = ['Normal', 'Close', 'Smart'];
+            } else {
+                modes = ['Normal']; // No targeting feature until 0-0-2
+            }
         }
         
         let idx = modes.indexOf(t.targetingMode);
@@ -737,6 +751,8 @@ export const GameEngine = {
                 if (i < this.enemies.length) {
                     this.enemies[i] = last;
                 }
+                // ISSUE 8 FIX: Release dead enemy back to the pool
+                this.enemyPool.release(e);
             }
         }
     },
@@ -755,6 +771,26 @@ export const GameEngine = {
         }
         
         this.hasIceShardTower = false;
+        // ISSUE 5 FIX: Calculate leaking status once per tick
+        this.hasLeakingEnemy = false;
+        if (this.map) {
+            const totalLen = this.map.getTotalLength();
+            if (totalLen > 0) {
+                const leakThreshold = totalLen * 0.75;
+                for (const e of this.enemies) {
+                    if (e.alive && e.distanceTraveled > leakThreshold) {
+                        this.hasLeakingEnemy = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // ISSUE 7 FIX: Build tower grid once per tick for support buffs
+        this.towerGrid.clear();
+        for (const t of this.towers) {
+            if (t) this.towerGrid.insert(t);
+        }
         
         for (const t of this.towers) {
             if (!t) continue;

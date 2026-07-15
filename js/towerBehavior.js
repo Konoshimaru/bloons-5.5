@@ -113,6 +113,18 @@ function _runCustomBehaviors(tower, dt, engine) {
 function _acquireAndFire(tower, dt, engine) {
     if (tower.isHollowCharging) return; 
     
+    // PRO FIX: Spike Factory passive firing logic
+    if (tower.type === 'spike') {
+        // Only fire if a round is active and cooldown is ready
+        if (engine.waveManager.waveActive && tower.cooldown <= 0 && tower.attackPointTimer <= 0) {
+            const effFireRate = getEffectiveCooldown(tower);
+            // Call fire directly to bypass animation wind-up which breaks with null targets
+            fire(tower, null, engine);
+            tower.cooldown = effFireRate / (1 + tower.buffedFireRate);
+        }
+        return;
+    }
+
     const target = _findTarget(tower, engine);
     if (!target) return;
     
@@ -139,15 +151,20 @@ function _findTarget(tower, engine) {
     // PRO FIX: Elite Targeting Logic
     let currentTargeting = tower.targetingMode;
     if (currentTargeting === 'Elite') {
-        let totalLen = engine.map.getTotalLength();
-        let hasLeaking = engine.enemies.some(e => e.alive && e.distanceTraveled > totalLen * 0.75);
-        currentTargeting = hasLeaking ? 'First' : 'Strong';
+        // ISSUE 5 FIX: Read cached leaking status from engine instead of scanning array
+        currentTargeting = engine.hasLeakingEnemy ? 'First' : 'Strong';
     }
 
-    let target = null;
-    let bestVal = (currentTargeting === 'First' || currentTargeting === 'Strong') ? -Infinity : Infinity;
-    
-    // ISSUE 2 FIX: Removed redundant 'seen' Set allocation
+    // ISSUE 6 FIX: Track top 3 targets ignoring LOS, then check LOS only on them
+    let t1 = null, v1 = (currentTargeting === 'First' || currentTargeting === 'Strong') ? -Infinity : Infinity;
+    let t2 = null, v2 = v1;
+    let t3 = null, v3 = v1;
+
+    const isBetter = (newVal, oldVal) => {
+        if (currentTargeting === 'First' || currentTargeting === 'Strong') return newVal > oldVal;
+        return newVal < oldVal;
+    };
+
     for (const e of candidates) {
         if (!e.alive) continue;
         if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
@@ -158,18 +175,29 @@ function _findTarget(tower, engine) {
         // PRO FIX: Apply global scale to minRange
         if (tower.stats.minRange && dist < (tower.stats.minRange * scale * GS)) continue; 
 
-        if (!_hasLineOfSight(tower, e, engine)) continue;
-
+        // NOTE: LOS check removed from loop body for performance profiling optimization
         const val = _getTargetValue(tower, e, dist, currentTargeting);
-        const isBetter = _isBetterTarget(tower, val, bestVal, target, e, currentTargeting);
         
-        if (isBetter) { 
-            bestVal = val; 
-            target = e; 
+        if (isBetter(val, v1)) {
+            t3 = t2; v3 = v2;
+            t2 = t1; v2 = v1;
+            t1 = e; v1 = val;
+        } else if (isBetter(val, v2)) {
+            t3 = t2; v3 = v2;
+            t2 = e; v2 = val;
+        } else if (isBetter(val, v3)) {
+            t3 = e; v3 = val;
         }
     }
     
-    return target;
+    // ISSUE 6 FIX: Run LOS check only on the top 3 evaluated candidates
+    if (t1) {
+        if (_hasLineOfSight(tower, t1, engine)) return t1;
+        if (t2 && _hasLineOfSight(tower, t2, engine)) return t2;
+        if (t3 && _hasLineOfSight(tower, t3, engine)) return t3;
+    }
+    
+    return null;
 }
 
 function _getTargetValue(tower, enemy, dist, targetingMode) {
@@ -179,6 +207,7 @@ function _getTargetValue(tower, enemy, dist, targetingMode) {
 }
 
 function _isBetterTarget(tower, val, bestVal, currentTarget, e, targetingMode) {
+    // NOTE: Kept for compatibility/inheritance API, unused in optimized _findTarget
     if (targetingMode === 'First' || targetingMode === 'Strong') {
         if (val > bestVal) return true;
         if (val === bestVal && currentTarget && e.distanceTraveled > currentTarget.distanceTraveled) return true;

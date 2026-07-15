@@ -390,6 +390,16 @@ export const UI = {
             if (statsEl) statsEl.classList.add('hidden');
         }
         
+        // PRO FIX: Hide targeting row for Spike Factory without Smart Spikes
+        const targetingRow = el('up-targeting-row');
+        if (targetingRow) {
+            if (t.type === 'spike' && !t.stats.smartSpikes) {
+                targetingRow.classList.add('hidden');
+            } else {
+                targetingRow.classList.remove('hidden');
+            }
+        }
+        
         this._updateTargetingText(t);
         this._updateUpgradeCards(t, engine);
     },

@@ -4,12 +4,12 @@ import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 
 export default {
-    stats: { 
-        name: "Ninja Monkey", cost: 400, range: 32, 
-        baseCooldown: 0.62, fireRate: 0.62, 
-        damage: 1, pierce: 2, projectileSpeed: 450, 
-        lifespan: 0.5, desc: "Throws shurikens. Can detect Camo.", 
-        dmgType: 'sharp', projectileType: 'ninja', hitRadius: 18, 
+    stats: {
+        name: "Ninja Monkey", cost: 400, range: 32,
+        baseCooldown: 0.62, fireRate: 0.62,
+        damage: 1, pierce: 2, projectileSpeed: 450,
+        lifespan: 0.5, desc: "Throws shurikens. Can detect Camo.",
+        dmgType: 'sharp', projectileType: 'ninja', hitRadius: 18,
         canSeeCamo: true, projectileCount: 1
     },
     upgrades: {
@@ -29,7 +29,7 @@ export default {
         ],
         3: [
             {name:"Seeking Shuriken", cost:300, stat:"seeking", amount:true, desc:"Shurikens seek out bloons automatically."},
-            {name:"Caltrops", cost:500, stat:"caltrops", amount:true, desc:"Drops spikes on the track."},
+            {name:"Caltrops", cost:500, stat:"caltrops", amount:true, desc:"Dispenses caltrops onto the ground every 3.9 seconds."},
             {name:"Flash Bomb", cost:2000, stat:"flashBomb", amount:true, desc:"Throws flash bombs that stun bloons."},
             {name:"Sticky Bomb", cost:4500, stat:"stickyBomb", amount:true, desc:"Throws a bomb that sticks to MOABs and explodes."},
             {name:"Master Bomber", cost:14000, stat:"damage", amount:5, desc:"Massive damage against MOABs."}
@@ -37,19 +37,65 @@ export default {
     },
     updateSupport(tower, dt) {
         if (tower.stats.shinobi) {
-            let ninjaCount = 0; let effRange = tower.stats.range * RANGE_SCALE;
-            for (let ot of GameEngine.towers) { if (ot && ot.type === 'ninja' && ot !== tower) { if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < effRange) ninjaCount++; } }
-            let stacks = Math.min(20, ninjaCount); let speedBuff = stacks * 0.05; let pierceBuff = (tower.stats.pierce || 2) * (stacks * 0.08); 
-            tower.buffedFireRate = (tower.buffedFireRate || 0) + speedBuff; tower.buffedPierce = (tower.buffedPierce || 0) + pierceBuff;
+            let ninjaCount = 0; 
+            let effRange = tower.stats.range * RANGE_SCALE;
+            // ISSUE 7 FIX: Use towerGrid instead of flat array scan
+            const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange);
+            for (let ot of nearbyTowers) { 
+                if (ot && ot.type === 'ninja' && ot !== tower) { 
+                    if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < effRange) ninjaCount++; 
+                } 
+            }
+            let stacks = Math.min(20, ninjaCount); 
+            let speedBuff = stacks * 0.05; 
+            let pierceBuff = (tower.stats.pierce || 2) * (stacks * 0.08);
+            tower.buffedFireRate = (tower.buffedFireRate || 0) + speedBuff; 
+            tower.buffedPierce = (tower.buffedPierce || 0) + pierceBuff;
+        }
+    },
+    update(tower, dt) {
+        // PRO FIX: Caltrops independent attack logic
+        if (tower.stats.caltrops) {
+            tower.caltropTimer = (tower.caltropTimer || 3.9) - dt;
+            if (tower.caltropTimer <= 0) {
+                // Base 3.9s, reduced by Ninja Discipline (cooldownMult)
+                tower.caltropTimer = 3.9 * (tower._cooldownMult || 1.0);
+                this._fireCaltrops(tower);
+            }
+        }
+    },
+    _fireCaltrops(tower) {
+        const range = tower.stats.range * RANGE_SCALE;
+        const trackPoints = GameEngine.map.getTrackPointsInRange(tower.x, tower.y, range);
+        if (trackPoints.length > 0) {
+            // Caltrops locked to Normal (Random) targeting
+            let pt = trackPoints[Math.floor(Math.random() * trackPoints.length)];
+            
+            let caltropEffects = {};
+            // Distraction crosspath: 10% chance to blow back bloons
+            if (tower.stats.distraction && Math.random() < 0.10) {
+                caltropEffects.knockback = 30;
+            }
+            
+            let angle = Utils.angle(tower.x, tower.y, pt.x, pt.y);
+            let p = GameEngine.projectilePool.get();
+            // Stats: Pierce 6, Lifespan 35s, Damage 1, Sharp type
+            p.init(tower.x, tower.y, 1, null, 'spike', 600, 6, 35.0, angle, caltropEffects, 0, tower, { isSharp: true });
+            p.targetX = pt.x;
+            p.targetY = pt.y;
         }
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
-        let count = tower.stats.projectileCount || 1; let shotCount = tower.shotCount || 0; tower.shotCount++;
+        let count = tower.stats.projectileCount || 1; 
+        let shotCount = tower.shotCount || 0; 
+        tower.shotCount++;
         let ninjaEffects = { ...effects };
         if (tower.stats.distraction && Math.random() < 0.3) ninjaEffects.knockback = 30;
         if (tower.stats.counterEspionage) ninjaEffects.stripCamo = true;
-        let projType = tower.stats.projectileType; let projDamage = damage; let projDmgType = dmgType; let projPierce = (tower.stats.pierce + (tower.buffedPierce || 0)) || 2; 
-
+        let projType = tower.stats.projectileType; 
+        let projDamage = damage; 
+        let projDmgType = dmgType; 
+        let projPierce = (tower.stats.pierce + (tower.buffedPierce || 0)) || 2;
         if (tower.stats.flashBomb && shotCount % 4 === 0) {
             projType = 'flash_bomb'; projDamage = 1; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true };
             ninjaEffects.stun = 1.0; ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = 30; ninjaEffects.explosionRadius = 60; ninjaEffects.explosionDamage = 1;
@@ -57,19 +103,12 @@ export default {
             projType = 'sticky_bomb'; projDamage = tower.stats.damage * 10; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true, moabDmg: 50 };
             ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = 1; ninjaEffects.explosionRadius = 60; ninjaEffects.explosionDamage = projDamage;
         }
-
-        let spread = count > 2 ? 20 : 15; 
+        let spread = count > 2 ? 20 : 15;
         for(let i=0; i<count; i++) {
             let offset = spread * (i - (count-1)/2);
             let p = GameEngine.projectilePool.get();
             p.init(tower.x, tower.y, projDamage, target, projType, tower.stats.projectileSpeed, projPierce, tower.stats.lifespan, null, ninjaEffects, offset, tower, projDmgType);
             p.isCrit = isCrit;
-        }
-        if (tower.stats.caltrops && shotCount % 5 === 0) {
-            let trackPoint = GameEngine.map.getNearestPathPoint(tower.x, tower.y);
-            let randX = trackPoint.x + (Math.random() - 0.5) * 40; let randY = trackPoint.y + (Math.random() - 0.5) * 40;
-            let p = GameEngine.projectilePool.get();
-            p.init(randX, randY, 1, null, 'spike', 0, 6, 15.0, Math.random()*Math.PI*2, null, 0, tower, { isSharp: true, canHitLead: false });
         }
     },
     ability(tower, engine) {

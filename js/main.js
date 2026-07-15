@@ -292,10 +292,14 @@ async function startGameUI(isSandbox) {
     if (dom.sbViewToggle) dom.sbViewToggle.innerText = '🎈 Spawn Bloons';
 
     try {
-        await AudioEngine.init();
-        AudioEngine.play();
+        // PRO FIX: Start game immediately to switch state from 'menu' to 'playing'
+        // This prevents the main menu scenery from rendering while audio loads
         GameEngine.startGame(isSandbox);
         updateShopPrices();
+        
+        // Initialize audio in the background
+        await AudioEngine.init();
+        AudioEngine.play();
     } catch (err) {
         console.error("Failed to start game:", err);
         GameEngine.gameState = 'gameover';
@@ -507,7 +511,12 @@ function _setupShopListeners() {
         card.addEventListener('click', () => {
             if (!GameEngine.isSandbox || !GameEngine.map) return;
             const tier = parseInt(card.dataset.enemy, 10);
-            GameEngine.enemies.push(new Enemy(tier, GameEngine.map, sandboxCamoOn, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0));
+            // PRO FIX: DDTs (tier 16) always spawn with Camo, just like in BTD6
+            let isCamo = sandboxCamoOn || tier === 16;
+            // ISSUE 8 FIX: Use ObjectPool for sandbox spawning
+            let e = GameEngine.enemyPool.get();
+            e.init(tier, GameEngine.map, isCamo, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0);
+            GameEngine.enemies.push(e);
         });
     });
 

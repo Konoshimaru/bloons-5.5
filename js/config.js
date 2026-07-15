@@ -88,4 +88,5 @@ export const Difficulties = Object.freeze({
 
 Object.values(Difficulties).forEach(Object.freeze);
 
-export const TargetingModes = Object.freeze(['First', 'Last', 'Strong', 'Close']);
+// Update the TargetingModes array to include the new Spike Factory modes
+export const TargetingModes = Object.freeze(['First', 'Last', 'Strong', 'Close', 'Smart']);

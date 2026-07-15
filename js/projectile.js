@@ -9,9 +9,6 @@ import { Names } from './names.js';
 import { ProjectileDrawers } from './projectileDrawers.js';
 import { DamageType, createDmgType } from './damageTypes.js';
 
-// PRO FIX: Safe fallback to prevent NaN crashes if import fails
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
-
 const MORTAR_ARC_HEIGHT = 150;
 const SEEKING_TURN_SPEED = 12;
 const SPIKE_FRICTION = 0.9;
@@ -41,7 +38,7 @@ export class Projectile {
         const baseAngle = fixedAngle !== null ? fixedAngle : (target ? Utils.angle(this.x, this.y, target.x, target.y) : 0);
         this.angle = baseAngle + (angleOffset * Math.PI / 180);
         
-        this.radius = this._getRadius(type) * GS;
+        this.radius = this._getRadius(type);
         this.alive = true;
         this.active = true;
         this.effects = effects;
@@ -211,9 +208,39 @@ export class Projectile {
     }
 
     _updateSpike(dt) {
-        this.x += Math.cos(this.angle) * this.speed * dt;
-        this.y += Math.sin(this.angle) * this.speed * dt;
-        this.speed *= SPIKE_FRICTION;
+        // PRO FIX: Spike Factory "pop out" movement
+        if (this.targetX !== undefined) {
+            let dx = this.targetX - this.x;
+            let dy = this.targetY - this.y;
+            let dist = Math.hypot(dx, dy);
+            if (dist < 5) {
+                // Arrived at target, stop moving
+                this.x = this.targetX;
+                this.y = this.targetY;
+                this.targetX = undefined;
+                this.targetY = undefined;
+                this.speed = 0;
+                this.vx = 0;
+                this.vy = 0;
+            } else {
+                // Fly towards target
+                this.vx = (dx / dist) * this.speed;
+                this.vy = (dy / dist) * this.speed;
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+            }
+        } else {
+            // Standard spike friction behavior (for caltrops, etc.)
+            this.x += Math.cos(this.angle) * this.speed * dt;
+            this.y += Math.sin(this.angle) * this.speed * dt;
+            this.speed *= SPIKE_FRICTION;
+        }
+        
+        // PRO FIX: Spikes MUST expire! Decrement lifespan here.
+        this.life -= dt;
+        if (this.life <= 0) {
+            this.alive = false;
+        }
     }
 
     _updateStandard(dt) {
@@ -249,10 +276,6 @@ export class Projectile {
 
         const targetAngle = Utils.angle(this.x, this.y, this.target.x, this.target.y);
         let diff = targetAngle - this.angle;
-        
-        // PRO FIX: Prevent infinite loop if diff is NaN
-        if (isNaN(diff)) return; 
-        
         while (diff > Math.PI) diff -= Math.PI * 2;
         while (diff < -Math.PI) diff += Math.PI * 2;
 
@@ -284,13 +307,19 @@ export class Projectile {
     _checkCollisions() {
         const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.radius + 40);
         for (const e of nearby) {
-            if (!e.alive || this.hitEnemies.has(e)) continue;
+            if (!e.alive) continue;
+            
+            // PRO FIX: Spikes bypass the hitEnemies cooldown.
+            // This allows them to hit the same bloon multiple times and lose all pierce trying to pop it.
+            if (this.type !== 'spike' && this.hitEnemies.has(e)) continue;
+            
             if (e.isCamo && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
             
             const eRad = e.radius || e.data.radius || 10;
             if (Utils.distance(this.x, this.y, e.x, e.y) < eRad + this.radius) {
                 this.hit(e);
-                this.hitEnemies.add(e);
+                // Only add to hitEnemies for non-spikes
+                if (this.type !== 'spike') this.hitEnemies.add(e);
                 if (!this.alive) break;
             }
         }
@@ -473,7 +502,7 @@ export class Projectile {
         const asset = Assets.get(assetKey);
         
         if (asset && asset.loaded) {
-            const targetSize = this._getDrawSize() * GS;
+            const targetSize = this._getDrawSize();
             ctx.save();
             ctx.translate(this.x, this.y);
             ctx.rotate(this.angle);
@@ -485,7 +514,6 @@ export class Projectile {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
-        ctx.scale(GS, GS); 
         const drawer = ProjectileDrawers[this.type] || ProjectileDrawers.dart;
         drawer(ctx, this);
         ctx.restore();

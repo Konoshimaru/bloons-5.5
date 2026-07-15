@@ -120,7 +120,9 @@ export class WaveManager {
             const pathCount = GameEngine.map.paths.length;
             const pathIndex = pathCount > 1 ? Math.floor(Math.random() * pathCount) : 0;
             
-            GameEngine.enemies.push(new Enemy(
+            // ISSUE 8 FIX: Use ObjectPool for enemy spawning
+            let e = GameEngine.enemyPool.get();
+            e.init(
                 spawn.tier,
                 GameEngine.map,
                 spawn.camo,
@@ -129,7 +131,8 @@ export class WaveManager {
                 spawn.fort,
                 spawn.hpMod,
                 pathIndex
-            ));
+            );
+            GameEngine.enemies.push(e);
         }
     }
 

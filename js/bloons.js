@@ -14,6 +14,6 @@ export const EnemyTypesData = {
     13:{ color: '#2c3e50', radius: 50, size: 110, speed: 40, nextTier: null, isMoab: true, livesLost: 154, rbe: 616, maxHp: 200, splitsInto: [{tier: 12, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 },
     14:{ color: '#e74c3c', radius: 70, size: 140, speed: 30, nextTier: null, isMoab: true, livesLost: 791, rbe: 3164, maxHp: 700, splitsInto: [{tier: 13, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 },
     15:{ color: '#27ae60', radius: 90, size: 180, speed: 20, nextTier: null, isMoab: true, livesLost: 4164, rbe: 16656, maxHp: 4000, splitsInto: [{tier: 14, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 },
-    16:{ color: '#2c3e50', radius: 50, size: 110, speed: 110, nextTier: null, isMoab: true, isDDT: true, livesLost: 816, rbe: 816, maxHp: 400, splitsInto: [{tier: 12, count: 4, forceCamo: true, forceRegen: true}], blocksDamageType: (d) => d.isExplosion || d.isSharp, spriteOffsetX: 0, spriteOffsetY: 0 },
+    16:{ color: '#2c3e50', radius: 50, size: 110, speed: 110, nextTier: null, isMoab: true, isDDT: true, isLead: true, livesLost: 816, rbe: 816, maxHp: 400, splitsInto: [{tier: 12, count: 4, forceCamo: true, forceRegen: true}], blocksDamageType: (d) => d.isExplosion || (d.isSharp && !d.canHitLead), spriteOffsetX: 0, spriteOffsetY: 0 },
     17:{ color: '#e74c3c', radius: 110, size: 200, speed: 15, nextTier: null, isMoab: true, isBAD: true, livesLost: 55760, rbe: 55760, maxHp: 20000, splitsInto: [{tier: 15, count: 2}, {tier: 16, count: 3}], spriteOffsetX: 0, spriteOffsetY: 0 }
 };

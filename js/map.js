@@ -249,7 +249,33 @@ export class GameMap {
         }
         return bestPoint;
     }
-
+    getTrackPointsInRange(x, y, radius) {
+        const points = [];
+        for (let p = 0; p < this.paths.length; p++) {
+            const path = this.paths[p];
+            for (let i = 0; i < path.segments.length; i++) {
+                const seg = path.segments[i];
+                const step = 5; 
+                const numSteps = Math.max(1, Math.floor(seg.dist / step));
+                for (let j = 0; j <= numSteps; j++) {
+                    const t = j / numSteps;
+                    const px = Utils.lerp(seg.p1.x, seg.p2.x, t);
+                    const py = Utils.lerp(seg.p1.y, seg.p2.y, t);
+                    if (Utils.distance(x, y, px, py) <= radius) {
+                        const distAlong = (i > 0 ? path.cumulativeDistances[i-1] : 0) + seg.dist * t;
+                        points.push({ 
+                            x: px, 
+                            y: py, 
+                            pathIndex: p, 
+                            distAlong: distAlong, 
+                            distToTower: Utils.distance(x, y, px, py) 
+                        });
+                    }
+                }
+            }
+        }
+        return points;
+    }
     isInWater(x, y) {
         for (let p of this.props) {
             if (p.type === 'pond') {
