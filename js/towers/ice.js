@@ -22,17 +22,17 @@ export default {
             {name:"Permafrost", cost:150, desc:"Frozen bloons move 50% slower even after thawing.", extraMods:{permafrost: true}},
             {name:"Cold Snap", cost:350, stat:"canHitLead", amount:true, desc:"Can freeze Lead and detect Camo.", extraMods:{canSeeCamo: true}},
             {name:"Ice Shards", cost:1500, stat:"iceShards", amount:true, desc:"Frozen bloons erupt into 3 shards. Strips Camo/Regrow.", extraMods:{range: 5}},
-            // PRO FIX: Removed dead extraMods:{canHitMoab: true}
             {name:"Embrittlement", cost:2300, stat:"embrittlement", amount:true, desc:"Can hit MOABs. Targets take +1 damage. Permanently strips Camo/Regrow/Lead."},
-            // PRO FIX: Fixed duplicate keys and applied range correctly
-            {name:"Absolute Zero", cost:21000, stat:"absoluteZero", amount:true, desc:"Freezes screen for 10s. Buffs Ice Monkeys +50%.", extraMods:{range: 10}}
+            // PRO FIX: Restored Super Brittle to Path 1
+            {name:"Super Brittle", cost:28000, stat:"superBrittle", amount:true, desc:"+5 damage taken. 6 shards. Attacked 100% faster.", cooldownMult: 0.5}
         ],
         2: [
             {name:"Enhanced Freeze", cost:200, desc:"Attacks faster and freezes longer.", cooldownMult: 0.75, extraMods:{freezeDuration: 1.75}},
             {name:"Deep Freeze", cost:300, stat:"pierce", amount:5, desc:"+5 pierce. Freeze penetrates 2 layers. 2.2s duration.", extraMods:{deepFreeze: true, freezeDuration: 2.2}},
             {name:"Arctic Wind", cost:2750, stat:"arcticWind", amount:true, desc:"Passive 40% slow aura. Can freeze water for towers.", extraMods:{arcticSlowFactor: 0.6}},
             {name:"Snowstorm", cost:4000, stat:"range", amount:10, desc:"Ability: Freeze all non-MOAB bloons for 6s.", extraMods:{unlocksAbility:true, abilityName:"Snowstorm", abilityCd:30}},
-            {name:"Absolute Zero", cost:21000, stat:"absoluteZero", amount:true, desc:"Freezes screen for 10s. Buffs Ice Monkeys +50%.", extraMods:{}, stat:"pierce", amount:255, stat2:"range", amount2:10}
+            // PRO FIX: Applied duplicate-key fix to the correct Absolute Zero in Path 2
+            {name:"Absolute Zero", cost:21000, stat:"absoluteZero", amount:true, desc:"Freezes screen for 10s. Buffs Ice Monkeys +50%.", extraMods:{range: 10}}
         ],
         3: [
             {name:"Larger Radius", cost:150, stat:"range", amount:7, desc:"+7 range."},
