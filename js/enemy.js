@@ -26,7 +26,8 @@ export class Enemy {
     constructor() {}
 
     // ISSUE 8 FIX: Moved initialization logic to init()
-    init(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null, pathIndex = 0) {
+    // PRO FIX: Added isSuperCeramic parameter
+    init(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null, pathIndex = 0, isSuperCeramic = false) {
         this.tier = tier;
         this.map = map;
         this.isCamo = isCamo;
@@ -34,6 +35,7 @@ export class Enemy {
         this.maxTier = maxTier;
         this.isFortified = isFortified;
         this.pathIndex = pathIndex;
+        this.isSuperCeramic = isSuperCeramic; // NEW: Super Ceramic flag
 
         this.data = { ...EnemyTypes[tier] };
         this.radius = (this.data.radius || 10) * GS;
@@ -53,6 +55,18 @@ export class Enemy {
         this.angle = 0;
 
         this._initializeStats();
+
+        // PRO FIX: Freeplay Rules (Rounds 81+)
+        const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
+        if (round > 80) {
+            // All bloons get faster
+            this.data.speed *= (1 + (round - 80) * 0.01);
+            // MOAB-class slowly gains more HP
+            if (this.data.isMoab) {
+                this._maxHp *= (1 + (round - 80) * 0.01);
+                this.hp = this._maxHp;
+            }
+        }
     }
 
     _initializeStats() {
@@ -82,6 +96,25 @@ export class Enemy {
         if (this.isFortified && (this.data.isMoab || this.data.isCeramic)) {
             this._maxHp *= 2;
         }
+        
+        // PRO FIX: Super Ceramic Freeplay Scaling
+        if (this.isSuperCeramic) {
+            if (this.tier === 12) { // Super Ceramic
+                // 6x base health (60 HP at R81, +2 per round)
+                this._maxHp = 60 + (GameEngine.waveManager.currentWave - 81) * 2;
+                this.data.livesLost = this.isFortified ? 75 : 65;
+                this.data.splitsInto = [{tier: 11, count: 1}]; // 1 Rainbow
+            } else if (this.tier === 11) { // Super Rainbow
+                this.data.livesLost = 0;
+                this.data.splitsInto = [{tier: 9, count: 1}]; // 1 Zebra
+            } else if (this.tier === 9) { // Super Zebra
+                this.data.livesLost = 0;
+                this.data.splitsInto = [{tier: 7, count: 1}]; // 1 White
+            } else if (this.tier === 16) { // Super DDT
+                this.data.livesLost = this.isFortified ? 1100 : 660;
+            }
+        }
+
         if (this.hpMod && this.hpMod !== 1) {
             this._maxHp = Math.max(1, Math.ceil(this._maxHp * this.hpMod));
         }
@@ -170,6 +203,19 @@ export class Enemy {
     }
 
     getLivesLost() {
+        // PRO FIX: Use explicit livesLost value if defined (Super Ceramics)
+        if (this.data.livesLost !== undefined) {
+            return this.data.livesLost;
+        }
+
+        // PRO FIX: Freeplay lives reduction for non-super bloons
+        const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
+        if (round > 80 && !this.isSuperCeramic) {
+            if (this.data.isCeramic) return 47;
+            if (this.data.isLead) return 11;
+            if (this.data.isPurple) return 2;
+        }
+
         if (this.data.isMoab || this.data.isBAD) {
             let childrenRbe = 0;
             if (this.data.splitsInto) {
@@ -193,9 +239,18 @@ export class Enemy {
     applySlow(factor, duration, isIce = true) {
         if (this.data.isBAD) return;
         if (isIce && (this.data.isWhite || this.data.isZebra || this.data.isLead) && !this.leadStripped) return;
+        
+        // PRO FIX: Freeplay status resistance
+        let actualDuration = duration;
+        const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
+        if (round > 80) {
+            actualDuration *= (1 - (round - 80) * 0.01);
+            if (actualDuration < 0.1) actualDuration = 0.1; // Prevent 0 duration
+        }
+
         if (factor <= this.slowFactor || this.slowTimer <= 0) {
             this.slowFactor = factor;
-            this.slowTimer = duration;
+            this.slowTimer = actualDuration;
             this.isFrozen = isIce;
         }
     }
@@ -227,7 +282,8 @@ export class Enemy {
                 const childRegen = child.forceRegen !== undefined ? child.forceRegen : this.isRegen;
                 // ISSUE 8 FIX: Use ObjectPool for children
                 const c = GameEngine.enemyPool.get();
-                c.init(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified, this.hpMod, this.pathIndex);
+                // PRO FIX: Pass isSuperCeramic flag to children
+                c.init(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified, this.hpMod, this.pathIndex, this.isSuperCeramic);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
                 
                 if (this.deepFreezeLayers > 0) {
@@ -300,7 +356,16 @@ export class Enemy {
         if (effects.moabDot > 0 && this.data.isMoab) { this.dotDmg = Math.max(this.dotDmg, effects.moabDot); this.dotTimer = 5.0; }
         if (effects.stripCamo) this.isCamo = false;
         if (effects.knockback) this.distanceTraveled = Math.max(0, this.distanceTraveled - effects.knockback);
-        if (effects.stun) this.applySlow(0.0, effects.stun, false);
+        if (effects.stun) {
+            // PRO FIX: Freeplay status resistance for Stun
+            let stunDur = effects.stun;
+            const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
+            if (round > 80) {
+                stunDur *= (1 - (round - 80) * 0.01);
+                if (stunDur < 0.1) stunDur = 0.1;
+            }
+            this.applySlow(0.0, stunDur, false);
+        }
         if (effects.foam) { this.isCamo = false; this.isRegen = false; }
         if (effects.alchDip) {
             if (this.data.isCeramic || this.data.isMoab) damage += 1;

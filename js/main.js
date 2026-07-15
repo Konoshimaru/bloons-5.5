@@ -515,7 +515,8 @@ function _setupShopListeners() {
             let isCamo = sandboxCamoOn || tier === 16;
             // ISSUE 8 FIX: Use ObjectPool for sandbox spawning
             let e = GameEngine.enemyPool.get();
-            e.init(tier, GameEngine.map, isCamo, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0);
+            // PRO FIX: Pass false for isSuperCeramic in sandbox
+            e.init(tier, GameEngine.map, isCamo, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0, false);
             GameEngine.enemies.push(e);
         });
     });

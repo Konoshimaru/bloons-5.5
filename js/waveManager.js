@@ -120,6 +120,9 @@ export class WaveManager {
             const pathCount = GameEngine.map.paths.length;
             const pathIndex = pathCount > 1 ? Math.floor(Math.random() * pathCount) : 0;
             
+            // PRO FIX: Super Ceramics start at Round 81
+            let isSuper = this.currentWave >= 81 && spawn.tier >= 12;
+            
             // ISSUE 8 FIX: Use ObjectPool for enemy spawning
             let e = GameEngine.enemyPool.get();
             e.init(
@@ -130,7 +133,8 @@ export class WaveManager {
                 spawn.tier,
                 spawn.fort,
                 spawn.hpMod,
-                pathIndex
+                pathIndex,
+                isSuper // Pass the Super Ceramic flag
             );
             GameEngine.enemies.push(e);
         }
