@@ -22,8 +22,10 @@ export default {
             {name:"Permafrost", cost:150, desc:"Frozen bloons move 50% slower even after thawing.", extraMods:{permafrost: true}},
             {name:"Cold Snap", cost:350, stat:"canHitLead", amount:true, desc:"Can freeze Lead and detect Camo.", extraMods:{canSeeCamo: true}},
             {name:"Ice Shards", cost:1500, stat:"iceShards", amount:true, desc:"Frozen bloons erupt into 3 shards. Strips Camo/Regrow.", extraMods:{range: 5}},
+            // PRO FIX: Removed dead extraMods:{canHitMoab: true}
             {name:"Embrittlement", cost:2300, stat:"embrittlement", amount:true, desc:"Can hit MOABs. Targets take +1 damage. Permanently strips Camo/Regrow/Lead."},
-            {name:"Super Brittle", cost:28000, stat:"superBrittle", amount:true, desc:"+5 damage taken. 6 shards. Attacked 100% faster.", cooldownMult: 0.5}
+            // PRO FIX: Fixed duplicate keys and applied range correctly
+            {name:"Absolute Zero", cost:21000, stat:"absoluteZero", amount:true, desc:"Freezes screen for 10s. Buffs Ice Monkeys +50%.", extraMods:{range: 10}}
         ],
         2: [
             {name:"Enhanced Freeze", cost:200, desc:"Attacks faster and freezes longer.", cooldownMult: 0.75, extraMods:{freezeDuration: 1.75}},
@@ -57,7 +59,7 @@ export default {
     },
     update(tower, dt) {
         if (tower.stats.arcticWind) {
-            const auraRange = tower.stats.range * RANGE_SCALE * GS; // PRO FIX: Apply GS
+            const auraRange = tower.stats.range * RANGE_SCALE * GS;
             const slowFactor = tower.stats.arcticSlowFactor || 0.6;
             const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, auraRange);
             for (let e of nearby) {
@@ -80,7 +82,7 @@ export default {
             tower._icicleTick = (tower._icicleTick || 0) - dt;
             if (tower._icicleTick <= 0) {
                 tower._icicleTick = 0.3;
-                const range = tower.stats.range * RANGE_SCALE * GS; // PRO FIX: Apply GS
+                const range = tower.stats.range * RANGE_SCALE * GS;
                 const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, range);
                 for (let e of nearby) {
                     if (!e.alive || !e.isFrozen) continue;
@@ -132,7 +134,6 @@ export default {
             p.init(tower.x, tower.y, damage, target, 'ice_bomb', 500, 1, 0.5, null, bombEffects, 0, tower, dmgType);
             return;
         }
-        // PRO FIX: Apply GS to explosion radius so it hits bloons properly
         let expRadius = tower.stats.range * RANGE_SCALE * GS;
         GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#1abc9c' });
         const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius);

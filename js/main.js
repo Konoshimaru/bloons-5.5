@@ -46,6 +46,7 @@ const dom = {
     btnMonkeys: document.getElementById('btn-monkeys'),
     btnHeroes: document.getElementById('btn-heroes'),
     btnPlay: document.getElementById('btn-play'),
+    btnSandbox: document.getElementById('btn-sandbox'), // RESTORED SANDBOX DOM
     btnPowers: document.getElementById('btn-powers'),
     btnKnowledge: document.getElementById('btn-knowledge'),
     btnSettings: document.getElementById('btn-settings'),
@@ -304,6 +305,7 @@ async function startGameUI(isSandbox) {
 function _setupMenuListeners() {
     // Main Menu Buttons
     dom.btnPlay?.addEventListener('click', () => UI.toggleMenus('play-menu'));
+    dom.btnSandbox?.addEventListener('click', () => startGameUI(true)); // RESTORED SANDBOX LISTENER
     dom.btnHeroes?.addEventListener('click', () => UI.toggleMenus('hero-select-menu'));
     dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
     dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
@@ -334,7 +336,7 @@ function _setupMenuListeners() {
     dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => UI.toggleMenus(e.target.dataset.target)));
     dom.settingsBackBtn?.addEventListener('click', () => UI.toggleMenus(GameEngine.lastMenu));
     
-    // PRO FIX: Game Over Return Button - Clear map and state properly
+    // Game Over Return Button
     dom.goMenuBtn?.addEventListener('click', () => {
         UI.toggleMenus(null); // Hide the game over screen
         GameEngine.gameState = 'menu'; // Reset game state

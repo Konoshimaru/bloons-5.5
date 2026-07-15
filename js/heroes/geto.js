@@ -1,3 +1,4 @@
+// js/heroes/geto.js
 import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
@@ -176,7 +177,8 @@ export default {
             if (tower.captureTime >= 1.5) {
                 if (tower.captureTarget && tower.captureTarget.alive) {
                     let dmg = tower.captureTarget.takeDamage(99999, { isMagic: true, canHitLead: true });
-                    tower.damageDealt += dmg;
+                    // PRO FIX: Added missing guard
+                    if (dmg > 0) tower.damageDealt += dmg;
                 }
                 tower.captureBuffTime = 5.0;
                 tower.isCapturing = false;
@@ -238,7 +240,6 @@ export default {
                     u.fireTime = u.fireDuration;
                     GameEngine.log(u.isUpgraded ? "Maximum Output: Uzumaki!" : "Maximum: Uzumaki!");
                 }
-// Inside update(tower, dt) -> uzumaki firing phase
             } else if (u.phase === 'firing') {
                 u.fireTime -= dt;
                 const dpsMult = u.isUpgraded ? 12 : 8;
@@ -246,10 +247,10 @@ export default {
                 for (let e of GameEngine.enemies) {
                     if (!e.alive) continue;
                     let dmg = e.takeDamage(tower.stats.damage * dpsMult * dt, { isMagic: true, canHitLead: true });
-                    if (!isNaN(dmg) && dmg > 0) tower.damageDealt += dmg; // PRO FIX
+                    if (!isNaN(dmg) && dmg > 0) tower.damageDealt += dmg;
                     if (e.data.isMoab) {
                         let moabDmg = e.takeDamage(moabDps * dt, { isMagic: true, canHitLead: true });
-                        if (!isNaN(moabDmg) && moabDmg > 0) tower.damageDealt += moabDmg; // PRO FIX
+                        if (!isNaN(moabDmg) && moabDmg > 0) tower.damageDealt += moabDmg;
                     }
                 }
                 const progress = 1 - Math.max(u.fireTime, 0) / u.fireDuration;

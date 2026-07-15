@@ -4,11 +4,11 @@ import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 
 export default {
-    stats: { 
-        name: "Alchemist", cost: 550, range: 45, 
-        baseCooldown: 2.0, fireRate: 2.0, 
-        damage: 1, pierce: 15, projectileSpeed: 300, 
-        lifespan: 1.0, desc: "Throws acid potions. Can buff nearby towers.", 
+    stats: {
+        name: "Alchemist", cost: 550, range: 45,
+        baseCooldown: 2.0, fireRate: 2.0,
+        damage: 1, pierce: 15, projectileSpeed: 300,
+        lifespan: 1.0, desc: "Throws acid potions. Can buff nearby towers.",
         dmgType: 'acid', projectileType: 'potion', hitRadius: 18, isStaticRotation: true,
         brewCd: 8.0, brewTimer: 0
     },
@@ -21,7 +21,9 @@ export default {
             {name:"Permanent Brew", cost:60000, stat:"isPermBrew", amount:true, desc:"Brew and Dip become permanent."}
         ],
         2: [
-{name:"Stronger Acid", cost:250, stat:"dot", amount:1, desc:"Acid deals +1 damage per tick."}, // Fixed            {name:"Perishing Potions", cost:475, stat:"moabDmg", amount:5, desc:"Deals 5 dmg to MOABs, 20 to Fortified. Strips Fortified off non-blimps.", extraMods:{brewShots:35, brewTimer:6}},
+            {name:"Stronger Acid", cost:250, stat:"dot", amount:1, desc:"Acid deals +1 damage per tick."},
+            // PRO FIX: Restored "Perishing Potions" that was accidentally deleted by a comment
+            {name:"Perishing Potions", cost:475, stat:"moabDmg", amount:5, desc:"Deals 5 dmg to MOABs, 20 to Fortified. Strips Fortified off non-blimps.", extraMods:{brewShots:35, brewTimer:6}},
             {name:"Unstable Concoction", cost:3000, stat:"unstableConcoction", amount:true, desc:"Coats MOABs. Explodes on death for 10% base health."},
             {name:"Transforming Tonic", cost:4500, stat:"isAbility", amount:true, desc:"Ability: Turns into a laser monster for 20s.", extraMods:{unlocksAbility:true, abilityName:"Tonic", abilityCd:40}},
             {name:"Total Transformation", cost:45000, stat:"damage", amount:1, desc:"Ability affects 5 nearby monkeys."}
@@ -50,7 +52,7 @@ export default {
                         p.init(tower.x, tower.y, 3, target, 'laser', 1000, 6, 0.2, null, null, 0, tower, { isEnergy: true, canHitLead: true });
                     }
                 }
-                return; 
+                return;
             }
         }
         if (tower.stats.canBrew || tower.stats.canDip) {
@@ -61,7 +63,7 @@ export default {
                     if (!ot || ot === tower || ot.type === 'farm' || ot.type === 'village' || ot.type === 'alchemist' || ot.type === 'farmer') continue;
                     let dist = Utils.distance(tower.x, tower.y, ot.x, ot.y);
                     if (dist < effRange) {
-                        if (tower.stats.canBrew && (!ot.alchBuff || (!ot.alchBuff.isPerm && ot.alchBuff.shotsLeft < 10))) { if (dist < bestDist) { bestDist = dist; targetTower = ot; } } 
+                        if (tower.stats.canBrew && (!ot.alchBuff || (!ot.alchBuff.isPerm && ot.alchBuff.shotsLeft < 10))) { if (dist < bestDist) { bestDist = dist; targetTower = ot; } }
                         else if (tower.stats.canDip && (!ot.alchDip || (!ot.alchDip.isPerm && ot.alchDip.shotsLeft < 5))) { if (dist < bestDist) { bestDist = dist; targetTower = ot; } }
                     }
                 }
@@ -85,15 +87,13 @@ export default {
                 }
             }
         }
-        
-        // PRO FIX: Removed tower.acquireAndFire(dt). The ECS System handles this automatically!
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
         tower.shotCount = (tower.shotCount || 0) + 1;
         let expRadius = 40 + (tower.stats.explosionRadius || 0); let expDmg = damage; let expEffects = { ...effects };
         if (tower.stats.moabDmg) expEffects.moabDmg = tower.stats.moabDmg;
         if (tower.stats.unstableConcoction) expEffects.unstableConcoction = true;
-        if (tower.upgrades[1] >= 2) expEffects.stripFortified = true; 
+        if (tower.upgrades[1] >= 2) expEffects.stripFortified = true;
         if (tower.stats.leadToGold) { expEffects.leadToGold = true; expDmg += 9; }
         if (tower.stats.rubberToGold && tower.shotCount % 4 === 0) expEffects.rubberToGold = true;
         if (tower.stats.acidPool && tower.shotCount % 5 === 0) { GameEngine.acidPools = GameEngine.acidPools || []; GameEngine.acidPools.push({ x: target.x, y: target.y, life: 5.0, maxLife: 5.0, radius: 30, dmg: 1, tick: 0 }); }
