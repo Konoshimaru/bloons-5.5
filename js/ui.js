@@ -12,19 +12,40 @@ function el(id) {
     return elements[id];
 }
 
-const MENUS = ['main-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'custom-maps-menu', 'difficulty-menu', 'hero-select-menu', 'shop-menu', 'map-editor-menu'];
+const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'map-editor-menu', 'custom-maps-menu'];
 const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 
 export const UI = {
     _towerCardCache: null,
 
     toggleMenus(menuId) {
+        let anyOverlayVisible = false;
         for (const id of MENUS) {
             const menu = el(id);
             if (menu) menu.classList.add('hidden');
         }
-        const target = el(menuId);
-        if (target) target.classList.remove('hidden');
+        
+        const mainUI = el('main-menu-ui');
+        
+        if (menuId) {
+            const target = el(menuId);
+            if (target) {
+                target.classList.remove('hidden');
+                anyOverlayVisible = true;
+            }
+            
+            // PRO FIX: Hide main menu UI if an overlay is open, show it if we explicitly target it
+            if (mainUI) {
+                if (anyOverlayVisible && menuId !== 'main-menu-ui') {
+                    mainUI.classList.add('hidden');
+                } else if (menuId === 'main-menu-ui') {
+                    mainUI.classList.remove('hidden');
+                }
+            }
+        } else {
+            // PRO FIX: If menuId is null, hide ALL menus and the main menu UI (we are entering the game)
+            if (mainUI) mainUI.classList.add('hidden');
+        }
     },
 
     showPause() {
@@ -38,13 +59,17 @@ export const UI = {
     },
 
     updateMetaStats() {
-        const levelEl = el('menu-player-level');
-        const mmEl = el('menu-monkey-money');
-        const continueBtn = el('continue-btn');
-        const abandonBtn = el('abandon-btn');
+        const levelEl = el('mm-level-text');
+        const xpEl = el('mm-xp-text');
+        const expFill = el('mm-exp-fill');
+        const mmEl = el('mm-top-right');
+        const continueBtn = el('btn-continue');
+        const abandonBtn = el('btn-abandon');
         
         if (levelEl) levelEl.innerText = `Level ${Config.data.playerLevel}`;
-        if (mmEl) mmEl.innerText = `$${Config.data.monkeyMoney}`;
+        if (xpEl) xpEl.innerText = `${Config.data.playerXP} / ${Config.data.playerXPToNext} XP`;
+        if (expFill) expFill.style.width = `${(Config.data.playerXP / Config.data.playerXPToNext) * 100}%`;
+        if (mmEl) mmEl.innerText = `🐵 $${Config.data.monkeyMoney}`;
         
         const hasSave = !!Config.data.savedRun;
         if (continueBtn) continueBtn.style.display = hasSave ? 'block' : 'none';
@@ -357,7 +382,6 @@ export const UI = {
         const counters = el('up-counters');
         if (counters) counters.innerText = this._getTowerCounterText(t);
         
-        // PRO FIX: Restore stats display logic
         const statsEl = el('up-stats');
         if (Config.data.showTowerStats) {
             if (statsEl) {

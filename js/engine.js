@@ -84,6 +84,7 @@ export const GameEngine = {
     
     imfDebt: 0,
     acidPools: [],
+    menuClickables: [], // NEW: For main menu events
 
     init() {
         Config.load();
@@ -199,6 +200,7 @@ export const GameEngine = {
         this.enemies.length = 0;
         this.explosions.length = 0;
         this.acidPools.length = 0;
+        this.menuClickables.length = 0; // Clear menu items when game starts
         
         this.projectilePool.clear();
         this.particlePool.clear();
@@ -304,7 +306,9 @@ export const GameEngine = {
         Config.data.savedRun = null;
         Config.save();
         this.gameState = 'menu';
-        UI.toggleMenus('main-menu');
+        this.map = null;
+        UI.toggleMenus(null);
+        document.getElementById('main-menu-ui').classList.remove('hidden');
         UI.updateMetaStats();
     },
 
@@ -346,13 +350,29 @@ export const GameEngine = {
     },
 
     handleCanvasClick(e) {
-        if (this.gameState !== 'playing') return;
-        
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
+
+        // PRO FIX: Handle clickable menu events first!
+        if (this.gameState === 'menu') {
+            for (let i = this.menuClickables.length - 1; i >= 0; i--) {
+                let item = this.menuClickables[i];
+                if (Math.hypot(x - item.x, y - item.y) < item.r + 10) {
+                    this.menuClickables.splice(i, 1);
+                    Config.data.monkeyMoney += 1;
+                    Config.save();
+                    UI.updateMetaStats();
+                    UI.log("You caught a banana! +1 Monkey Money");
+                    return;
+                }
+            }
+            return;
+        }
+
+        if (this.gameState !== 'playing') return;
         
         if (this.hero && this.hero.isHollowCharging) {
             this.hero.isHollowCharging = false;
@@ -450,8 +470,6 @@ export const GameEngine = {
     handleUpgrade(path) {
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
-        
-        // PRO FIX: Prevent crashing when clicking paths on a hero
         if (t.stats.isHero) return; 
         
         const tier = t.upgrades[path - 1];
@@ -591,7 +609,7 @@ export const GameEngine = {
             }
         }
         
-        if (this.gameState === 'playing' || this.gameState === 'paused') {
+        if (this.gameState !== 'gameover') {
             try {
                 Renderer.render(this, rawDt);
             } catch (err) {

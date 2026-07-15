@@ -12,48 +12,7 @@ import { UI } from './ui.js';
 import { MapEditor } from './mapEditor.js';
 
 const dom = {
-    playBtn: document.getElementById('play-btn'),
-    sandboxBtn: document.getElementById('sandbox-btn'),
-    heroBtn: document.getElementById('hero-btn'),
-    mapsBtn: document.getElementById('maps-btn'),
-    customMapsBtn: document.getElementById('custom-maps-btn'),
-    settingsBtn: document.getElementById('settings-btn'),
-    continueBtn: document.getElementById('continue-btn'),
-    abandonBtn: document.getElementById('abandon-btn'),
-    goMenuBtn: document.getElementById('go-menu-btn'),
-    shopBtn: document.getElementById('shop-btn'),
-    mapEditorBtn: document.getElementById('map-editor-btn'),
-    
-    hmPrevBtn: document.getElementById('hm-prev-btn'),
-    hmNextBtn: document.getElementById('hm-next-btn'),
-    heroSelector: document.getElementById('hero-selector'),
-    
-    diffBtns: document.querySelectorAll('.diff-btn[data-diff]'),
-    backBtns: document.querySelectorAll('.back-btn[data-target]'),
-    settingsBackBtn: document.getElementById('settings-back-btn'),
-    
-    volumeSlider: document.getElementById('volume-slider'),
-    volDisplay: document.getElementById('vol-display'),
-    musicSlider: document.getElementById('music-slider'),
-    musicVolDisplay: document.getElementById('music-vol-display'),
-    bgRunCheckbox: document.getElementById('bg-run-checkbox'),
-    autoWaveMenu: document.getElementById('auto-wave-checkbox-menu'),
-    autoWavePause: document.getElementById('auto-wave-checkbox-pause'),
-    flavorTextCheckbox: document.getElementById('flavor-text-checkbox'),
-    smoothingCheckbox: document.getElementById('smoothing-checkbox'),
-    fpsCheckbox: document.getElementById('fps-checkbox'),
-    fpsDisplay: document.getElementById('fps-display'),
-    showStatsCheckbox: document.getElementById('show-stats-checkbox'),
-    extremeSpeedCheckbox: document.getElementById('extreme-speed-checkbox'),
-    shuffleMusicCheckbox: document.getElementById('shuffle-music-checkbox'),
-    randomStartCheckbox: document.getElementById('random-start-checkbox'),
-    prevSongBtn: document.getElementById('prev-song-btn'),
-    nextSongBtn: document.getElementById('next-song-btn'),
-    pausePrevSong: document.getElementById('pause-prev-song'),
-    pauseNextSong: document.getElementById('pause-next-song'),
-    addMapBtn: document.getElementById('add-map-btn'),
-    mapJsonInput: document.getElementById('map-json-input'),
-    
+    // In-Game UI
     pauseBtn: document.getElementById('pause-btn'),
     resumeBtn: document.getElementById('resume-btn'),
     pauseSettingsBtn: document.getElementById('pause-settings-btn'),
@@ -69,7 +28,6 @@ const dom = {
     enemyCards: document.querySelectorAll('#enemy-view .tower-card[data-enemy]'),
     towerCards: document.querySelectorAll('.tower-card[data-tower]'),
     waveSpeedBtn: document.getElementById('wave-speed-btn'),
-    
     upTargetPrev: document.getElementById('up-target-prev'),
     upTargetNext: document.getElementById('up-target-next'),
     upBuyLevel: document.getElementById('up-buy-level'),
@@ -80,10 +38,54 @@ const dom = {
     ],
     upSell: document.getElementById('up-sell'),
     upCollectBank: document.getElementById('up-collect-bank'),
-    
     cashDisplay: document.getElementById('cash-display'),
     livesDisplay: document.getElementById('lives-display'),
-    cancelBtn: document.getElementById('cancel-btn')
+    cancelBtn: document.getElementById('cancel-btn'),
+    
+    // Main Menu UI
+    btnMonkeys: document.getElementById('btn-monkeys'),
+    btnHeroes: document.getElementById('btn-heroes'),
+    btnPlay: document.getElementById('btn-play'),
+    btnPowers: document.getElementById('btn-powers'),
+    btnKnowledge: document.getElementById('btn-knowledge'),
+    btnSettings: document.getElementById('btn-settings'),
+    btnMapEditor: document.getElementById('btn-map-editor'),
+    
+    // Play Submenu
+    btnContinue: document.getElementById('btn-continue'),
+    btnAbandon: document.getElementById('btn-abandon'),
+    btnMaps: document.getElementById('btn-maps'),
+    btnDifficulty: document.getElementById('btn-difficulty'),
+    diffBtns: document.querySelectorAll('.diff-btn[data-diff]'),
+    
+    // Other Menus
+    hmPrevBtn: document.getElementById('hm-prev-btn'),
+    hmNextBtn: document.getElementById('hm-next-btn'),
+    heroSelector: document.getElementById('hero-selector'),
+    settingsBackBtn: document.getElementById('settings-back-btn'),
+    goMenuBtn: document.getElementById('go-menu-btn'),
+    backBtns: document.querySelectorAll('.back-btn[data-target]'),
+    
+    // Settings
+    volumeSlider: document.getElementById('volume-slider'),
+    volDisplay: document.getElementById('vol-display'),
+    musicSlider: document.getElementById('music-slider'),
+    musicVolDisplay: document.getElementById('music-vol-display'),
+    bgRunCheckbox: document.getElementById('bg-run-checkbox'),
+    autoWaveMenu: document.getElementById('auto-wave-checkbox-menu'),
+    autoWavePause: document.getElementById('auto-wave-checkbox-pause'),
+    flavorTextCheckbox: document.getElementById('flavor-text-checkbox'),
+    smoothingCheckbox: document.getElementById('smoothing-checkbox'),
+    fpsCheckbox: document.getElementById('fps-checkbox'),
+    fpsDisplay: document.getElementById('fps-display'),
+    extremeSpeedCheckbox: document.getElementById('extreme-speed-checkbox'),
+    shuffleMusicCheckbox: document.getElementById('shuffle-music-checkbox'),
+    randomStartCheckbox: document.getElementById('random-start-checkbox'),
+    showStatsCheckbox: document.getElementById('show-stats-checkbox'),
+    prevSongBtn: document.getElementById('prev-song-btn'),
+    nextSongBtn: document.getElementById('next-song-btn'),
+    pausePrevSong: document.getElementById('pause-prev-song'),
+    pauseNextSong: document.getElementById('pause-next-song')
 };
 
 window.addEventListener('error', (e) => {
@@ -102,7 +104,6 @@ function resizeGame() {
 
     const w = window.innerWidth;
     const h = window.innerHeight;
-
     const scale = Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT);
 
     const MIN_PLAYABLE_SCALE = 0.3; 
@@ -126,6 +127,16 @@ function resizeGame() {
     container.style.top = `${(h - scaledHeight) / 2}px`;
 }
 window.addEventListener('resize', resizeGame);
+
+function showMainMenuUI(show) {
+    const ui = document.getElementById('main-menu-ui');
+    if (show) {
+        ui.classList.remove('hidden');
+        UI.updateMetaStats();
+    } else {
+        ui.classList.add('hidden');
+    }
+}
 
 function refreshMapSelector() {
     const mapSelector = document.getElementById('map-selector');
@@ -245,22 +256,18 @@ function applyConfigToUI() {
     if (dom.smoothingCheckbox) dom.smoothingCheckbox.checked = Config.data.smoothingEnabled;
     if (dom.fpsCheckbox) dom.fpsCheckbox.checked = Config.data.showFps;
     if (dom.fpsDisplay) dom.fpsDisplay.style.display = Config.data.showFps ? 'block' : 'none';
-    if (dom.showStatsCheckbox) dom.showStatsCheckbox.checked = Config.data.showTowerStats;
     if (dom.extremeSpeedCheckbox) dom.extremeSpeedCheckbox.checked = Config.data.extremeSpeedEnabled;
+    if (dom.showStatsCheckbox) dom.showStatsCheckbox.checked = Config.data.showTowerStats;
     refreshMapSelector();
     refreshHeroSelector();
     updateHeroShopCard();
     updateShopUI();
+    showMainMenuUI(true);
 }
 
 async function startGameUI(isSandbox) {
-    document.getElementById('main-menu').classList.add('hidden');
-    document.getElementById('difficulty-menu').classList.add('hidden');
-    document.getElementById('maps-menu').classList.add('hidden');
-    document.getElementById('settings-menu').classList.add('hidden');
-    document.getElementById('hero-select-menu').classList.add('hidden');
-    document.getElementById('shop-menu').classList.add('hidden');
-    document.getElementById('map-editor-menu').classList.add('hidden');
+    showMainMenuUI(false);
+    UI.toggleMenus(null); // Close any open menus
     
     document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('top-ui-left').classList.remove('hidden');
@@ -295,35 +302,26 @@ async function startGameUI(isSandbox) {
 }
 
 function _setupMenuListeners() {
-    dom.continueBtn?.addEventListener('click', () => {
+    // Main Menu Buttons
+    dom.btnPlay?.addEventListener('click', () => UI.toggleMenus('play-menu'));
+    dom.btnHeroes?.addEventListener('click', () => UI.toggleMenus('hero-select-menu'));
+    dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
+    dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
+    dom.btnSettings?.addEventListener('click', () => { GameEngine.lastMenu = 'main-menu-ui'; UI.toggleMenus('settings-menu'); });
+    dom.btnMapEditor?.addEventListener('click', () => { MapEditor.init(); UI.toggleMenus('map-editor-menu'); });
+    dom.btnMonkeys?.addEventListener('click', () => alert('Monkeys menu coming soon!'));
+
+    // Play Submenu Buttons
+    dom.btnContinue?.addEventListener('click', () => {
         if (GameEngine.loadGame()) {
-            AudioEngine.init();
-            AudioEngine.play();
-            
-            document.getElementById('main-menu').classList.add('hidden');
-            document.getElementById('sidebar').classList.remove('hidden');
-            document.getElementById('top-ui-left').classList.remove('hidden');
-            document.getElementById('top-ui-right').classList.remove('hidden');
-            document.getElementById('sandbox-controls').classList.add('hidden');
-            document.getElementById('norm-controls').classList.remove('hidden');
-            document.getElementById('shop-view').classList.remove('hidden');
-            document.getElementById('enemy-view').classList.add('hidden');
-            
-            GameEngine.gameState = 'playing';
-            updateShopPrices();
+            startGameUI(false);
         }
     });
+    dom.btnAbandon?.addEventListener('click', () => GameEngine.abandonRun());
+    dom.btnMaps?.addEventListener('click', () => { refreshMapSelector(); UI.toggleMenus('maps-menu'); });
+    dom.btnDifficulty?.addEventListener('click', () => UI.toggleMenus('difficulty-menu'));
     
-    dom.abandonBtn?.addEventListener('click', () => GameEngine.abandonRun());
-    dom.playBtn?.addEventListener('click', () => GameEngine.toggleMenus('difficulty-menu'));
-    dom.sandboxBtn?.addEventListener('click', () => startGameUI(true));
-    dom.heroBtn?.addEventListener('click', () => GameEngine.toggleMenus('hero-select-menu'));
-    dom.shopBtn?.addEventListener('click', () => GameEngine.toggleMenus('shop-menu'));
-    dom.mapEditorBtn?.addEventListener('click', () => {
-        MapEditor.init();
-        UI.toggleMenus('map-editor-menu');
-    });
-    
+    // Difficulty Buttons
     dom.diffBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             Config.data.currentDifficulty = btn.dataset.diff;
@@ -331,21 +329,21 @@ function _setupMenuListeners() {
             startGameUI(false);
         });
     });
-
-    dom.mapsBtn?.addEventListener('click', () => { refreshMapSelector(); GameEngine.toggleMenus('maps-menu'); });
-    dom.customMapsBtn?.addEventListener('click', () => GameEngine.toggleMenus('custom-maps-menu'));
-    dom.settingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'main-menu'; GameEngine.toggleMenus('settings-menu'); });
     
-    dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => GameEngine.toggleMenus(e.target.dataset.target)));
-    dom.settingsBackBtn?.addEventListener('click', () => GameEngine.toggleMenus(GameEngine.lastMenu));
+    // Back Buttons
+    dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => UI.toggleMenus(e.target.dataset.target)));
+    dom.settingsBackBtn?.addEventListener('click', () => UI.toggleMenus(GameEngine.lastMenu));
     
+    // PRO FIX: Game Over Return Button - Clear map and state properly
     dom.goMenuBtn?.addEventListener('click', () => {
-        GameEngine.toggleMenus('main-menu');
+        UI.toggleMenus(null); // Hide the game over screen
+        GameEngine.gameState = 'menu'; // Reset game state
+        GameEngine.map = null; // Clear the map so renderer draws scenery
+        showMainMenuUI(true); // Show main menu UI
         document.getElementById('sidebar').classList.add('hidden');
         document.getElementById('top-ui-left').classList.add('hidden');
         document.getElementById('top-ui-right').classList.add('hidden');
         AudioEngine.pause();
-        UI.updateMetaStats();
         updateShopUI();
     });
     
@@ -380,43 +378,10 @@ function _setupSettingsListeners() {
     dom.flavorTextCheckbox?.addEventListener('change', (e) => { Config.data.showFlavor = e.target.checked; Config.save(); });
     dom.smoothingCheckbox?.addEventListener('change', (e) => { Config.data.smoothingEnabled = e.target.checked; Config.save(); });
     dom.fpsCheckbox?.addEventListener('change', (e) => { Config.data.showFps = e.target.checked; Config.save(); if (dom.fpsDisplay) dom.fpsDisplay.style.display = e.target.checked ? 'block' : 'none'; });
-    dom.showStatsCheckbox?.addEventListener('change', (e) => { Config.data.showTowerStats = e.target.checked; Config.save(); });
     dom.extremeSpeedCheckbox?.addEventListener('change', (e) => { Config.data.extremeSpeedEnabled = e.target.checked; Config.save(); });
     dom.shuffleMusicCheckbox?.addEventListener('change', (e) => { Config.data.musicShuffle = e.target.checked; Config.save(); });
     dom.randomStartCheckbox?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });
-
-    dom.addMapBtn?.addEventListener('click', () => {
-        try {
-            const json = dom.mapJsonInput.value;
-            const mapData = JSON.parse(json);
-            let isValid = true;
-            
-            if (mapData.waypoints && !mapData.paths) {
-                mapData.paths = [{ waypoints: mapData.waypoints }];
-                delete mapData.waypoints;
-            }
-            
-            if (!mapData.paths || mapData.paths.length === 0) isValid = false;
-            else {
-                for (let p of mapData.paths) {
-                    if (!p.waypoints || p.waypoints.length < 2) { isValid = false; break; }
-                    for (let wp of p.waypoints) {
-                        if (typeof wp.x !== 'number' || typeof wp.y !== 'number') { isValid = false; break; }
-                    }
-                }
-            }
-            if (!isValid) { alert('Invalid map JSON. Must contain a "paths" array with at least one path of 2+ {x, y} waypoints.'); return; }
-            
-            Config.data.customMaps.push(mapData);
-            Config.save();
-            Maps.push(mapData);
-            refreshMapSelector();
-            alert('Map added successfully! Go to "Select Map" to play it.');
-            dom.mapJsonInput.value = '';
-        } catch (err) {
-            alert('Error parsing JSON: ' + err.message);
-        }
-    });
+    dom.showStatsCheckbox?.addEventListener('change', (e) => { Config.data.showTowerStats = e.target.checked; Config.save(); });
 
     const autoToggle = (e) => {
         GameEngine.waveManager.autoWaveEnabled = e.target.checked;
@@ -437,16 +402,17 @@ function _setupSettingsListeners() {
 function _setupGameListeners() {
     dom.pauseBtn?.addEventListener('click', () => GameEngine.pauseGame());
     dom.resumeBtn?.addEventListener('click', () => GameEngine.resumeGame());
-    dom.pauseSettingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; GameEngine.toggleMenus('settings-menu'); });
+    dom.pauseSettingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; UI.toggleMenus('settings-menu'); });
     dom.quitBtn?.addEventListener('click', () => {
         GameEngine.saveGame();
         GameEngine.gameState = 'menu';
-        GameEngine.toggleMenus('main-menu');
+        GameEngine.map = null; // PRO FIX: Clear map
+        UI.toggleMenus(null);
+        showMainMenuUI(true);
         document.getElementById('sidebar').classList.add('hidden');
         document.getElementById('top-ui-left').classList.add('hidden');
         document.getElementById('top-ui-right').classList.add('hidden');
         AudioEngine.pause();
-        UI.updateMetaStats();
         updateShopUI();
     });
     
@@ -631,7 +597,6 @@ function _setupShopListeners() {
         el.addEventListener('mouseenter', () => {
             if (!GameEngine.selectedPlacedTower) return;
             const t = GameEngine.selectedPlacedTower;
-            // PRO FIX: Prevent crash when hovering upgrades on a Hero
             if (t.stats.isHero) return; 
             
             const tier = t.upgrades[path - 1];
@@ -681,6 +646,5 @@ window.addEventListener('load', () => {
     setupEventListeners();
     applyConfigToUI();
     resizeGame();
-    UI.updateMetaStats();
-    document.getElementById('main-menu').classList.remove('hidden');
+    document.getElementById('main-menu-ui').classList.remove('hidden');
 });

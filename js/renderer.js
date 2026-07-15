@@ -23,7 +23,12 @@ const LEAK_FLASH_LINE_WIDTH = 10;
 export const Renderer = {
     render(engine, dt) {
         const ctx = engine.ctx;
-        if (!engine.map) return;
+        
+        // Draw Main Menu Scenery if in menu state or no map loaded
+        if (engine.gameState === 'menu' || !engine.map) {
+            this._drawMainMenuScenery(ctx, engine, dt);
+            return;
+        }
 
         this._setupContext(ctx);
         
@@ -47,6 +52,237 @@ export const Renderer = {
         }
         
         CutsceneManager.draw(ctx);
+    },
+
+    _drawMainMenuScenery(ctx, engine, dt) {
+        const dtSafe = dt || 0.016;
+        let t = performance.now() / 1000;
+        
+        // 1. Time & Phase Calculation
+        const date = new Date();
+        const hours = date.getHours() + date.getMinutes() / 60;
+        let phase = 'day';
+        if (hours >= 5 && hours < 8) phase = 'dawn';
+        else if (hours >= 8 && hours < 17) phase = 'day';
+        else if (hours >= 17 && hours < 20) phase = 'dusk';
+        else phase = 'night';
+
+        // 2. Sky Gradient
+        const grad = ctx.createLinearGradient(0, 0, 0, 720);
+        if (phase === 'dawn') {
+            grad.addColorStop(0, '#ff7e5f'); grad.addColorStop(1, '#feb47b');
+        } else if (phase === 'day') {
+            grad.addColorStop(0, '#4facfe'); grad.addColorStop(1, '#00f2fe');
+        } else if (phase === 'dusk') {
+            grad.addColorStop(0, '#355C7D'); grad.addColorStop(0.5, '#6C5B7B'); grad.addColorStop(1, '#C06C84');
+        } else {
+            grad.addColorStop(0, '#0F2027'); grad.addColorStop(1, '#203A43');
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 1280, 720);
+
+        // 3. Stars (Night)
+        if (phase === 'night' || phase === 'dusk') {
+            ctx.fillStyle = '#fff';
+            for(let i=0; i<60; i++) {
+                let sx = (i * 137) % 1280;
+                let sy = (i * 97) % 400;
+                let twinkle = Math.sin(t * 2 + i) * 0.5 + 0.5;
+                ctx.globalAlpha = twinkle * (phase === 'night' ? 1 : 0.4);
+                ctx.fillRect(sx, sy, 2, 2);
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        // 4. Sun / Moon Position
+        let progress;
+        if (hours > 6 && hours <= 18) {
+            progress = (hours - 6) / 12; // Day: 6am to 6pm
+        } else {
+            let nightHours = hours <= 6 ? hours + 6 : hours - 18;
+            progress = nightHours / 12; // Night: 6pm to 6am
+        }
+        let smX = progress * 1280;
+        let smY = 150 - Math.sin(progress * Math.PI) * 50;
+        
+        // Sun
+        if (phase === 'day' || phase === 'dawn') {
+            ctx.fillStyle = '#FFD700';
+            ctx.shadowColor = '#FFD700';
+            ctx.shadowBlur = 60;
+            ctx.beginPath();
+            ctx.arc(smX, smY, 45, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        // Moon
+        if (phase === 'night' || phase === 'dusk') {
+            ctx.fillStyle = '#F4F6F0';
+            ctx.shadowColor = '#F4F6F0';
+            ctx.shadowBlur = 30;
+            ctx.beginPath();
+            ctx.arc(smX, smY, 35, 0, Math.PI * 2);
+            ctx.fill();
+            // Crater
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#e0e0e0';
+            ctx.beginPath();
+            ctx.arc(smX + 10, smY - 5, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 5. Clouds
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        if (phase === 'night') ctx.fillStyle = 'rgba(100, 100, 120, 0.4)';
+        for(let i=0; i<4; i++) {
+            let cx = ((t * 15 + i * 350) % 1400) - 100;
+            let cy = 100 + i * 50;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+            ctx.arc(cx + 40, cy + 10, 30, 0, Math.PI * 2);
+            ctx.arc(cx - 30, cy + 10, 25, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 6. Hills
+        let hillColor1 = '#2ecc71', hillColor2 = '#27ae60';
+        if (phase === 'dusk') { hillColor1 = '#2c3e50'; hillColor2 = '#22313f'; }
+        if (phase === 'night') { hillColor1 = '#1a252f'; hillColor2 = '#16202a'; }
+        
+        ctx.fillStyle = hillColor1;
+        ctx.beginPath();
+        ctx.moveTo(0, 600);
+        ctx.quadraticCurveTo(640, 400, 1280, 600);
+        ctx.lineTo(1280, 720); ctx.lineTo(0, 720);
+        ctx.closePath(); ctx.fill();
+        
+        ctx.fillStyle = hillColor2;
+        ctx.beginPath();
+        ctx.moveTo(0, 650);
+        ctx.quadraticCurveTo(640, 500, 1280, 650);
+        ctx.lineTo(1280, 720); ctx.lineTo(0, 720);
+        ctx.closePath(); ctx.fill();
+
+        // 7. Improved Monkey Sprite
+        let bounce = Math.sin(t * 2) * 5;
+        let bx = 640, by = 520 + bounce;
+        
+        // Tail
+        ctx.strokeStyle = '#795548';
+        ctx.lineWidth = 8;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(bx + 40, by + 10);
+        ctx.quadraticCurveTo(bx + 90, by - 20, bx + 70, by - 60);
+        ctx.stroke();
+        
+        // Body
+        ctx.fillStyle = '#795548';
+        ctx.beginPath();
+        ctx.ellipse(bx, by + 10, 40, 45, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Belly
+        ctx.fillStyle = '#D2B48C';
+        ctx.beginPath();
+        ctx.ellipse(bx, by + 20, 25, 30, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Head
+        ctx.fillStyle = '#795548';
+        ctx.beginPath();
+        ctx.arc(bx, by - 20, 35, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Ears
+        ctx.beginPath();
+        ctx.arc(bx - 30, by - 20, 12, 0, Math.PI * 2);
+        ctx.arc(bx + 30, by - 20, 12, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Inner Ears & Face
+        ctx.fillStyle = '#D2B48C';
+        ctx.beginPath();
+        ctx.arc(bx - 30, by - 20, 6, 0, Math.PI * 2);
+        ctx.arc(bx + 30, by - 20, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(bx, by - 15, 22, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Eyes
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(bx - 10, by - 25, 8, 0, Math.PI * 2);
+        ctx.arc(bx + 10, by - 25, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#000';
+        let eyeOffset = Math.sin(t * 0.5) * 2;
+        ctx.beginPath();
+        ctx.arc(bx - 10 + eyeOffset, by - 25, 4, 0, Math.PI * 2);
+        ctx.arc(bx + 10 + eyeOffset, by - 25, 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Smile
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(bx, by - 10, 10, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+
+        // 8. Trees
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(150, 550, 20, 100);
+        ctx.fillStyle = phase === 'night' ? '#1a5c1a' : '#228B22';
+        ctx.beginPath();
+        ctx.arc(160, 540, 50, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(1100, 580, 20, 80);
+        ctx.fillStyle = phase === 'night' ? '#1a5c1a' : '#228B22';
+        ctx.beginPath();
+        ctx.arc(1110, 570, 40, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 9. Clickable Banana Events
+        if (!engine.menuClickables) engine.menuClickables = [];
+        if (Math.random() < 0.01 && engine.menuClickables.length < 5) {
+            engine.menuClickables.push({
+                x: Math.random() * 1080 + 100,
+                y: -50,
+                vx: (Math.random() - 0.5) * 20,
+                vy: 50 + Math.random() * 30,
+                r: 15,
+                rot: 0,
+                vrot: (Math.random() - 0.5) * 5
+            });
+        }
+        
+        for (let i = engine.menuClickables.length - 1; i >= 0; i--) {
+            let item = engine.menuClickables[i];
+            item.x += item.vx * dtSafe;
+            item.y += item.vy * dtSafe;
+            item.rot += item.vrot * dtSafe;
+            
+            if (item.y > 720) {
+                engine.menuClickables.splice(i, 1);
+                continue;
+            }
+            
+            ctx.save();
+            ctx.translate(item.x, item.y);
+            ctx.rotate(item.rot);
+            ctx.fillStyle = '#FFDC00';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, item.r, item.r * 0.6, Math.PI / 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#E6B800';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
     },
 
     _setupContext(ctx) {
@@ -180,7 +416,6 @@ export const Renderer = {
             ctx.globalAlpha = engine.leakFlash;
             ctx.strokeStyle = LEAK_FLASH_COLOR;
             ctx.lineWidth = LEAK_FLASH_LINE_WIDTH;
-            // PRO FIX: Use CANVAS_WIDTH and CANVAS_HEIGHT from constants (1280x720)
             ctx.strokeRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             ctx.globalAlpha = 1;
         }

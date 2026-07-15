@@ -146,7 +146,8 @@ export const MapEditor = {
             cancelAnimationFrame(this._rafId);
             this._rafId = null;
         }
-        UI.toggleMenus('main-menu');
+        // PRO FIX: Use 'main-menu-ui' instead of 'main-menu'
+        UI.toggleMenus('main-menu-ui');
     },
     
     pushUndo() {
@@ -722,7 +723,6 @@ export const MapEditor = {
             const path = this.mapData.paths[p];
             const isSelected = p === this.selectedPath;
             
-            // PRO FIX: If hidden and not selected, don't draw. If hidden but selected, draw faintly.
             if (path.visible === false && !isSelected) continue;
             if (path.visible === false) ctx.globalAlpha = 0.3;
             
@@ -782,7 +782,7 @@ export const MapEditor = {
                     ctx.fill(); ctx.stroke();
                 }
             }
-            ctx.globalAlpha = 1.0; // Reset alpha for the next path
+            ctx.globalAlpha = 1.0;
         }
         if (this.selectedPoint) {
             ctx.strokeStyle = '#3498db';
