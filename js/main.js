@@ -300,7 +300,7 @@ async function startGameUI(isSandbox) {
         
         // Initialize audio in the background
         await AudioEngine.init();
-        AudioEngine.play();
+        AudioEngine.playGameMusic(); // Switch to game music
     } catch (err) {
         console.error("Failed to start game:", err);
         GameEngine.gameState = 'gameover';
@@ -352,7 +352,7 @@ function _setupMenuListeners() {
         document.getElementById('sidebar').classList.add('hidden');
         document.getElementById('top-ui-left').classList.add('hidden');
         document.getElementById('top-ui-right').classList.add('hidden');
-        AudioEngine.pause();
+        AudioEngine.playMenuMusic(); // Switch to menu music
         updateShopUI();
     });
     
@@ -427,7 +427,7 @@ function _setupGameListeners() {
         document.getElementById('sidebar').classList.add('hidden');
         document.getElementById('top-ui-left').classList.add('hidden');
         document.getElementById('top-ui-right').classList.add('hidden');
-        AudioEngine.pause();
+        AudioEngine.playMenuMusic(); // Switch to menu music
         updateShopUI();
     });
     
@@ -676,4 +676,7 @@ window.addEventListener('load', () => {
     applyConfigToUI();
     resizeGame();
     document.getElementById('main-menu-ui').classList.remove('hidden');
+    
+    // Initialize audio and start the main menu music
+    AudioEngine.init().then(() => AudioEngine.playMenuMusic());
 });

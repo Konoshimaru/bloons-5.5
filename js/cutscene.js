@@ -11,11 +11,15 @@ import { KnightEnemy, bossMusic } from './bosses/knight.js';
 // --- CONFIG ---
 const slashScale = 1.5;  
 
+const PHASE_TENSION_DURATION = 1.5; // NEW: 1.5 seconds of walking and shaking
 const PHASE_SLASH_DURATION = 0.7;
 const PHASE_RIP_WAIT_DURATION = 0.4;
 const PHASE_RIP_DURATION = 0.8;
 const PHASE_PAN_DURATION = 1.2;
 const PHASE_REVEAL_DURATION = 1.5;
+
+// NEW: Knight slash sound effect
+const knightSlashSfx = new Audio('sfx/knight_slash_moab.mp3');
 
 Assets.get('enemy_knight_front');
 Assets.get('enemy_knight_back');
@@ -205,6 +209,8 @@ export const CutsceneManager = {
         
         bossMusic.pause();
         bossMusic.currentTime = 0;
+        knightSlashSfx.pause();
+        knightSlashSfx.currentTime = 0;
     },
 
     trigger(moabEnemy) {
@@ -216,10 +222,10 @@ export const CutsceneManager = {
         GameEngine.speedState = 0;
         GameEngine.timeScale = 1;
         UI.updateWaveSpeedBtn(0);
-        AudioEngine.pause();
         
-        this.state = 'slashing';
-        this.timer = PHASE_SLASH_DURATION; 
+        // Start with the tension phase instead of instantly slashing
+        this.state = 'tension';
+        this.timer = PHASE_TENSION_DURATION; 
         this.target = moabEnemy;
     },
 
@@ -240,7 +246,42 @@ export const CutsceneManager = {
 
         if (this.state === 'knight_floating') return false;
 
-        if (this.state === 'slashing') {
+        // NEW: Tension phase (MOAB walks and shakes violently before the cutscene starts)
+        if (this.state === 'tension') {
+            this.timer -= dt;
+            
+            // Manually advance the MOAB so it walks a bit
+            this.target.distanceTraveled += this.target.data.speed * dt;
+            let pathIdx = this.target.pathIndex || 0;
+            let totalLen = GameEngine.map.getTotalLength(pathIdx);
+            
+            // Prevent it from leaking during the tension phase
+            if (this.target.distanceTraveled > totalLen - 50) {
+                this.target.distanceTraveled = totalLen - 50;
+            }
+            
+            const pos = GameEngine.map.getPositionAtDistance(this.target.distanceTraveled, pathIdx);
+            this.target.x = pos.x;
+            this.target.y = pos.y;
+            
+            // Apply escalating shake
+            let progress = 1 - (this.timer / PHASE_TENSION_DURATION);
+            let shakeAmount = progress * 25; // Up to 25px shake
+            this.target.x += (Math.random() - 0.5) * shakeAmount;
+            this.target.y += (Math.random() - 0.5) * shakeAmount;
+            
+            if (this.timer <= 0) {
+                // Transition to the actual cutscene
+                AudioEngine.pause(); // Pause game music
+                this.state = 'slashing';
+                this.timer = PHASE_SLASH_DURATION;
+                
+                // Play the knight slash sound effect
+                knightSlashSfx.currentTime = 0;
+                knightSlashSfx.play().catch(e => console.warn("Slash SFX blocked:", e));
+            }
+        }
+        else if (this.state === 'slashing') {
             this.timer -= dt;
             if (this.timer <= 0) {
                 if (this.target && this.target.alive) {

@@ -2,7 +2,7 @@
 import { GameEngine } from '../engine.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
-import { RANGE_SCALE } from '../config.js';
+import { Config, RANGE_SCALE } from '../config.js';
 import { GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
@@ -11,9 +11,24 @@ const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 export const SlashConfig = {
     lifespan: 0.4,           // How long the slash lasts in seconds
     sizeScale: 0.35,         // Size of the slash
-    speed: 100,              // How fast it moves away from Sauda
+    speed: 400,              // How fast it moves away from Sauda
     drawAngleOffset: 0       // Angle offset for the sprite (0 = faces right, Math.PI/2 = faces down)
 };
+
+// --- SFX HELPER ---
+let lastSaudaAttackSfx = 0;
+function playSaudaSfx(file) {
+    const now = performance.now();
+    // Throttle attack sounds so her fast late-game attacks don't overlap into a cacophony
+    if (file.startsWith('Sauda_attack_') && now - lastSaudaAttackSfx < 100) return;
+    if (file.startsWith('Sauda_attack_')) lastSaudaAttackSfx = now;
+    
+    try {
+        const audio = new Audio(`sfx/${file}.mp3`);
+        audio.volume = (Config.data.sfxVolume ?? 0.5) * 0.75; // Match game's SFX volume scaling
+        audio.play().catch(e => console.warn("SFX blocked:", e));
+    } catch (e) {}
+}
 
 export default {
     stats: {
@@ -275,6 +290,7 @@ export default {
         if (tower.chargeLockout > 0) return; 
         
         tower.leapLockout = 0.5;
+        playSaudaSfx('LeapingSword_activate'); // Play activate sound
 
         let target = null;
         let bestVal = (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') ? -Infinity : Infinity;
@@ -324,6 +340,10 @@ export default {
                 tick: 0,
                 hitTimers: new Map()
             };
+            
+            // Play landing sound after the 0.5s lockout
+            setTimeout(() => playSaudaSfx('LeapingSword_landing'), 500);
+            
             engine.log("Sauda: Leaping Sword!");
         }
     },
@@ -349,6 +369,7 @@ export default {
             });
         }
         
+        playSaudaSfx('SwordCharge'); // Play sword charge sound
         engine.log("Sauda: Sword Charge!");
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
@@ -434,6 +455,12 @@ export default {
                     maxLife: SlashConfig.lifespan 
                 });
             }
+        }
+        
+        // Play random attack sound if she hit at least one bloon
+        if (hits > 0) {
+            const attackNum = Math.floor(Math.random() * 5) + 1;
+            playSaudaSfx(`Sauda_attack_${attackNum}`);
         }
         
         if (!tower.stats.isStaticRotation) {

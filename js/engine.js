@@ -37,6 +37,7 @@ export const GameEngine = {
     canvas: null,
     ctx: null,
     lastTime: 0,
+    bgInterval: null,
     ui: UI,
     _rafId: null,
     fpsEl: null,
@@ -113,8 +114,38 @@ export const GameEngine = {
         this.fpsEl = document.getElementById('fps-display');
         if (this.fpsEl) this.fpsEl.style.display = Config.data.showFps ? 'block' : 'none';
         
+        // PRO FIX: Re-added safely to support Run in Background without causing 9000 FPS bug
+        document.addEventListener("visibilitychange", () => this._handleVisibilityChange());
+        
         this._boundLoop = this.loop.bind(this);
         this.restartLoop(); 
+    },
+
+    _handleVisibilityChange() {
+        if (document.hidden) {
+            this.saveGame();
+            if (this.runInBackground && this.gameState === 'playing' && !this.bgInterval) {
+                // Cancel the standard RAF loop to prevent double-looping
+                if (this._rafId) cancelAnimationFrame(this._rafId);
+                this._rafId = null;
+                
+                // Start a strict 60FPS interval loop
+                this.bgInterval = setInterval(() => {
+                    this.loop(performance.now());
+                }, 1000 / 60);
+            }
+        } else {
+            // When tab is visible again, clear the interval
+            if (this.bgInterval) {
+                clearInterval(this.bgInterval);
+                this.bgInterval = null;
+            }
+            // Restart the standard RAF loop if it's not already running
+            if (!this._rafId && this.gameState !== 'gameover') {
+                this.lastTime = performance.now();
+                this._rafId = requestAnimationFrame(this._boundLoop);
+            }
+        }
     },
 
     getCost(baseCost) {
@@ -571,7 +602,9 @@ export const GameEngine = {
 
     restartLoop() {
         if (this._rafId) cancelAnimationFrame(this._rafId);
+        if (this.bgInterval) clearInterval(this.bgInterval);
         this._rafId = null;
+        this.bgInterval = null;
         this.lastTime = performance.now(); 
         this._rafId = requestAnimationFrame(this._boundLoop);
     },
@@ -627,7 +660,11 @@ export const GameEngine = {
             }
         }
         
-        this._rafId = requestAnimationFrame(this._boundLoop);
+        // PRO FIX: Only schedule the next frame via RAF if we are NOT using the background interval.
+        // This prevents the 9000 FPS memory leak.
+        if (!this.bgInterval) {
+            this._rafId = requestAnimationFrame(this._boundLoop);
+        }
     },
 
     update(dt) {

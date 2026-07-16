@@ -8,7 +8,8 @@ const MIN_VOLUME = 0.0001;
 const POP_THROTTLE_MS = 50;
 const SHOOT_THROTTLE_MS = 30;
 const HIT_THROTTLE_MS = 100; // Prevents hit sounds from queueing up
-const DEFAULT_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
+const DEFAULT_GAME_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
+const MENU_PLAYLIST = ['music/mainmenu_1.mp3', 'music/mainmenu_2.mp3'];
 const SFX_ASSET_MAP = {
     pop: ['pop1.mp3', 'pop2.mp3', 'pop3.mp3', 'pop4.mp3'],
     moab_destroy: ['moab_destroy1.mp3', 'moab_destroy2.mp3', 'moab_destroy3.mp3'],
@@ -21,7 +22,8 @@ const SFX_ASSET_MAP = {
 let ctx = null;
 let musicAudio = null;
 let sfxVolume = 0.5;
-let playlist = [];
+let gamePlaylist = [];
+let activePlaylist = MENU_PLAYLIST; // Start with menu music
 let history = [];
 let currentTrack = 0;
 let isPlaying = false;
@@ -35,7 +37,7 @@ async function _loadPlaylistInternal() {
         if (manifestRes.ok) {
             const manifest = await manifestRes.json();
             if (manifest?.songs?.length > 0) {
-                playlist = manifest.songs.map(s => s.startsWith('music/') ? s : `music/${s}`);
+                gamePlaylist = manifest.songs.map(s => s.startsWith('music/') ? s : `music/${s}`);
                 return;
             }
         }
@@ -58,20 +60,20 @@ async function _loadPlaylistInternal() {
         });
         
         if (mp3s.length > 0) {
-            playlist = mp3s;
+            gamePlaylist = mp3s;
         } else {
             throw new Error("No mp3s found");
         }
     } catch (e) {
-        playlist = [...DEFAULT_PLAYLIST];
+        gamePlaylist = [...DEFAULT_GAME_PLAYLIST];
     }
 }
 
 function _loadTrackInternal(index) {
-    if (index < 0 || index >= playlist.length) return;
+    if (index < 0 || index >= activePlaylist.length) return;
     currentTrack = index;
     if (musicAudio) {
-        musicAudio.src = playlist[index];
+        musicAudio.src = activePlaylist[index];
         if (isPlaying) AudioEngine.play();
     }
 }
@@ -101,15 +103,6 @@ export const AudioEngine = {
             }
             
             await _loadPlaylistInternal();
-            
-            if (playlist.length === 0) return;
-
-            currentTrack = Config.data.musicRandomStart 
-                ? Math.floor(Math.random() * playlist.length) 
-                : 0;
-            
-            _loadTrackInternal(currentTrack);
-            
             if (musicAudio) {
                 musicAudio.addEventListener('ended', () => this.nextTrack());
             }
@@ -130,6 +123,25 @@ export const AudioEngine = {
         Config.save();
     },
 
+    playGameMusic() {
+        if (activePlaylist === gamePlaylist && isPlaying) return; // Already playing game music
+        activePlaylist = gamePlaylist;
+        currentTrack = Config.data.musicRandomStart ? Math.floor(Math.random() * activePlaylist.length) : 0;
+        _loadTrackInternal(currentTrack);
+        this.play();
+    },
+
+    playMenuMusic() {
+        if (activePlaylist === MENU_PLAYLIST && isPlaying) return; // Already playing menu music
+        activePlaylist = MENU_PLAYLIST;
+        
+        // PRO FIX: Pick a random song from the menu playlist
+        currentTrack = Math.floor(Math.random() * activePlaylist.length);
+        
+        _loadTrackInternal(currentTrack);
+        this.play();
+    },
+
     play() {
         if (musicAudio && musicAudio.src) {
             musicAudio.play().catch(e => console.warn("Audio play blocked:", e));
@@ -145,30 +157,30 @@ export const AudioEngine = {
     },
 
     nextTrack() {
-        if (playlist.length === 0) return;
+        if (activePlaylist.length === 0) return;
         let nextIndex;
         if (Config.data.musicShuffle) {
-            if (playlist.length > 1) {
+            if (activePlaylist.length > 1) {
                 do {
-                    nextIndex = Math.floor(Math.random() * playlist.length);
+                    nextIndex = Math.floor(Math.random() * activePlaylist.length);
                 } while (nextIndex === currentTrack);
             } else {
                 nextIndex = 0;
             }
             history.push(currentTrack);
         } else {
-            nextIndex = (currentTrack + 1) % playlist.length;
+            nextIndex = (currentTrack + 1) % activePlaylist.length;
         }
         _loadTrackInternal(nextIndex);
     },
 
     prevTrack() {
-        if (playlist.length === 0) return;
+        if (activePlaylist.length === 0) return;
         let prevIndex;
         if (Config.data.musicShuffle && history.length > 0) {
             prevIndex = history.pop();
         } else {
-            prevIndex = (currentTrack - 1 + playlist.length) % playlist.length;
+            prevIndex = (currentTrack - 1 + activePlaylist.length) % activePlaylist.length;
         }
         _loadTrackInternal(prevIndex);
     },
