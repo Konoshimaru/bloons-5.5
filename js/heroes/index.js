@@ -5,6 +5,7 @@ import Quincy from './quincy.js';
 import Gwendolin from './gwendolin.js';
 import Gojo from './gojo.js'; 
 import Geto from './geto.js';
+import Sauda from './sauda.js';
 import { createPlaceholderHero } from './placeholder.js';
 
 const placeholderHeroes = [
@@ -17,7 +18,6 @@ const placeholderHeroes = [
     ['adora', 'Adora', 1000, 'High Priestess'],
     ['brickell', 'Admiral Brickell', 750, 'Naval Commander'],
     ['etienne', 'Etienne', 850, 'Drone Operator'],
-    ['sauda', 'Sauda', 550, 'Swordmaster'],
     ['psi', 'Psi', 1000, 'Psionic Monkey'],
     ['geraldo', 'Geraldo', 1400, 'Mystic Shopkeeper'],
     ['corvus', 'Corvus', 1600, 'Spirit Walker'],
@@ -30,7 +30,8 @@ export const HeroRegistry = {
     quincy: Quincy,
     gwendolin: Gwendolin,
     gojo: Gojo,
-    geto: Geto
+    geto: Geto,
+    sauda: Sauda
 };
 
 // Inject all placeholders into the registry

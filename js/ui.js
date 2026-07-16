@@ -258,6 +258,13 @@ export const UI = {
         if (!panel) return;
         panel.classList.remove('hidden');
         
+        // PRO FIX: Dynamic sidebar positioning (Opposite side of the monkey)
+        if (t.x > 640) {
+            panel.classList.remove('sidebar-right'); // Monkey on right -> menu on left
+        } else {
+            panel.classList.add('sidebar-right'); // Monkey on left -> menu on right
+        }
+        
         this._setupSellAndBankButtons(panel, t);
         
         if (t.stats.isHero) {

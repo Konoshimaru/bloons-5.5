@@ -31,28 +31,25 @@ const FPS_UPDATE_INTERVAL = 1000;
 const SPEED_MULTIPLIERS = [1, 1, 2, 3, 5, 10, 20];
 const MAX_SPEED_NORMAL = 3;
 const MAX_SPEED_EXTREME = 6;
-const HANG_THRESHOLD_MS = 500; // ISSUE 4: Threshold for infinite loop detection
+const HANG_THRESHOLD_MS = 500; 
 
 export const GameEngine = {
     canvas: null,
     ctx: null,
     lastTime: 0,
-    bgInterval: null,
     ui: UI,
     _rafId: null,
-    _timeoutId: null,
     fpsEl: null,
     
     enemies: [],
     towers: [],
     explosions: [],
-      // Add to the GameEngine object properties (e.g., right under enemyGrid):
     enemyGrid: new SpatialGrid(80),
-    towerGrid: new SpatialGrid(80), // ISSUE 7: Grid for support tower buffs
+    towerGrid: new SpatialGrid(80), 
     
     projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
-    enemyPool: new ObjectPool(() => new Enemy(), (e) => { e.alive = false; }, 200), // ISSUE 8: Enemy pool
+    enemyPool: new ObjectPool(() => new Enemy(), (e) => { e.alive = false; }, 200), 
     
     lives: 100,
     cash: 650,
@@ -116,24 +113,8 @@ export const GameEngine = {
         this.fpsEl = document.getElementById('fps-display');
         if (this.fpsEl) this.fpsEl.style.display = Config.data.showFps ? 'block' : 'none';
         
-        document.addEventListener("visibilitychange", () => this._handleVisibilityChange());
-        
         this._boundLoop = this.loop.bind(this);
         this.restartLoop(); 
-    },
-
-    _handleVisibilityChange() {
-        if (document.hidden) {
-            this.saveGame();
-            if (this.runInBackground && this.gameState === 'playing' && !this.bgInterval) {
-                this.bgInterval = setInterval(() => this.loop(performance.now()), FIXED_TIMESTEP * 1000);
-            }
-        } else {
-            if (this.bgInterval) {
-                clearInterval(this.bgInterval);
-                this.bgInterval = null;
-            }
-        }
     },
 
     getCost(baseCost) {
@@ -401,57 +382,59 @@ export const GameEngine = {
             }
         }
 
-        if (!this.selectedTowerType) return;
-
-        const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
-        let cost = this.getCost(stats.cost);
-        
-        if (this.selectedTowerType === 'dart' && Config.data.unlocks.freeFirstDartMonkey && !this.isSandbox && !this.difficulty.noSelling) {
-            if (!this.towers.some(t => t.type === 'dart')) {
-                cost = 0;
+        if (this.selectedTowerType) {
+            const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
+            let cost = this.getCost(stats.cost);
+            
+            if (this.selectedTowerType === 'dart' && Config.data.unlocks.freeFirstDartMonkey && !this.isSandbox && !this.difficulty.noSelling) {
+                if (!this.towers.some(t => t.type === 'dart')) {
+                    cost = 0;
+                }
             }
-        }
-        
-        if (this.cash < cost) {
-            this.log("Not enough cash!");
-            return;
+            
+            if (this.cash < cost) {
+                this.log("Not enough cash!");
+                return;
+            }
+
+            const placementRadius = (stats.hitRadius || 18) * GLOBAL_SCALE;
+            const isOverlapping = this.towers.some(t => t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + placementRadius));
+            
+            if (isOverlapping) {
+                this.log("Cannot place on top of another monkey!");
+                return;
+            }
+
+            let canPlace = false;
+            if (stats.waterOnly) {
+                canPlace = this.map.isInWater(x, y);
+            } else {
+                canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300;
+            }
+
+            if (!canPlace) {
+                this.log(stats.waterOnly ? "Must be placed on water!" : "Cannot place here!");
+                return;
+            }
+
+            if (stats.isHero && this.hero) {
+                this.log("You can only place one Hero per game!");
+                return;
+            }
+
+            const newTower = stats.isHero ? new Hero(x, y, this.selectedTowerType) : new Tower(x, y, this.selectedTowerType);
+            if (stats.isHero) this.hero = newTower;
+            if (newTower.type === 'spike') newTower.targetingMode = 'Normal';
+            
+            this.towers.push(newTower);
+            this.cash -= cost;
+            AudioEngine.playSfx('place');
+            this.updateUI();
+            this.log("Tower placed!");
+            this.deselectAll();
+            return; 
         }
 
-        const placementRadius = (stats.hitRadius || 18) * GLOBAL_SCALE;
-        const isOverlapping = this.towers.some(t => t && Utils.distance(x, y, t.x, t.y) < (t.hitRadius + placementRadius));
-        
-        if (isOverlapping) {
-            this.log("Cannot place on top of another monkey!");
-            return;
-        }
-
-        let canPlace = false;
-        if (stats.waterOnly) {
-            canPlace = this.map.isInWater(x, y);
-        } else {
-            canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300;
-        }
-
-        if (!canPlace) {
-            this.log(stats.waterOnly ? "Must be placed on water!" : "Cannot place here!");
-            return;
-        }
-
-        if (stats.isHero && this.hero) {
-            this.log("You can only place one Hero per game!");
-            return;
-        }
-
-        const newTower = stats.isHero ? new Hero(x, y, this.selectedTowerType) : new Tower(x, y, this.selectedTowerType);
-        if (stats.isHero) this.hero = newTower;
-        // PRO FIX: Set default targeting mode for Spike Factory
-        if (newTower.type === 'spike') newTower.targetingMode = 'Normal';
-        
-        this.towers.push(newTower);
-        this.cash -= cost;
-        AudioEngine.playSfx('place');
-        this.updateUI();
-        this.log("Tower placed!");
         this.deselectAll();
     },
 
@@ -464,12 +447,11 @@ export const GameEngine = {
             modes.push('Elite');
         }
         
-        // PRO FIX: Spike Factory specific targeting modes
         if (t.type === 'spike') {
             if (t.stats.smartSpikes) {
                 modes = ['Normal', 'Close', 'Smart'];
             } else {
-                modes = ['Normal']; // No targeting feature until 0-0-2
+                modes = ['Normal']; 
             }
         }
         
@@ -589,15 +571,12 @@ export const GameEngine = {
 
     restartLoop() {
         if (this._rafId) cancelAnimationFrame(this._rafId);
-        if (this._timeoutId) clearTimeout(this._timeoutId);
         this._rafId = null;
-        this._timeoutId = null;
         this.lastTime = performance.now(); 
-        this.loop(performance.now());
+        this._rafId = requestAnimationFrame(this._boundLoop);
     },
 
     loop(timestamp) {
-        // PRO FIX: Ensure timestamp is valid (setTimeout doesn't pass one automatically)
         if (timestamp === undefined || timestamp === null) {
             timestamp = performance.now();
         }
@@ -618,7 +597,6 @@ export const GameEngine = {
             const steps = Math.max(1, Math.min(Math.ceil(targetDt / FIXED_TIMESTEP), MAX_SUBSTEPS));
             const stepDt = targetDt / steps;
             
-            // ISSUE 4 FIX: Replaced setTimeout watchdog with a performance.now() check
             const updateStartTime = performance.now();
             try {
                 for (let i = 0; i < steps; i++) {
@@ -634,7 +612,6 @@ export const GameEngine = {
                 document.getElementById('go-wave-stat').innerText = `Game Crash: ${err.message}.`;
             }
             
-            // Issue 1 Fix: Update UI only once per loop, not inside update()
             UI.updateAbilityBar(this);
             this.updateUI();
         }
@@ -650,19 +627,7 @@ export const GameEngine = {
             }
         }
         
-        if (!document.hidden) {
-            // Uncap FPS logic
-            if (Config.data.uncapFps) {
-                if (this._rafId) cancelAnimationFrame(this._rafId);
-                this._rafId = null;
-                // PRO FIX: Pass performance.now() explicitly to the loop
-                this._timeoutId = setTimeout(() => this.loop(performance.now()), 0);
-            } else {
-                if (this._timeoutId) clearTimeout(this._timeoutId);
-                this._timeoutId = null;
-                this._rafId = requestAnimationFrame(this._boundLoop);
-            }
-        }
+        this._rafId = requestAnimationFrame(this._boundLoop);
     },
 
     update(dt) {
@@ -751,7 +716,6 @@ export const GameEngine = {
                 if (i < this.enemies.length) {
                     this.enemies[i] = last;
                 }
-                // ISSUE 8 FIX: Release dead enemy back to the pool
                 this.enemyPool.release(e);
             }
         }
@@ -771,7 +735,6 @@ export const GameEngine = {
         }
         
         this.hasIceShardTower = false;
-        // ISSUE 5 FIX: Calculate leaking status once per tick
         this.hasLeakingEnemy = false;
         if (this.map) {
             const totalLen = this.map.getTotalLength();
@@ -786,7 +749,6 @@ export const GameEngine = {
             }
         }
         
-        // ISSUE 7 FIX: Build tower grid once per tick for support buffs
         this.towerGrid.clear();
         for (const t of this.towers) {
             if (t) this.towerGrid.insert(t);
