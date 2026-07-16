@@ -144,8 +144,9 @@ function _findTarget(tower, engine) {
     const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
     const alchRange = tower.alchBuff ? tower.alchBuff.range : 0;
     
-    // PRO FIX: Apply global scale to effective range
-    const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange) * GS;
+    // PRO FIX: Apply night mode range scaling
+    const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
+    const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange) * nightMod * GS;
     const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
     
     // PRO FIX: Elite Targeting Logic

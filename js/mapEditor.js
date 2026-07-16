@@ -31,6 +31,8 @@ export const MapEditor = {
     snapToGrid: false,
     dragStartPos: null,
     bgImage: null,
+    bgNightImage: null,
+    previewNight: false,
 
     init() {
         if (this._initialized) {
@@ -41,6 +43,15 @@ export const MapEditor = {
         this._initialized = true;
         this.canvas = document.getElementById('editor-canvas');
         this.ctx = this.canvas.getContext('2d');
+        
+        // PRO FIX: Prevent canvas from stretching when menu options change
+        this.canvas.style.maxWidth = '100%';
+        this.canvas.style.maxHeight = '100%';
+        this.canvas.style.width = '100%';
+        this.canvas.style.height = 'auto';
+        this.canvas.style.aspectRatio = '16 / 9';
+        this.canvas.style.objectFit = 'contain';
+        
         this.resetMapData();
         
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
@@ -56,44 +67,71 @@ export const MapEditor = {
             btn.addEventListener('click', () => this.setTool(btn.dataset.tool));
         });
         
-        document.getElementById('editor-ref-input').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                this.refImage = new Image();
-                this.refImage.src = ev.target.result;
-                this.refX = CANVAS_WIDTH / 2;
-                this.refY = CANVAS_HEIGHT / 2;
-                this.refScale = 1;
-            };
-            reader.readAsDataURL(file);
-        });
+        const refInput = document.getElementById('editor-ref-input');
+        if (refInput) {
+            refInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    this.refImage = new Image();
+                    this.refImage.src = ev.target.result;
+                    this.refX = CANVAS_WIDTH / 2;
+                    this.refY = CANVAS_HEIGHT / 2;
+                    this.refScale = 1;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
 
-        document.getElementById('editor-active-path').addEventListener('change', (e) => {
-            this.selectedPath = parseInt(e.target.value);
-            this.selectedPoint = null;
-        });
+        const activePathSelect = document.getElementById('editor-active-path');
+        if (activePathSelect) {
+            activePathSelect.addEventListener('change', (e) => {
+                this.selectedPath = parseInt(e.target.value);
+                this.selectedPoint = null;
+            });
+        }
 
-        document.getElementById('editor-new-path').addEventListener('click', () => { this.pushUndo(); this.newPath(); });
-        document.getElementById('editor-hide-path').addEventListener('click', () => this.togglePathVisibility());
-        document.getElementById('editor-toggle-curve').addEventListener('click', () => { this.pushUndo(); this.toggleCurve(); });
-        document.getElementById('editor-reverse-path').addEventListener('click', () => { this.pushUndo(); this.reversePath(); });
-        document.getElementById('editor-snap-grid').addEventListener('click', () => {
-            this.snapToGrid = !this.snapToGrid;
-            const btn = document.getElementById('editor-snap-grid');
-            btn.innerText = `Snap to Grid: ${this.snapToGrid ? 'On' : 'Off'}`;
-            btn.classList.toggle('active', this.snapToGrid);
-        });
-        document.getElementById('editor-undo').addEventListener('click', () => this.undo());
-        document.getElementById('editor-redo').addEventListener('click', () => this.redo());
-        document.getElementById('editor-delete-sel').addEventListener('click', () => this.deleteSelected());
+        const newPathBtn = document.getElementById('editor-new-path');
+        if (newPathBtn) newPathBtn.addEventListener('click', () => { this.pushUndo(); this.newPath(); });
         
-        document.getElementById('water-brush-size').addEventListener('input', (e) => this.waterBrushSize = parseInt(e.target.value));
-        document.getElementById('water-erase-toggle').addEventListener('click', (e) => {
-            this.waterEraseMode = !this.waterEraseMode;
-            e.target.classList.toggle('active', this.waterEraseMode);
-        });
+        const hidePathBtn = document.getElementById('editor-hide-path');
+        if (hidePathBtn) hidePathBtn.addEventListener('click', () => this.togglePathVisibility());
+        
+        const toggleCurveBtn = document.getElementById('editor-toggle-curve');
+        if (toggleCurveBtn) toggleCurveBtn.addEventListener('click', () => { this.pushUndo(); this.toggleCurve(); });
+        
+        const reversePathBtn = document.getElementById('editor-reverse-path');
+        if (reversePathBtn) reversePathBtn.addEventListener('click', () => { this.pushUndo(); this.reversePath(); });
+        
+        const snapGridBtn = document.getElementById('editor-snap-grid');
+        if (snapGridBtn) {
+            snapGridBtn.addEventListener('click', () => {
+                this.snapToGrid = !this.snapToGrid;
+                snapGridBtn.innerText = `Snap to Grid: ${this.snapToGrid ? 'On' : 'Off'}`;
+                snapGridBtn.classList.toggle('active', this.snapToGrid);
+            });
+        }
+        
+        const undoBtn = document.getElementById('editor-undo');
+        if (undoBtn) undoBtn.addEventListener('click', () => this.undo());
+        
+        const redoBtn = document.getElementById('editor-redo');
+        if (redoBtn) redoBtn.addEventListener('click', () => this.redo());
+        
+        const deleteSelBtn = document.getElementById('editor-delete-sel');
+        if (deleteSelBtn) deleteSelBtn.addEventListener('click', () => this.deleteSelected());
+        
+        const waterBrushSize = document.getElementById('water-brush-size');
+        if (waterBrushSize) waterBrushSize.addEventListener('input', (e) => this.waterBrushSize = parseInt(e.target.value));
+        
+        const waterEraseToggle = document.getElementById('water-erase-toggle');
+        if (waterEraseToggle) {
+            waterEraseToggle.addEventListener('click', (e) => {
+                this.waterEraseMode = !this.waterEraseMode;
+                e.target.classList.toggle('active', this.waterEraseMode);
+            });
+        }
         
         document.querySelectorAll('.obj-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -103,33 +141,88 @@ export const MapEditor = {
             });
         });
         
-        document.getElementById('bg-image-name').addEventListener('input', (e) => this.mapData.image = e.target.value);
-        document.getElementById('editor-load-bg').addEventListener('click', () => this.loadBackgroundPreview());
-        document.getElementById('editor-clear-bg').addEventListener('click', () => this.clearBackground());
-        document.getElementById('bg-maintain-ratio').addEventListener('change', (e) => {
-            this.mapData.imageMaintainRatio = e.target.checked;
-        });
-        document.getElementById('bg-image-scale').addEventListener('input', (e) => {
-            this.mapData.imageScale = parseFloat(e.target.value);
-            document.getElementById('bg-scale-val').innerText = this.mapData.imageScale.toFixed(2);
-        });
-        document.getElementById('bg-image-x').addEventListener('input', (e) => {
-            this.mapData.imageOffsetX = parseInt(e.target.value);
-            document.getElementById('bg-x-val').innerText = this.mapData.imageOffsetX;
-        });
-        document.getElementById('bg-image-y').addEventListener('input', (e) => {
-            this.mapData.imageOffsetY = parseInt(e.target.value);
-            document.getElementById('bg-y-val').innerText = this.mapData.imageOffsetY;
-        });
+        // Day Background
+        const bgNameInput = document.getElementById('bg-image-name');
+        if (bgNameInput) bgNameInput.addEventListener('input', (e) => this.mapData.image = e.target.value);
+        
+        const loadBgBtn = document.getElementById('editor-load-bg');
+        if (loadBgBtn) loadBgBtn.addEventListener('click', () => this.loadBackgroundPreview());
+        
+        const clearBgBtn = document.getElementById('editor-clear-bg');
+        if (clearBgBtn) clearBgBtn.addEventListener('click', () => this.clearBackground());
+        
+        // Night Background
+        const nightNameInput = document.getElementById('bg-night-image-name');
+        if (nightNameInput) nightNameInput.addEventListener('input', (e) => this.mapData.imageNight = e.target.value);
+        
+        const loadNightBgBtn = document.getElementById('editor-load-night-bg');
+        if (loadNightBgBtn) loadNightBgBtn.addEventListener('click', () => this.loadNightBackgroundPreview());
+        
+        const clearNightBgBtn = document.getElementById('editor-clear-night-bg');
+        if (clearNightBgBtn) clearNightBgBtn.addEventListener('click', () => this.clearNightBackground());
+
+        const toggleNightBtn = document.getElementById('editor-toggle-night-preview');
+        if (toggleNightBtn) {
+            toggleNightBtn.addEventListener('click', () => {
+                this.previewNight = !this.previewNight;
+                toggleNightBtn.classList.toggle('active', this.previewNight);
+            });
+        }
+
+        const bgMaintainRatio = document.getElementById('bg-maintain-ratio');
+        if (bgMaintainRatio) {
+            bgMaintainRatio.addEventListener('change', (e) => {
+                this.mapData.imageMaintainRatio = e.target.checked;
+            });
+        }
+        
+        const bgImageScale = document.getElementById('bg-image-scale');
+        if (bgImageScale) {
+            bgImageScale.addEventListener('input', (e) => {
+                this.mapData.imageScale = parseFloat(e.target.value);
+                const scaleVal = document.getElementById('bg-scale-val');
+                if (scaleVal) scaleVal.innerText = this.mapData.imageScale.toFixed(2);
+            });
+        }
+        
+        const bgImageX = document.getElementById('bg-image-x');
+        if (bgImageX) {
+            bgImageX.addEventListener('input', (e) => {
+                this.mapData.imageOffsetX = parseInt(e.target.value);
+                const xVal = document.getElementById('bg-x-val');
+                if (xVal) xVal.innerText = this.mapData.imageOffsetX;
+            });
+        }
+        
+        const bgImageY = document.getElementById('bg-image-y');
+        if (bgImageY) {
+            bgImageY.addEventListener('input', (e) => {
+                this.mapData.imageOffsetY = parseInt(e.target.value);
+                const yVal = document.getElementById('bg-y-val');
+                if (yVal) yVal.innerText = this.mapData.imageOffsetY;
+            });
+        }
 
         this.bgImage = new Image();
         this.bgImage.loaded = false;
+        
+        this.bgNightImage = new Image();
+        this.bgNightImage.loaded = false;
 
-        document.getElementById('editor-save').addEventListener('click', () => this.saveMap());
-        document.getElementById('editor-load').addEventListener('click', () => this.loadMap());
-        document.getElementById('editor-exit').addEventListener('click', () => this.exitEditor());
-        document.getElementById('editor-toggle-json').addEventListener('click', () => this.toggleJSON());
-        document.getElementById('editor-apply-json').addEventListener('click', () => { this.pushUndo(); this.applyJSON(); });
+        const saveBtn = document.getElementById('editor-save');
+        if (saveBtn) saveBtn.addEventListener('click', () => this.saveMap());
+        
+        const loadBtn = document.getElementById('editor-load');
+        if (loadBtn) loadBtn.addEventListener('click', () => this.loadMap());
+        
+        const exitBtn = document.getElementById('editor-exit');
+        if (exitBtn) exitBtn.addEventListener('click', () => this.exitEditor());
+        
+        const toggleJsonBtn = document.getElementById('editor-toggle-json');
+        if (toggleJsonBtn) toggleJsonBtn.addEventListener('click', () => this.toggleJSON());
+        
+        const applyJsonBtn = document.getElementById('editor-apply-json');
+        if (applyJsonBtn) applyJsonBtn.addEventListener('click', () => { this.pushUndo(); this.applyJSON(); });
         
         this.startLoop();
     },
@@ -146,11 +239,11 @@ export const MapEditor = {
             cancelAnimationFrame(this._rafId);
             this._rafId = null;
         }
-        // PRO FIX: Use 'main-menu-ui' instead of 'main-menu'
         UI.toggleMenus('main-menu-ui');
     },
     
     pushUndo() {
+        if (!this.mapData) return;
         this.undoStack.push(JSON.parse(JSON.stringify(this.mapData)));
         if (this.undoStack.length > 25) this.undoStack.shift();
         this.redoStack = []; 
@@ -200,6 +293,7 @@ export const MapEditor = {
             props: [],
             waterBrushes: [],
             image: null,
+            imageNight: null,
             imageScale: 1.0,
             imageOffsetX: 0,
             imageOffsetY: 0,
@@ -210,17 +304,40 @@ export const MapEditor = {
         this.selectedProp = null;
         this.undoStack = [];
         this.redoStack = [];
-        document.getElementById('editor-map-name').value = "New Custom Map";
+        this.previewNight = false;
         
-        document.getElementById('bg-image-name').value = "";
-        document.getElementById('bg-maintain-ratio').checked = false;
-        document.getElementById('bg-image-scale').value = 1;
-        document.getElementById('bg-image-x').value = 0;
-        document.getElementById('bg-image-y').value = 0;
-        document.getElementById('bg-scale-val').innerText = "1.00";
-        document.getElementById('bg-x-val').innerText = "0";
-        document.getElementById('bg-y-val').innerText = "0";
+        const nameInput = document.getElementById('editor-map-name');
+        if (nameInput) nameInput.value = "New Custom Map";
+        
+        const bgName = document.getElementById('bg-image-name');
+        if (bgName) bgName.value = "";
+        
+        const nightName = document.getElementById('bg-night-image-name');
+        if (nightName) nightName.value = "";
+        
+        const bgMaintainRatio = document.getElementById('bg-maintain-ratio');
+        if (bgMaintainRatio) bgMaintainRatio.checked = false;
+        
+        const bgImageScale = document.getElementById('bg-image-scale');
+        if (bgImageScale) bgImageScale.value = 1;
+        
+        const bgImageX = document.getElementById('bg-image-x');
+        if (bgImageX) bgImageX.value = 0;
+        
+        const bgImageY = document.getElementById('bg-image-y');
+        if (bgImageY) bgImageY.value = 0;
+        
+        const bgScaleVal = document.getElementById('bg-scale-val');
+        if (bgScaleVal) bgScaleVal.innerText = "1.00";
+        
+        const bgXVal = document.getElementById('bg-x-val');
+        if (bgXVal) bgXVal.innerText = "0";
+        
+        const bgYVal = document.getElementById('bg-y-val');
+        if (bgYVal) bgYVal.innerText = "0";
+        
         if (this.bgImage) this.bgImage.loaded = false;
+        if (this.bgNightImage) this.bgNightImage.loaded = false;
         
         this.updatePathDropdown();
     },
@@ -228,11 +345,22 @@ export const MapEditor = {
     setTool(tool) {
         this.currentTool = tool;
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
-        document.getElementById('track-options').classList.toggle('hidden', tool !== 'track');
-        document.getElementById('water-options').classList.toggle('hidden', tool !== 'water');
-        document.getElementById('objects-options').classList.toggle('hidden', tool !== 'objects');
-        document.getElementById('reference-options').classList.toggle('hidden', tool !== 'reference');
-        document.getElementById('bg-options').classList.toggle('hidden', tool !== 'bg');
+        
+        const trackOpts = document.getElementById('track-options');
+        if (trackOpts) trackOpts.classList.toggle('hidden', tool !== 'track');
+        
+        const waterOpts = document.getElementById('water-options');
+        if (waterOpts) waterOpts.classList.toggle('hidden', tool !== 'water');
+        
+        const objOpts = document.getElementById('objects-options');
+        if (objOpts) objOpts.classList.toggle('hidden', tool !== 'objects');
+        
+        const refOpts = document.getElementById('reference-options');
+        if (refOpts) refOpts.classList.toggle('hidden', tool !== 'reference');
+        
+        const bgOpts = document.getElementById('bg-options');
+        if (bgOpts) bgOpts.classList.toggle('hidden', tool !== 'bg');
+        
         this.selectedPoint = null;
         this.selectedProp = null;
     },
@@ -242,7 +370,7 @@ export const MapEditor = {
         if (!select) return;
         select.innerHTML = '';
         
-        if (this.mapData.paths.length === 0) {
+        if (!this.mapData || !Array.isArray(this.mapData.paths) || this.mapData.paths.length === 0) {
             let opt = document.createElement('option');
             opt.value = -1;
             opt.innerText = "No Paths";
@@ -259,10 +387,12 @@ export const MapEditor = {
         }
         
         if (this.selectedPath === -1) this.selectedPath = 0;
+        if (this.selectedPath >= this.mapData.paths.length) this.selectedPath = this.mapData.paths.length - 1;
         select.value = this.selectedPath;
     },
     
     newPath() {
+        if (!this.mapData.paths) this.mapData.paths = [];
         this.mapData.paths.push({ waypoints: [], visible: true });
         this.selectedPath = this.mapData.paths.length - 1;
         this.selectedPoint = null;
@@ -271,7 +401,7 @@ export const MapEditor = {
     },
     
     togglePathVisibility() {
-        if (this.selectedPath === -1) return;
+        if (this.selectedPath === -1 || !this.mapData.paths[this.selectedPath]) return;
         this.pushUndo();
         this.mapData.paths[this.selectedPath].visible = !this.mapData.paths[this.selectedPath].visible;
         this.updatePathDropdown();
@@ -320,16 +450,20 @@ export const MapEditor = {
                 this.refY = pos.y;
                 this.dragStartPos = { x: pos.x, y: pos.y };
             } else {
-                document.getElementById('editor-ref-input').click();
+                const refInput = document.getElementById('editor-ref-input');
+                if (refInput) refInput.click();
             }
         }
     },
     
     handleTrackMouseDown(pos, button) {
-        // 1. Check ALL curve handles across ALL paths (even hidden ones)
+        if (!this.mapData || !Array.isArray(this.mapData.paths)) return;
+        
         for (let p = 0; p < this.mapData.paths.length; p++) {
+            if (!this.mapData.paths[p] || !Array.isArray(this.mapData.paths[p].waypoints)) continue;
             for (let i = 0; i < this.mapData.paths[p].waypoints.length; i++) {
                 const wp = this.mapData.paths[p].waypoints[i];
+                if (!wp) continue;
                 if (wp.curve) {
                     if (Math.hypot(pos.x - wp.curve.cx, pos.y - wp.curve.cy) < 12) {
                         this.selectedPath = p;
@@ -343,10 +477,11 @@ export const MapEditor = {
             }
         }
         
-        // 2. Check ALL points across ALL paths (even hidden ones)
         for (let p = 0; p < this.mapData.paths.length; p++) {
+            if (!this.mapData.paths[p] || !Array.isArray(this.mapData.paths[p].waypoints)) continue;
             for (let i = 0; i < this.mapData.paths[p].waypoints.length; i++) {
                 const wp = this.mapData.paths[p].waypoints[i];
+                if (!wp) continue;
                 if (Math.hypot(pos.x - wp.x, pos.y - wp.y) < 12) {
                     this.selectedPath = p;
                     this.selectedPoint = wp;
@@ -363,10 +498,10 @@ export const MapEditor = {
             }
         }
         
-        // 3. If clicking empty space, add to the SELECTED path only
         if (this.selectedPath !== -1 && this.mapData.paths[this.selectedPath]) {
             this.pushUndo();
             this.selectedPoint = null;
+            if (!this.mapData.paths[this.selectedPath].waypoints) this.mapData.paths[this.selectedPath].waypoints = [];
             this.mapData.paths[this.selectedPath].waypoints.push({ x: pos.x, y: pos.y });
             this.selectedPoint = this.mapData.paths[this.selectedPath].waypoints[this.mapData.paths[this.selectedPath].waypoints.length - 1];
         } else if (this.mapData.paths.length === 0) {
@@ -382,6 +517,7 @@ export const MapEditor = {
     },
     
     insertPoint(point) {
+        if (this.selectedPath === -1 || !this.mapData.paths[this.selectedPath]) return;
         const path = this.mapData.paths[this.selectedPath];
         const idx = path.waypoints.indexOf(point);
         if (idx > 0) {
@@ -397,7 +533,7 @@ export const MapEditor = {
     },
     
     toggleCurve() {
-        if (!this.selectedPoint) return;
+        if (!this.selectedPoint || this.selectedPath === -1 || !this.mapData.paths[this.selectedPath]) return;
         const path = this.mapData.paths[this.selectedPath];
         const idx = path.waypoints.indexOf(this.selectedPoint);
         if (idx === 0) return;
@@ -416,10 +552,11 @@ export const MapEditor = {
     },
     
     handleObjectsMouseDown(pos) {
+        if (!this.mapData.props) this.mapData.props = [];
         let clickedProp = null;
         for (let i = this.mapData.props.length - 1; i >= 0; i--) {
             const p = this.mapData.props[i];
-            if (p.type !== 'pond' && Math.hypot(pos.x - p.x, pos.y - p.y) < 15) {
+            if (p && p.type !== 'pond' && Math.hypot(pos.x - p.x, pos.y - p.y) < 15) {
                 clickedProp = p; break;
             }
         }
@@ -441,6 +578,7 @@ export const MapEditor = {
         if (!this.mapData.waterBrushes) return;
         for (let i = this.mapData.waterBrushes.length - 1; i >= 0; i--) {
             const brush = this.mapData.waterBrushes[i];
+            if (!brush || !brush.points) continue;
             const r = brush.thickness / 2;
             let hit = false;
             if (brush.points.length === 1) {
@@ -491,6 +629,7 @@ export const MapEditor = {
     
     handleMouseUp() {
         if (this.currentWaterStroke) {
+            if (!this.mapData.waterBrushes) this.mapData.waterBrushes = [];
             this.mapData.waterBrushes.push(this.currentWaterStroke);
             this.currentWaterStroke = null;
         }
@@ -516,7 +655,8 @@ export const MapEditor = {
     },
     
     handleKeyDown(e) {
-        if (document.getElementById('map-editor-menu').classList.contains('hidden')) return;
+        const editorMenu = document.getElementById('map-editor-menu');
+        if (!editorMenu || editorMenu.classList.contains('hidden')) return;
 
         if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this.undo(); } 
         else if ((e.key === 'y' || e.key === 'Y') && (e.ctrlKey || e.metaKey)) { e.preventDefault(); this.redo(); } 
@@ -527,7 +667,9 @@ export const MapEditor = {
     },
 
     loadBackgroundPreview() {
-        const name = document.getElementById('bg-image-name').value.trim();
+        const nameInput = document.getElementById('bg-image-name');
+        if (!nameInput) return;
+        const name = nameInput.value.trim();
         if (!name) {
             this.clearBackground();
             return;
@@ -536,7 +678,7 @@ export const MapEditor = {
         this.bgImage.onload = () => { this.bgImage.loaded = true; };
         this.bgImage.onerror = () => { 
             this.bgImage.loaded = false; 
-            alert('Could not load image. Make sure it is in the sprites/maps/ folder!'); 
+            alert('Could not load day image. Make sure it is in the sprites/maps/ folder!'); 
         };
         this.bgImage.src = `sprites/maps/${name}.png`;
     },
@@ -544,13 +686,40 @@ export const MapEditor = {
     clearBackground() {
         this.mapData.image = null;
         this.bgImage.loaded = false;
-        document.getElementById('bg-image-name').value = "";
-        UI.log("Background cleared.");
+        const nameInput = document.getElementById('bg-image-name');
+        if (nameInput) nameInput.value = "";
+        UI.log("Day background cleared.");
+    },
+    
+    loadNightBackgroundPreview() {
+        const nameInput = document.getElementById('bg-night-image-name');
+        if (!nameInput) return;
+        const name = nameInput.value.trim();
+        if (!name) {
+            this.clearNightBackground();
+            return;
+        }
+        this.mapData.imageNight = name;
+        this.bgNightImage.onload = () => { this.bgNightImage.loaded = true; };
+        this.bgNightImage.onerror = () => { 
+            this.bgNightImage.loaded = false; 
+            alert('Could not load night image. Make sure it is in the sprites/maps/ folder!'); 
+        };
+        this.bgNightImage.src = `sprites/maps/${name}.png`;
+    },
+
+    clearNightBackground() {
+        this.mapData.imageNight = null;
+        this.bgNightImage.loaded = false;
+        const nameInput = document.getElementById('bg-night-image-name');
+        if (nameInput) nameInput.value = "";
+        UI.log("Night background cleared.");
     },
     
     saveMap() {
-        this.mapData.name = document.getElementById('editor-map-name').value || "Custom Map";
-        this.mapData.paths = this.mapData.paths.filter(p => p.waypoints.length > 0);
+        const nameInput = document.getElementById('editor-map-name');
+        this.mapData.name = (nameInput && nameInput.value) ? nameInput.value : "Custom Map";
+        this.mapData.paths = this.mapData.paths.filter(p => p && p.waypoints && p.waypoints.length > 0);
         
         if (this.mapData.paths.length === 0) { alert("Please draw at least one path with 2 or more points."); return; }
         
@@ -562,7 +731,7 @@ export const MapEditor = {
         const mapCopy = JSON.parse(JSON.stringify(this.mapData));
         if (existingIdx > -1) {
             Config.data.customMaps[existingIdx] = mapCopy;
-            if (Maps[existingIdx + 5]) Maps[existingIdx + 5] = mapCopy;
+            if (Maps[existingIdx + 6]) Maps[existingIdx + 6] = mapCopy;
         } else {
             Config.data.customMaps.push(mapCopy);
             Maps.push(mapCopy);
@@ -580,29 +749,59 @@ export const MapEditor = {
             if (map) {
                 this.pushUndo();
                 this.mapData = JSON.parse(JSON.stringify(map));
-                if (!this.mapData.waterBrushes) this.mapData.waterBrushes = [];
+                if (!Array.isArray(this.mapData.waterBrushes)) this.mapData.waterBrushes = [];
                 if (!this.mapData.imageScale) this.mapData.imageScale = 1.0;
                 if (!this.mapData.imageOffsetX) this.mapData.imageOffsetX = 0;
                 if (!this.mapData.imageOffsetY) this.mapData.imageOffsetY = 0;
                 if (!this.mapData.imageMaintainRatio) this.mapData.imageMaintainRatio = false;
+                if (!this.mapData.imageNight) this.mapData.imageNight = null;
+                if (!Array.isArray(this.mapData.props)) this.mapData.props = [];
+                if (!Array.isArray(this.mapData.paths)) this.mapData.paths = [];
+                
                 this.selectedPath = -1;
                 this.selectedPoint = null;
                 this.selectedProp = null;
-                document.getElementById('editor-map-name').value = this.mapData.name;
                 
-                document.getElementById('bg-image-name').value = this.mapData.image || "";
-                document.getElementById('bg-maintain-ratio').checked = this.mapData.imageMaintainRatio;
-                document.getElementById('bg-image-scale').value = this.mapData.imageScale;
-                document.getElementById('bg-image-x').value = this.mapData.imageOffsetX;
-                document.getElementById('bg-image-y').value = this.mapData.imageOffsetY;
-                document.getElementById('bg-scale-val').innerText = this.mapData.imageScale.toFixed(2);
-                document.getElementById('bg-x-val').innerText = this.mapData.imageOffsetX;
-                document.getElementById('bg-y-val').innerText = this.mapData.imageOffsetY;
+                const nameInput = document.getElementById('editor-map-name');
+                if (nameInput) nameInput.value = this.mapData.name;
+                
+                const bgName = document.getElementById('bg-image-name');
+                if (bgName) bgName.value = this.mapData.image || "";
+                
+                const nightName = document.getElementById('bg-night-image-name');
+                if (nightName) nightName.value = this.mapData.imageNight || "";
+                
+                const bgMaintainRatio = document.getElementById('bg-maintain-ratio');
+                if (bgMaintainRatio) bgMaintainRatio.checked = this.mapData.imageMaintainRatio;
+                
+                const bgImageScale = document.getElementById('bg-image-scale');
+                if (bgImageScale) bgImageScale.value = this.mapData.imageScale;
+                
+                const bgImageX = document.getElementById('bg-image-x');
+                if (bgImageX) bgImageX.value = this.mapData.imageOffsetX;
+                
+                const bgImageY = document.getElementById('bg-image-y');
+                if (bgImageY) bgImageY.value = this.mapData.imageOffsetY;
+                
+                const bgScaleVal = document.getElementById('bg-scale-val');
+                if (bgScaleVal) bgScaleVal.innerText = this.mapData.imageScale.toFixed(2);
+                
+                const bgXVal = document.getElementById('bg-x-val');
+                if (bgXVal) bgXVal.innerText = this.mapData.imageOffsetX;
+                
+                const bgYVal = document.getElementById('bg-y-val');
+                if (bgYVal) bgYVal.innerText = this.mapData.imageOffsetY;
                 
                 if (this.mapData.image) {
                     this.loadBackgroundPreview();
                 } else {
                     this.bgImage.loaded = false;
+                }
+                
+                if (this.mapData.imageNight) {
+                    this.loadNightBackgroundPreview();
+                } else {
+                    this.bgNightImage.loaded = false;
                 }
                 
                 this.updatePathDropdown();
@@ -613,6 +812,7 @@ export const MapEditor = {
     toggleJSON() {
         const viewer = document.getElementById('editor-json-viewer');
         const textArea = document.getElementById('editor-json-text');
+        if (!viewer || !textArea) return;
         if (viewer.classList.contains('hidden')) {
             textArea.value = JSON.stringify(this.mapData, null, 2);
             viewer.classList.remove('hidden');
@@ -624,30 +824,61 @@ export const MapEditor = {
     applyJSON() {
         try {
             const textArea = document.getElementById('editor-json-text');
+            if (!textArea) return;
             this.mapData = JSON.parse(textArea.value);
-            if (!this.mapData.waterBrushes) this.mapData.waterBrushes = [];
+            if (!Array.isArray(this.mapData.waterBrushes)) this.mapData.waterBrushes = [];
             if (!this.mapData.imageScale) this.mapData.imageScale = 1.0;
             if (!this.mapData.imageOffsetX) this.mapData.imageOffsetX = 0;
             if (!this.mapData.imageOffsetY) this.mapData.imageOffsetY = 0;
             if (!this.mapData.imageMaintainRatio) this.mapData.imageMaintainRatio = false;
+            if (!this.mapData.imageNight) this.mapData.imageNight = null;
+            if (!Array.isArray(this.mapData.props)) this.mapData.props = [];
+            if (!Array.isArray(this.mapData.paths)) this.mapData.paths = [];
+            
             this.selectedPath = -1;
             this.selectedPoint = null;
             this.selectedProp = null;
-            document.getElementById('editor-map-name').value = this.mapData.name || "Custom Map";
             
-            document.getElementById('bg-image-name').value = this.mapData.image || "";
-            document.getElementById('bg-maintain-ratio').checked = this.mapData.imageMaintainRatio;
-            document.getElementById('bg-image-scale').value = this.mapData.imageScale;
-            document.getElementById('bg-image-x').value = this.mapData.imageOffsetX;
-            document.getElementById('bg-image-y').value = this.mapData.imageOffsetY;
-            document.getElementById('bg-scale-val').innerText = this.mapData.imageScale.toFixed(2);
-            document.getElementById('bg-x-val').innerText = this.mapData.imageOffsetX;
-            document.getElementById('bg-y-val').innerText = this.mapData.imageOffsetY;
+            const nameInput = document.getElementById('editor-map-name');
+            if (nameInput) nameInput.value = this.mapData.name || "Custom Map";
+            
+            const bgName = document.getElementById('bg-image-name');
+            if (bgName) bgName.value = this.mapData.image || "";
+            
+            const nightName = document.getElementById('bg-night-image-name');
+            if (nightName) nightName.value = this.mapData.imageNight || "";
+            
+            const bgMaintainRatio = document.getElementById('bg-maintain-ratio');
+            if (bgMaintainRatio) bgMaintainRatio.checked = this.mapData.imageMaintainRatio;
+            
+            const bgImageScale = document.getElementById('bg-image-scale');
+            if (bgImageScale) bgImageScale.value = this.mapData.imageScale;
+            
+            const bgImageX = document.getElementById('bg-image-x');
+            if (bgImageX) bgImageX.value = this.mapData.imageOffsetX;
+            
+            const bgImageY = document.getElementById('bg-image-y');
+            if (bgImageY) bgImageY.value = this.mapData.imageOffsetY;
+            
+            const bgScaleVal = document.getElementById('bg-scale-val');
+            if (bgScaleVal) bgScaleVal.innerText = this.mapData.imageScale.toFixed(2);
+            
+            const bgXVal = document.getElementById('bg-x-val');
+            if (bgXVal) bgXVal.innerText = this.mapData.imageOffsetX;
+            
+            const bgYVal = document.getElementById('bg-y-val');
+            if (bgYVal) bgYVal.innerText = this.mapData.imageOffsetY;
             
             if (this.mapData.image) {
                 this.loadBackgroundPreview();
             } else {
                 this.bgImage.loaded = false;
+            }
+            
+            if (this.mapData.imageNight) {
+                this.loadNightBackgroundPreview();
+            } else {
+                this.bgNightImage.loaded = false;
             }
             
             this.updatePathDropdown();
@@ -656,7 +887,7 @@ export const MapEditor = {
     },
     
     drawWaterStroke(ctx, brush) {
-        if (brush.points.length === 0) return;
+        if (!brush || !brush.points || brush.points.length === 0) return;
         ctx.strokeStyle = '#3498db';
         ctx.lineWidth = brush.thickness;
         ctx.lineCap = 'round';
@@ -669,18 +900,27 @@ export const MapEditor = {
     },
     
     draw() {
+        if (!this.mapData) return;
         const ctx = this.ctx;
-        if (this.bgImage.loaded && this.mapData.image) {
-            const scale = this.mapData.imageScale || 1;
-            const offX = this.mapData.imageOffsetX || 0;
-            const offY = this.mapData.imageOffsetY || 0;
-            let w = CANVAS_WIDTH * scale;
-            let h = CANVAS_HEIGHT * scale;
-            if (this.mapData.imageMaintainRatio && this.bgImage.width > 0) {
-                const ratio = this.bgImage.height / this.bgImage.width;
-                h = w * ratio;
-            }
+        const scale = this.mapData.imageScale || 1;
+        const offX = this.mapData.imageOffsetX || 0;
+        const offY = this.mapData.imageOffsetY || 0;
+        let w = CANVAS_WIDTH * scale;
+        let h = CANVAS_HEIGHT * scale;
+        
+        // PRO FIX: Added safety check for this.bgImage existing
+        if (this.mapData.imageMaintainRatio && this.bgImage && this.bgImage.width > 0) {
+            const ratio = this.bgImage.height / this.bgImage.width;
+            h = w * ratio;
+        }
+
+        const drawDay = !this.previewNight && this.bgImage && this.bgImage.loaded && this.mapData.image;
+        const drawNight = (this.previewNight || !drawDay) && this.bgNightImage && this.bgNightImage.loaded && this.mapData.imageNight;
+
+        if (drawDay) {
             ctx.drawImage(this.bgImage, offX, offY, w, h);
+        } else if (drawNight) {
+            ctx.drawImage(this.bgNightImage, offX, offY, w, h);
         } else {
             ctx.fillStyle = '#8acc4d';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -688,9 +928,9 @@ export const MapEditor = {
         
         if (this.refImage) {
             ctx.globalAlpha = 0.5;
-            const w = this.refImage.width * this.refScale;
-            const h = this.refImage.height * this.refScale;
-            ctx.drawImage(this.refImage, this.refX - w/2, this.refY - h/2, w, h);
+            const rw = this.refImage.width * this.refScale;
+            const rh = this.refImage.height * this.refScale;
+            ctx.drawImage(this.refImage, this.refX - rw/2, this.refY - rh/2, rw, rh);
             ctx.globalAlpha = 1.0;
         }
         
@@ -699,7 +939,6 @@ export const MapEditor = {
         for (let x = 0; x < CANVAS_WIDTH; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke(); }
         for (let y = 0; y < CANVAS_HEIGHT; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke(); }
         
-        // In-game sidebar guide overlay
         ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
         ctx.fillRect(CANVAS_WIDTH - 220, 0, 220, CANVAS_HEIGHT);
         ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
@@ -712,78 +951,92 @@ export const MapEditor = {
         ctx.font = '12px Arial';
         ctx.fillText('In-Game Sidebar', CANVAS_WIDTH - 210, 20);
         
-        if (this.mapData.waterBrushes) {
+        if (Array.isArray(this.mapData.waterBrushes)) {
             for (let brush of this.mapData.waterBrushes) this.drawWaterStroke(ctx, brush);
         }
         if (this.currentWaterStroke) this.drawWaterStroke(ctx, this.currentWaterStroke);
 
-        for (let p of this.mapData.props) this.drawEditorProp(ctx, p);
-        
-        for (let p = 0; p < this.mapData.paths.length; p++) {
-            const path = this.mapData.paths[p];
-            const isSelected = p === this.selectedPath;
-            
-            if (path.visible === false && !isSelected) continue;
-            if (path.visible === false) ctx.globalAlpha = 0.3;
-            
-            ctx.strokeStyle = '#a8825a';
-            ctx.lineWidth = 45;
-            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(path.waypoints[0].x, path.waypoints[0].y);
-            for (let i = 1; i < path.waypoints.length; i++) {
-                const wp = path.waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y);
-                else ctx.lineTo(wp.x, wp.y);
+        if (Array.isArray(this.mapData.props)) {
+            for (let p of this.mapData.props) {
+                if (p && p.x !== undefined) this.drawEditorProp(ctx, p);
             }
-            ctx.stroke();
-            
-            for (let i = 0; i < path.waypoints.length; i++) {
-                const wp = path.waypoints[i];
-                if (i === 0) {
-                    ctx.fillStyle = '#2ecc70'; 
+        }
+        
+        if (Array.isArray(this.mapData.paths)) {
+            for (let p = 0; p < this.mapData.paths.length; p++) {
+                const path = this.mapData.paths[p];
+                if (!path || !Array.isArray(path.waypoints)) continue;
+                const isSelected = p === this.selectedPath;
+                
+                if (path.visible === false && !isSelected) continue;
+                if (path.visible === false) ctx.globalAlpha = 0.3;
+                
+                ctx.strokeStyle = '#a8825a';
+                ctx.lineWidth = 45;
+                ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+                
+                // PRO FIX: Only draw the path if it has waypoints!
+                if (path.waypoints.length > 0) {
                     ctx.beginPath();
-                    ctx.moveTo(wp.x - 6, wp.y - 15);
-                    ctx.lineTo(wp.x + 6, wp.y - 10);
-                    ctx.lineTo(wp.x - 6, wp.y - 5);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.fillRect(wp.x - 8, wp.y - 15, 2, 15);
-                } else if (i === path.waypoints.length - 1) {
-                    ctx.fillStyle = '#e74c3c'; 
-                    ctx.beginPath();
-                    ctx.moveTo(wp.x - 6, wp.y - 15);
-                    ctx.lineTo(wp.x + 6, wp.y - 10);
-                    ctx.lineTo(wp.x - 6, wp.y - 5);
-                    ctx.closePath();
-                    ctx.fill();
-                    ctx.fillRect(wp.x - 8, wp.y - 15, 2, 15);
+                    ctx.moveTo(path.waypoints[0].x, path.waypoints[0].y);
+                    for (let i = 1; i < path.waypoints.length; i++) {
+                        const wp = path.waypoints[i];
+                        if (!wp) continue;
+                        if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y);
+                        else ctx.lineTo(wp.x, wp.y);
+                    }
+                    ctx.stroke();
                 }
                 
-                ctx.fillStyle = '#fff';
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(wp.x, wp.y, 8, 0, Math.PI * 2);
-                ctx.fill(); ctx.stroke();
-                
-                if (wp.curve) {
-                    ctx.strokeStyle = '#f1c40f';
+                for (let i = 0; i < path.waypoints.length; i++) {
+                    const wp = path.waypoints[i];
+                    if (!wp) continue;
+                    if (i === 0) {
+                        ctx.fillStyle = '#2ecc70'; 
+                        ctx.beginPath();
+                        ctx.moveTo(wp.x - 6, wp.y - 15);
+                        ctx.lineTo(wp.x + 6, wp.y - 10);
+                        ctx.lineTo(wp.x - 6, wp.y - 5);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.fillRect(wp.x - 8, wp.y - 15, 2, 15);
+                    } else if (i === path.waypoints.length - 1) {
+                        ctx.fillStyle = '#e74c3c'; 
+                        ctx.beginPath();
+                        ctx.moveTo(wp.x - 6, wp.y - 15);
+                        ctx.lineTo(wp.x + 6, wp.y - 10);
+                        ctx.lineTo(wp.x - 6, wp.y - 5);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.fillRect(wp.x - 8, wp.y - 15, 2, 15);
+                    }
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.strokeStyle = '#000';
                     ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.moveTo((i > 0 ? path.waypoints[i-1].x : wp.x), (i > 0 ? path.waypoints[i-1].y : wp.y));
-                    ctx.lineTo(wp.curve.cx, wp.curve.cy);
-                    ctx.lineTo(wp.x, wp.y);
-                    ctx.stroke();
-                    
-                    ctx.fillStyle = '#f1c40f';
-                    ctx.beginPath();
-                    ctx.arc(wp.curve.cx, wp.curve.cy, 6, 0, Math.PI * 2);
+                    ctx.arc(wp.x, wp.y, 8, 0, Math.PI * 2);
                     ctx.fill(); ctx.stroke();
+                    
+                    if (wp.curve) {
+                        ctx.strokeStyle = '#f1c40f';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo((i > 0 && path.waypoints[i-1]) ? path.waypoints[i-1].x : wp.x, (i > 0 && path.waypoints[i-1]) ? path.waypoints[i-1].y : wp.y);
+                        ctx.lineTo(wp.curve.cx, wp.curve.cy);
+                        ctx.lineTo(wp.x, wp.y);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = '#f1c40f';
+                        ctx.beginPath();
+                        ctx.arc(wp.curve.cx, wp.curve.cy, 6, 0, Math.PI * 2);
+                        ctx.fill(); ctx.stroke();
+                    }
                 }
+                ctx.globalAlpha = 1.0;
             }
-            ctx.globalAlpha = 1.0;
         }
+        
         if (this.selectedPoint) {
             ctx.strokeStyle = '#3498db';
             ctx.lineWidth = 3;

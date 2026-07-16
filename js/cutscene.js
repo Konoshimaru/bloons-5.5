@@ -3,14 +3,12 @@ import { GameEngine } from './engine.js';
 import { AudioEngine } from './audio.js';
 import { UI } from './ui.js';
 import Assets from './assets.js';
-import { Enemy } from './enemy.js';
 import { EnemyTypes } from './data.js';
 import { Config } from './config.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
+import { KnightEnemy, bossMusic } from './bosses/knight.js';
 
 // --- CONFIG ---
-const knightScale = 1.5; 
-const trailScale = 1.1; 
 const slashScale = 1.5;  
 
 const PHASE_SLASH_DURATION = 0.7;
@@ -25,104 +23,30 @@ for (let i = 1; i <= 14; i++) {
     Assets.get(`effect_slash_${i}`);
 }
 
-// PRO FIX: Use shared constants for offscreen canvas size
 const offscreenCanvas = document.createElement('canvas');
 offscreenCanvas.width = CANVAS_WIDTH;
 offscreenCanvas.height = CANVAS_HEIGHT;
 const offCtx = offscreenCanvas.getContext('2d');
 
-const bossMusic = new Audio('music/boss/blackknife.mp3');
-bossMusic.loop = true;
+// --- Canvases for Black Balls Metaball Effect ---
+const ballCanvas = document.createElement('canvas');
+ballCanvas.width = CANVAS_WIDTH;
+ballCanvas.height = CANVAS_HEIGHT;
+const ballCtx = ballCanvas.getContext('2d');
 
-export class KnightEnemy extends Enemy {
-    constructor(x, y) {
-        super(13, GameEngine.map, false, false, 13, false, 1.0);
-        this.tier = 99; 
-        this.x = x;
-        this.y = y;
-        this.alpha = 1; 
-        this.sprite = 'enemy_knight_back'; 
-        this.data = { ...EnemyTypes[13], name: "Black Knight", radius: 45, size: 90, isMoab: true, splitsInto: [] };
-        this.hp = 50000; 
-        this._maxHp = 50000;
-        this.distanceTraveled = 0; 
-        this.angle = 0;
-        
-        this.time = 0; 
-        this.knightTrail = [];
-        this.trailTimer = 0;
-        this.isCinematic = true; 
-    }
+const ballOutlineCanvas = document.createElement('canvas');
+ballOutlineCanvas.width = CANVAS_WIDTH;
+ballOutlineCanvas.height = CANVAS_HEIGHT;
+const ballOutlineCtx = ballOutlineCanvas.getContext('2d');
 
-    update(dt) {
-        this.time += dt;
-        this.y = 300 + Math.cos(this.time * 3) * 20;
-
-        if (!this.isCinematic) {
-            this.x = 200 + Math.sin(this.time * 2) * 30;
-        }
-
-        this.trailTimer += dt;
-        if (this.trailTimer > 0.04) {
-            this.knightTrail.unshift({ x: this.x, y: this.y, alpha: 0.7 * this.alpha });
-            this.trailTimer = 0;
-        }
-        
-        if (this.knightTrail.length > 25) this.knightTrail.pop();
-
-        for (let i = this.knightTrail.length - 1; i >= 0; i--) {
-            let t = this.knightTrail[i];
-            t.x -= 120 * dt; 
-            t.y -= 20 * dt;  
-            t.alpha -= dt * 0.8;
-            if (t.alpha <= 0) this.knightTrail.splice(i, 1);
-        }
-    }
-
-    takeDamage(damage, dmgType, effects) {
-        if (this._isImmune(dmgType, effects)) return -1;
-        this.hp -= damage;
-        if (this.hp <= 0) {
-            this.alive = false;
-            GameEngine.spawnPopEffect(this.x, this.y, '#000000');
-            bossMusic.pause();
-        }
-        return damage;
-    }
-
-    draw(ctx) {
-        let originalSmoothing = ctx.imageSmoothingEnabled;
-        ctx.imageSmoothingEnabled = false;
-
-        for (let t of this.knightTrail) {
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, t.alpha);
-            ctx.translate(t.x, t.y);
-            ctx.scale(-1, 1);
-            let asset = Assets.get('enemy_knight_front');
-            if (asset && asset.loaded) {
-                let w = asset.width * trailScale;
-                let h = asset.height * trailScale;
-                ctx.drawImage(asset, -w / 2, -h / 2, w, h);
-            }
-            ctx.restore();
-        }
-
-        ctx.save();
-        ctx.globalAlpha = Math.min(1, this.alpha);
-        ctx.translate(this.x, this.y);
-        ctx.scale(-1, 1);
-        let asset = Assets.get(this.sprite);
-        if (asset && asset.loaded) {
-            let w = asset.width * knightScale;
-            let h = asset.height * knightScale;
-            ctx.drawImage(asset, -w / 2, -h / 2, w, h);
-        }
-        ctx.restore();
-
-        ctx.imageSmoothingEnabled = originalSmoothing;
-    }
-}
+// --- DEV TWEAKING CONFIG (User's Perfect Defaults Applied) ---
+window.BallsConfig = {
+    giantCount: 30,       giantMinR: 80,        giantMaxR: 100,       giantOffsetX: 10,
+    massCount: 2000,      massMinR: 10,         massMaxR: 40,         massOffsetX: 50,
+    drifterCount: 100,    drifterMinR: 10,      drifterMaxR: 40,      drifterSpeed: 60,
+    drifterFadeRate: 2,   drifterShrinkRate: 60,
+    spreadX: 200,         outlineWidth: 4,      screenOffset: 0
+};
 
 export const CutsceneManager = {
     state: 'idle',
@@ -132,6 +56,135 @@ export const CutsceneManager = {
     ripProgress: 0,
     cameraOffsetX: 0,
     cameraTargetX: 500, 
+    blackBalls: [],
+    ballCenterX: -500,
+
+    initBlackBalls() {
+        const cfg = window.BallsConfig || {};
+        this.blackBalls = [];
+        this.ballCenterX = -500; 
+        const spread = cfg.spreadX ?? 200;
+        
+        for(let i=0; i < (cfg.giantCount ?? 15); i++) {
+            this.blackBalls.push({
+                ox: (Math.random() - 0.5) * spread - (cfg.giantOffsetX ?? 300),
+                oy: Math.random() * CANVAS_HEIGHT - CANVAS_HEIGHT / 2,
+                r: (cfg.giantMinR ?? 50) + Math.random() * ((cfg.giantMaxR ?? 80) - (cfg.giantMinR ?? 50)),
+                phase: Math.random() * Math.PI * 2,
+                speed: 0.5 + Math.random() * 1,
+                type: 'giant',
+                alpha: 1.0
+            });
+        }
+        
+        for(let i=0; i < (cfg.massCount ?? 60); i++) {
+            this.blackBalls.push({
+                ox: (Math.random() - 0.5) * spread - (cfg.massOffsetX ?? 100), 
+                oy: Math.random() * CANVAS_HEIGHT - CANVAS_HEIGHT / 2,
+                r: (cfg.massMinR ?? 10) + Math.random() * ((cfg.massMaxR ?? 25) - (cfg.massMinR ?? 10)),
+                phase: Math.random() * Math.PI * 2,
+                speed: 1 + Math.random() * 2,
+                type: 'mass',
+                alpha: 1.0
+            });
+        }
+        
+        for(let i=0; i < (cfg.drifterCount ?? 30); i++) {
+            this.blackBalls.push({
+                ox: (Math.random() - 0.5) * spread,
+                oy: Math.random() * CANVAS_HEIGHT - CANVAS_HEIGHT / 2,
+                r: (cfg.drifterMinR ?? 8) + Math.random() * ((cfg.drifterMaxR ?? 20) - (cfg.drifterMinR ?? 8)),
+                vx: (cfg.drifterSpeed ?? 150) + Math.random() * 50,
+                phase: Math.random() * Math.PI * 2,
+                speed: 2 + Math.random() * 3,
+                type: 'drifter',
+                alpha: 1.0
+            });
+        }
+    },
+
+    updateBlackBalls(dt) {
+        const cfg = window.BallsConfig || {};
+        let targetX = cfg.screenOffset ?? 0;
+
+        this.ballCenterX += (targetX - this.ballCenterX) * dt * 2.0;
+
+        for(let b of this.blackBalls) {
+            if (b.type === 'drifter') {
+                b.ox += b.vx * dt;
+                if (b.ox > 400) { 
+                    b.r -= dt * (cfg.drifterShrinkRate ?? 30);
+                    b.alpha -= dt * (cfg.drifterFadeRate ?? 0.5);
+                    
+                    if (b.r <= 0 || b.alpha <= 0) {
+                        b.ox = -300;
+                        b.oy = Math.random() * CANVAS_HEIGHT - CANVAS_HEIGHT / 2;
+                        b.r = (cfg.drifterMinR ?? 8) + Math.random() * ((cfg.drifterMaxR ?? 20) - (cfg.drifterMinR ?? 8));
+                        b.alpha = 1.0;
+                    }
+                }
+            }
+        }
+    },
+
+    drawBalls(ctx) {
+        if (this.state !== 'knight_floating') return;
+
+        const cfg = window.BallsConfig || {};
+        ballCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ballOutlineCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        const outlineWidth = cfg.outlineWidth ?? 4;
+        const time = performance.now() / 1000;
+
+        const getPos = (b) => {
+            let sx = this.ballCenterX + b.ox + Math.sin(time * b.speed + b.phase) * 10;
+            let sy = (CANVAS_HEIGHT / 2) + b.oy + Math.cos(time * b.speed + b.phase) * 10;
+            return { x: sx, y: sy };
+        };
+
+        ballOutlineCtx.fillStyle = '#ffffff';
+        for (let b of this.blackBalls) {
+            if (b.r > 0) {
+                let p = getPos(b);
+                ballOutlineCtx.globalAlpha = b.alpha !== undefined ? b.alpha : 1.0;
+                ballOutlineCtx.beginPath();
+                ballOutlineCtx.arc(p.x, p.y, b.r, 0, Math.PI * 2);
+                ballOutlineCtx.fill();
+            }
+        }
+        ballOutlineCtx.globalAlpha = 1.0;
+
+        ballOutlineCtx.globalCompositeOperation = 'destination-out';
+        ballOutlineCtx.fillStyle = '#000000';
+        for (let b of this.blackBalls) {
+            let innerR = Math.max(0, b.r - outlineWidth);
+            if (innerR > 0) {
+                let p = getPos(b);
+                ballOutlineCtx.globalAlpha = b.alpha !== undefined ? b.alpha : 1.0;
+                ballOutlineCtx.beginPath();
+                ballOutlineCtx.arc(p.x, p.y, innerR, 0, Math.PI * 2);
+                ballOutlineCtx.fill();
+            }
+        }
+        ballOutlineCtx.globalCompositeOperation = 'source-over';
+        ballOutlineCtx.globalAlpha = 1.0;
+
+        ballCtx.fillStyle = '#000000';
+        for (let b of this.blackBalls) {
+            if (b.r > 0) {
+                let p = getPos(b);
+                ballCtx.globalAlpha = b.alpha !== undefined ? b.alpha : 1.0;
+                ballCtx.beginPath();
+                ballCtx.arc(p.x, p.y, b.r, 0, Math.PI * 2);
+                ballCtx.fill();
+            }
+        }
+        ballCtx.globalAlpha = 1.0;
+
+        ctx.drawImage(ballCanvas, 0, 0);
+        ctx.drawImage(ballOutlineCanvas, 0, 0);
+    },
 
     reset() {
         this.state = 'idle';
@@ -140,6 +193,8 @@ export const CutsceneManager = {
         this.ripProgress = 0;
         this.knightEnemy = null;
         this.cameraOffsetX = 0;
+        this.blackBalls = []; 
+        this.ballCenterX = -500;
         
         for (let i = GameEngine.enemies.length - 1; i >= 0; i--) {
             if (GameEngine.enemies[i] instanceof KnightEnemy) {
@@ -173,11 +228,17 @@ export const CutsceneManager = {
             bossMusic.volume = Config.data.musicVolume ?? 0.3;
         }
 
-        if (this.state === 'idle' || this.state === 'knight_floating') return false;
+        if (this.state === 'idle') return false;
 
         if (this.knightEnemy) {
             this.knightEnemy.update(dt);
         }
+
+        if (this.blackBalls.length > 0) {
+            this.updateBlackBalls(dt);
+        }
+
+        if (this.state === 'knight_floating') return false;
 
         if (this.state === 'slashing') {
             this.timer -= dt;
@@ -249,6 +310,8 @@ export const CutsceneManager = {
                 this.knightEnemy.isCinematic = false; 
                 this.state = 'knight_floating';
                 
+                this.initBlackBalls();
+                
                 bossMusic.volume = Config.data.musicVolume ?? 0.3;
                 bossMusic.play().catch(e => console.warn("Boss music blocked:", e));
             }
@@ -265,7 +328,6 @@ export const CutsceneManager = {
 
         if (['slashing', 'waiting_to_rip', 'ripping'].includes(this.state)) {
             ctx.fillStyle = '#000000';
-            // PRO FIX: Use shared constants
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
             if (this.target) {
@@ -327,7 +389,38 @@ export const CutsceneManager = {
             }
             ctx.restore();
         }
+        
+        if (this.knightEnemy) {
+            this.knightEnemy.draw(ctx);
+        }
 
         ctx.imageSmoothingEnabled = originalSmoothing;
     }
+};
+
+// --- DEV COMMANDS ---
+window.triggerBossCutscene = function() {
+    if (!GameEngine.map || GameEngine.gameState !== 'playing') {
+        console.error("❌ Cutscene Error: You must be in an active game (not the main menu) to trigger the cutscene!");
+        return;
+    }
+    
+    if (CutsceneManager.state !== 'idle') {
+        console.error("❌ Cutscene Error: Cutscene is already playing!");
+        return;
+    }
+
+    console.log("✅ Spawning dummy MOAB and triggering cutscene...");
+    let e = GameEngine.enemyPool.get();
+    e.init(13, GameEngine.map, false, false, 13, false, null, 0, false);
+    e.x = 640;
+    e.y = 360;
+    GameEngine.enemies.push(e);
+    
+    CutsceneManager.trigger(e);
+};
+
+window.applyBallsConfig = function() {
+    CutsceneManager.initBlackBalls();
+    console.log("✅ Balls config applied!");
 };

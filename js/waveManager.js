@@ -16,6 +16,7 @@ export class WaveManager {
         this.waveActive = false;
         this.autoWaveEnabled = false;
         this.nextWaveTimer = 0;
+        this._lastSpawnPath = 0; // NEW: Track for even split
     }
 
     clearField() {
@@ -116,9 +117,20 @@ export class WaveManager {
         while (this.spawnQueue.length > 0 && this.spawnQueue[0].time <= this.waveTime) {
             const spawn = this.spawnQueue.shift();
             
-            // PRO FIX: Assign pathIndex randomly if multiple paths exist
             const pathCount = GameEngine.map.paths.length;
-            const pathIndex = pathCount > 1 ? Math.floor(Math.random() * pathCount) : 0;
+            let pathIndex = 0;
+            
+            // PRO FIX: Even Split Logic
+            if (pathCount > 1) {
+                if (GameEngine.map.data.evenSplit) {
+                    // Alternate strictly between paths
+                    pathIndex = this._lastSpawnPath;
+                    this._lastSpawnPath = (this._lastSpawnPath + 1) % pathCount;
+                } else {
+                    // Random split
+                    pathIndex = Math.floor(Math.random() * pathCount);
+                }
+            }
             
             // PRO FIX: Super Ceramics start at Round 81
             let isSuper = this.currentWave >= 81 && spawn.tier >= 12;

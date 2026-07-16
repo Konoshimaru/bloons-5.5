@@ -47,26 +47,29 @@ export class GameMap {
             let totalLength = 0;
 
             for (let i = 0; i < waypoints.length - 1; i++) {
-                const p1 = { x: waypoints[i].x, y: waypoints[i].y };
-                const p2 = { x: waypoints[i+1].x, y: waypoints[i+1].y };
+                // PRO FIX: Use the raw waypoint objects so we don't lose the 'curve' property!
+                const p1 = waypoints[i];
+                const p2 = waypoints[i+1];
                 
                 if (p2.curve) {
                     const cp = { x: p2.curve.cx, y: p2.curve.cy };
-                    const subdiv = 15;
-                    let prevPt = p1;
+                    const subdiv = 40; 
+                    let prevPt = { x: p1.x, y: p1.y };
                     for (let s = 1; s <= subdiv; s++) {
                         const t = s / subdiv;
                         const x = (1 - t) * (1 - t) * p1.x + 2 * (1 - t) * t * cp.x + t * t * p2.x;
                         const y = (1 - t) * (1 - t) * p1.y + 2 * (1 - t) * t * cp.y + t * t * p2.y;
                         const dist = Utils.distance(prevPt.x, prevPt.y, x, y);
-                        segments.push({ p1: prevPt, p2: {x, y}, dist });
-                        totalLength += dist;
-                        cumulativeDistances.push(totalLength);
+                        if (dist > 0) {
+                            segments.push({ p1: prevPt, p2: {x, y}, dist });
+                            totalLength += dist;
+                            cumulativeDistances.push(totalLength);
+                        }
                         prevPt = {x, y};
                     }
                 } else {
                     const dist = Utils.distance(p1.x, p1.y, p2.x, p2.y);
-                    segments.push({ p1, p2, dist });
+                    segments.push({ p1: {x: p1.x, y: p1.y}, p2: {x: p2.x, y: p2.y}, dist });
                     totalLength += dist;
                     cumulativeDistances.push(totalLength);
                 }
@@ -77,7 +80,17 @@ export class GameMap {
 
     _initBackground() {
         this.backgroundImage = null;
-        if (this.data.image) this.backgroundImage = Assets.get(`map_${this.data.image}`);
+        this.nightImage = null; 
+        if (this.data.image) {
+            this.backgroundImage = Assets.get(`map_${this.data.image}`);
+            
+            // Use explicit night image if defined, otherwise guess the suffix
+            if (this.data.imageNight) {
+                this.nightImage = Assets.get(`map_${this.data.imageNight}`);
+            } else {
+                this.nightImage = Assets.get(`map_${this.data.image}_night`);
+            }
+        }
     }
 
     _initCache() {
@@ -88,32 +101,40 @@ export class GameMap {
     }
 
     draw(ctx) {
+        const scale = this.data.imageScale || 1;
+        const offX = this.data.imageOffsetX || 0;
+        const offY = this.data.imageOffsetY || 0;
+        let w = CANVAS_WIDTH * scale;
+        let h = CANVAS_HEIGHT * scale;
+        
+        // 1. Draw Day Background
         if (this.backgroundImage && this.backgroundImage.loaded) {
-            const scale = this.data.imageScale || 1;
-            const offX = this.data.imageOffsetX || 0;
-            const offY = this.data.imageOffsetY || 0;
-            let w = CANVAS_WIDTH * scale;
-            let h = CANVAS_HEIGHT * scale;
-            
             if (this.data.imageMaintainRatio && this.backgroundImage.width > 0) {
-                const ratio = this.backgroundImage.height / this.backgroundImage.width;
-                h = w * ratio;
+                h = w * (this.backgroundImage.height / this.backgroundImage.width);
             }
-            
             ctx.drawImage(this.backgroundImage, offX, offY, w, h);
         } else {
             ctx.fillStyle = '#8acc4d';
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         }
-        // Always draw the cache canvas (paths, water, props) on top of the background!
+
+        // 2. Draw Night Background (Cross-fade)
+        if (this.nightImage && this.nightImage.loaded && GameEngine.nightAlpha > 0) {
+            ctx.globalAlpha = GameEngine.nightAlpha;
+            let nh = h;
+            if (this.data.imageMaintainRatio && this.nightImage.width > 0) {
+                nh = w * (this.nightImage.height / this.nightImage.width);
+            }
+            ctx.drawImage(this.nightImage, offX, offY, w, nh);
+            ctx.globalAlpha = 1.0;
+        }
+
+        // 3. Always draw the cache canvas (paths, water, props) on top
         ctx.drawImage(this.cacheCanvas, 0, 0);
     }
 
     drawToCache(ctx) {
-        // PRO FIX: Clear instead of filling green so backgrounds show through
-        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-        // Removed the grid drawing loop so it doesn't show up in the normal game!
+        ctx.clearRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
         for (let brush of this.waterBrushes) {
             if (brush.points.length === 0) continue;
@@ -186,7 +207,6 @@ export class GameMap {
     }
 
     _findSegmentIndex(distance, cumulativeDistances) {
-        // PRO FIX: Prevent infinite loop if distance is NaN
         if (isNaN(distance)) return 0; 
         
         let low = 0, high = cumulativeDistances.length - 1, mid = 0;
@@ -215,7 +235,8 @@ export class GameMap {
         const segIndex = this._findSegmentIndex(distance, path.cumulativeDistances);
         const seg = path.segments[segIndex];
         const segStartDist = path.cumulativeDistances[segIndex];
-        const t = (distance - segStartDist) / seg.dist;
+        // PRO FIX: Guard against division by zero
+        const t = seg.dist > 0 ? (distance - segStartDist) / seg.dist : 0;
         return { x: Utils.lerp(seg.p1.x, seg.p2.x, t), y: Utils.lerp(seg.p1.y, seg.p2.y, t), finished: false };
     }
 
@@ -249,6 +270,7 @@ export class GameMap {
         }
         return bestPoint;
     }
+
     getTrackPointsInRange(x, y, radius) {
         const points = [];
         for (let p = 0; p < this.paths.length; p++) {
@@ -276,6 +298,7 @@ export class GameMap {
         }
         return points;
     }
+
     isInWater(x, y) {
         for (let p of this.props) {
             if (p.type === 'pond') {

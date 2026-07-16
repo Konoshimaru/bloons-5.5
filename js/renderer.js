@@ -4,6 +4,8 @@ import { TowerStats } from './towers/index.js';
 import { Utils } from './utils.js';
 import { Tower } from './tower.js';
 import { CutsceneManager } from './cutscene.js';
+import { KnightEnemy } from './bosses/knight.js';
+import { GameEngine } from './engine.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
@@ -24,6 +26,14 @@ export const Renderer = {
     render(engine, dt) {
         const ctx = engine.ctx;
         
+        // Initialize night mode properties if they don't exist
+        if (engine.isNight === undefined) engine.isNight = false;
+        if (engine.nightAlpha === undefined) engine.nightAlpha = 0;
+        
+        // Smoothly interpolate night alpha
+        const targetNightAlpha = engine.isNight ? 1 : 0;
+        engine.nightAlpha += (targetNightAlpha - engine.nightAlpha) * Math.min(1, (dt || 0.016) * 2);
+
         // Draw Main Menu Scenery if in menu state or no map loaded
         if (engine.gameState === 'menu' || !engine.map) {
             this._drawMainMenuScenery(ctx, engine, dt);
@@ -34,7 +44,7 @@ export const Renderer = {
         
         let camOffset = CutsceneManager.cameraOffsetX || 0;
         if (camOffset !== 0) {
-            ctx.fillStyle = '#8acc4d';
+            ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, camOffset, CANVAS_HEIGHT);
             ctx.save();
             ctx.translate(camOffset, 0);
@@ -51,7 +61,18 @@ export const Renderer = {
             ctx.restore();
         }
         
+        CutsceneManager.drawBalls(ctx);
+        
+        if (camOffset !== 0) {
+            ctx.save();
+            ctx.translate(camOffset, 0);
+        }
+        
         CutsceneManager.draw(ctx);
+
+        if (camOffset !== 0) {
+            ctx.restore();
+        }
     },
 
     _drawMainMenuScenery(ctx, engine, dt) {
@@ -97,15 +118,14 @@ export const Renderer = {
         // 4. Sun / Moon Position
         let progress;
         if (hours > 6 && hours <= 18) {
-            progress = (hours - 6) / 12; // Day: 6am to 6pm
+            progress = (hours - 6) / 12;
         } else {
             let nightHours = hours <= 6 ? hours + 6 : hours - 18;
-            progress = nightHours / 12; // Night: 6pm to 6am
+            progress = nightHours / 12;
         }
         let smX = progress * 1280;
         let smY = 150 - Math.sin(progress * Math.PI) * 50;
         
-        // Sun
         if (phase === 'day' || phase === 'dawn') {
             ctx.fillStyle = '#FFD700';
             ctx.shadowColor = '#FFD700';
@@ -115,7 +135,6 @@ export const Renderer = {
             ctx.fill();
             ctx.shadowBlur = 0;
         }
-        // Moon
         if (phase === 'night' || phase === 'dusk') {
             ctx.fillStyle = '#F4F6F0';
             ctx.shadowColor = '#F4F6F0';
@@ -123,7 +142,6 @@ export const Renderer = {
             ctx.beginPath();
             ctx.arc(smX, smY, 35, 0, Math.PI * 2);
             ctx.fill();
-            // Crater
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#e0e0e0';
             ctx.beginPath();
@@ -167,7 +185,6 @@ export const Renderer = {
         let bounce = Math.sin(t * 2) * 5;
         let bx = 640, by = 520 + bounce;
         
-        // Tail
         ctx.strokeStyle = '#795548';
         ctx.lineWidth = 8;
         ctx.lineCap = 'round';
@@ -176,31 +193,26 @@ export const Renderer = {
         ctx.quadraticCurveTo(bx + 90, by - 20, bx + 70, by - 60);
         ctx.stroke();
         
-        // Body
         ctx.fillStyle = '#795548';
         ctx.beginPath();
         ctx.ellipse(bx, by + 10, 40, 45, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Belly
         ctx.fillStyle = '#D2B48C';
         ctx.beginPath();
         ctx.ellipse(bx, by + 20, 25, 30, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Head
         ctx.fillStyle = '#795548';
         ctx.beginPath();
         ctx.arc(bx, by - 20, 35, 0, Math.PI * 2);
         ctx.fill();
         
-        // Ears
         ctx.beginPath();
         ctx.arc(bx - 30, by - 20, 12, 0, Math.PI * 2);
         ctx.arc(bx + 30, by - 20, 12, 0, Math.PI * 2);
         ctx.fill();
         
-        // Inner Ears & Face
         ctx.fillStyle = '#D2B48C';
         ctx.beginPath();
         ctx.arc(bx - 30, by - 20, 6, 0, Math.PI * 2);
@@ -210,7 +222,6 @@ export const Renderer = {
         ctx.ellipse(bx, by - 15, 22, 20, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Eyes
         ctx.fillStyle = '#fff';
         ctx.beginPath();
         ctx.arc(bx - 10, by - 25, 8, 0, Math.PI * 2);
@@ -224,7 +235,6 @@ export const Renderer = {
         ctx.arc(bx + 10 + eyeOffset, by - 25, 4, 0, Math.PI * 2);
         ctx.fill();
         
-        // Smile
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -323,7 +333,9 @@ export const Renderer = {
             if (p && p.alive) p.draw(ctx);
         }
 
-        engine.enemies.forEach(e => { if (e) e.draw(ctx); });
+        engine.enemies.forEach(e => { 
+            if (e && !(e instanceof KnightEnemy)) e.draw(ctx); 
+        });
 
         const particles = engine.particlePool.active;
         for (let i = 0; i < particles.length; i++) {
@@ -348,7 +360,8 @@ export const Renderer = {
         ctx.globalAlpha = 0.6;
 
         if (stats.range < 9999) {
-            const effRange = Math.max(1, stats.range * RANGE_SCALE * GS);
+            const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
+            const effRange = Math.max(1, stats.range * RANGE_SCALE * nightMod * GS);
             ctx.fillStyle = canAfford ? TOWER_AFFORDABLE_COLOR : TOWER_OUT_OF_BOUNDS_COLOR;
             ctx.beginPath();
             ctx.arc(mouse.x, mouse.y, effRange, 0, Math.PI * 2);
@@ -400,7 +413,8 @@ export const Renderer = {
             const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
             const buffMult = typeof t.buffedRange === 'number' ? t.buffedRange : 0;
             const alchBuff = t.alchBuff ? t.alchBuff.range : 0;
-            const effRange = Math.max(1, t.stats.range * scale * (1 + buffMult + alchBuff) * GS);
+            const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
+            const effRange = Math.max(1, t.stats.range * scale * (1 + buffMult + alchBuff) * nightMod * GS);
 
             ctx.fillStyle = TOWER_RANGE_FILL_COLOR;
             ctx.globalAlpha = TOWER_SELECTION_FILL_ALPHA;
@@ -420,4 +434,14 @@ export const Renderer = {
             ctx.globalAlpha = 1;
         }
     }
+};
+
+// --- DEV COMMAND ---
+window.toggleNight = function() {
+    if (!GameEngine.map) {
+        console.error("❌ Night Mode Error: You must be in an active game to toggle night!");
+        return;
+    }
+    GameEngine.isNight = !GameEngine.isNight;
+    console.log(`🌙 Night mode: ${GameEngine.isNight ? 'ON' : 'OFF'}`);
 };

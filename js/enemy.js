@@ -59,11 +59,44 @@ export class Enemy {
         // PRO FIX: Freeplay Rules (Rounds 81+)
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
         if (round > 80) {
-            // All bloons get faster
-            this.data.speed *= (1 + (round - 80) * 0.01);
-            // MOAB-class slowly gains more HP
+            // --- FREEPLAY SPEED RAMPING (Piecewise Linear with Discontinuities) ---
+            let speedMult = 1.0;
+            if (round <= 100) {
+                speedMult = 1 + (round - 80) * 0.02;
+            } else if (round <= 150) {
+                speedMult = 1.6 + (round - 101) * 0.02;
+            } else if (round <= 200) {
+                speedMult = 3.0 + (round - 151) * 0.02;
+            } else if (round <= 251) {
+                speedMult = 4.5 + (round - 201) * 0.02;
+            } else {
+                speedMult = 6.0 + (round - 252) * 0.02;
+            }
+            this.data.speed *= speedMult;
+            // -----------------------------------------------------------------------
+
+            // MOAB-class HP Ramping (Continuous Piecewise Linear)
             if (this.data.isMoab) {
-                this._maxHp *= (1 + (round - 80) * 0.01);
+                let hpMult = 1.0;
+                if (round <= 100) {
+                    hpMult = 1.0 + (round - 80) * 0.02;
+                } else if (round <= 124) {
+                    hpMult = 1.4 + (round - 100) * 0.05;
+                } else if (round <= 150) {
+                    hpMult = 2.6 + (round - 124) * 0.15;
+                } else if (round <= 250) {
+                    hpMult = 6.5 + (round - 150) * 0.35;
+                } else if (round <= 300) {
+                    hpMult = 41.5 + (round - 250) * 1.0;
+                } else if (round <= 400) {
+                    hpMult = 91.5 + (round - 300) * 1.5;
+                } else if (round <= 500) {
+                    hpMult = 241.5 + (round - 400) * 2.5;
+                } else {
+                    hpMult = 5 * round - 2008.5;
+                }
+                
+                this._maxHp *= hpMult;
                 this.hp = this._maxHp;
             }
         }
@@ -224,7 +257,16 @@ export class Enemy {
                     if (childData) childrenRbe += (childData.rbe || 0) * child.count;
                 }
             }
-            const currentHp = Math.max(0, Math.ceil(this.hp)) || 0;
+            
+            // PRO FIX: Freeplay HP ramping should not affect lives lost.
+            // Calculate lives lost based on the unscaled base HP ratio.
+            let baseMaxHp = this.data.maxHp;
+            if (this.isFortified && (this.data.isMoab || this.data.isCeramic)) {
+                baseMaxHp *= 2;
+            }
+            const hpRatio = this._maxHp > 0 ? (this.hp / this._maxHp) : 0;
+            const currentHp = Math.max(0, Math.ceil(baseMaxHp * hpRatio)) || 0;
+            
             return isFinite(currentHp + childrenRbe) ? currentHp + childrenRbe : 0;
         }
         if (this.data.isCeramic) {
@@ -263,10 +305,22 @@ export class Enemy {
                 if (childData) childRbeTotal += (childData.rbe || 0) * child.count;
             }
         }
-        const layerCash = Math.max(1, Math.floor((this.data.rbe - childRbeTotal) * CASH_REWARD_MODIFIER));
+
+        // --- FREEPLAY CASH SCALING ---
+        let cashMult = 1.0;
+        const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
+        if (round >= 141) cashMult = 0.02;
+        else if (round >= 121) cashMult = 0.04;
+        else if (round >= 101) cashMult = 0.05;
+        else if (round >= 86) cashMult = 0.10;
+        else if (round >= 61) cashMult = 0.20;
+        else if (round >= 51) cashMult = 0.50;
+        // -----------------------------
+
+        const layerCash = Math.max(1, Math.floor((this.data.rbe - childRbeTotal) * CASH_REWARD_MODIFIER * cashMult));
         GameEngine.addCash(layerCash);
         if (!canSpawn && childRbeTotal > 0) {
-            const childCash = Math.max(1, Math.floor(childRbeTotal * CASH_REWARD_MODIFIER));
+            const childCash = Math.max(1, Math.floor(childRbeTotal * CASH_REWARD_MODIFIER * cashMult));
             GameEngine.addCash(childCash);
         }
     }

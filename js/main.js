@@ -40,6 +40,7 @@ const dom = {
     upCollectBank: document.getElementById('up-collect-bank'),
     cashDisplay: document.getElementById('cash-display'),
     livesDisplay: document.getElementById('lives-display'),
+    waveDisplay: document.getElementById('wave-display'), // NEW: Wave display element
     cancelBtn: document.getElementById('cancel-btn'),
     
     // Main Menu UI
@@ -464,6 +465,14 @@ function _setupGameListeners() {
         if (!GameEngine.isSandbox) return;
         const val = prompt("Set Lives Amount:", GameEngine.lives);
         if (val !== null && !isNaN(val)) { GameEngine.lives = Math.max(0, parseInt(val)); GameEngine.updateUI(); }
+    });
+    dom.waveDisplay?.addEventListener('click', () => {
+        if (!GameEngine.isSandbox) return;
+        const val = prompt("Set Round:", GameEngine.waveManager.currentWave);
+        if (val !== null && !isNaN(val)) {
+            GameEngine.waveManager.currentWave = Math.max(1, parseInt(val));
+            GameEngine.updateUI();
+        }
     });
     dom.cancelBtn?.addEventListener('click', () => GameEngine.deselectAll());
     

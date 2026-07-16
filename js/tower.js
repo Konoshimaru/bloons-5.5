@@ -8,6 +8,7 @@ import { Names } from './names.js';
 import { SpriteConfig } from './spriteConfig.js';
 import * as TowerBehavior from './towerBehavior.js';
 import { GLOBAL_SCALE } from './constants.js';
+import { GameEngine } from './engine.js'; // NEW: Import GameEngine for night mode check
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -195,7 +196,6 @@ export class Tower {
         if (asset && asset.loaded) {
             ctx.save();
             ctx.translate(x, y);
-            // PRO FIX: Use stats.drawSize if it exists (like Sniper's 150)
             const targetSize = (stats?.drawSize ? stats.drawSize * GS : 45 * scaleVal);
             drawImageCentered(ctx, asset, targetSize);
             ctx.restore();
@@ -281,6 +281,21 @@ export class Tower {
     }
 
     draw(ctx, isPreview = false) {
+        // NEW: Draw faint glow if night mode is active
+        if (!isPreview && GameEngine.nightAlpha > 0) {
+            ctx.save();
+            ctx.globalAlpha = GameEngine.nightAlpha * 0.5;
+            const glowR = 35 * GS;
+            const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
+            grad.addColorStop(0, 'rgba(255, 240, 150, 0.6)');
+            grad.addColorStop(1, 'rgba(255, 240, 150, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, glowR, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
         if (!isPreview) {
             drawShadow(ctx, this.x, this.y, SHADOW_SCALE * (this.stats.scale || 1.0) * GS);
         }
