@@ -5,7 +5,6 @@ import { Utils } from './utils.js';
 import { Tower } from './tower.js';
 import { CutsceneManager } from './cutscene.js';
 import { KnightEnemy } from './bosses/knight.js';
-import { GameEngine } from './engine.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
@@ -22,8 +21,11 @@ const EXPLOSION_INNER_COLOR = '#f1c40f';
 const LEAK_FLASH_COLOR = '#e74c3c';
 const LEAK_FLASH_LINE_WIDTH = 10;
 
+let _engineInstance = null;
+
 export const Renderer = {
     render(engine, dt) {
+        _engineInstance = engine; // Capture for dev commands
         const ctx = engine.ctx;
         
         // Initialize night mode properties if they don't exist
@@ -325,7 +327,7 @@ export const Renderer = {
     },
 
     _drawEntities(ctx, engine) {
-        engine.towers.forEach(t => { if (t) t.draw(ctx); });
+        engine.towers.forEach(t => { if (t) t.draw(ctx, false, engine); });
         
         const projectiles = engine.projectilePool.active;
         for (let i = 0; i < projectiles.length; i++) {
@@ -438,10 +440,10 @@ export const Renderer = {
 
 // --- DEV COMMAND ---
 window.toggleNight = function() {
-    if (!GameEngine.map) {
+    if (!_engineInstance || !_engineInstance.map) {
         console.error("❌ Night Mode Error: You must be in an active game to toggle night!");
         return;
     }
-    GameEngine.isNight = !GameEngine.isNight;
-    console.log(`🌙 Night mode: ${GameEngine.isNight ? 'ON' : 'OFF'}`);
+    _engineInstance.isNight = !_engineInstance.isNight;
+    console.log(`🌙 Night mode: ${_engineInstance.isNight ? 'ON' : 'OFF'}`);
 };

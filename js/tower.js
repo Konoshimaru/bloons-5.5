@@ -8,7 +8,6 @@ import { Names } from './names.js';
 import { SpriteConfig } from './spriteConfig.js';
 import * as TowerBehavior from './towerBehavior.js';
 import { GLOBAL_SCALE } from './constants.js';
-import { GameEngine } from './engine.js'; // NEW: Import GameEngine for night mode check
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -280,11 +279,11 @@ export class Tower {
         engine.updateUI();
     }
 
-    draw(ctx, isPreview = false) {
+    draw(ctx, isPreview = false, engine = null) {
         // NEW: Draw faint glow if night mode is active
-        if (!isPreview && GameEngine.nightAlpha > 0) {
+        if (!isPreview && engine && engine.nightAlpha > 0) {
             ctx.save();
-            ctx.globalAlpha = GameEngine.nightAlpha * 0.5;
+            ctx.globalAlpha = engine.nightAlpha * 0.5;
             const glowR = 35 * GS;
             const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
             grad.addColorStop(0, 'rgba(255, 240, 150, 0.6)');
@@ -305,7 +304,7 @@ export class Tower {
 
         const behavior = getBehavior(this.type);
         if (behavior && behavior.draw) {
-            behavior.draw(ctx, this, isPreview);
+            behavior.draw(ctx, this, isPreview, engine);
             return;
         }
 
