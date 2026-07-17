@@ -449,7 +449,8 @@ export class Enemy {
             }
             return true;
         }
-        if (this.isFrozen && dmgType.isSharp && !dmgType.canHitLead) {
+        // PRO FIX: If the bloon is brittle (Embrittlement/Super Brittle), sharp projectiles CAN hit them while frozen
+        if (this.isFrozen && dmgType.isSharp && !dmgType.canHitLead && !this.brittle) {
             AudioEngine.playSfx('frozen_hit');
             return true;
         }

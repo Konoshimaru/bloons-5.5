@@ -77,7 +77,7 @@ function _updateTimers(tower, dt, engine) {
         tower.attackPointTimer -= dt;
         if (tower.attackPointTimer <= 0) {
             if (tower.pendingTarget && tower.pendingTarget.alive) {
-                fire(tower, tower.pendingTarget, engine);
+                _executeFire(tower, tower.pendingTarget, engine);
             }
             tower.pendingTarget = null;
             tower.attackPointTimer = 0;
@@ -240,7 +240,7 @@ function _triggerAttack(tower, target, effFireRate, engine) {
     const animAsset = _getAnimationAsset(tower);
     
     if (!animAsset || !animAsset.loaded) {
-        fire(tower, target, engine);
+        _executeFire(tower, target, engine);
         tower.cooldown = effFireRate / (1 + tower.buffedFireRate);
         return;
     }
@@ -255,6 +255,49 @@ function _triggerAttack(tower, target, effFireRate, engine) {
     tower.attackPointTimer = finalWindupTime;
     tower.pendingTarget = target;
     tower.cooldown = effFireRate / (1 + tower.buffedFireRate); 
+}
+
+// NEW: Centralized function to handle firing with predictive targeting
+function _executeFire(tower, target, engine) {
+    // PRO FIX: Predictive Targeting for high-range, slow projectiles
+    const projSpeed = tower.stats.projectileSpeed || 0;
+    let aimX = target.x, aimY = target.y;
+    
+    // Only predict for moving projectiles (not instant hits like Sniper, or radial like Tack/Ice)
+    // Also limit to speeds < 1500 so we don't predict for things like Icicle Impale or Super Monkey (they rarely miss anyway)
+    if (projSpeed > 0 && projSpeed < 1500 && target.data.speed > 0) {
+        const dist = Utils.distance(tower.x, tower.y, target.x, target.y);
+        
+        // Calculate effective speed factoring in slows/glue/gojo
+        const effSpeed = target.data.speed * (target.slowFactor || 1) * (target.gojoSlow || 1) * (target.permafrostSlow || 1);
+        
+        // Add slight randomization so they aren't perfectly accurate (as requested)
+        // Time to hit is between 80% and 120% of the mathematical perfect time
+        const timeToHit = (dist / projSpeed) * (0.8 + Math.random() * 0.4);
+        
+        const futureDist = target.distanceTraveled + (effSpeed * timeToHit);
+        const pathIdx = target.pathIndex || 0;
+        const totalLen = engine.map.getTotalLength(pathIdx);
+        const safeFutureDist = Math.max(0, Math.min(totalLen, futureDist));
+        const futurePos = engine.map.getPositionAtDistance(safeFutureDist, pathIdx);
+        
+        if (!futurePos.finished) {
+            aimX = futurePos.x;
+            aimY = futurePos.y;
+        }
+    }
+    
+    // Temporarily override target position for the fire() call so projectiles spawn aiming at the predicted spot
+    const realX = target.x;
+    const realY = target.y;
+    target.x = aimX;
+    target.y = aimY;
+    
+    fire(tower, target, engine);
+    
+    // Restore immediately so game logic isn't affected
+    target.x = realX;
+    target.y = realY;
 }
 
 function _getAnimationAsset(tower) {

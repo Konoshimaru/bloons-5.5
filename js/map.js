@@ -1,8 +1,10 @@
-﻿// map.js
-import { Utils } from './utils.js';
+﻿import { Utils } from './utils.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
+const RANGE_SCALE = 3.0; // Hardcoded to avoid circular imports
 
 const GRID_SIZE = 40;
 const PATH_WIDTH = 45;
@@ -47,7 +49,6 @@ export class GameMap {
             let totalLength = 0;
 
             for (let i = 0; i < waypoints.length - 1; i++) {
-                // PRO FIX: Use the raw waypoint objects so we don't lose the 'curve' property!
                 const p1 = waypoints[i];
                 const p2 = waypoints[i+1];
                 
@@ -83,8 +84,6 @@ export class GameMap {
         this.nightImage = null; 
         if (this.data.image) {
             this.backgroundImage = Assets.get(`map_${this.data.image}`);
-            
-            // Use explicit night image if defined, otherwise guess the suffix
             if (this.data.imageNight) {
                 this.nightImage = Assets.get(`map_${this.data.imageNight}`);
             } else {
@@ -107,7 +106,6 @@ export class GameMap {
         let w = CANVAS_WIDTH * scale;
         let h = CANVAS_HEIGHT * scale;
         
-        // 1. Draw Day Background
         if (this.backgroundImage && this.backgroundImage.loaded) {
             if (this.data.imageMaintainRatio && this.backgroundImage.width > 0) {
                 h = w * (this.backgroundImage.height / this.backgroundImage.width);
@@ -118,7 +116,6 @@ export class GameMap {
             ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         }
 
-        // 2. Draw Night Background (Cross-fade)
         if (this.nightImage && this.nightImage.loaded && GameEngine.nightAlpha > 0) {
             ctx.globalAlpha = GameEngine.nightAlpha;
             let nh = h;
@@ -129,31 +126,36 @@ export class GameMap {
             ctx.globalAlpha = 1.0;
         }
 
-        // 3. Always draw the cache canvas (paths, water, props) on top
         ctx.drawImage(this.cacheCanvas, 0, 0);
     }
 
     drawToCache(ctx) {
         ctx.clearRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        for (let brush of this.waterBrushes) {
-            if (brush.points.length === 0) continue;
-            ctx.strokeStyle = '#3498db';
-            ctx.lineWidth = brush.thickness;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-            ctx.moveTo(brush.points[0].x, brush.points[0].y);
-            for (let i = 1; i < brush.points.length; i++) {
-                ctx.lineTo(brush.points[i].x, brush.points[i].y);
+        if (this.data.waterVisible !== false) {
+            for (let brush of this.waterBrushes) {
+                if (brush.points.length === 0) continue;
+                ctx.strokeStyle = '#3498db';
+                ctx.lineWidth = brush.thickness;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(brush.points[0].x, brush.points[0].y);
+                for (let i = 1; i < brush.points.length; i++) {
+                    ctx.lineTo(brush.points[i].x, brush.points[i].y);
+                }
+                if (brush.points.length === 1) {
+                    ctx.arc(brush.points[0].x, brush.points[0].y, brush.thickness / 2, 0, Math.PI * 2);
+                }
+                ctx.stroke();
             }
-            if (brush.points.length === 1) {
-                ctx.arc(brush.points[0].x, brush.points[0].y, brush.thickness / 2, 0, Math.PI * 2);
-            }
-            ctx.stroke();
         }
 
-        this.props.forEach(p => this._drawProp(ctx, p));
+        if (this.data.propsVisible !== false) {
+            this.props.forEach(p => {
+                if (p && p.type !== 'hitbox') this._drawProp(ctx, p);
+            });
+        }
 
         for (let p = 0; p < this.data.paths.length; p++) {
             if (this.data.paths[p].visible === false) continue;
@@ -208,7 +210,6 @@ export class GameMap {
 
     _findSegmentIndex(distance, cumulativeDistances) {
         if (isNaN(distance)) return 0; 
-        
         let low = 0, high = cumulativeDistances.length - 1, mid = 0;
         while (low <= high) {
             mid = Math.floor((low + high) / 2);
@@ -235,7 +236,6 @@ export class GameMap {
         const segIndex = this._findSegmentIndex(distance, path.cumulativeDistances);
         const seg = path.segments[segIndex];
         const segStartDist = path.cumulativeDistances[segIndex];
-        // PRO FIX: Guard against division by zero
         const t = seg.dist > 0 ? (distance - segStartDist) / seg.dist : 0;
         return { x: Utils.lerp(seg.p1.x, seg.p2.x, t), y: Utils.lerp(seg.p1.y, seg.p2.y, t), finished: false };
     }
@@ -322,10 +322,32 @@ export class GameMap {
     }
 
     isOnProp(x, y) {
+        if (!this.props) return false;
         for (let p of this.props) {
-            if (p.type === 'pond') continue; 
-            const r = p.type === 'pond' ? (p.r || 30) : PROP_RADIUS_SMALL; 
-            if (Utils.distance(x, y, p.x, p.y) < r) return true;
+            if (!p || p.type === 'pond') continue; 
+            
+            // Support both Box and Circle hitboxes
+            if (p.shape === 'box') {
+                const w = p.w || 30;
+                const h = p.h || 30;
+                if (Math.abs(x - p.x) < w / 2 && Math.abs(y - p.y) < h / 2) return true;
+            } else {
+                const r = p.r || 15; 
+                if (Utils.distance(x, y, p.x, p.y) < r) return true;
+            }
+        }
+        return false;
+    }
+
+    // NEW: Checks if a coordinate is on water and near an Arctic Wind Ice Monkey
+    isOnFrozenWater(x, y, towers) {
+        if (!this.isInWater(x, y)) return false;
+        for (let t of towers) {
+            if (t && t.type === 'ice' && t.upgrades[1] >= 3) {
+                const range = (t.stats.range || 20) * RANGE_SCALE * GS;
+                // Add a 35px buffer so towers can sit on the edge of the ice sheet
+                if (Utils.distance(x, y, t.x, t.y) < range + 35) return true;
+            }
         }
         return false;
     }

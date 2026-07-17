@@ -149,7 +149,7 @@
                 <button id="btn-monkeys">MONKEYS</button>
                 <button id="btn-heroes">HEROES</button>
                 <button id="btn-play">PLAY</button>
-                <button id="btn-sandbox">SANDBOX</button> <!-- RESTORED SANDBOX BUTTON -->
+                <button id="btn-sandbox">SANDBOX</button>
                 <button id="btn-powers">POWERS</button>
                 <button id="btn-knowledge">KNOWLEDGE</button>
             </div>
@@ -273,15 +273,22 @@
                             <button id="editor-reverse-path">Reverse Path</button>
                         </div>
                         <button id="editor-snap-grid">Snap to Grid: Off</button>
+                        <!-- NEW HIDE BUTTONS -->
+                        <div class="btn-group">
+                            <button id="editor-hide-water">Hide Water</button>
+                            <button id="editor-hide-props">Hide Objects</button>
+                        </div>
                     </div>
                     <div class="tool-options hidden" id="water-options">
                         <label>Size: <input type="range" id="water-brush-size" min="20" max="120" value="60"></label>
                         <button id="water-erase-toggle">Erase Mode</button>
                     </div>
                     <div class="tool-options hidden" id="objects-options">
-                        <button class="obj-btn active" data-obj="tree">Tree</button>
-                        <button class="obj-btn" data-obj="bush">Bush</button>
-                        <button class="obj-btn" data-obj="rock">Rock</button>
+                        <div class="btn-group">
+                            <button id="editor-shape-circle" class="active">Circle</button>
+                            <button id="editor-shape-box">Box</button>
+                        </div>
+                        <p class="info-text">Scroll over an object to resize it.</p>
                     </div>
                     <div class="tool-options hidden" id="reference-options">
                         <label>Reference Image: <input type="file" id="editor-ref-input" accept="image/*"></label>
@@ -318,6 +325,10 @@
                         <button id="editor-save">Save Map</button>
                         <button id="editor-load">Load Map</button>
                         <button id="editor-toggle-json">View/Edit JSON</button>
+                        <!-- NEW IMPORT BUTTON -->
+                        <button id="editor-import-json-btn">Import JSON</button>
+                        <input type="file" id="editor-import-json" accept=".json" style="display: none;">
+                        <!-- END NEW -->
                         <button id="editor-exit">Exit</button>
                     </div>
                     <p class="info-text" style="text-align: center; margin-top: 10px;">Tip: Hold SHIFT while dragging to lock to one axis.</p>

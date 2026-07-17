@@ -436,11 +436,17 @@ export const GameEngine = {
                 return;
             }
 
+            // NEW: Check for waterOnly and canPlaceOnWater
             let canPlace = false;
             if (stats.waterOnly) {
                 canPlace = this.map.isInWater(x, y);
-            } else {
+            } else if (stats.canPlaceOnWater) {
+                // Can be placed on both land and water
                 canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300;
+            } else {
+                // Standard land-only placement, but allow on frozen water
+                const isOnFrozenWater = this.map.isOnFrozenWater(x, y, this.towers);
+                canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300 && (!this.map.isInWater(x, y) || isOnFrozenWater);
             }
 
             if (!canPlace) {

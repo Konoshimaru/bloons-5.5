@@ -17,7 +17,7 @@ export const MapEditor = {
     waterEraseMode: false,
     waterBrushSize: 60,
     currentWaterStroke: null,
-    currentObject: 'tree',
+    currentHitboxShape: 'circle', // NEW: Default to circle
     mouse: { x: 0, y: 0 },
     _initialized: false,
     _rafId: null,
@@ -44,7 +44,6 @@ export const MapEditor = {
         this.canvas = document.getElementById('editor-canvas');
         this.ctx = this.canvas.getContext('2d');
         
-        // PRO FIX: Prevent canvas from stretching when menu options change
         this.canvas.style.maxWidth = '100%';
         this.canvas.style.maxHeight = '100%';
         this.canvas.style.width = '100%';
@@ -66,7 +65,21 @@ export const MapEditor = {
         document.querySelectorAll('.tool-btn').forEach(btn => {
             btn.addEventListener('click', () => this.setTool(btn.dataset.tool));
         });
-        
+
+        // NEW: Hitbox Shape Buttons
+        const shapeCircleBtn = document.getElementById('editor-shape-circle');
+        const shapeBoxBtn = document.getElementById('editor-shape-box');
+        if (shapeCircleBtn) shapeCircleBtn.addEventListener('click', () => {
+            this.currentHitboxShape = 'circle';
+            shapeCircleBtn.classList.add('active');
+            shapeBoxBtn.classList.remove('active');
+        });
+        if (shapeBoxBtn) shapeBoxBtn.addEventListener('click', () => {
+            this.currentHitboxShape = 'box';
+            shapeBoxBtn.classList.add('active');
+            shapeCircleBtn.classList.remove('active');
+        });
+
         const refInput = document.getElementById('editor-ref-input');
         if (refInput) {
             refInput.addEventListener('change', (e) => {
@@ -133,15 +146,12 @@ export const MapEditor = {
             });
         }
         
-        document.querySelectorAll('.obj-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.obj-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.currentObject = btn.dataset.obj;
-            });
-        });
+        const hideWaterBtn = document.getElementById('editor-hide-water');
+        if (hideWaterBtn) hideWaterBtn.addEventListener('click', () => this.toggleWaterVisibility());
         
-        // Day Background
+        const hidePropsBtn = document.getElementById('editor-hide-props');
+        if (hidePropsBtn) hidePropsBtn.addEventListener('click', () => this.togglePropsVisibility());
+
         const bgNameInput = document.getElementById('bg-image-name');
         if (bgNameInput) bgNameInput.addEventListener('input', (e) => this.mapData.image = e.target.value);
         
@@ -151,7 +161,6 @@ export const MapEditor = {
         const clearBgBtn = document.getElementById('editor-clear-bg');
         if (clearBgBtn) clearBgBtn.addEventListener('click', () => this.clearBackground());
         
-        // Night Background
         const nightNameInput = document.getElementById('bg-night-image-name');
         if (nightNameInput) nightNameInput.addEventListener('input', (e) => this.mapData.imageNight = e.target.value);
         
@@ -224,6 +233,14 @@ export const MapEditor = {
         const applyJsonBtn = document.getElementById('editor-apply-json');
         if (applyJsonBtn) applyJsonBtn.addEventListener('click', () => { this.pushUndo(); this.applyJSON(); });
         
+        // NEW: Import JSON Button Logic
+        const importJsonBtn = document.getElementById('editor-import-json-btn');
+        const importJsonInput = document.getElementById('editor-import-json');
+        if (importJsonBtn && importJsonInput) {
+            importJsonBtn.addEventListener('click', () => importJsonInput.click());
+            importJsonInput.addEventListener('change', (e) => this.importJSON(e));
+        }
+        
         this.startLoop();
     },
     
@@ -231,6 +248,17 @@ export const MapEditor = {
         if (this.currentTool === 'reference' && this.refImage) {
             e.preventDefault();
             this.refScale *= e.deltaY > 0 ? 0.9 : 1.1;
+        }
+        // Scale hitbox when scrolling over it
+        if (this.currentTool === 'objects' && this.selectedProp) {
+            e.preventDefault();
+            let delta = e.deltaY > 0 ? -5 : 5;
+            if (this.selectedProp.shape === 'box') {
+                this.selectedProp.w = Math.max(10, (this.selectedProp.w || 30) + delta);
+                this.selectedProp.h = Math.max(10, (this.selectedProp.h || 30) + delta);
+            } else {
+                this.selectedProp.r = Math.max(5, (this.selectedProp.r || 15) + delta);
+            }
         }
     },
     
@@ -292,6 +320,8 @@ export const MapEditor = {
             paths: [],
             props: [],
             waterBrushes: [],
+            waterVisible: true,
+            propsVisible: true,
             image: null,
             imageNight: null,
             imageScale: 1.0,
@@ -406,6 +436,18 @@ export const MapEditor = {
         this.mapData.paths[this.selectedPath].visible = !this.mapData.paths[this.selectedPath].visible;
         this.updatePathDropdown();
         UI.log(`Path ${this.selectedPath + 1} is now ${this.mapData.paths[this.selectedPath].visible ? 'visible' : 'hidden'}.`);
+    },
+
+    toggleWaterVisibility() {
+        this.pushUndo();
+        this.mapData.waterVisible = !this.mapData.waterVisible;
+        UI.log(`Water is now ${this.mapData.waterVisible ? 'visible' : 'hidden'}.`);
+    },
+
+    togglePropsVisibility() {
+        this.pushUndo();
+        this.mapData.propsVisible = !this.mapData.propsVisible;
+        UI.log(`Objects are now ${this.mapData.propsVisible ? 'visible' : 'hidden'}.`);
     },
     
     reversePath() {
@@ -554,10 +596,19 @@ export const MapEditor = {
     handleObjectsMouseDown(pos) {
         if (!this.mapData.props) this.mapData.props = [];
         let clickedProp = null;
+        
         for (let i = this.mapData.props.length - 1; i >= 0; i--) {
             const p = this.mapData.props[i];
-            if (p && p.type !== 'pond' && Math.hypot(pos.x - p.x, pos.y - p.y) < 15) {
-                clickedProp = p; break;
+            if (p.shape === 'box') {
+                const w = p.w || 30, h = p.h || 30;
+                if (p && Math.abs(pos.x - p.x) < w/2 && Math.abs(pos.y - p.y) < h/2) {
+                    clickedProp = p; break;
+                }
+            } else {
+                const r = p.r || 15;
+                if (p && Math.hypot(pos.x - p.x, pos.y - p.y) < r) {
+                    clickedProp = p; break;
+                }
             }
         }
         
@@ -569,7 +620,12 @@ export const MapEditor = {
             this.dragStartPos = { x: pos.x, y: pos.y };
         } else {
             this.pushUndo();
-            this.mapData.props.push({ type: this.currentObject, x: pos.x, y: pos.y });
+            // Create either a Box or Circle hitbox based on the selected shape
+            if (this.currentHitboxShape === 'box') {
+                this.mapData.props.push({ type: 'hitbox', shape: 'box', x: pos.x, y: pos.y, w: 30, h: 30 });
+            } else {
+                this.mapData.props.push({ type: 'hitbox', shape: 'circle', x: pos.x, y: pos.y, r: 15 });
+            }
             this.selectedProp = this.mapData.props[this.mapData.props.length - 1];
         }
     },
@@ -749,64 +805,99 @@ export const MapEditor = {
             if (map) {
                 this.pushUndo();
                 this.mapData = JSON.parse(JSON.stringify(map));
-                if (!Array.isArray(this.mapData.waterBrushes)) this.mapData.waterBrushes = [];
-                if (!this.mapData.imageScale) this.mapData.imageScale = 1.0;
-                if (!this.mapData.imageOffsetX) this.mapData.imageOffsetX = 0;
-                if (!this.mapData.imageOffsetY) this.mapData.imageOffsetY = 0;
-                if (!this.mapData.imageMaintainRatio) this.mapData.imageMaintainRatio = false;
-                if (!this.mapData.imageNight) this.mapData.imageNight = null;
-                if (!Array.isArray(this.mapData.props)) this.mapData.props = [];
-                if (!Array.isArray(this.mapData.paths)) this.mapData.paths = [];
-                
-                this.selectedPath = -1;
-                this.selectedPoint = null;
-                this.selectedProp = null;
-                
-                const nameInput = document.getElementById('editor-map-name');
-                if (nameInput) nameInput.value = this.mapData.name;
-                
-                const bgName = document.getElementById('bg-image-name');
-                if (bgName) bgName.value = this.mapData.image || "";
-                
-                const nightName = document.getElementById('bg-night-image-name');
-                if (nightName) nightName.value = this.mapData.imageNight || "";
-                
-                const bgMaintainRatio = document.getElementById('bg-maintain-ratio');
-                if (bgMaintainRatio) bgMaintainRatio.checked = this.mapData.imageMaintainRatio;
-                
-                const bgImageScale = document.getElementById('bg-image-scale');
-                if (bgImageScale) bgImageScale.value = this.mapData.imageScale;
-                
-                const bgImageX = document.getElementById('bg-image-x');
-                if (bgImageX) bgImageX.value = this.mapData.imageOffsetX;
-                
-                const bgImageY = document.getElementById('bg-image-y');
-                if (bgImageY) bgImageY.value = this.mapData.imageOffsetY;
-                
-                const bgScaleVal = document.getElementById('bg-scale-val');
-                if (bgScaleVal) bgScaleVal.innerText = this.mapData.imageScale.toFixed(2);
-                
-                const bgXVal = document.getElementById('bg-x-val');
-                if (bgXVal) bgXVal.innerText = this.mapData.imageOffsetX;
-                
-                const bgYVal = document.getElementById('bg-y-val');
-                if (bgYVal) bgYVal.innerText = this.mapData.imageOffsetY;
-                
-                if (this.mapData.image) {
-                    this.loadBackgroundPreview();
-                } else {
-                    this.bgImage.loaded = false;
-                }
-                
-                if (this.mapData.imageNight) {
-                    this.loadNightBackgroundPreview();
-                } else {
-                    this.bgNightImage.loaded = false;
-                }
-                
-                this.updatePathDropdown();
+                this.applyLoadedMapData();
             } else { alert("Map not found."); }
         }
+    },
+    
+    // NEW: Method to apply loaded/imported map data to the editor UI
+    applyLoadedMapData() {
+        if (!Array.isArray(this.mapData.waterBrushes)) this.mapData.waterBrushes = [];
+        if (this.mapData.waterVisible === undefined) this.mapData.waterVisible = true; 
+        if (this.mapData.propsVisible === undefined) this.mapData.propsVisible = true; 
+        if (!this.mapData.imageScale) this.mapData.imageScale = 1.0;
+        if (!this.mapData.imageOffsetX) this.mapData.imageOffsetX = 0;
+        if (!this.mapData.imageOffsetY) this.mapData.imageOffsetY = 0;
+        if (!this.mapData.imageMaintainRatio) this.mapData.imageMaintainRatio = false;
+        if (!this.mapData.imageNight) this.mapData.imageNight = null;
+        if (!Array.isArray(this.mapData.props)) this.mapData.props = [];
+        if (!Array.isArray(this.mapData.paths)) this.mapData.paths = [];
+        
+        this.selectedPath = -1;
+        this.selectedPoint = null;
+        this.selectedProp = null;
+        
+        const nameInput = document.getElementById('editor-map-name');
+        if (nameInput) nameInput.value = this.mapData.name || "Custom Map";
+        
+        const bgName = document.getElementById('bg-image-name');
+        if (bgName) bgName.value = this.mapData.image || "";
+        
+        const nightName = document.getElementById('bg-night-image-name');
+        if (nightName) nightName.value = this.mapData.imageNight || "";
+        
+        const bgMaintainRatio = document.getElementById('bg-maintain-ratio');
+        if (bgMaintainRatio) bgMaintainRatio.checked = this.mapData.imageMaintainRatio;
+        
+        const bgImageScale = document.getElementById('bg-image-scale');
+        if (bgImageScale) bgImageScale.value = this.mapData.imageScale;
+        
+        const bgImageX = document.getElementById('bg-image-x');
+        if (bgImageX) bgImageX.value = this.mapData.imageOffsetX;
+        
+        const bgImageY = document.getElementById('bg-image-y');
+        if (bgImageY) bgImageY.value = this.mapData.imageOffsetY;
+        
+        const bgScaleVal = document.getElementById('bg-scale-val');
+        if (bgScaleVal) bgScaleVal.innerText = this.mapData.imageScale.toFixed(2);
+        
+        const bgXVal = document.getElementById('bg-x-val');
+        if (bgXVal) bgXVal.innerText = this.mapData.imageOffsetX;
+        
+        const bgYVal = document.getElementById('bg-y-val');
+        if (bgYVal) bgYVal.innerText = this.mapData.imageOffsetY;
+        
+        if (this.mapData.image) {
+            this.loadBackgroundPreview();
+        } else {
+            this.bgImage.loaded = false;
+        }
+        
+        if (this.mapData.imageNight) {
+            this.loadNightBackgroundPreview();
+        } else {
+            this.bgNightImage.loaded = false;
+        }
+        
+        this.updatePathDropdown();
+    },
+
+    // NEW: Import map from a JSON file
+    importJSON(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                // Basic validation
+                if (!data || !Array.isArray(data.paths)) {
+                    alert("Invalid map JSON: Missing 'paths' array.");
+                    return;
+                }
+
+                this.pushUndo();
+                this.mapData = data;
+                this.applyLoadedMapData();
+                UI.log("Map imported successfully!");
+            } catch (err) {
+                alert("Failed to import JSON: " + err.message);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ""; // Reset file input
     },
     
     toggleJSON() {
@@ -826,62 +917,7 @@ export const MapEditor = {
             const textArea = document.getElementById('editor-json-text');
             if (!textArea) return;
             this.mapData = JSON.parse(textArea.value);
-            if (!Array.isArray(this.mapData.waterBrushes)) this.mapData.waterBrushes = [];
-            if (!this.mapData.imageScale) this.mapData.imageScale = 1.0;
-            if (!this.mapData.imageOffsetX) this.mapData.imageOffsetX = 0;
-            if (!this.mapData.imageOffsetY) this.mapData.imageOffsetY = 0;
-            if (!this.mapData.imageMaintainRatio) this.mapData.imageMaintainRatio = false;
-            if (!this.mapData.imageNight) this.mapData.imageNight = null;
-            if (!Array.isArray(this.mapData.props)) this.mapData.props = [];
-            if (!Array.isArray(this.mapData.paths)) this.mapData.paths = [];
-            
-            this.selectedPath = -1;
-            this.selectedPoint = null;
-            this.selectedProp = null;
-            
-            const nameInput = document.getElementById('editor-map-name');
-            if (nameInput) nameInput.value = this.mapData.name || "Custom Map";
-            
-            const bgName = document.getElementById('bg-image-name');
-            if (bgName) bgName.value = this.mapData.image || "";
-            
-            const nightName = document.getElementById('bg-night-image-name');
-            if (nightName) nightName.value = this.mapData.imageNight || "";
-            
-            const bgMaintainRatio = document.getElementById('bg-maintain-ratio');
-            if (bgMaintainRatio) bgMaintainRatio.checked = this.mapData.imageMaintainRatio;
-            
-            const bgImageScale = document.getElementById('bg-image-scale');
-            if (bgImageScale) bgImageScale.value = this.mapData.imageScale;
-            
-            const bgImageX = document.getElementById('bg-image-x');
-            if (bgImageX) bgImageX.value = this.mapData.imageOffsetX;
-            
-            const bgImageY = document.getElementById('bg-image-y');
-            if (bgImageY) bgImageY.value = this.mapData.imageOffsetY;
-            
-            const bgScaleVal = document.getElementById('bg-scale-val');
-            if (bgScaleVal) bgScaleVal.innerText = this.mapData.imageScale.toFixed(2);
-            
-            const bgXVal = document.getElementById('bg-x-val');
-            if (bgXVal) bgXVal.innerText = this.mapData.imageOffsetX;
-            
-            const bgYVal = document.getElementById('bg-y-val');
-            if (bgYVal) bgYVal.innerText = this.mapData.imageOffsetY;
-            
-            if (this.mapData.image) {
-                this.loadBackgroundPreview();
-            } else {
-                this.bgImage.loaded = false;
-            }
-            
-            if (this.mapData.imageNight) {
-                this.loadNightBackgroundPreview();
-            } else {
-                this.bgNightImage.loaded = false;
-            }
-            
-            this.updatePathDropdown();
+            this.applyLoadedMapData();
             alert("JSON applied!");
         } catch (e) { alert("Invalid JSON: " + e.message); }
     },
@@ -908,7 +944,6 @@ export const MapEditor = {
         let w = CANVAS_WIDTH * scale;
         let h = CANVAS_HEIGHT * scale;
         
-        // PRO FIX: Added safety check for this.bgImage existing
         if (this.mapData.imageMaintainRatio && this.bgImage && this.bgImage.width > 0) {
             const ratio = this.bgImage.height / this.bgImage.width;
             h = w * ratio;
@@ -951,14 +986,18 @@ export const MapEditor = {
         ctx.font = '12px Arial';
         ctx.fillText('In-Game Sidebar', CANVAS_WIDTH - 210, 20);
         
-        if (Array.isArray(this.mapData.waterBrushes)) {
-            for (let brush of this.mapData.waterBrushes) this.drawWaterStroke(ctx, brush);
+        if (this.mapData.waterVisible !== false) {
+            if (Array.isArray(this.mapData.waterBrushes)) {
+                for (let brush of this.mapData.waterBrushes) this.drawWaterStroke(ctx, brush);
+            }
+            if (this.currentWaterStroke) this.drawWaterStroke(ctx, this.currentWaterStroke);
         }
-        if (this.currentWaterStroke) this.drawWaterStroke(ctx, this.currentWaterStroke);
 
-        if (Array.isArray(this.mapData.props)) {
-            for (let p of this.mapData.props) {
-                if (p && p.x !== undefined) this.drawEditorProp(ctx, p);
+        if (this.mapData.propsVisible !== false) {
+            if (Array.isArray(this.mapData.props)) {
+                for (let p of this.mapData.props) {
+                    if (p && p.x !== undefined) this.drawEditorProp(ctx, p);
+                }
             }
         }
         
@@ -975,7 +1014,6 @@ export const MapEditor = {
                 ctx.lineWidth = 45;
                 ctx.lineJoin = 'round'; ctx.lineCap = 'round';
                 
-                // PRO FIX: Only draw the path if it has waypoints!
                 if (path.waypoints.length > 0) {
                     ctx.beginPath();
                     ctx.moveTo(path.waypoints[0].x, path.waypoints[0].y);
@@ -1044,12 +1082,19 @@ export const MapEditor = {
             ctx.arc(this.selectedPoint.x, this.selectedPoint.y, 12, 0, Math.PI * 2);
             ctx.stroke();
         }
+        
         if (this.selectedProp) {
             ctx.strokeStyle = '#3498db';
             ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(this.selectedProp.x, this.selectedProp.y, 18, 0, Math.PI * 2);
-            ctx.stroke();
+            if (this.selectedProp.shape === 'box') {
+                const w = this.selectedProp.w || 30, h = this.selectedProp.h || 30;
+                ctx.strokeRect(this.selectedProp.x - w/2, this.selectedProp.y - h/2, w, h);
+            } else {
+                const r = this.selectedProp.r || 15;
+                ctx.beginPath();
+                ctx.arc(this.selectedProp.x, this.selectedProp.y, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
         }
         
         if (this.currentTool === 'water') {
@@ -1062,16 +1107,26 @@ export const MapEditor = {
     },
     
     drawEditorProp(ctx, p) {
-        if (p.type === 'tree') {
-            ctx.fillStyle = '#6e552f'; ctx.fillRect(p.x - 3, p.y - 5, 6, 15);
-            ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(p.x, p.y - 10, 15, 0, Math.PI * 2); ctx.fill();
-        } else if (p.type === 'bush') {
-            ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, Math.PI * 2); ctx.fill();
-        } else if (p.type === 'rock') {
-            ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.moveTo(p.x - 15, p.y); ctx.lineTo(p.x - 5, p.y - 15); ctx.lineTo(p.x + 10, p.y - 10); ctx.lineTo(p.x + 15, p.y); ctx.fill();
-        } else if (p.type === 'pond') {
-            ctx.fillStyle = 'rgba(52, 152, 219, 0.5)'; 
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r || 25, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(155, 89, 182, 0.2)';
+        ctx.strokeStyle = '#9b59b6';
+        ctx.lineWidth = 2;
+        
+        if (p.shape === 'box') {
+            const w = p.w || 30, h = p.h || 30;
+            ctx.fillRect(p.x - w/2, p.y - h/2, w, h);
+            ctx.strokeRect(p.x - w/2, p.y - h/2, w, h);
+        } else {
+            const r = p.r || 15;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
         }
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.shape === 'box' ? 'Box' : 'Circle', p.x, p.y + 3);
+        ctx.textAlign = 'left';
     }
 };

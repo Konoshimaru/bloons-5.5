@@ -147,20 +147,65 @@ function refreshMapSelector() {
     
     mapSelector.innerHTML = '';
     Maps.forEach((map, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.gap = '5px';
+        wrapper.style.margin = '5px 0';
+
         const btn = document.createElement('button');
         btn.className = 'diff-btn';
-        btn.style.margin = '5px';
+        btn.style.flex = '1';
+        btn.style.margin = '0';
         btn.innerText = map.name || `Map ${index + 1}`;
         if (Config.data.currentMap === index) btn.style.borderColor = '#f1c40f';
         
         btn.addEventListener('click', () => {
-            document.querySelectorAll('#map-selector button').forEach(c => c.style.borderColor = '#7f8c8d');
+            document.querySelectorAll('#map-selector .diff-btn').forEach(c => c.style.borderColor = '#7f8c8d');
             btn.style.borderColor = '#f1c40f';
             GameEngine.currentMap = index;
             Config.data.currentMap = index;
             Config.save();
         });
-        mapSelector.appendChild(btn);
+        wrapper.appendChild(btn);
+
+        // Check if this map is a custom map saved in Config
+        const isCustom = Config.data.customMaps.some(m => m.name === map.name);
+        if (isCustom) {
+            const delBtn = document.createElement('button');
+            delBtn.className = 'diff-btn';
+            delBtn.style.background = '#e74c3c';
+            delBtn.style.border = '1px solid #c0392b';
+            delBtn.style.margin = '0';
+            delBtn.style.width = '40px';
+            delBtn.innerText = '🗑';
+            delBtn.title = "Delete Custom Map";
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(`Delete custom map "${map.name}"?`)) {
+                    // 1. Remove from Config
+                    Config.data.customMaps = Config.data.customMaps.filter(m => m.name !== map.name);
+                    Config.save();
+                    
+                    // 2. Remove from runtime Maps array
+                    const mapIdx = Maps.findIndex(m => m.name === map.name);
+                    if (mapIdx > -1) Maps.splice(mapIdx, 1);
+                    
+                    // 3. Adjust currentMap index if we deleted one before it
+                    if (GameEngine.currentMap >= mapIdx) {
+                        GameEngine.currentMap = Math.max(0, GameEngine.currentMap - 1);
+                        Config.data.currentMap = GameEngine.currentMap;
+                        Config.save();
+                    }
+                    
+                    // 4. Refresh the UI
+                    refreshMapSelector();
+                }
+            });
+            wrapper.appendChild(delBtn);
+        }
+        
+        mapSelector.appendChild(wrapper);
     });
 }
 

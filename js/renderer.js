@@ -355,7 +355,14 @@ export const Renderer = {
         
         const placementRadius = Math.max(1, (stats.hitRadius || PLACEMENT_RADIUS) * GS);
         
+        // Update the onPath/onWater checks to include frozen water
         const onPath = map.isOnPath(mouse.x, mouse.y) || map.isOnProp(mouse.x, mouse.y) || mouse.y > CANVAS_HEIGHT || mouse.x > CANVAS_WIDTH;
+        const onWater = map.isInWater(mouse.x, mouse.y);
+        const onFrozenWater = map.isOnFrozenWater(mouse.x, mouse.y, engine.towers);
+        
+        // A land tower can be placed if it's not on a path/prop, and (it's not on water OR it is on frozen water)
+        const validLandPlacement = !onPath && (!onWater || onFrozenWater);
+
         const cost = engine.getCost(stats.cost);
         const canAfford = engine.cash >= cost;
 
@@ -370,22 +377,66 @@ export const Renderer = {
             ctx.fill();
         }
 
-        if (!onPath && canAfford) {
-            const isOverlapping = this._checkPlacementOverlap(engine, stats, mouse.x, mouse.y);
-            
-            if (isOverlapping) {
+        if (!canAfford) {
+            ctx.fillStyle = TOWER_OUT_OF_BOUNDS_COLOR;
+            ctx.beginPath();
+            ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            return;
+        }
+
+        if (stats.waterOnly) {
+            if (!onWater || onPath) {
                 ctx.fillStyle = TOWER_OVERLAP_COLOR;
                 ctx.beginPath();
                 ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
                 ctx.fill();
             } else {
-                Tower.drawPreview(ctx, mouse.x, mouse.y, engine.selectedTowerType);
+                const isOverlapping = this._checkPlacementOverlap(engine, stats, mouse.x, mouse.y);
+                if (isOverlapping) {
+                    ctx.fillStyle = TOWER_OVERLAP_COLOR;
+                    ctx.beginPath();
+                    ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    Tower.drawPreview(ctx, mouse.x, mouse.y, engine.selectedTowerType);
+                }
+            }
+        } else if (stats.canPlaceOnWater) {
+            if (onPath) {
+                ctx.fillStyle = TOWER_OVERLAP_COLOR;
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                const isOverlapping = this._checkPlacementOverlap(engine, stats, mouse.x, mouse.y);
+                if (isOverlapping) {
+                    ctx.fillStyle = TOWER_OVERLAP_COLOR;
+                    ctx.beginPath();
+                    ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    Tower.drawPreview(ctx, mouse.x, mouse.y, engine.selectedTowerType);
+                }
             }
         } else {
-            ctx.fillStyle = TOWER_OVERLAP_COLOR;
-            ctx.beginPath();
-            ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
-            ctx.fill();
+            if (!validLandPlacement) {
+                ctx.fillStyle = TOWER_OVERLAP_COLOR;
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                const isOverlapping = this._checkPlacementOverlap(engine, stats, mouse.x, mouse.y);
+                if (isOverlapping) {
+                    ctx.fillStyle = TOWER_OVERLAP_COLOR;
+                    ctx.beginPath();
+                    ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    Tower.drawPreview(ctx, mouse.x, mouse.y, engine.selectedTowerType);
+                }
+            }
         }
 
         ctx.globalAlpha = 1;

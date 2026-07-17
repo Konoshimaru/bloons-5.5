@@ -48,7 +48,7 @@ window.BallsConfig = {
     giantCount: 30,       giantMinR: 80,        giantMaxR: 100,       giantOffsetX: 10,
     massCount: 2000,      massMinR: 10,         massMaxR: 40,         massOffsetX: 50,
     drifterCount: 100,    drifterMinR: 10,      drifterMaxR: 40,      drifterSpeed: 60,
-    drifterFadeRate: 2,   drifterShrinkRate: 60,
+    drifterFadeRate: 2,   drifterShrinkRate: 50,
     spreadX: 200,         outlineWidth: 4,      screenOffset: 0
 };
 
@@ -116,7 +116,7 @@ export const CutsceneManager = {
         for(let b of this.blackBalls) {
             if (b.type === 'drifter') {
                 b.ox += b.vx * dt;
-                if (b.ox > 400) { 
+                if (b.ox > 200) { 
                     b.r -= dt * (cfg.drifterShrinkRate ?? 30);
                     b.alpha -= dt * (cfg.drifterFadeRate ?? 0.5);
                     
