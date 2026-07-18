@@ -82,6 +82,12 @@ export class Tower {
         this.ability3Cooldown = 0;
         this.alchBuff = null;
         this.alchDip = null;
+        
+        // PRO FIX: Cache for night-mode glow gradient
+        this._nightGlowGradient = null;
+        this._nightGlowRadius = 0;
+        this._nightGlowX = 0;
+        this._nightGlowY = 0;
     }
 
     update(dt, engine) {
@@ -280,15 +286,23 @@ export class Tower {
     }
 
     draw(ctx, isPreview = false, engine = null) {
-        // NEW: Draw faint glow if night mode is active
+        // PRO FIX: Draw faint glow if night mode is active
         if (!isPreview && engine && engine.nightAlpha > 0) {
             ctx.save();
             ctx.globalAlpha = engine.nightAlpha * 0.5;
             const glowR = 35 * GS;
-            const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
-            grad.addColorStop(0, 'rgba(255, 240, 150, 0.6)');
-            grad.addColorStop(1, 'rgba(255, 240, 150, 0)');
-            ctx.fillStyle = grad;
+            
+            // Cache the gradient to prevent memory allocation every frame
+            if (!this._nightGlowGradient || this._nightGlowRadius !== glowR || this._nightGlowX !== this.x || this._nightGlowY !== this.y) {
+                this._nightGlowGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
+                this._nightGlowGradient.addColorStop(0, 'rgba(255, 240, 150, 0.6)');
+                this._nightGlowGradient.addColorStop(1, 'rgba(255, 240, 150, 0)');
+                this._nightGlowRadius = glowR;
+                this._nightGlowX = this.x;
+                this._nightGlowY = this.y;
+            }
+            
+            ctx.fillStyle = this._nightGlowGradient;
             ctx.beginPath();
             ctx.arc(this.x, this.y, glowR, 0, Math.PI * 2);
             ctx.fill();

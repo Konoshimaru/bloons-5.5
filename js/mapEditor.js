@@ -775,6 +775,12 @@ export const MapEditor = {
     saveMap() {
         const nameInput = document.getElementById('editor-map-name');
         this.mapData.name = (nameInput && nameInput.value) ? nameInput.value : "Custom Map";
+        
+        // PRO FIX: Assign a unique ID if it doesn't have one
+        if (!this.mapData.id) {
+            this.mapData.id = crypto.randomUUID();
+        }
+        
         this.mapData.paths = this.mapData.paths.filter(p => p && p.waypoints && p.waypoints.length > 0);
         
         if (this.mapData.paths.length === 0) { alert("Please draw at least one path with 2 or more points."); return; }
@@ -783,7 +789,7 @@ export const MapEditor = {
             if (p.waypoints.length < 2) { alert("Each path must have at least 2 waypoints."); return; }
         }
         
-        const existingIdx = Config.data.customMaps.findIndex(m => m.name === this.mapData.name);
+        const existingIdx = Config.data.customMaps.findIndex(m => m.id === this.mapData.id);
         const mapCopy = JSON.parse(JSON.stringify(this.mapData));
         if (existingIdx > -1) {
             Config.data.customMaps[existingIdx] = mapCopy;

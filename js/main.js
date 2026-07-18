@@ -169,9 +169,17 @@ function refreshMapSelector() {
         });
         wrapper.appendChild(btn);
 
-        // Check if this map is a custom map saved in Config
-        const isCustom = Config.data.customMaps.some(m => m.name === map.name);
-        if (isCustom) {
+        // PRO FIX: Find the matching custom map data, handling both new (with ID) and legacy (without ID) maps
+        let customMapData = null;
+        for (let m of Config.data.customMaps) {
+            if ((map.id && m.id === map.id) || (!map.id && m.name === map.name)) {
+                customMapData = m;
+                break;
+            }
+        }
+
+        // If it's a custom map, show the delete button
+        if (customMapData) {
             const delBtn = document.createElement('button');
             delBtn.className = 'diff-btn';
             delBtn.style.background = '#e74c3c';
@@ -183,12 +191,12 @@ function refreshMapSelector() {
             delBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (confirm(`Delete custom map "${map.name}"?`)) {
-                    // 1. Remove from Config
-                    Config.data.customMaps = Config.data.customMaps.filter(m => m.name !== map.name);
+                    // 1. Remove from Config by exact object reference
+                    Config.data.customMaps = Config.data.customMaps.filter(m => m !== customMapData);
                     Config.save();
                     
-                    // 2. Remove from runtime Maps array
-                    const mapIdx = Maps.findIndex(m => m.name === map.name);
+                    // 2. Remove from runtime Maps array by exact object reference
+                    const mapIdx = Maps.indexOf(map);
                     if (mapIdx > -1) Maps.splice(mapIdx, 1);
                     
                     // 3. Adjust currentMap index if we deleted one before it
@@ -391,6 +399,7 @@ function _setupMenuListeners() {
     // Game Over Return Button
     dom.goMenuBtn?.addEventListener('click', () => {
         UI.toggleMenus(null); // Hide the game over screen
+        GameEngine.deselectAll(); // PRO FIX: Close tower menu before returning to main menu
         GameEngine.gameState = 'menu'; // Reset game state
         GameEngine.map = null; // Clear the map so renderer draws scenery
         showMainMenuUI(true); // Show main menu UI
@@ -463,7 +472,10 @@ function _setupGameListeners() {
     dom.pauseBtn?.addEventListener('click', () => GameEngine.pauseGame());
     dom.resumeBtn?.addEventListener('click', () => GameEngine.resumeGame());
     dom.pauseSettingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; UI.toggleMenus('settings-menu'); });
+    
+    // QUIT TO MENU BUTTON
     dom.quitBtn?.addEventListener('click', () => {
+        GameEngine.deselectAll(); // PRO FIX: Close tower menu before quitting
         GameEngine.saveGame();
         GameEngine.gameState = 'menu';
         GameEngine.map = null; 

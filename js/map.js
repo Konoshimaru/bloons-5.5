@@ -2,9 +2,9 @@
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
+import { RANGE_SCALE } from './config.js'; // PRO FIX: Import RANGE_SCALE directly from config
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
-const RANGE_SCALE = 3.0; // Hardcoded to avoid circular imports
 
 const GRID_SIZE = 40;
 const PATH_WIDTH = 45;
@@ -339,7 +339,7 @@ export class GameMap {
         return false;
     }
 
-    // NEW: Checks if a coordinate is on water and near an Arctic Wind Ice Monkey
+    // Checks if a coordinate is on water and near an Arctic Wind Ice Monkey
     isOnFrozenWater(x, y, towers) {
         if (!this.isInWater(x, y)) return false;
         for (let t of towers) {

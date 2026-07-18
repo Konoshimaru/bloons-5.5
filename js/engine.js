@@ -707,6 +707,7 @@ export const GameEngine = {
         
         if (this.lives <= 0) {
             AudioEngine.pause();
+            this.deselectAll(); // NEW: Close tower menu on game over
             this.gameState = 'gameover';
             this.giveRewards();
             UI.toggleMenus('game-over-menu');
