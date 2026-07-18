@@ -3,8 +3,7 @@ import { GameEngine } from '../engine.js';
 import { Enemy } from '../enemy.js';
 import { EnemyTypes } from '../data.js';
 import Assets from '../assets.js';
-import { BossHealthBarHandler } from '../bossHealthBarHandler.js'; // PRO FIX: Import handler
-
+import { BossHealthBarHandler } from '../BossHealthBarHandler.js';
 // --- KNIGHT CONFIG ---
 export const knightScale = 1.65; 
 export const trailScale = 1.21;  

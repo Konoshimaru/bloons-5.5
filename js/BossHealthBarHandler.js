@@ -1,8 +1,8 @@
-// js/bossHealthBarHandler.js
+import { CANVAS_WIDTH } from './constants.js';
+
 export const BossHealthBarHandler = {
     activeBosses: [],
 
-    // Call this when a boss spawns or is activated
     registerBoss(enemy) {
         if (this.activeBosses.some(b => b.enemy === enemy)) return;
         
@@ -14,7 +14,6 @@ export const BossHealthBarHandler = {
         });
     },
 
-    // Call this when a boss dies or is removed
     unregisterBoss(enemy) {
         this.activeBosses = this.activeBosses.filter(b => b.enemy !== enemy);
     },
@@ -22,15 +21,17 @@ export const BossHealthBarHandler = {
     draw(ctx) {
         if (this.activeBosses.length === 0) return;
 
-        // Auto-cleanup dead bosses just in case unregisterBoss wasn't called
         this.activeBosses = this.activeBosses.filter(b => b.enemy && b.enemy.alive);
         if (this.activeBosses.length === 0) return;
 
         const barWidth = 450;
         const barHeight = 24;
         const spacing = 36;
-        const startX = (1280 - barWidth) / 2; // Centered on screen
-        const startY = 55; // Below the top UI bar
+        
+        // Center within the playable game area (1280 - 300px sidebar = 980px)
+        const gameAreaWidth = CANVAS_WIDTH - 300; 
+        const startX = (gameAreaWidth - barWidth) / 2; 
+        const startY = 55; 
 
         ctx.save();
         ctx.font = 'bold 14px Arial';
@@ -40,7 +41,7 @@ export const BossHealthBarHandler = {
         this.activeBosses.forEach((boss, index) => {
             const y = startY + (index * spacing);
             const currentHp = Math.max(0, boss.enemy.hp);
-            const hpPercent = currentHp / boss.maxHp;
+            const hpPercent = boss.maxHp > 0 ? currentHp / boss.maxHp : 0;
 
             // Background Border
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';

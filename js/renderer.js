@@ -1,12 +1,11 @@
-﻿// renderer.js
-import { Config, RANGE_SCALE, HeroStats } from './config.js';
+﻿import { Config, RANGE_SCALE, HeroStats } from './config.js';
 import { TowerStats } from './towers/index.js';
 import { Utils } from './utils.js';
 import { Tower } from './tower.js';
 import { CutsceneManager } from './cutscene.js';
 import { KnightEnemy } from './bosses/knight.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
-import { BossHealthBarHandler } from './bossHealthBarHandler.js';
+import { BossHealthBarHandler } from './BossHealthBarHandler.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -69,6 +68,9 @@ export const Renderer = {
         CutsceneManager.draw(ctx);
 
         if (camOffset !== 0) ctx.restore();
+        
+        // Draw the Boss Health Bar on top of all game/cutscene elements
+        BossHealthBarHandler.draw(ctx);
     },
 
     _drawMainMenuScenery(ctx, engine, dt) {
@@ -275,7 +277,6 @@ export const Renderer = {
     _checkPlacementOverlap(engine, stats, x, y) {
         const placementRadius = (stats.hitRadius || PLACEMENT_RADIUS) * GS;
         for (const t of engine.towers) {
-            // PRO FIX: Use withinRange for overlap check
             if (t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + placementRadius)) {
                 return true;
             }
