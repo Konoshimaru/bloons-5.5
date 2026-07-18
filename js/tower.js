@@ -1,7 +1,9 @@
-﻿// tower.js
+﻿// js/tower.js
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
+import { Config } from './config.js';
+import { GameEngine } from './engine.js';
 import { drawImageCentered, drawShadow } from './utils.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
@@ -83,11 +85,30 @@ export class Tower {
         this.alchBuff = null;
         this.alchDip = null;
         
-        // PRO FIX: Cache for night-mode glow gradient
         this._nightGlowGradient = null;
         this._nightGlowRadius = 0;
         this._nightGlowX = 0;
         this._nightGlowY = 0;
+
+        // --- MONKEY KNOWLEDGE EFFECTS (Base) ---
+        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+        
+        // Extra Dart Pops
+        if (this.type === 'dart' && mk['extra_darts']) {
+            this.stats.pierce += 1;
+        }
+        // Hard Tacks
+        if (this.type === 'tack' && mk['hard_tacks']) {
+            this.stats.canHitFrozen = true;
+        }
+        // Cheap 'Rangs
+        if (this.type === 'boomerang' && mk['cheap_rangs']) {
+            this.stats.cost -= 50;
+        }
+        // Increased Lifespan
+        if (mk['inc_lifespan'] && ['dart', 'bomb', 'tack', 'glue'].includes(this.type)) {
+            this.stats.lifespan = (this.stats.lifespan || 0.5) + 0.2;
+        }
     }
 
     update(dt, engine) {
@@ -107,6 +128,108 @@ export class Tower {
                 }
             }
         }
+
+        // --- MONKEY KNOWLEDGE EFFECTS (Cooldowns) ---
+        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+        
+        if (this.type === 'tack' && mk['fast_tack']) {
+            this._cooldownMult *= 0.92; // 8% faster
+        }
+        if (this.type === 'glue' && mk['fast_glue']) {
+            this._cooldownMult *= 0.90; // 10% faster
+        }
+        if (mk['come_on_everybody'] && ['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue'].includes(this.type)) {
+            const allLowTier = GameEngine.towers.every(t => !t || (['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue'].includes(t.type) && t.upgrades[0] < 3 && t.upgrades[1] < 3 && t.upgrades[2] < 3));
+            if (allLowTier) {
+                this._cooldownMult *= 0.95; // 5% faster
+            }
+        }
+
+        // --- MONKEY KNOWLEDGE EFFECTS (Upgrades) ---
+        this._applyMonkeyKnowledge(mk);
+    }
+
+    _applyMonkeyKnowledge(mk) {
+        if (Object.keys(mk).length === 0) return;
+
+        // Poppy Blades (Tack 1-3)
+        if (this.type === 'tack' && this.upgrades[1] >= 3 && mk['poppy_blades']) {
+            this.stats.pierce = (this.stats.pierce || 0) + 2;
+        }
+        // Icy Chill (Ice base range +3)
+        if (this.type === 'ice' && mk['icy_chill']) {
+            this.stats.range = (this.stats.range || 20) + 3;
+        }
+        // More Splatty Glue (Glue 2-2 pierce +2)
+        if (this.type === 'glue' && this.upgrades[1] >= 2 && mk['more_splatty']) {
+            this.stats.pierce = (this.stats.pierce || 1) + 2;
+        }
+        // Extra Bounce (Boomerang 2-2 pierce +30)
+        if (this.type === 'boomerang' && this.upgrades[1] >= 2 && mk['extra_bounce']) {
+            this.stats.pierce = (this.stats.pierce || 50) + 30;
+        }
+        // 4 And 4 (Dart 2-2)
+        if (this.type === 'dart' && this.upgrades[1] >= 2 && mk['four_and_four']) {
+            this.stats.fourAndFour = true;
+        }
+        // Force vs Force (Dart 1-3 Juggernaut +2 MOAB dmg)
+        if (this.type === 'dart' && this.upgrades[0] >= 3 && mk['force_vs_force']) {
+            this.stats.moabDmg = (this.stats.moabDmg || 0) + 2;
+        }
+        // Big Inferno (Tack 1-5 +3 burst radius)
+        if (this.type === 'tack' && this.upgrades[0] >= 5 && mk['big_inferno']) {
+            this.stats.explosionRadius = (this.stats.explosionRadius || 0) + 3;
+        }
+        // So Cold (Ice 1-1 Permafrost slows 60% instead of 50%)
+        if (this.type === 'ice' && this.upgrades[0] >= 1 && mk['so_cold']) {
+            this.stats.permafrostSlow = 0.4; // 60% slow = 0.4 speed factor
+        }
+        // Aviation Glue (Glue 3-4 MOAB Glue slows more)
+        if (this.type === 'glue' && this.upgrades[2] >= 4 && mk['aviation_glue']) {
+            this.stats.slow = 0.55; // 55% speed instead of 62.5%
+        }
+        // Mega Mauler (Bomb 2-3 MOAB Mauler +2 MOAB dmg)
+        if (this.type === 'bomb' && this.upgrades[1] >= 3 && mk['mega_mauler']) {
+            this.stats.moabDmg = (this.stats.moabDmg || 0) + 2;
+        }
+        // Hard Press (Boomerang 3-3 MOAB Press +30% knockback)
+        if (this.type === 'boomerang' && this.upgrades[2] >= 3 && mk['hard_press']) {
+            this.stats.hardPressMult = 1.3;
+        }
+        // Big Cryo (Ice 3-3 Cryo Cannon +12% blast radius)
+        if (this.type === 'ice' && this.upgrades[2] >= 3 && mk['big_cryo']) {
+            this.stats.explosionRadius = (this.stats.explosionRadius || 20) * 1.12;
+        }
+        // Hypothermia (Ice 2-4 Snowstorm +1s freeze)
+        if (this.type === 'ice' && this.upgrades[1] >= 4 && mk['hypothermia']) {
+            this.stats.freezeDuration = (this.stats.freezeDuration || 1.5) + 1.0;
+        }
+        // Violent Impact (Bomb 1-3 Bloon Impact +25% stun)
+        if (this.type === 'bomb' && this.upgrades[0] >= 3 && mk['violent_impact']) {
+            this.stats.stunDurationMult = 1.25;
+        }
+        // Long Turbo (Boomerang 2-4 Turbo Charge +5s duration)
+        if (this.type === 'boomerang' && this.upgrades[1] >= 4 && mk['long_turbo']) {
+            this.stats.turboDuration = 15;
+        }
+        // Bionic Aug (Boomerang 2-4 Turbo Charge can target camo)
+        if (this.type === 'boomerang' && this.upgrades[1] >= 4 && mk['bionic_aug']) {
+            this.stats.turboSeesCamo = true;
+        }
+        // --- THE 3 MISSING ONES ---
+        // Fraggy Frags (Bomb 1-2 frags +2)
+        if (this.type === 'bomb' && this.upgrades[0] >= 2 && mk['fraggy_frags']) {
+            this.stats.fragCount = (this.stats.fragCount || 8) + 2;
+        }
+        // Crossbow Reach (Dart 1-3 range +3)
+        if (this.type === 'dart' && this.upgrades[0] >= 3 && mk['crossbow_reach']) {
+            this.stats.range = (this.stats.range || 32) + 3;
+        }
+        // Recurring 'Rangs (Boomerang throws twice on return)
+        if (this.type === 'boomerang' && mk['recurring_rangs']) {
+            this.stats.recurringRangs = true;
+        }
+        // ---------------------------
     }
 
     _applyUpgradeStats(upgradeData) {
@@ -201,8 +324,17 @@ export class Tower {
         if (asset && asset.loaded) {
             ctx.save();
             ctx.translate(x, y);
-            const targetSize = (stats?.drawSize ? stats.drawSize * GS : 45 * scaleVal);
-            drawImageCentered(ctx, asset, targetSize);
+            const off = SpriteConfig[type]?.["base"] || { x: 0, y: 0, scale: 1 };
+            const size = SpriteConfig[type]?.["base"] ? (45 * (off.scale || 1) * GS) : (stats?.drawSize ? stats.drawSize * GS : 45 * scaleVal);
+            const maxDim = Math.max(asset.width, asset.height);
+            if (maxDim > 0 && !isNaN(size)) {
+                const scale = size / maxDim;
+                const w = asset.width * scale;
+                const h = asset.height * scale;
+                ctx.drawImage(asset, -w / 2 + (off.x || 0), -h / 2 + (off.y || 0), w, h);
+            } else {
+                drawImageCentered(ctx, asset, 45 * scaleVal);
+            }
             ctx.restore();
         } else {
             ctx.fillStyle = '#795548';
@@ -234,7 +366,18 @@ export class Tower {
             if (i !== path - 1 && this.upgrades[i] >= 3 && tier >= 2) return false;
         }
         
-        if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) return false;
+        if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) {
+            // MK: Master Double Cross (Allows 2 Crossbow Masters)
+            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+            if (this.type === 'dart' && path === 3 && mk['master_double']) {
+                let count = 0;
+                for(let t of engine.towers) {
+                    if(t && t.type === 'dart' && t.upgrades[2] === 5) count++;
+                }
+                if (count < 2) return true; 
+            }
+            return false;
+        }
         
         return true;
     }
@@ -244,7 +387,15 @@ export class Tower {
         const upgradeData = Upgrades[this.type][path][tier];
         if (!upgradeData) return false;
 
-        let cost = engine.getCost(upgradeData.cost);
+        let baseCost = upgradeData.cost;
+        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+
+        // MK: Budget Clusters (Bomb 1-3 cost -100)
+        if (this.type === 'bomb' && this.upgrades[0] === 2 && mk['budget_clusters']) baseCost -= 100;
+        // MK: Cheaper Solution (Glue 2-5 cost -1000)
+        if (this.type === 'glue' && this.upgrades[1] === 4 && mk['cheaper_solution']) baseCost -= 1000;
+
+        let cost = engine.getCost(baseCost);
         if (this.discount > 0) cost = Math.floor(cost * (1 - this.discount));
         
         if (engine.cash < cost || !this.canUpgrade(path, engine)) return false;
@@ -286,13 +437,11 @@ export class Tower {
     }
 
     draw(ctx, isPreview = false, engine = null) {
-        // PRO FIX: Draw faint glow if night mode is active
         if (!isPreview && engine && engine.nightAlpha > 0) {
             ctx.save();
             ctx.globalAlpha = engine.nightAlpha * 0.5;
             const glowR = 35 * GS;
             
-            // Cache the gradient to prevent memory allocation every frame
             if (!this._nightGlowGradient || this._nightGlowRadius !== glowR || this._nightGlowX !== this.x || this._nightGlowY !== this.y) {
                 this._nightGlowGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
                 this._nightGlowGradient.addColorStop(0, 'rgba(255, 240, 150, 0.6)');

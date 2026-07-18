@@ -69,7 +69,6 @@ export const Renderer = {
 
         if (camOffset !== 0) ctx.restore();
         
-        // Draw the Boss Health Bar on top of all game/cutscene elements
         BossHealthBarHandler.draw(ctx);
     },
 
@@ -228,8 +227,17 @@ export const Renderer = {
         const onFrozenWater = map.isOnFrozenWater(mouse.x, mouse.y, engine.towers);
         const validLandPlacement = !onPath && (!onWater || onFrozenWater);
 
-        const cost = engine.getCost(stats.cost);
+        // --- FREE DART MONKEY LOGIC ---
+        let cost = engine.getCost(stats.cost);
+        if (engine.selectedTowerType === 'dart' && !engine.isSandbox && engine.difficulty && !engine.difficulty.noSelling) {
+            const mkActive = Config.data.mkActive !== false;
+            const hasFreeMonkey = Config.data.unlocks.freeFirstDartMonkey || (mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_monkey);
+            if (hasFreeMonkey && !engine.towers.some(t => t.type === 'dart')) {
+                cost = 0;
+            }
+        }
         const canAfford = engine.cash >= cost;
+        // ------------------------------
 
         ctx.globalAlpha = 0.6;
 

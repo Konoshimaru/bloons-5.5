@@ -75,25 +75,40 @@
                 <div id="shop-view" class="tower-shop">
                     <h3>Shop</h3>
                     <div class="tower-card" id="hero-shop-card" data-tower="quincy"><span>Quincy</span><span class="cost">$540</span></div>
+                    
+                    <h4>Primary</h4>
                     <div class="tower-card" data-tower="dart"><span>Dart Monkey</span><span class="cost">$200</span></div>
-                    <div class="tower-card" data-tower="boomerang"><span>Boomerang</span><span class="cost">$315</span></div>
-                    <div class="tower-card" data-tower="tack"><span>Tack Shooter</span><span class="cost">$260</span></div>
-                    <div class="tower-card" data-tower="ninja"><span>Ninja Monkey</span><span class="cost">$400</span></div>
-                    <div class="tower-card" data-tower="sniper"><span>Sniper</span><span class="cost">$350</span></div>
-                    <div class="tower-card" data-tower="ice"><span>Ice Tower</span><span class="cost">$500</span></div>
-                    <div class="tower-card" data-tower="glue"><span>Glue Gunner</span><span class="cost">$225</span></div>
+                    <div class="tower-card" data-tower="boomerang"><span>Boomerang Monkey</span><span class="cost">$315</span></div>
                     <div class="tower-card" data-tower="bomb"><span>Bomb Shooter</span><span class="cost">$375</span></div>
-                    <div class="tower-card" data-tower="spike"><span>Spike Factory</span><span class="cost">$1000</span></div>
-                    <div class="tower-card" data-tower="farm"><span>Banana Farm</span><span class="cost">$1250</span></div>
-                    <div class="tower-card" data-tower="farmer"><span>Banana Farmer</span><span class="cost">$1000</span></div>
-                    <div class="tower-card" data-tower="village"><span>Monkey Village</span><span class="cost">$1200</span></div>
-                    <div class="tower-card" data-tower="super"><span>Super Monkey</span><span class="cost">$2500</span></div>
+                    <div class="tower-card" data-tower="tack"><span>Tack Shooter</span><span class="cost">$260</span></div>
+                    <div class="tower-card" data-tower="ice"><span>Ice Monkey</span><span class="cost">$400</span></div>
+                    <div class="tower-card" data-tower="glue"><span>Glue Gunner</span><span class="cost">$225</span></div>
+                    <div class="tower-card" data-tower="desperado"><span>Desperado</span><span class="cost">$500</span></div>
+                    
+                    <h4>Military</h4>
+                    <div class="tower-card" data-tower="sniper"><span>Sniper Monkey</span><span class="cost">$350</span></div>
                     <div class="tower-card" data-tower="sub"><span>Monkey Sub</span><span class="cost">$500</span></div>
                     <div class="tower-card" data-tower="buccaneer"><span>Monkey Buccaneer</span><span class="cost">$500</span></div>
+                    <div class="tower-card" data-tower="ace"><span>Monkey Ace</span><span class="cost">$800</span></div>
+                    <div class="tower-card" data-tower="heli"><span>Heli Pilot</span><span class="cost">$1000</span></div>
                     <div class="tower-card" data-tower="mortar"><span>Mortar Monkey</span><span class="cost">$750</span></div>
+                    <div class="tower-card" data-tower="dartling"><span>Dartling Gunner</span><span class="cost">$950</span></div>
+                    
+                    <h4>Magic</h4>
                     <div class="tower-card" data-tower="wizard"><span>Wizard Monkey</span><span class="cost">$600</span></div>
-                    <div class="tower-card" data-tower="engineer"><span>Monkey Engineer</span><span class="cost">$450</span></div>
+                    <div class="tower-card" data-tower="super"><span>Super Monkey</span><span class="cost">$2500</span></div>
+                    <div class="tower-card" data-tower="ninja"><span>Ninja Monkey</span><span class="cost">$400</span></div>
                     <div class="tower-card" data-tower="alchemist"><span>Alchemist</span><span class="cost">$550</span></div>
+                    <div class="tower-card" data-tower="druid"><span>Druid</span><span class="cost">$500</span></div>
+                    <div class="tower-card" data-tower="mermonkey"><span>Mermonkey</span><span class="cost">$750</span></div>
+                    
+                    <h4>Support</h4>
+                    <div class="tower-card" data-tower="farm"><span>Banana Farm</span><span class="cost">$1250</span></div>
+                    <div class="tower-card" data-tower="spike"><span>Spike Factory</span><span class="cost">$1000</span></div>
+                    <div class="tower-card" data-tower="village"><span>Monkey Village</span><span class="cost">$1200</span></div>
+                    <div class="tower-card" data-tower="engineer"><span>Engineer Monkey</span><span class="cost">$450</span></div>
+                    <div class="tower-card" data-tower="beast"><span>Beast Handler</span><span class="cost">$550</span></div>
+                    <div class="tower-card" data-tower="farmer"><span>Banana Farmer</span><span class="cost">$1000</span></div>
                 </div>
                 <div id="enemy-view" class="tower-shop hidden">
                     <h3>Spawn Bloons</h3>
@@ -205,12 +220,59 @@
             </div>
         </div>
 
-        <!-- Knowledge Menu -->
-        <div id="knowledge-menu" class="overlay hidden">
-            <div class="menu-content">
-                <h2>Monkey Knowledge</h2>
-                <p>Coming Soon!</p>
-                <button class="back-btn" data-target="main-menu-ui">Back</button>
+         <!-- Knowledge Menu -->
+        <div id="knowledge-menu" class="overlay hidden" style="padding: 0; overflow: hidden;">
+            <div id="mk-viewport" style="width: 100%; height: 100%; overflow: hidden; background-color: #050508; position: relative; cursor: grab;">
+                
+                <!-- Top Tab Navigation -->
+                <div id="mk-tabs" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; gap: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; border: 1px solid #2c3e50; backdrop-filter: blur(5px);">
+                    <button class="mk-tab active" data-screen="primary">Primary</button>
+                    <button class="mk-tab" data-screen="military">Military</button>
+                    <button class="mk-tab" data-screen="magic">Magic</button>
+                    <button class="mk-tab" data-screen="support">Support</button>
+                    <button class="mk-tab" data-screen="heroes">Heroes</button>
+                </div>
+
+                <button class="back-btn" data-target="main-menu-ui" style="position: absolute; top: 20px; left: 20px; z-index: 100;">Back</button>
+                
+                <!-- NEW: Currency Counters -->
+                <div id="mk-currency" style="position: absolute; top: 20px; right: 20px; z-index: 100; display: flex; gap: 20px; background: rgba(0,0,0,0.7); padding: 10px 15px; border-radius: 8px; border: 1px solid #2c3e50; backdrop-filter: blur(5px); font-weight: 900; font-family: 'Nunito', sans-serif;">
+                    <div style="color: #3498db;"><span id="mk-kp-count">0</span> KP</div>
+                    <div style="color: #f1c40f;">🐵 <span id="mk-mm-count">0</span></div>
+                </div>
+                
+                <!-- Empty Screen Containers (Future nodes go here) -->
+                <div id="mk-screen-primary" class="mk-screen active"></div>
+                <div id="mk-screen-military" class="mk-screen"></div>
+                <div id="mk-screen-magic" class="mk-screen"></div>
+                <div id="mk-screen-support" class="mk-screen"></div>
+                <div id="mk-screen-heroes" class="mk-screen"></div>
+
+                <!-- Focus Mode UI -->
+                <div id="mk-focus-overlay"></div>
+                <div id="mk-focus-node"></div>
+                
+                <div id="mk-detail-panel">
+                    <button id="mk-close-focus">✖ Close</button>
+                    <h2 id="mk-detail-title">Upgrade Name</h2>
+                    <div id="mk-detail-icon"></div>
+                    <div class="mk-detail-info">
+                        <p id="mk-detail-desc">Description here...</p>
+                        <div class="mk-detail-stats">
+                            <div><span>Cost:</span> <span id="mk-detail-cost">1 MK Point</span></div>
+                            <div><span>Requires:</span> <span id="mk-detail-req">Level 5</span></div>
+                            <div><span>Status:</span> <span id="mk-detail-status" style="color: #e74c3c;">Locked</span></div>
+                        </div>
+                    </div>
+                <button id="mk-buy-btn" style="margin-top: 20px; width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Unlock Upgrade</button>
+                </div>
+
+                <!-- NEW: Toggle All MK Button -->
+                <button id="mk-toggle-btn" style="position: absolute; bottom: 20px; right: 20px; z-index: 100; background: rgba(0,0,0,0.7); color: #f1c40f; border: 1px solid #f1c40f; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 900; font-family: 'Nunito', sans-serif;">MK: ON</button>
+
+            </div>
+        </div>
+
             </div>
         </div>
 

@@ -29,7 +29,9 @@ const DEFAULT_DATA = {
     unlockedPerks: [],
     extremeSpeedEnabled: false,
     showTowerStats: false,
-    uncapFps: false, // NEW: FPS uncap option
+    uncapFps: false,
+    knowledgePoints: 65, // <-- ADD THIS (Starting KP)
+    monkeyKnowledge: {}, // <-- ADD THIS (Tracks unlocked nodes)
     unlocks: {
         extraStartingCash: false,
         extraStartingLives: false,

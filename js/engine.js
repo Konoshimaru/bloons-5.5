@@ -166,7 +166,7 @@ export const GameEngine = {
 
     startGame(isSandbox = false) {
         this.isSandbox = isSandbox;
-        try { this.map = new GameMap(this.currentMap); } 
+        try { this.map = new GameMap(this.currentMap); }
         catch (e) {
             this.log("Error loading map: " + e.message); this.gameState = 'gameover';
             UI.toggleMenus('game-over-menu');
@@ -185,7 +185,23 @@ export const GameEngine = {
             if (Config.data.unlocks.extraStartingLives) this.lives += 10;
             if (Config.data.unlocks.extraStartingCash) this.cash += 200;
         }
+
+        // --- MONKEY KNOWLEDGE EFFECTS ---
+        const mk = Config.data.monkeyKnowledge || {};
+        if (!isSandbox) {
+            // More Cash
+            if (mk['more_cash']) this.cash += 200;
+                        
+            // Bonus Glue Gunner
+            if (mk['bonus_glue']) {
+                const t = new Tower(350, 350, 'glue');
+                this.towers.push(t);
+            }
+        }
+        // --------------------------------
+
         this.hero = null;
+        // ... rest of startGame
         this.waveManager = new WaveManager();
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
         this.waveManager.currentWave = diff.startRound - 1;
@@ -248,10 +264,18 @@ export const GameEngine = {
         const xpEarned = wavesSurvived * 15;
         const mmEarned = Math.floor(wavesSurvived / 3) + 5;
         Config.data.playerXP += xpEarned; Config.data.monkeyMoney += mmEarned;
+        
         while (Config.data.playerXP >= Config.data.playerXPToNext) {
-            Config.data.playerXP -= Config.data.playerXPToNext; Config.data.playerLevel++;
+            Config.data.playerXP -= Config.data.playerXPToNext; 
+            Config.data.playerLevel++;
             Config.data.playerXPToNext = Math.floor(Config.data.playerXPToNext * 1.25);
+            
+            // Grant Knowledge Point for levels above 25
+            if (Config.data.playerLevel > 25) {
+                Config.data.knowledgePoints = (Config.data.knowledgePoints || 0) + 1;
+            }
         }
+        
         Config.data.savedRun = null; Config.save();
         const rewardsEl = document.getElementById('go-rewards');
         if (rewardsEl) rewardsEl.innerHTML = `+${xpEarned} XP<br>+${mmEarned} Monkey Money`;
@@ -301,10 +325,21 @@ export const GameEngine = {
         if (this.selectedTowerType) {
             const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
             let cost = this.getCost(stats.cost);
+            
+            // Existing Free Dart Monkey Power
             if (this.selectedTowerType === 'dart' && Config.data.unlocks.freeFirstDartMonkey && !this.isSandbox && !this.difficulty.noSelling) {
                 if (!this.towers.some(t => t.type === 'dart')) { cost = 0; }
             }
+            
+            // --- MONKEY KNOWLEDGE: Bonus Monkey! ---
+            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+            if (this.selectedTowerType === 'dart' && mk['bonus_monkey'] && !this.isSandbox && !this.difficulty.noSelling) {
+                if (!this.towers.some(t => t.type === 'dart')) { cost = 0; }
+            }
+            // ----------------------------------------
+
             if (this.cash < cost) { this.log("Not enough cash!"); return; }
+            // ... rest of placement logic
 
             const placementRadius = (stats.hitRadius || 18) * GLOBAL_SCALE;
             // PRO FIX: Use withinRange for overlap check

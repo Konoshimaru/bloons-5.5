@@ -1,4 +1,3 @@
-// main.js
 import { GameEngine } from './engine.js';
 import { Config, HeroStats, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
@@ -10,9 +9,9 @@ import { Hero } from './hero.js';
 import { InputManager } from './input.js';
 import { UI } from './ui.js';
 import { MapEditor } from './mapEditor.js';
+import { MonkeyKnowledge } from './monkeyKnowledge.js';
 
 const dom = {
-    // In-Game UI
     pauseBtn: document.getElementById('pause-btn'),
     resumeBtn: document.getElementById('resume-btn'),
     pauseSettingsBtn: document.getElementById('pause-settings-btn'),
@@ -40,10 +39,8 @@ const dom = {
     upCollectBank: document.getElementById('up-collect-bank'),
     cashDisplay: document.getElementById('cash-display'),
     livesDisplay: document.getElementById('lives-display'),
-    waveDisplay: document.getElementById('wave-display'), // NEW: Wave display element
+    waveDisplay: document.getElementById('wave-display'),
     cancelBtn: document.getElementById('cancel-btn'),
-    
-    // Main Menu UI
     btnMonkeys: document.getElementById('btn-monkeys'),
     btnHeroes: document.getElementById('btn-heroes'),
     btnPlay: document.getElementById('btn-play'),
@@ -52,23 +49,17 @@ const dom = {
     btnKnowledge: document.getElementById('btn-knowledge'),
     btnSettings: document.getElementById('btn-settings'),
     btnMapEditor: document.getElementById('btn-map-editor'),
-    
-    // Play Submenu
     btnContinue: document.getElementById('btn-continue'),
     btnAbandon: document.getElementById('btn-abandon'),
     btnMaps: document.getElementById('btn-maps'),
     btnDifficulty: document.getElementById('btn-difficulty'),
     diffBtns: document.querySelectorAll('.diff-btn[data-diff]'),
-    
-    // Other Menus
     hmPrevBtn: document.getElementById('hm-prev-btn'),
     hmNextBtn: document.getElementById('hm-next-btn'),
     heroSelector: document.getElementById('hero-selector'),
     settingsBackBtn: document.getElementById('settings-back-btn'),
     goMenuBtn: document.getElementById('go-menu-btn'),
     backBtns: document.querySelectorAll('.back-btn[data-target]'),
-    
-    // Settings
     volumeSlider: document.getElementById('volume-slider'),
     volDisplay: document.getElementById('vol-display'),
     musicSlider: document.getElementById('music-slider'),
@@ -84,7 +75,7 @@ const dom = {
     shuffleMusicCheckbox: document.getElementById('shuffle-music-checkbox'),
     randomStartCheckbox: document.getElementById('random-start-checkbox'),
     showStatsCheckbox: document.getElementById('show-stats-checkbox'),
-    uncapFpsCheckbox: document.getElementById('uncap-fps-checkbox'), // NEW: Uncap FPS
+    uncapFpsCheckbox: document.getElementById('uncap-fps-checkbox'),
     prevSongBtn: document.getElementById('prev-song-btn'),
     nextSongBtn: document.getElementById('next-song-btn'),
     pausePrevSong: document.getElementById('pause-prev-song'),
@@ -104,27 +95,21 @@ function resizeGame() {
     const container = document.getElementById('game-container');
     const tooSmallOverlay = document.getElementById('screen-too-small-overlay');
     if (!container) return;
-
     const w = window.innerWidth;
     const h = window.innerHeight;
     const scale = Math.min(w / CANVAS_WIDTH, h / CANVAS_HEIGHT);
-
     const MIN_PLAYABLE_SCALE = 0.3; 
     if (scale < MIN_PLAYABLE_SCALE) {
         container.style.visibility = 'hidden';
         tooSmallOverlay?.classList.remove('hidden');
         return;
     }
-
     container.style.visibility = 'visible';
     tooSmallOverlay?.classList.add('hidden');
-    
     container.style.transformOrigin = 'top left';
     container.style.transform = `scale(${scale})`;
-    
     const scaledWidth = CANVAS_WIDTH * scale;
     const scaledHeight = CANVAS_HEIGHT * scale;
-    
     container.style.position = 'absolute';
     container.style.left = `${(w - scaledWidth) / 2}px`;
     container.style.top = `${(h - scaledHeight) / 2}px`;
@@ -144,7 +129,6 @@ function showMainMenuUI(show) {
 function refreshMapSelector() {
     const mapSelector = document.getElementById('map-selector');
     if (!mapSelector) return;
-    
     mapSelector.innerHTML = '';
     Maps.forEach((map, index) => {
         const wrapper = document.createElement('div');
@@ -152,14 +136,12 @@ function refreshMapSelector() {
         wrapper.style.alignItems = 'center';
         wrapper.style.gap = '5px';
         wrapper.style.margin = '5px 0';
-
         const btn = document.createElement('button');
         btn.className = 'diff-btn';
         btn.style.flex = '1';
         btn.style.margin = '0';
         btn.innerText = map.name || `Map ${index + 1}`;
         if (Config.data.currentMap === index) btn.style.borderColor = '#f1c40f';
-        
         btn.addEventListener('click', () => {
             document.querySelectorAll('#map-selector .diff-btn').forEach(c => c.style.borderColor = '#7f8c8d');
             btn.style.borderColor = '#f1c40f';
@@ -168,8 +150,6 @@ function refreshMapSelector() {
             Config.save();
         });
         wrapper.appendChild(btn);
-
-        // PRO FIX: Find the matching custom map data, handling both new (with ID) and legacy (without ID) maps
         let customMapData = null;
         for (let m of Config.data.customMaps) {
             if ((map.id && m.id === map.id) || (!map.id && m.name === map.name)) {
@@ -177,8 +157,6 @@ function refreshMapSelector() {
                 break;
             }
         }
-
-        // If it's a custom map, show the delete button
         if (customMapData) {
             const delBtn = document.createElement('button');
             delBtn.className = 'diff-btn';
@@ -191,28 +169,20 @@ function refreshMapSelector() {
             delBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 if (confirm(`Delete custom map "${map.name}"?`)) {
-                    // 1. Remove from Config by exact object reference
                     Config.data.customMaps = Config.data.customMaps.filter(m => m !== customMapData);
                     Config.save();
-                    
-                    // 2. Remove from runtime Maps array by exact object reference
                     const mapIdx = Maps.indexOf(map);
                     if (mapIdx > -1) Maps.splice(mapIdx, 1);
-                    
-                    // 3. Adjust currentMap index if we deleted one before it
                     if (GameEngine.currentMap >= mapIdx) {
                         GameEngine.currentMap = Math.max(0, GameEngine.currentMap - 1);
                         Config.data.currentMap = GameEngine.currentMap;
                         Config.save();
                     }
-                    
-                    // 4. Refresh the UI
                     refreshMapSelector();
                 }
             });
             wrapper.appendChild(delBtn);
         }
-        
         mapSelector.appendChild(wrapper);
     });
 }
@@ -220,14 +190,11 @@ function refreshMapSelector() {
 function updateHeroInfo(key) {
     const hero = HeroRegistry[key];
     if (!hero) return;
-    
     document.getElementById('hero-select-title').innerText = hero.stats.name;
     document.getElementById('hero-select-subtitle').innerText = hero.stats.desc;
     document.getElementById('hero-model-view').innerText = hero.stats.name;
-    
     const bioText = `Cost: $${hero.stats.cost}<br>Base Range: ${hero.stats.range}<br>Base Damage: ${hero.stats.damage}<br>Attack Rate: ${hero.stats.fireRate}s<br>Damage Type: ${hero.stats.dmgType}<br><br><i>${hero.stats.name} is ready for battle.</i>`;
     document.getElementById('hero-bio-text').innerHTML = bioText;
-    
     document.querySelectorAll('.hm-carousel-item').forEach(item => {
         item.classList.toggle('active', item.dataset.hero === key);
     });
@@ -236,19 +203,16 @@ function updateHeroInfo(key) {
 function refreshHeroSelector() {
     if (!dom.heroSelector) return;
     dom.heroSelector.innerHTML = '';
-    
     Object.entries(HeroRegistry).forEach(([key, hero]) => {
         const btn = document.createElement('button');
         btn.className = 'hm-carousel-item';
         btn.dataset.hero = key;
         btn.innerText = hero.stats.name.substring(0, 2);
         btn.title = hero.stats.name;
-        
         if (Config.data.selectedHero === key) {
             btn.classList.add('active');
             updateHeroInfo(key);
         }
-        
         btn.addEventListener('click', () => {
             Config.data.selectedHero = key;
             GameEngine.selectedHero = key;
@@ -277,9 +241,20 @@ function updateShopPrices() {
         const type = card.dataset.tower;
         const stats = TowerStats[type] || HeroStats[type];
         if (stats) {
-            const cost = Math.floor(stats.cost * costMod);
+            let cost = Math.floor(stats.cost * costMod);
             const costEl = card.querySelector('.cost');
-            if (costEl) costEl.innerText = `$${cost}`;
+            
+            // --- FREE DART MONKEY LOGIC ---
+            if (type === 'dart' && !GameEngine.isSandbox && GameEngine.difficulty && !GameEngine.difficulty.noSelling) {
+                const mkActive = Config.data.mkActive !== false;
+                const hasFreeMonkey = Config.data.unlocks.freeFirstDartMonkey || (mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_monkey);
+                if (hasFreeMonkey && !GameEngine.towers.some(t => t.type === 'dart')) {
+                    cost = 0;
+                }
+            }
+            // ------------------------------
+
+            if (costEl) costEl.innerText = cost === 0 ? "Free!" : `$${cost}`;
         }
     });
 }
@@ -324,15 +299,12 @@ function applyConfigToUI() {
 
 async function startGameUI(isSandbox) {
     showMainMenuUI(false);
-    UI.toggleMenus(null); // Close any open menus
-    
+    UI.toggleMenus(null);
     document.getElementById('sidebar').classList.remove('hidden');
     document.getElementById('top-ui-left').classList.remove('hidden');
     document.getElementById('top-ui-right').classList.remove('hidden');
-    
     const sandboxControls = document.getElementById('sandbox-controls');
     const normControls = document.getElementById('norm-controls');
-    
     if (isSandbox) {
         sandboxControls.classList.remove('hidden');
         normControls.classList.add('hidden');
@@ -340,20 +312,14 @@ async function startGameUI(isSandbox) {
         sandboxControls.classList.add('hidden');
         normControls.classList.remove('hidden');
     }
-
     document.getElementById('shop-view').classList.remove('hidden');
     document.getElementById('enemy-view').classList.add('hidden');
     if (dom.sbViewToggle) dom.sbViewToggle.innerText = '🎈 Spawn Bloons';
-
     try {
-        // PRO FIX: Start game immediately to switch state from 'menu' to 'playing'
-        // This prevents the main menu scenery from rendering while audio loads
         GameEngine.startGame(isSandbox);
         updateShopPrices();
-        
-        // Initialize audio in the background
         await AudioEngine.init();
-        AudioEngine.playGameMusic(); // Switch to game music
+        AudioEngine.playGameMusic();
     } catch (err) {
         console.error("Failed to start game:", err);
         GameEngine.gameState = 'gameover';
@@ -363,7 +329,6 @@ async function startGameUI(isSandbox) {
 }
 
 function _setupMenuListeners() {
-    // Main Menu Buttons
     dom.btnPlay?.addEventListener('click', () => UI.toggleMenus('play-menu'));
     dom.btnSandbox?.addEventListener('click', () => startGameUI(true)); 
     dom.btnHeroes?.addEventListener('click', () => UI.toggleMenus('hero-select-menu'));
@@ -372,8 +337,6 @@ function _setupMenuListeners() {
     dom.btnSettings?.addEventListener('click', () => { GameEngine.lastMenu = 'main-menu-ui'; UI.toggleMenus('settings-menu'); });
     dom.btnMapEditor?.addEventListener('click', () => { MapEditor.init(); UI.toggleMenus('map-editor-menu'); });
     dom.btnMonkeys?.addEventListener('click', () => alert('Monkeys menu coming soon!'));
-
-    // Play Submenu Buttons
     dom.btnContinue?.addEventListener('click', () => {
         if (GameEngine.loadGame()) {
             startGameUI(false);
@@ -382,8 +345,6 @@ function _setupMenuListeners() {
     dom.btnAbandon?.addEventListener('click', () => GameEngine.abandonRun());
     dom.btnMaps?.addEventListener('click', () => { refreshMapSelector(); UI.toggleMenus('maps-menu'); });
     dom.btnDifficulty?.addEventListener('click', () => UI.toggleMenus('difficulty-menu'));
-    
-    // Difficulty Buttons
     dom.diffBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             Config.data.currentDifficulty = btn.dataset.diff;
@@ -391,28 +352,22 @@ function _setupMenuListeners() {
             startGameUI(false);
         });
     });
-    
-    // Back Buttons
     dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => UI.toggleMenus(e.target.dataset.target)));
     dom.settingsBackBtn?.addEventListener('click', () => UI.toggleMenus(GameEngine.lastMenu));
-    
-    // Game Over Return Button
     dom.goMenuBtn?.addEventListener('click', () => {
-        UI.toggleMenus(null); // Hide the game over screen
-        GameEngine.deselectAll(); // PRO FIX: Close tower menu before returning to main menu
-        GameEngine.gameState = 'menu'; // Reset game state
-        GameEngine.map = null; // Clear the map so renderer draws scenery
-        showMainMenuUI(true); // Show main menu UI
+        UI.toggleMenus(null);
+        GameEngine.deselectAll();
+        GameEngine.gameState = 'menu';
+        GameEngine.map = null;
+        showMainMenuUI(true);
         document.getElementById('sidebar').classList.add('hidden');
         document.getElementById('top-ui-left').classList.add('hidden');
         document.getElementById('top-ui-right').classList.add('hidden');
-        AudioEngine.playMenuMusic(); // Switch to menu music
+        AudioEngine.playMenuMusic();
         updateShopUI();
     });
-    
     dom.hmPrevBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: -300, behavior: 'smooth' }));
     dom.hmNextBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: 300, behavior: 'smooth' }));
-
     document.querySelectorAll('.shop-item').forEach(item => {
         item.addEventListener('click', () => {
             const unlockKey = item.dataset.unlock;
@@ -445,13 +400,11 @@ function _setupSettingsListeners() {
     dom.shuffleMusicCheckbox?.addEventListener('change', (e) => { Config.data.musicShuffle = e.target.checked; Config.save(); });
     dom.randomStartCheckbox?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });
     dom.showStatsCheckbox?.addEventListener('change', (e) => { Config.data.showTowerStats = e.target.checked; Config.save(); });
-    // NEW: Uncap FPS listener
     dom.uncapFpsCheckbox?.addEventListener('change', (e) => { 
         Config.data.uncapFps = e.target.checked; 
         Config.save(); 
-        GameEngine.restartLoop(); // Restart loop to apply setting immediately
+        GameEngine.restartLoop(); 
     });
-
     const autoToggle = (e) => {
         GameEngine.waveManager.autoWaveEnabled = e.target.checked;
         Config.data.autoStart = e.target.checked;
@@ -461,7 +414,6 @@ function _setupSettingsListeners() {
     };
     dom.autoWaveMenu?.addEventListener('change', autoToggle);
     dom.autoWavePause?.addEventListener('change', autoToggle);
-    
     dom.prevSongBtn?.addEventListener('click', () => AudioEngine.prevTrack());
     dom.nextSongBtn?.addEventListener('click', () => AudioEngine.nextTrack());
     dom.pausePrevSong?.addEventListener('click', () => AudioEngine.prevTrack());
@@ -472,10 +424,8 @@ function _setupGameListeners() {
     dom.pauseBtn?.addEventListener('click', () => GameEngine.pauseGame());
     dom.resumeBtn?.addEventListener('click', () => GameEngine.resumeGame());
     dom.pauseSettingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; UI.toggleMenus('settings-menu'); });
-    
-    // QUIT TO MENU BUTTON
     dom.quitBtn?.addEventListener('click', () => {
-        GameEngine.deselectAll(); // PRO FIX: Close tower menu before quitting
+        GameEngine.deselectAll();
         GameEngine.saveGame();
         GameEngine.gameState = 'menu';
         GameEngine.map = null; 
@@ -484,23 +434,19 @@ function _setupGameListeners() {
         document.getElementById('sidebar').classList.add('hidden');
         document.getElementById('top-ui-left').classList.add('hidden');
         document.getElementById('top-ui-right').classList.add('hidden');
-        AudioEngine.playMenuMusic(); // Switch to menu music
+        AudioEngine.playMenuMusic();
         updateShopUI();
     });
-    
     dom.sbPrev?.addEventListener('click', () => GameEngine.skipWave(-1));
     dom.sbNext?.addEventListener('click', () => GameEngine.skipWave(1));
-
     dom.waveSpeedBtn?.addEventListener('click', () => GameEngine.handleWaveSpeedClick(1));
     dom.sbSpeedBtn?.addEventListener('click', () => GameEngine.handleWaveSpeedClick(1));
-
     const handleSpeedRightClick = (e) => {
         e.preventDefault();
         GameEngine.handleWaveSpeedClick(-1);
     };
     dom.waveSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
     dom.sbSpeedBtn?.addEventListener('contextmenu', handleSpeedRightClick);
-    
     dom.sbResetCooldowns?.addEventListener('click', () => {
         if (!GameEngine.isSandbox) return;
         GameEngine.towers.forEach(t => {
@@ -512,7 +458,6 @@ function _setupGameListeners() {
         GameEngine.log("Ability cooldowns reset!");
         UI.updateAbilityBar(GameEngine);
     });
-
     dom.cashDisplay?.addEventListener('click', () => {
         if (!GameEngine.isSandbox) return;
         const val = prompt("Set Cash Amount:", GameEngine.cash);
@@ -532,7 +477,6 @@ function _setupGameListeners() {
         }
     });
     dom.cancelBtn?.addEventListener('click', () => GameEngine.deselectAll());
-    
     dom.upTargetPrev?.addEventListener('click', () => GameEngine.cycleTargeting(-1));
     dom.upTargetNext?.addEventListener('click', () => GameEngine.cycleTargeting(1));
 }
@@ -577,28 +521,14 @@ function _setupShopListeners() {
         card.addEventListener('click', () => {
             if (!GameEngine.isSandbox || !GameEngine.map) return;
             const tier = parseInt(card.dataset.enemy, 10);
-            // PRO FIX: DDTs (tier 16) always spawn with Camo, just like in BTD6
             let isCamo = sandboxCamoOn || tier === 16;
-            // ISSUE 8 FIX: Use ObjectPool for sandbox spawning
             let e = GameEngine.enemyPool.get();
-            // PRO FIX: Pass false for isSuperCeramic in sandbox
             e.init(tier, GameEngine.map, isCamo, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0, false);
             GameEngine.enemies.push(e);
         });
     });
 
-    let activeDrag = null;
-
-    const cleanupDrag = () => {
-        if (activeDrag) {
-            window.removeEventListener('pointermove', activeDrag.onMove);
-            window.removeEventListener('pointerup', activeDrag.onUp);
-            window.removeEventListener('pointerdown', activeDrag.resumeDrag);
-            if (activeDrag.placeTimer) clearTimeout(activeDrag.placeTimer);
-            activeDrag = null;
-        }
-    };
-
+    // --- REWRITTEN DRAG AND DROP LOGIC ---
     dom.towerCards.forEach(card => {
         card.addEventListener('pointerdown', (e) => {
             e.preventDefault(); 
@@ -609,66 +539,52 @@ function _setupShopListeners() {
                 return;
             }
             
-            cleanupDrag(); 
-            
             GameEngine.deselectAll();
             dom.towerCards.forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             GameEngine.selectedTowerType = card.dataset.tower;
             document.getElementById('cancel-btn').classList.remove('hidden');
 
-            const canvasRect = GameEngine.canvas.getBoundingClientRect();
-            const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
-            const scaleX = GameEngine.canvas.width / canvasRect.width;
-            const scaleY = GameEngine.canvas.height / canvasRect.height;
+            let isDragging = false;
+            const startX = e.clientX;
+            const startY = e.clientY;
 
-            GameEngine.mouse.x = (e.clientX - canvasRect.left) * scaleX;
-            GameEngine.mouse.y = (e.clientY - canvasRect.top) * scaleY;
-
-            activeDrag = {
-                onMove: (ev) => {
-                    GameEngine.mouse.x = (ev.clientX - canvasRect.left) * scaleX;
-                    GameEngine.mouse.y = (ev.clientY - canvasRect.top) * scaleY;
-                },
-                onUp: (ev) => {
-                    window.removeEventListener('pointermove', activeDrag.onMove);
-                    window.removeEventListener('pointerup', activeDrag.onUp);
-
-                    if (ev.clientX >= sidebarRect.left && ev.clientX <= sidebarRect.right) {
-                        GameEngine.deselectAll();
-                        cleanupDrag();
-                        return;
-                    }
-                    
-                    if (ev.clientX >= canvasRect.left && ev.clientX <= canvasRect.right && ev.clientY >= canvasRect.top && ev.clientY <= canvasRect.bottom) {
-                        activeDrag.placeTimer = setTimeout(() => {
-                            GameEngine.handleCanvasClick({ clientX: ev.clientX, clientY: ev.clientY });
-                            cleanupDrag();
-                        }, 150);
-                        
-                        window.addEventListener('pointerdown', activeDrag.resumeDrag);
-                    } else {
-                        GameEngine.deselectAll();
-                        cleanupDrag();
-                    }
-                },
-                resumeDrag: (ev) => {
-                    if (activeDrag && activeDrag.placeTimer) {
-                        clearTimeout(activeDrag.placeTimer);
-                        activeDrag.placeTimer = null;
-                        window.removeEventListener('pointerdown', activeDrag.resumeDrag);
-                        
-                        GameEngine.mouse.x = (ev.clientX - canvasRect.left) * scaleX;
-                        GameEngine.mouse.y = (ev.clientY - canvasRect.top) * scaleY;
-                        
-                        window.addEventListener('pointermove', activeDrag.onMove);
-                        window.addEventListener('pointerup', activeDrag.onUp);
-                    }
+            const onMove = (ev) => {
+                const dx = Math.abs(ev.clientX - startX);
+                const dy = Math.abs(ev.clientY - startY);
+                if (dx > 5 || dy > 5) {
+                    isDragging = true;
+                }
+                if (isDragging) {
+                    const rect = GameEngine.canvas.getBoundingClientRect();
+                    const scaleX = GameEngine.canvas.width / rect.width;
+                    const scaleY = GameEngine.canvas.height / rect.height;
+                    GameEngine.mouse.x = (ev.clientX - rect.left) * scaleX;
+                    GameEngine.mouse.y = (ev.clientY - rect.top) * scaleY;
                 }
             };
 
-            window.addEventListener('pointermove', activeDrag.onMove);
-            window.addEventListener('pointerup', activeDrag.onUp);
+            const onUp = (ev) => {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
+
+                if (isDragging) {
+                    const rect = GameEngine.canvas.getBoundingClientRect();
+                    const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
+
+                    if (ev.clientX >= sidebarRect.left && ev.clientX <= sidebarRect.right) {
+                        GameEngine.deselectAll();
+                    } else if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+                        GameEngine.handleCanvasClick({ clientX: ev.clientX, clientY: ev.clientY });
+                    } else {
+                        GameEngine.deselectAll();
+                    }
+                }
+                // If not dragging, we leave it selected so the user can click the map via InputManager
+            };
+
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
         });
 
         card.addEventListener('mouseenter', () => {
@@ -678,13 +594,17 @@ function _setupShopListeners() {
         });
     });
 
+    // Update prices immediately after a map click (fixes "Free!" disappearing after placing the free dart)
+    GameEngine.canvas.addEventListener('click', () => {
+        setTimeout(updateShopPrices, 10);
+    });
+
     const upHover = (el, path) => {
         if (!el) return;
         el.addEventListener('mouseenter', () => {
             if (!GameEngine.selectedPlacedTower) return;
             const t = GameEngine.selectedPlacedTower;
             if (t.stats.isHero) return; 
-            
             const tier = t.upgrades[path - 1];
             const data = Upgrades[t.type][path][tier];
             const tip = document.getElementById('upgrade-tooltip');
@@ -704,11 +624,9 @@ function _setupShopListeners() {
     };
     
     dom.upPaths.forEach((el, i) => upHover(el, i + 1));
-    
     dom.upBuyLevel?.addEventListener('click', () => GameEngine.buyHeroLevel());
     dom.upPaths.forEach((el, i) => el?.addEventListener('click', () => GameEngine.handleUpgrade(i + 1)));
     dom.upSell?.addEventListener('click', () => GameEngine.sellTower());
-    
     dom.upCollectBank?.addEventListener('click', () => {
         if (GameEngine.selectedPlacedTower && GameEngine.selectedPlacedTower.bankBalance > 0) {
             GameEngine.addCash(Math.floor(GameEngine.selectedPlacedTower.bankBalance));
@@ -733,7 +651,6 @@ window.addEventListener('load', () => {
     applyConfigToUI();
     resizeGame();
     document.getElementById('main-menu-ui').classList.remove('hidden');
-    
-    // Initialize audio and start the main menu music
     AudioEngine.init().then(() => AudioEngine.playMenuMusic());
+    MonkeyKnowledge.init(); 
 });
