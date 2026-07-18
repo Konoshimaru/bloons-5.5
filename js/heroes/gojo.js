@@ -5,7 +5,6 @@ import Assets from '../assets.js';
 import { AudioEngine } from '../audio.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
 
-// PRO FIX: Safe fallback to prevent NaN crashes if import fails
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
@@ -57,7 +56,8 @@ export default {
                 if (!e.alive) continue;
                 if (tower.hollowProjectile.hitEnemies.has(e)) continue;
                 
-                if (Utils.distance(tower.hollowProjectile.x, tower.hollowProjectile.y, e.x, e.y) < e.data.radius + 40) {
+                // PRO FIX: Use withinRange
+                if (Utils.withinRange(tower.hollowProjectile.x, tower.hollowProjectile.y, e.x, e.y, e.data.radius + 40)) {
                     let dmg = e.takeDamage(10000, { isMagic: true, canHitLead: true });
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                     tower.hollowProjectile.hitEnemies.add(e); 
@@ -106,7 +106,8 @@ export default {
                     e.distanceTraveled = Math.max(tower.reverseWell.dist, e.distanceTraveled - 400 * dt);
                     e.offsetX *= 0.5; e.offsetY *= 0.5; 
                 }
-                if (Utils.distance(tower.reverseWell.x, tower.reverseWell.y, e.x, e.y) < 150) {
+                // PRO FIX: Use withinRange
+                if (Utils.withinRange(tower.reverseWell.x, tower.reverseWell.y, e.x, e.y, 150)) {
                     let dmg = e.takeDamage(5000 * dt, { isMagic: true, canHitLead: true }); 
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                 }
@@ -142,7 +143,8 @@ export default {
                 let rx = tower.reversalRed.x, ry = tower.reversalRed.y;
                 GameEngine.explosions.push({ x: rx, y: ry, radius: 0, maxRadius: 150, life: 0.4, maxLife: 0.4, color: '#ff0000' });
                 const nearby = GameEngine.enemyGrid.query(rx, ry, 150);
-                for (let e of nearby) { if (e.alive && Utils.distance(rx, ry, e.x, e.y) < 150) { let dmg = e.takeDamage(tower.stats.damage * 20, { isMagic: true, canHitLead: true }); if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg; e.applySlow(0.0, 3.0, false); } }
+                // PRO FIX: Use withinRange
+                for (let e of nearby) { if (e.alive && Utils.withinRange(rx, ry, e.x, e.y, 150)) { let dmg = e.takeDamage(tower.stats.damage * 20, { isMagic: true, canHitLead: true }); if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg; e.applySlow(0.0, 3.0, false); } }
                 tower.reversalRed = null;
             }
         }
@@ -198,7 +200,8 @@ export default {
                     for (let e of nearby) { 
                         if (explosionHits >= 50) break; 
                         if (!e.alive) continue; 
-                        if (Utils.distance(w.x, w.y, e.x, e.y) < w.radius) { 
+                        // PRO FIX: Use withinRange
+                        if (Utils.withinRange(w.x, w.y, e.x, e.y, w.radius)) { 
                             let dmg = e.takeDamage(w.dmg * 5, { isMagic: true, canHitLead: true }); 
                             if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg; 
                             explosionHits++; 
@@ -231,7 +234,6 @@ export default {
                 let alpha = Math.min(1, w.life / w.maxLife);
                 ctx.globalAlpha = alpha * 0.6;
                 
-                // PRO FIX: Prevent canvas crashes by ensuring valid coordinates
                 const wx = isNaN(w.x) ? tower.x : w.x;
                 const wy = isNaN(w.y) ? tower.y : w.y;
                 const wr = Math.max(1, w.radius || 50);
@@ -251,7 +253,6 @@ export default {
             ctx.globalAlpha = 1;
         }
         
-        // PRO FIX: Use getActiveAssets to get the dynamically scaled targetSize
         const { baseAsset, targetSize } = tower.getActiveAssets();
         if (baseAsset && baseAsset.loaded) {
             ctx.save(); 
@@ -259,19 +260,18 @@ export default {
             if (!isPreview && !tower.stats.isStaticRotation) {
                 ctx.rotate(tower.angle + Math.PI / 2); 
             }
-            drawImageCentered(ctx, baseAsset, targetSize); // Apply targetSize
+            drawImageCentered(ctx, baseAsset, targetSize); 
             ctx.restore();
         } else {
             ctx.save(); ctx.translate(tower.x, tower.y);
             if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2);
-            ctx.fillStyle = tower.phase === 2 ? '#ff00ff' : '#9b59b6'; ctx.beginPath(); ctx.arc(0, 0, 15 * GS, 0, Math.PI * 2); ctx.fill(); // Apply GS
-            ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.arc(0, 2 * GS, 10 * GS, 0, Math.PI * 2); ctx.fill(); // Apply GS
-            ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 4 * GS, 0, Math.PI * 2); ctx.fill(); // Apply GS
+            ctx.fillStyle = tower.phase === 2 ? '#ff00ff' : '#9b59b6'; ctx.beginPath(); ctx.arc(0, 0, 15 * GS, 0, Math.PI * 2); ctx.fill(); 
+            ctx.fillStyle = '#000000'; ctx.beginPath(); ctx.arc(0, 2 * GS, 10 * GS, 0, Math.PI * 2); ctx.fill(); 
+            ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 4 * GS, 0, Math.PI * 2); ctx.fill(); 
             ctx.restore();
         }
     },
     drawMaxBlueVFX(ctx, x, y, baseR) {
-        // PRO FIX: Sanitize all inputs to prevent NaN canvas crashes
         if (isNaN(x) || isNaN(y) || isNaN(baseR)) return;
         let t = performance.now() / 1000; 
         let pulse = 1 + Math.sin(t * 4) * 0.15; 
@@ -293,14 +293,13 @@ export default {
         ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
     },
     drawRedTyphoonVFX(ctx, x, y, rot, baseR) {
-        // PRO FIX: Sanitize all inputs to prevent NaN canvas crashes
         if (isNaN(x) || isNaN(y) || isNaN(baseR) || isNaN(rot)) return;
         let t = performance.now() / 1000; 
         let pulse = 1 + Math.sin(t * 5) * 0.15; 
         let r = Math.max(1, baseR * pulse);
         ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'screen';
         for(let i=0; i<3; i++) {
-            ctx.save(); ctx.rotate(rot + (i * Math.PI * 2 / 3)); ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255, 0, 43, 0.8)';
+            ctx.save(); ctx.rotate(rot + (i * Math.PI * 2 / 3)); ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255, 0, 43, 0.8)'
             const grad = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r); grad.addColorStop(0, 'rgba(255, 255, 255, 0)'); grad.addColorStop(0.5, 'rgba(255, 0, 43, 0.6)'); grad.addColorStop(0.9, 'rgba(255, 255, 255, 0.8)'); grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
             ctx.strokeStyle = grad; ctx.lineWidth = r * 0.4; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 0.6); ctx.stroke(); ctx.restore();
         }
@@ -309,7 +308,6 @@ export default {
         ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
     },
     drawHollowPurpleVFX(ctx, x, y, progress) {
-        // PRO FIX: Sanitize all inputs to prevent NaN canvas crashes
         if (isNaN(x) || isNaN(y) || isNaN(progress)) return;
         let t = performance.now() / 1000; 
         let trembleX = (Math.random() - 0.5) * 4; 

@@ -43,7 +43,7 @@ export default {
         tower.fanClubBuffTimer = 15; tower.fanClubType = isPlasma ? 'plasma' : 'super'; count++;
         for (let ot of engine.towers) {
             if (!ot || ot === tower || ot.type === 'farm' || ot.type === 'village') continue;
-            if (ot.type === 'dart' && Utils.distance(tower.x, tower.y, ot.x, ot.y) < 300) {
+            if (ot.type === 'dart' && Utils.withinRange(tower.x, tower.y, ot.x, ot.y, 300)) {
                 ot.fanClubBuffTimer = 15; ot.fanClubType = isPlasma ? 'plasma' : 'super'; count++;
                 if (count >= maxCount) break;
             }

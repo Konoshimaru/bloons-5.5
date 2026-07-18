@@ -1,11 +1,30 @@
-﻿import { GameEngine } from './engine.js';
+﻿// input.js
+import { GameEngine } from './engine.js';
+
 export const InputManager = {
+    canvas: null,
+    canvasRect: null,
+
     init(canvas = GameEngine.canvas) {
         if (!canvas) return;
+        this.canvas = canvas;
+        this._updateCanvasRect();
+        
+        // PRO FIX: Recompute rect on resize/orientationchange instead of every mousemove
+        window.addEventListener('resize', () => this._updateCanvasRect());
+        window.addEventListener('orientationchange', () => this._updateCanvasRect());
+        
         this._setupMouseEvents(canvas);
         this._setupTouchEvents(canvas);
         this._setupKeyboardEvents();
     },
+
+    _updateCanvasRect() {
+        if (this.canvas) {
+            this.canvasRect = this.canvas.getBoundingClientRect();
+        }
+    },
+
     _setupMouseEvents(canvas) {
         canvas.addEventListener('mousemove', (e) => this._updateMousePosFromClientCoords(e.clientX, e.clientY, canvas));
         canvas.addEventListener('click', (e) => GameEngine.handleCanvasClick(e));
@@ -14,13 +33,16 @@ export const InputManager = {
             GameEngine.deselectAll();
         });
     },
+
     _updateMousePosFromClientCoords(clientX, clientY, canvas) {
-        const rect = canvas.getBoundingClientRect();
+        // PRO FIX: Use cached rect
+        const rect = this.canvasRect || canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         GameEngine.mouse.x = (clientX - rect.left) * scaleX;
         GameEngine.mouse.y = (clientY - rect.top) * scaleY;
     },
+
     _setupTouchEvents(canvas) {
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -36,6 +58,7 @@ export const InputManager = {
             this._updateMousePosFromClientCoords(touch.clientX, touch.clientY, canvas);
         }, { passive: false });
     },
+
     _setupKeyboardEvents() {
         window.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;

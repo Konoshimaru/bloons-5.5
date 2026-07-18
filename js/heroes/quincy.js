@@ -39,13 +39,14 @@ export default {
             else {
                 const soa = tower.stormOfArrows; const nearby = GameEngine.enemyGrid.query(soa.x, soa.y, soa.radius);
                 for (let e of nearby) {
-                    if (!e.alive) continue; if (Utils.distance(soa.x, soa.y, e.x, e.y) < soa.radius) {
+                    if (!e.alive) continue; 
+                    // PRO FIX: Use withinRange
+                    if (Utils.withinRange(soa.x, soa.y, e.x, e.y, soa.radius)) {
                         if (e.stormHitTimer > 0) continue;
                         if (Math.random() < soa.chance) {
                             let dmgType = { isSharp: true, canHitLead: true }; let dmg = soa.dmg;
                             if (e.data.isMoab) dmg += soa.moabDmg; if (e.data.isCeramic) dmg += soa.ceramicDmg;
                             let actualDmg = e.takeDamage(dmg, dmgType); 
-                            // PRO FIX: Guard against -1 and NaN
                             if (!isNaN(actualDmg) && actualDmg !== -1) tower.damageDealt += actualDmg;
                             e.stormHitTimer = 0.05;
                         }
@@ -69,7 +70,6 @@ export default {
         let target = null; 
         let bestVal = (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') ? -Infinity : Infinity;
         
-        // PRO FIX: Obey his Targeting Mode
         for (let e of GameEngine.enemies) { 
             if (!e.alive) continue; 
             let val;
@@ -97,7 +97,6 @@ export default {
         engine.log("Quincy: Storm of Arrows!");
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
-        // PRO FIX: Removed debug console.log
         let count = tower.stats.projectileCount || 1; 
         tower.shotCount = (tower.shotCount || 0) + 1;
         let isExplosive = tower.stats.applyExplosive && (tower.shotCount % (tower.stats.explosiveEvery || 3) === 0);

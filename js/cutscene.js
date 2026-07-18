@@ -6,19 +6,18 @@ import Assets from './assets.js';
 import { EnemyTypes } from './data.js';
 import { Config } from './config.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
-import { KnightEnemy, bossMusic } from './bosses/knight.js';
+import { KnightEnemy, getBossMusic } from './bosses/knight.js'; // PRO FIX: Import getter
 
 // --- CONFIG ---
 const slashScale = 1.5;  
 
-const PHASE_TENSION_DURATION = 1.5; // NEW: 1.5 seconds of walking and shaking
+const PHASE_TENSION_DURATION = 1.5; 
 const PHASE_SLASH_DURATION = 0.7;
 const PHASE_RIP_WAIT_DURATION = 0.4;
 const PHASE_RIP_DURATION = 0.8;
 const PHASE_PAN_DURATION = 1.2;
 const PHASE_REVEAL_DURATION = 1.5;
 
-// NEW: Knight slash sound effect
 const knightSlashSfx = new Audio('sfx/knight_slash_moab.mp3');
 
 Assets.get('enemy_knight_front');
@@ -32,7 +31,6 @@ offscreenCanvas.width = CANVAS_WIDTH;
 offscreenCanvas.height = CANVAS_HEIGHT;
 const offCtx = offscreenCanvas.getContext('2d');
 
-// --- Canvases for Black Balls Metaball Effect ---
 const ballCanvas = document.createElement('canvas');
 ballCanvas.width = CANVAS_WIDTH;
 ballCanvas.height = CANVAS_HEIGHT;
@@ -43,7 +41,6 @@ ballOutlineCanvas.width = CANVAS_WIDTH;
 ballOutlineCanvas.height = CANVAS_HEIGHT;
 const ballOutlineCtx = ballOutlineCanvas.getContext('2d');
 
-// --- DEV TWEAKING CONFIG (User's Perfect Defaults Applied) ---
 window.BallsConfig = {
     giantCount: 30,       giantMinR: 80,        giantMaxR: 100,       giantOffsetX: 10,
     massCount: 2000,      massMinR: 10,         massMaxR: 40,         massOffsetX: 50,
@@ -207,8 +204,10 @@ export const CutsceneManager = {
             }
         }
         
-        bossMusic.pause();
-        bossMusic.currentTime = 0;
+        // PRO FIX: Use lazy getter
+        const music = getBossMusic();
+        music.pause();
+        music.currentTime = 0;
         knightSlashSfx.pause();
         knightSlashSfx.currentTime = 0;
     },
@@ -223,15 +222,16 @@ export const CutsceneManager = {
         GameEngine.timeScale = 1;
         UI.updateWaveSpeedBtn(0);
         
-        // Start with the tension phase instead of instantly slashing
         this.state = 'tension';
         this.timer = PHASE_TENSION_DURATION; 
         this.target = moabEnemy;
     },
 
     update(dt) {
-        if (!bossMusic.paused) {
-            bossMusic.volume = Config.data.musicVolume ?? 0.3;
+        // PRO FIX: Use lazy getter
+        const music = getBossMusic();
+        if (!music.paused) {
+            music.volume = Config.data.musicVolume ?? 0.3;
         }
 
         if (this.state === 'idle') return false;
@@ -246,16 +246,13 @@ export const CutsceneManager = {
 
         if (this.state === 'knight_floating') return false;
 
-        // NEW: Tension phase (MOAB walks and shakes violently before the cutscene starts)
         if (this.state === 'tension') {
             this.timer -= dt;
             
-            // Manually advance the MOAB so it walks a bit
             this.target.distanceTraveled += this.target.data.speed * dt;
             let pathIdx = this.target.pathIndex || 0;
             let totalLen = GameEngine.map.getTotalLength(pathIdx);
             
-            // Prevent it from leaking during the tension phase
             if (this.target.distanceTraveled > totalLen - 50) {
                 this.target.distanceTraveled = totalLen - 50;
             }
@@ -264,19 +261,16 @@ export const CutsceneManager = {
             this.target.x = pos.x;
             this.target.y = pos.y;
             
-            // Apply escalating shake
             let progress = 1 - (this.timer / PHASE_TENSION_DURATION);
-            let shakeAmount = progress * 25; // Up to 25px shake
+            let shakeAmount = progress * 25; 
             this.target.x += (Math.random() - 0.5) * shakeAmount;
             this.target.y += (Math.random() - 0.5) * shakeAmount;
             
             if (this.timer <= 0) {
-                // Transition to the actual cutscene
-                AudioEngine.pause(); // Pause game music
+                AudioEngine.pause(); 
                 this.state = 'slashing';
                 this.timer = PHASE_SLASH_DURATION;
                 
-                // Play the knight slash sound effect
                 knightSlashSfx.currentTime = 0;
                 knightSlashSfx.play().catch(e => console.warn("Slash SFX blocked:", e));
             }
@@ -353,8 +347,9 @@ export const CutsceneManager = {
                 
                 this.initBlackBalls();
                 
-                bossMusic.volume = Config.data.musicVolume ?? 0.3;
-                bossMusic.play().catch(e => console.warn("Boss music blocked:", e));
+                // PRO FIX: Use lazy getter
+                music.volume = Config.data.musicVolume ?? 0.3;
+                music.play().catch(e => console.warn("Boss music blocked:", e));
             }
         }
 

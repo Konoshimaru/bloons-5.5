@@ -39,11 +39,10 @@ export default {
         if (tower.stats.shinobi) {
             let ninjaCount = 0; 
             let effRange = tower.stats.range * RANGE_SCALE;
-            // ISSUE 7 FIX: Use towerGrid instead of flat array scan
             const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange);
             for (let ot of nearbyTowers) { 
                 if (ot && ot.type === 'ninja' && ot !== tower) { 
-                    if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < effRange) ninjaCount++; 
+                    if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, effRange)) ninjaCount++; 
                 } 
             }
             let stacks = Math.min(20, ninjaCount); 
@@ -54,11 +53,9 @@ export default {
         }
     },
     update(tower, dt) {
-        // PRO FIX: Caltrops independent attack logic
         if (tower.stats.caltrops) {
             tower.caltropTimer = (tower.caltropTimer || 3.9) - dt;
             if (tower.caltropTimer <= 0) {
-                // Base 3.9s, reduced by Ninja Discipline (cooldownMult)
                 tower.caltropTimer = 3.9 * (tower._cooldownMult || 1.0);
                 this._fireCaltrops(tower);
             }
@@ -68,18 +65,15 @@ export default {
         const range = tower.stats.range * RANGE_SCALE;
         const trackPoints = GameEngine.map.getTrackPointsInRange(tower.x, tower.y, range);
         if (trackPoints.length > 0) {
-            // Caltrops locked to Normal (Random) targeting
             let pt = trackPoints[Math.floor(Math.random() * trackPoints.length)];
             
             let caltropEffects = {};
-            // Distraction crosspath: 10% chance to blow back bloons
             if (tower.stats.distraction && Math.random() < 0.10) {
                 caltropEffects.knockback = 30;
             }
             
             let angle = Utils.angle(tower.x, tower.y, pt.x, pt.y);
             let p = GameEngine.projectilePool.get();
-            // Stats: Pierce 6, Lifespan 35s, Damage 1, Sharp type
             p.init(tower.x, tower.y, 1, null, 'spike', 600, 6, 35.0, angle, caltropEffects, 0, tower, { isSharp: true });
             p.targetX = pt.x;
             p.targetY = pt.y;

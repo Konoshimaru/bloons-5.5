@@ -7,6 +7,16 @@ export const distance = (x1, y1, x2, y2) => {
     return Math.sqrt(dx * dx + dy * dy);
 };
 
+// PRO FIX: Squared distance helpers to avoid Math.sqrt in hot loops
+export const distanceSq = (x1, y1, x2, y2) => {
+    const dx = x2 - x1, dy = y2 - y1;
+    return dx * dx + dy * dy;
+};
+
+export const withinRange = (x1, y1, x2, y2, r) => {
+    return distanceSq(x1, y1, x2, y2) < r * r;
+};
+
 export const lerp = (a, b, t) => a + (b - a) * t;
 
 export const angle = (x1, y1, x2, y2) => Math.atan2(y2 - y1, x2 - x1);
@@ -40,6 +50,8 @@ export const distToSegment = (px, py, x1, y1, x2, y2) => {
 
 export const Utils = {
     distance,
+    distanceSq,
+    withinRange,
     lerp,
     angle,
     distToSegment

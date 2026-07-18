@@ -31,6 +31,9 @@ let lastPopTime = 0;
 let lastShootTime = 0;
 let lastHitTime = 0;
 
+// PRO FIX: Cache for preloaded AudioBuffers to avoid per-shot allocations
+const sfxBufferCache = new Map();
+
 async function _loadPlaylistInternal() {
     try {
         const manifestRes = await fetch('./music/manifest.json');
@@ -106,8 +109,41 @@ export const AudioEngine = {
             if (musicAudio) {
                 musicAudio.addEventListener('ended', () => this.nextTrack());
             }
+            
+            // PRO FIX: Preload all SFX files into AudioBuffers
+            await this._preloadSfx();
         } catch (e) {
             console.error("Failed to initialize AudioEngine:", e);
+        }
+    },
+
+    // PRO FIX: Fetch and decode all SFX files once at startup
+    async _preloadSfx() {
+        if (!ctx) return;
+        const uniqueFiles = new Set();
+        for (const type in SFX_ASSET_MAP) {
+            for (const file of SFX_ASSET_MAP[type]) {
+                uniqueFiles.add(file);
+            }
+        }
+        
+        const promises = [];
+        for (const file of uniqueFiles) {
+            promises.push(this._fetchAndDecodeSfx(file));
+        }
+        await Promise.all(promises);
+    },
+
+    async _fetchAndDecodeSfx(file) {
+        try {
+            const url = new URL(`../sfx/${file}`, import.meta.url).href;
+            const response = await fetch(url);
+            if (!response.ok) return;
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+            sfxBufferCache.set(file, audioBuffer);
+        } catch (e) {
+            console.warn(`Failed to preload SFX: ${file}`, e);
         }
     },
 
@@ -134,10 +170,7 @@ export const AudioEngine = {
     playMenuMusic() {
         if (activePlaylist === MENU_PLAYLIST && isPlaying) return; // Already playing menu music
         activePlaylist = MENU_PLAYLIST;
-        
-        // PRO FIX: Pick a random song from the menu playlist
-        currentTrack = Math.floor(Math.random() * activePlaylist.length);
-        
+        currentTrack = Math.floor(Math.random() * activePlaylist.length); // Pick a random song
         _loadTrackInternal(currentTrack);
         this.play();
     },
@@ -191,8 +224,6 @@ export const AudioEngine = {
         if (type === 'pop' && now - lastPopTime < POP_THROTTLE_MS) return;
         if (type === 'shoot' && now - lastShootTime < SHOOT_THROTTLE_MS) return;
         
-        // PRO FIX: Throttle hit sounds, but DO NOT throttle moab_destroy! 
-        // moab_destroy is a death sound and must always play when a MOAB dies.
         const isHitSound = ['moab_hit', 'ceramic_hit', 'frozen_hit', 'lead_hit'].includes(type);
         if (isHitSound && now - lastHitTime < HIT_THROTTLE_MS) return;
 
@@ -200,8 +231,34 @@ export const AudioEngine = {
         if (type === 'shoot') lastShootTime = now;
         if (isHitSound) lastHitTime = now;
 
-        const asset = resolveSfxAsset(type);
-        if (asset) {
+        const choices = getSfxAssetChoices(type);
+        if (choices.length > 0) {
+            const file = choices[Math.floor(Math.random() * choices.length)];
+            const buffer = sfxBufferCache.get(file);
+            
+            // PRO FIX: Play via AudioBufferSourceNode if cached
+            if (buffer && ctx) {
+                try {
+                    if (ctx.state === 'suspended') ctx.resume();
+                    
+                    const source = ctx.createBufferSource();
+                    const gainNode = ctx.createGain();
+                    source.buffer = buffer;
+                    source.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    
+                    const vol = Math.max(MIN_VOLUME, sfxVolume * 0.75);
+                    gainNode.gain.setValueAtTime(vol, ctx.currentTime);
+                    
+                    source.start(0);
+                    return;
+                } catch (e) {
+                    // Fallback to Audio element below
+                }
+            }
+            
+            // Fallback to new Audio() if buffer not ready or unavailable
+            const asset = new URL(`../sfx/${file}`, import.meta.url).href;
             try {
                 const audio = new Audio(asset);
                 audio.preload = 'auto';
@@ -215,6 +272,7 @@ export const AudioEngine = {
 
         if (!ctx) return;
 
+        // Synth fallback
         try {
             if (ctx.state === 'suspended') ctx.resume();
 

@@ -19,13 +19,12 @@ export const SlashConfig = {
 let lastSaudaAttackSfx = 0;
 function playSaudaSfx(file) {
     const now = performance.now();
-    // Throttle attack sounds so her fast late-game attacks don't overlap into a cacophony
     if (file.startsWith('Sauda_attack_') && now - lastSaudaAttackSfx < 100) return;
     if (file.startsWith('Sauda_attack_')) lastSaudaAttackSfx = now;
     
     try {
         const audio = new Audio(`sfx/${file}.mp3`);
-        audio.volume = (Config.data.sfxVolume ?? 0.5) * 0.75; // Match game's SFX volume scaling
+        audio.volume = (Config.data.sfxVolume ?? 0.5) * 0.75; 
         audio.play().catch(e => console.warn("SFX blocked:", e));
     } catch (e) {}
 }
@@ -73,7 +72,7 @@ export default {
             { stat: "afterswordDmg", amount: 1 }
         ],
         16: [
-            { stat: "chargeDmg", amount: 90 }, { stat: "chargeRadius", amount: 3 } // Total dmg 120, radius 22.5
+            { stat: "chargeDmg", amount: 90 }, { stat: "chargeRadius", amount: 3 } 
         ],
         17: [
             { stat: "damage", amount: 1 }, { stat: "ceramicDmg", amount: 1 }, { stat: "moabDmg", amount: 1 }, 
@@ -85,13 +84,12 @@ export default {
         20: [
             { stat: "leapDmg", amount: 320 }, { stat: "leapMoabDmg", amount: 140 }, { stat: "leapPierce", amount: 20 }, 
             { stat: "afterswordDmg", amount: 2 }, 
-            { stat: "chargeDmg", amount: 100 }, { stat: "chargePierce", amount: 1000 }, { stat: "chargeRepeats", amount: 2 } // Total dmg 220, pierce 1400, 3 sweeps
+            { stat: "chargeDmg", amount: 100 }, { stat: "chargePierce", amount: 1000 }, { stat: "chargeRepeats", amount: 2 } 
         ]
     },
     update(tower, dt) {
         if (tower.leapLockout > 0) tower.leapLockout -= dt;
 
-        // Update Slashes (Movement and Fading)
         if (tower.slashes) {
             for (let i = tower.slashes.length - 1; i >= 0; i--) {
                 let s = tower.slashes[i];
@@ -102,7 +100,6 @@ export default {
             }
         }
 
-        // Sword Charge Shadows Logic (Reverted to perfectly working state)
         if (tower.chargeShadows && tower.chargeShadows.length > 0) {
             let allDone = true;
             let chargeRadius = tower.stats.chargeRadius || 19.5;
@@ -119,8 +116,8 @@ export default {
                 if (shadow.distance < -100) {
                     if (shadow.sweepsLeft > 0) {
                         shadow.sweepsLeft--;
-                        shadow.distance = totalLen; // Reset to exit
-                        shadow.hitSet.clear(); // Allow re-hitting on new sweep
+                        shadow.distance = totalLen; 
+                        shadow.hitSet.clear(); 
                         allDone = false;
                     } else {
                         shadow.done = true;
@@ -139,7 +136,8 @@ export default {
                         if (shadow.hitSet.has(e)) continue;
                         if (shadow.hitSet.size >= pierce) break;
                         
-                        if (Utils.distance(pos.x, pos.y, e.x, e.y) < chargeRadius) {
+                        // PRO FIX: Use withinRange
+                        if (Utils.withinRange(pos.x, pos.y, e.x, e.y, chargeRadius)) {
                             let stunned = e.slowFactor <= 0.01;
                             let harmed = (e.slowFactor > 0.01 && e.slowFactor < 1.0) || (e.dotTimer > 0 && e.saudaBleed !== true);
                             
@@ -162,11 +160,10 @@ export default {
             
             if (allDone) {
                 tower.chargeShadows = [];
-                tower.chargeLockout = 0; // Unlock her attacks
+                tower.chargeLockout = 0; 
             }
         }
 
-        // Aftersword Logic
         if (tower.aftersword) {
             tower.aftersword.life -= dt;
             if (tower.aftersword.life <= 0) {
@@ -179,7 +176,8 @@ export default {
                     let hits = 0;
                     for (let e of nearby) {
                         if (!e.alive || hits >= 5) continue;
-                        if (Utils.distance(tower.aftersword.x, tower.aftersword.y, e.x, e.y) < 15) {
+                        // PRO FIX: Use withinRange
+                        if (Utils.withinRange(tower.aftersword.x, tower.aftersword.y, e.x, e.y, 15)) {
                             if (tower.aftersword.hitTimers.has(e) && tower.aftersword.hitTimers.get(e) > 0) continue;
                             
                             let stunned = e.slowFactor <= 0.01;
@@ -212,7 +210,6 @@ export default {
         }
     },
     draw(ctx, tower, isPreview) {
-        // Draw Aftersword
         if (!isPreview && tower.aftersword) {
             ctx.globalAlpha = Math.min(1, tower.aftersword.life / 2) * 0.7;
             const grad = ctx.createRadialGradient(tower.aftersword.x, tower.aftersword.y, 0, tower.aftersword.x, tower.aftersword.y, 15);
@@ -223,7 +220,6 @@ export default {
             ctx.globalAlpha = 1;
         }
 
-        // Draw Sword Charge Shadows (Reverted to perfectly working state)
         if (!isPreview && tower.chargeShadows && tower.chargeShadows.length > 0) {
             for (let shadow of tower.chargeShadows) {
                 if (shadow.done) continue;
@@ -238,7 +234,6 @@ export default {
                 if (asset && asset.loaded) {
                     drawImageCentered(ctx, asset, targetSize);
                 } else {
-                    // Reverted to original red fallback
                     ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(0, 0, 15 * GS, 0, Math.PI * 2); ctx.fill();
                     ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 10 * GS, 0, Math.PI * 2); ctx.fill();
                 }
@@ -247,7 +242,6 @@ export default {
             ctx.globalAlpha = 1;
         }
 
-        // Draw Slashes (Customizable, moves away from Sauda)
         if (!isPreview && tower.slashes) {
             for (let s of tower.slashes) {
                 let asset = Assets.get('proj_slash');
@@ -267,7 +261,6 @@ export default {
             ctx.globalAlpha = 1;
         }
 
-        // Draw Base Tower (Disappear during Sword Charge)
         if (!tower.chargeLockout || tower.chargeLockout <= 0) {
             const { baseAsset, targetSize } = tower.getActiveAssets();
             if (baseAsset && baseAsset.loaded) {
@@ -290,7 +283,7 @@ export default {
         if (tower.chargeLockout > 0) return; 
         
         tower.leapLockout = 0.5;
-        playSaudaSfx('LeapingSword_activate'); // Play activate sound
+        playSaudaSfx('LeapingSword_activate'); 
 
         let target = null;
         let bestVal = (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') ? -Infinity : Infinity;
@@ -313,7 +306,8 @@ export default {
             
             for (let e of leapNearby) {
                 if (!e.alive || hits >= maxHits) continue;
-                if (Utils.distance(target.x, target.y, e.x, e.y) < 15) {
+                // PRO FIX: Use withinRange
+                if (Utils.withinRange(target.x, target.y, e.x, e.y, 15)) {
                     let stunned = e.slowFactor <= 0.01;
                     let harmed = (e.slowFactor > 0.01 && e.slowFactor < 1.0) || (e.dotTimer > 0 && e.saudaBleed !== true);
                     
@@ -341,7 +335,6 @@ export default {
                 hitTimers: new Map()
             };
             
-            // Play landing sound after the 0.5s lockout
             setTimeout(() => playSaudaSfx('LeapingSword_landing'), 500);
             
             engine.log("Sauda: Leaping Sword!");
@@ -351,16 +344,15 @@ export default {
         if (tower.leapLockout > 0) return; 
         
         let sweeps = tower.stats.chargeRepeats || 1;
-        tower.chargeLockout = 10.0; // Fail-safe timer
+        tower.chargeLockout = 10.0; 
         
         tower.chargeShadows = [];
-        // Multiply for each path, start at the exit (totalLen) and run backwards
         for (let p = 0; p < GameEngine.map.paths.length; p++) {
             let totalLen = GameEngine.map.paths[p].totalLength;
             tower.chargeShadows.push({
                 pathIndex: p,
                 distance: totalLen, 
-                speed: 2500, // Reverted to original speed
+                speed: 2500, 
                 sweepsLeft: sweeps - 1,
                 hitSet: new Set(),
                 done: false,
@@ -369,7 +361,7 @@ export default {
             });
         }
         
-        playSaudaSfx('SwordCharge'); // Play sword charge sound
+        playSaudaSfx('SwordCharge'); 
         engine.log("Sauda: Sword Charge!");
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
@@ -388,8 +380,8 @@ export default {
             if (!e.alive || hits >= tower.stats.pierce) continue;
             if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
             
-            const dist = Utils.distance(tower.x, tower.y, e.x, e.y);
-            if (dist > actualRange) continue;
+            // PRO FIX: Use withinRange to skip out-of-range enemies
+            if (!Utils.withinRange(tower.x, tower.y, e.x, e.y, actualRange)) continue;
             
             const angleToEnemy = Utils.angle(tower.x, tower.y, e.x, e.y);
             let angleDiff = Math.abs(angleToEnemy - centerAngle);
@@ -438,10 +430,8 @@ export default {
                 if (dmgDealt > 0) tower.damageDealt += dmgDealt;
                 hits++;
                 
-                // Spawn slash exactly at Sauda's position so it stays close to her
                 if (!tower.slashes) tower.slashes = [];
                 
-                // Calculate velocity so it moves AWAY from Sauda towards the bloon
                 let vx = Math.cos(angleToEnemy) * SlashConfig.speed;
                 let vy = Math.sin(angleToEnemy) * SlashConfig.speed;
                 
@@ -457,7 +447,6 @@ export default {
             }
         }
         
-        // Play random attack sound if she hit at least one bloon
         if (hits > 0) {
             const attackNum = Math.floor(Math.random() * 5) + 1;
             playSaudaSfx(`Sauda_attack_${attackNum}`);

@@ -9,7 +9,6 @@ export default {
         damage: 0, pierce: 0, projectileSpeed: 0,
         lifespan: 0, desc: "Produces bananas that give extra cash.", dmgType: 'none', hitRadius: 18,
         isStaticRotation: true,
-        // PRO FIX: Removed decorative bananaCount stat
         bananaLifespan: 15, bananaValue: 20, bananaValueMult: 0,
         bankCap: 7000, bankIncome: 180,
         collectionRange: 40
@@ -130,7 +129,7 @@ export default {
                 b.arc = Math.sin(b.progress * Math.PI) * 20;
             }
             if (tower.stats.wallStreet) {
-                if (Utils.distance(tower.x, tower.y, b.x, b.y) < 75) {
+                if (Utils.withinRange(tower.x, tower.y, b.x, b.y, 75)) {
                     GameEngine.addCash(b.value);
                     tower.cashGenerated = (tower.cashGenerated || 0) + b.value;
                     tower.bananas.splice(i, 1);

@@ -55,6 +55,7 @@ export class Enemy {
         this.angle = 0;
 
         this._initializeStats();
+        this._updateSpriteCache(); // PRO FIX: Initial sprite cache
 
         // PRO FIX: Freeplay Rules (Rounds 81+)
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
@@ -99,6 +100,19 @@ export class Enemy {
                 this._maxHp *= hpMult;
                 this.hp = this._maxHp;
             }
+        }
+    }
+
+    // PRO FIX: Cache sprite asset to prevent string allocation and Map lookup every frame
+    _updateSpriteCache() {
+        const assetKey = Names.getEnemyWithModifiers(this.tier, this.isCamo, this.isRegen);
+        let asset = Assets.get(assetKey);
+        if (asset && asset.loaded) {
+            this._spriteAsset = asset;
+            this._usedModifierSprite = true;
+        } else {
+            this._spriteAsset = Assets.get(Names.getEnemy(this.tier));
+            this._usedModifierSprite = false;
         }
     }
 
@@ -206,6 +220,7 @@ export class Enemy {
             this.data.speed *= diffSpeedMod;
             if (this.data.isMoab) this.hp = this.data.maxHp * (this.isFortified ? 2 : 1);
             if (this.data.isCeramic) this.hp = this.data.maxHp * (this.isFortified ? 2 : 1);
+            this._updateSpriteCache(); // PRO FIX: Update cache on regen
         }
     }
 
@@ -408,7 +423,20 @@ export class Enemy {
         if (effects.dip) this.dipped = true;
         if (effects.dot > 0) { this.dotDmg = Math.max(this.dotDmg, effects.dot); this.dotTimer = 3.0; }
         if (effects.moabDot > 0 && this.data.isMoab) { this.dotDmg = Math.max(this.dotDmg, effects.moabDot); this.dotTimer = 5.0; }
-        if (effects.stripCamo) this.isCamo = false;
+        
+        // PRO FIX: Invalidate sprite cache when camo/regen are stripped
+        if (effects.stripCamo && this.isCamo) {
+            this.isCamo = false;
+            this._updateSpriteCache();
+        }
+        if (effects.foam) {
+            if (this.isCamo || this.isRegen) {
+                this.isCamo = false;
+                this.isRegen = false;
+                this._updateSpriteCache();
+            }
+        }
+        
         if (effects.knockback) this.distanceTraveled = Math.max(0, this.distanceTraveled - effects.knockback);
         if (effects.stun) {
             // PRO FIX: Freeplay status resistance for Stun
@@ -420,7 +448,6 @@ export class Enemy {
             }
             this.applySlow(0.0, stunDur, false);
         }
-        if (effects.foam) { this.isCamo = false; this.isRegen = false; }
         if (effects.alchDip) {
             if (this.data.isCeramic || this.data.isMoab) damage += 1;
             if (this.data.isLead && this.isFortified) damage += 1;
@@ -566,16 +593,20 @@ export class Enemy {
             this.radius = (this.data.radius || 10) * GS;
             const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
             this.data.speed *= diffSpeedMod;
+            this._updateSpriteCache(); // PRO FIX: Update cache on layer pop
         }
         return layersPopped;
     }
 
     draw(ctx) {
         if (GameEngine.enemies.length < 800) drawShadow(ctx, this.x, this.y, this.radius); 
-        const assetKey = Names.getEnemyWithModifiers(this.tier, this.isCamo, this.isRegen);
-        let asset = Assets.get(assetKey);
-        let usedModifierSprite = (asset && asset.loaded);
-        if (!usedModifierSprite) asset = Assets.get(Names.getEnemy(this.tier));
+        
+        // PRO FIX: Use cached sprite asset
+        let asset = this._spriteAsset;
+        if (!asset || !asset.loaded) {
+            this._updateSpriteCache(); // Fallback if asset wasn't loaded at init
+            asset = this._spriteAsset;
+        }
 
         if (asset && asset.loaded) this._drawSprite(ctx, asset);
         else if (this.data.isMoab) this._drawMoabFallback(ctx);

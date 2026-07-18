@@ -28,7 +28,6 @@ export default {
         14: [{ stat: "cocktailDmg", amount: 1 }, { stat: "cocktailMoabBurn", amount: 5 }, { stat: "burnDmg", amount: 1 }],
         15: [{ stat: "fireRate", amount: -0.075 }, { stat: "heatItUpDmg", amount: 10 }, { stat: "burnDmg", amount: 1 }],
         16: [{ stat: "canHitPurple", amount: true }, { stat: "stormDmg", amount: 5 }, { stat: "burnDmg", amount: 1 }],
-        // PRO FIX: Removed dead heatItUpDmgBonus and heatItUpLeadBonus
         17: [{ stat: "heatItUpDmg", amount: 10 }, { stat: "burnDmg", amount: 1 }],
         18: [{ stat: "fireRate", amount: -0.15 }, { stat: "heatItUpDmg", amount: 10 }, { stat: "burnDmg", amount: 1 }],
         19: [{ stat: "projectileCount", amount: 1 }, { stat: "burnDmg", amount: 1 }],
@@ -39,7 +38,8 @@ export default {
             tower.heatItUpTimer -= dt;
             let hiuRange = (tower.stats.heatItUpRange || 0) + (tower.stats.range * 3.0);
             for (let ot of GameEngine.towers) {
-                if (ot && Utils.distance(tower.x, tower.y, ot.x, ot.y) < hiuRange) {
+                // PRO FIX: Use withinRange
+                if (ot && Utils.withinRange(tower.x, tower.y, ot.x, ot.y, hiuRange)) {
                     ot.buffedPierce = (ot.buffedPierce || 0) + 1;
                     if (tower.level >= 17) {
                         ot.buffedDmg = (ot.buffedDmg || 0) + 1;
@@ -60,10 +60,10 @@ export default {
                     for (let e of nearby) {
                         if (hits >= (tower.stats.cocktailPierce || 20)) break;
                         if (!e.alive) continue;
-                        if (Utils.distance(c.x, c.y, e.x, e.y) < 60) {
+                        // PRO FIX: Use withinRange
+                        if (Utils.withinRange(c.x, c.y, e.x, e.y, 60)) {
                             let dmg = tower.stats.cocktailDmg || 1;
                             let dmgType = { isFire: true, canHitLead: true, canHitPurple: tower.level >= 16 };
-                            // PRO FIX: Apply cocktailMoabBurn to MOABs
                             if (e.data.isMoab) {
                                 dmg += tower.stats.cocktailMoabBurn || 0;
                             }
@@ -91,13 +91,14 @@ export default {
     },
     ability(tower, engine) {
         let target = null;
-        let bestVal = Infinity;
+        let bestValSq = Infinity; // PRO FIX: Sort by squared distance
         const effRange = tower.stats.range * 3.0;
+        const effRangeSq = effRange * effRange;
         for (let e of engine.enemies) {
             if (!e.alive) continue;
-            if (Utils.distance(tower.x, tower.y, e.x, e.y) < effRange) {
-                let val = Utils.distance(tower.x, tower.y, e.x, e.y);
-                if (val < bestVal) { bestVal = val; target = e; }
+            let distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
+            if (distSq < effRangeSq) {
+                if (distSq < bestValSq) { bestValSq = distSq; target = e; }
             }
         }
         let x = target ? target.x : tower.x;
@@ -134,12 +135,14 @@ export default {
         if (tower.stats.heatItUp && tower.shotCount % 40 === 0) {
             let hiuRange = (tower.stats.heatItUpRange || 0) + (tower.stats.range * 3.0);
             for (let e of GameEngine.enemies) {
-                if (e.alive && Utils.distance(tower.x, tower.y, e.x, e.y) < hiuRange) {
+                // PRO FIX: Use withinRange
+                if (e.alive && Utils.withinRange(tower.x, tower.y, e.x, e.y, hiuRange)) {
                     e.takeDamage(tower.stats.heatItUpDmg || 3, { isFire: true, canHitLead: true });
                 }
             }
             for (let ot of GameEngine.towers) {
-                if (ot && Utils.distance(tower.x, tower.y, ot.x, ot.y) < hiuRange) {
+                // PRO FIX: Use withinRange
+                if (ot && Utils.withinRange(tower.x, tower.y, ot.x, ot.y, hiuRange)) {
                     ot.heatItUpTimer = 8;
                     ot.buffedPierce = (ot.buffedPierce || 0) + 1;
                     if (tower.level >= 17) {

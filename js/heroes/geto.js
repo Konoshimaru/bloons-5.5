@@ -177,7 +177,6 @@ export default {
             if (tower.captureTime >= 1.5) {
                 if (tower.captureTarget && tower.captureTarget.alive) {
                     let dmg = tower.captureTarget.takeDamage(99999, { isMagic: true, canHitLead: true });
-                    // PRO FIX: Added missing guard
                     if (dmg > 0) tower.damageDealt += dmg;
                 }
                 tower.captureBuffTime = 5.0;
@@ -190,12 +189,13 @@ export default {
             let s = tower.squids[i];
             s.life -= dt;
             if (!s.isWorm) {
-                let nearest = null, nearestDist = Infinity;
+                let nearest = null, nearestDistSq = Infinity;
                 const candidates = GameEngine.enemyGrid.query(s.x, s.y, 200);
                 for (let e of candidates) {
                     if (!e.alive || s.hitEnemies.has(e)) continue;
-                    let d = Utils.distance(s.x, s.y, e.x, e.y);
-                    if (d < nearestDist) { nearestDist = d; nearest = e; }
+                    // PRO FIX: Use distanceSq for sorting
+                    let dSq = Utils.distanceSq(s.x, s.y, e.x, e.y);
+                    if (dSq < nearestDistSq) { nearestDistSq = dSq; nearest = e; }
                 }
                 if (nearest) {
                     let dx = nearest.x - s.x, dy = nearest.y - s.y;
@@ -212,7 +212,8 @@ export default {
             const nearby = GameEngine.enemyGrid.query(s.x, s.y, s.hitRadius + 20);
             for (let e of nearby) {
                 if (!e.alive || s.hitEnemies.has(e)) continue;
-                if (Utils.distance(s.x, s.y, e.x, e.y) < e.data.radius + s.hitRadius) {
+                // PRO FIX: Use withinRange
+                if (Utils.withinRange(s.x, s.y, e.x, e.y, e.data.radius + s.hitRadius)) {
                     let dmg = e.takeDamage(s.dmg, { isMagic: true, canHitLead: true });
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                     s.hitEnemies.add(e);
@@ -447,8 +448,9 @@ export default {
         for (let e of engine.enemies) {
             if (!e.alive) continue;
             if (e.data.isMoab || e.data.isDDT || e.data.isBAD) continue;
+            // PRO FIX: Use withinRange first to skip out of range enemies
+            if (!Utils.withinRange(tower.x, tower.y, e.x, e.y, tower.stats.range)) continue;
             const dist = Utils.distance(tower.x, tower.y, e.x, e.y);
-            if (dist > tower.stats.range) continue;
             const hp = Number.isFinite(e.hp) ? e.hp : (e.data.maxHp || 0);
             const value = hp - dist * 0.2;
             if (value > bestValue) {

@@ -2,7 +2,7 @@
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
-import { RANGE_SCALE } from './config.js'; // PRO FIX: Import RANGE_SCALE directly from config
+import { RANGE_SCALE } from './config.js'; 
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -35,6 +35,7 @@ export class GameMap {
         if (!this.data.imageMaintainRatio) this.data.imageMaintainRatio = false;
 
         this._initPathfinding();
+        this._initPathSamples(); // PRO FIX: Pre-calculate path points for O(1) lookups
         this._initBackground();
         this._initCache();
     }
@@ -76,6 +77,26 @@ export class GameMap {
                 }
             }
             this.paths.push({ segments, cumulativeDistances, totalLength });
+        }
+    }
+
+    // PRO FIX: Pre-compute a flat array of path samples for fast spatial queries
+    _initPathSamples() {
+        this._pathSamples = [];
+        const step = 5; // Sample every 5 pixels
+        for (let p = 0; p < this.paths.length; p++) {
+            const path = this.paths[p];
+            for (let i = 0; i < path.segments.length; i++) {
+                const seg = path.segments[i];
+                const numSteps = Math.max(1, Math.floor(seg.dist / step));
+                for (let j = 0; j <= numSteps; j++) {
+                    const t = j / numSteps;
+                    const px = Utils.lerp(seg.p1.x, seg.p2.x, t);
+                    const py = Utils.lerp(seg.p1.y, seg.p2.y, t);
+                    const distAlong = (i > 0 ? path.cumulativeDistances[i-1] : 0) + seg.dist * t;
+                    this._pathSamples.push({ x: px, y: py, pathIndex: p, distAlong: distAlong });
+                }
+            }
         }
     }
 
@@ -252,20 +273,14 @@ export class GameMap {
     }
 
     getNearestPathPoint(x, y) {
-        let bestPoint = { x: 0, y: 0 }, bestDist = Infinity;
-        for (let p = 0; p < this.paths.length; p++) {
-            for (let i = 0; i < this.paths[p].segments.length; i++) {
-                const seg = this.paths[p].segments[i];
-                const A = x - seg.p1.x, B = y - seg.p1.y, C = seg.p2.x - seg.p1.x, D = seg.p2.y - seg.p1.y;
-                const dot = A * C + B * D, lenSq = C * C + D * D;
-                let param = -1;
-                if (lenSq !== 0) param = dot / lenSq;
-                let xx, yy;
-                if (param < 0) { xx = seg.p1.x; yy = seg.p1.y; } 
-                else if (param > 1) { xx = seg.p2.x; yy = seg.p2.y; } 
-                else { xx = seg.p1.x + param * C; yy = seg.p1.y + param * D; }
-                const dist = Utils.distance(x, y, xx, yy);
-                if (dist < bestDist) { bestDist = dist; bestPoint = { x: xx, y: yy }; }
+        let bestPoint = { x: 0, y: 0 }, bestDistSq = Infinity;
+        // PRO FIX: Iterate flat cached samples instead of performing vector projection math per segment
+        for (let i = 0; i < this._pathSamples.length; i++) {
+            const s = this._pathSamples[i];
+            const distSq = Utils.distanceSq(x, y, s.x, s.y);
+            if (distSq < bestDistSq) { 
+                bestDistSq = distSq; 
+                bestPoint = { x: s.x, y: s.y }; 
             }
         }
         return bestPoint;
@@ -273,27 +288,19 @@ export class GameMap {
 
     getTrackPointsInRange(x, y, radius) {
         const points = [];
-        for (let p = 0; p < this.paths.length; p++) {
-            const path = this.paths[p];
-            for (let i = 0; i < path.segments.length; i++) {
-                const seg = path.segments[i];
-                const step = 5; 
-                const numSteps = Math.max(1, Math.floor(seg.dist / step));
-                for (let j = 0; j <= numSteps; j++) {
-                    const t = j / numSteps;
-                    const px = Utils.lerp(seg.p1.x, seg.p2.x, t);
-                    const py = Utils.lerp(seg.p1.y, seg.p2.y, t);
-                    if (Utils.distance(x, y, px, py) <= radius) {
-                        const distAlong = (i > 0 ? path.cumulativeDistances[i-1] : 0) + seg.dist * t;
-                        points.push({ 
-                            x: px, 
-                            y: py, 
-                            pathIndex: p, 
-                            distAlong: distAlong, 
-                            distToTower: Utils.distance(x, y, px, py) 
-                        });
-                    }
-                }
+        const radiusSq = radius * radius;
+        // PRO FIX: Iterate flat cached samples instead of re-lerping segments per call
+        for (let i = 0; i < this._pathSamples.length; i++) {
+            const s = this._pathSamples[i];
+            const distSq = Utils.distanceSq(x, y, s.x, s.y);
+            if (distSq <= radiusSq) {
+                points.push({ 
+                    x: s.x, 
+                    y: s.y, 
+                    pathIndex: s.pathIndex, 
+                    distAlong: s.distAlong, 
+                    distToTower: Math.sqrt(distSq) // Real distance kept for sorting
+                });
             }
         }
         return points;
@@ -303,13 +310,13 @@ export class GameMap {
         for (let p of this.props) {
             if (p.type === 'pond') {
                 const r = p.r || 30;
-                if (Utils.distance(x, y, p.x, p.y) < r) return true;
+                if (Utils.withinRange(x, y, p.x, p.y, r)) return true;
             }
         }
         for (let brush of this.waterBrushes) {
             const r = brush.thickness / 2;
             if (brush.points.length === 1) {
-                if (Utils.distance(x, y, brush.points[0].x, brush.points[0].y) < r) return true;
+                if (Utils.withinRange(x, y, brush.points[0].x, brush.points[0].y, r)) return true;
             } else {
                 for (let i = 0; i < brush.points.length - 1; i++) {
                     const p1 = { x: brush.points[i].x, y: brush.points[i].y };
@@ -326,27 +333,24 @@ export class GameMap {
         for (let p of this.props) {
             if (!p || p.type === 'pond') continue; 
             
-            // Support both Box and Circle hitboxes
             if (p.shape === 'box') {
                 const w = p.w || 30;
                 const h = p.h || 30;
                 if (Math.abs(x - p.x) < w / 2 && Math.abs(y - p.y) < h / 2) return true;
             } else {
                 const r = p.r || 15; 
-                if (Utils.distance(x, y, p.x, p.y) < r) return true;
+                if (Utils.withinRange(x, y, p.x, p.y, r)) return true;
             }
         }
         return false;
     }
 
-    // Checks if a coordinate is on water and near an Arctic Wind Ice Monkey
     isOnFrozenWater(x, y, towers) {
         if (!this.isInWater(x, y)) return false;
         for (let t of towers) {
             if (t && t.type === 'ice' && t.upgrades[1] >= 3) {
                 const range = (t.stats.range || 20) * RANGE_SCALE * GS;
-                // Add a 35px buffer so towers can sit on the edge of the ice sheet
-                if (Utils.distance(x, y, t.x, t.y) < range + 35) return true;
+                if (Utils.withinRange(x, y, t.x, t.y, range + 35)) return true;
             }
         }
         return false;

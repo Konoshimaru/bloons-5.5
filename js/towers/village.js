@@ -12,11 +12,11 @@ export default {
     },
     updateSupport(tower, dt) {
         const effRange = tower.stats.range * RANGE_SCALE;
-        // ISSUE 7 FIX: Use towerGrid instead of flat array scan
         const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange);
         for (let t of nearbyTowers) {
             if (t === tower) continue;
-            if (Utils.distance(tower.x, tower.y, t.x, t.y) < effRange) {
+            // PRO FIX: Use withinRange for support aura check
+            if (Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
                 t.buffedRange = Math.max(t.buffedRange, tower.stats.rangeBuff || 0);
                 t.buffedFireRate = Math.max(t.buffedFireRate, tower.stats.fireRateBuff || 0);
                 if (tower.stats.grantsCamo) t.buffedCamo = true;

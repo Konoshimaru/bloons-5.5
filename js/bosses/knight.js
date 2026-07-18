@@ -3,13 +3,21 @@ import { GameEngine } from '../engine.js';
 import { Enemy } from '../enemy.js';
 import { EnemyTypes } from '../data.js';
 import Assets from '../assets.js';
+import { BossHealthBarHandler } from '../bossHealthBarHandler.js'; // PRO FIX: Import handler
 
 // --- KNIGHT CONFIG ---
 export const knightScale = 1.65; 
 export const trailScale = 1.21;  
 
-export const bossMusic = new Audio('music/boss/blackknife.mp3');
-bossMusic.loop = true;
+// PRO FIX: Lazy load boss music to avoid downloading the track on page load
+let _bossMusic = null;
+export function getBossMusic() {
+    if (!_bossMusic) {
+        _bossMusic = new Audio('music/boss/blackknife.mp3');
+        _bossMusic.loop = true;
+    }
+    return _bossMusic;
+}
 
 export class KnightEnemy extends Enemy {
     constructor(x, y) {
@@ -31,10 +39,12 @@ export class KnightEnemy extends Enemy {
         this.knightTrail = [];
         this.trailTimer = 0;
         this.isCinematic = true; 
+
+        // PRO FIX: Register this boss with the health bar handler
+        BossHealthBarHandler.registerBoss(this);
     }
 
     update(dt) {
-        // Slowed down movement by 1.25x
         this.time += dt / 1.25; 
         this.y = 300 + Math.cos(this.time * 3) * 20;
 
@@ -66,7 +76,10 @@ export class KnightEnemy extends Enemy {
         if (this.hp <= 0) {
             this.alive = false;
             GameEngine.spawnPopEffect(this.x, this.y, '#000000');
-            bossMusic.pause();
+            getBossMusic().pause(); 
+            
+            // PRO FIX: Unregister this boss from the health bar handler
+            BossHealthBarHandler.unregisterBoss(this);
         }
         return damage;
     }

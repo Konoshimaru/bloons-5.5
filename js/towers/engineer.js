@@ -48,7 +48,7 @@ export default {
                 if (s.explode) {
                     GameEngine.explosions.push({ x: s.x, y: s.y, radius: 0, maxRadius: 40, life: 0.3, maxLife: 0.3, color: '#9b59b6' });
                     const nearby = GameEngine.enemyGrid.query(s.x, s.y, 40);
-                    for (let e of nearby) { if (Utils.distance(s.x, s.y, e.x, e.y) < 40) e.takeDamage(5, { isPlasma: true, canHitLead: true }); }
+                    for (let e of nearby) { if (Utils.withinRange(s.x, s.y, e.x, e.y, 40)) e.takeDamage(5, { isPlasma: true, canHitLead: true }); }
                 }
                 tower.sentries.splice(i, 1); continue;
             }
@@ -56,7 +56,7 @@ export default {
             if (s.cooldown <= 0) {
                 let sTarget = null; let sBestVal = Infinity;
                 const sCandidates = GameEngine.enemyGrid.query(s.x, s.y, s.range);
-                for (let e of sCandidates) { if (!e.alive) continue; if (Utils.distance(s.x, s.y, e.x, e.y) < s.range) { if (e.distanceTraveled < sBestVal) { sBestVal = e.distanceTraveled; sTarget = e; } } }
+                for (let e of sCandidates) { if (!e.alive) continue; if (Utils.withinRange(s.x, s.y, e.x, e.y, s.range)) { if (e.distanceTraveled < sBestVal) { sBestVal = e.distanceTraveled; sTarget = e; } } }
                 if (sTarget) {
                     let sDmgType = createDmgType(resolveDmgType(s.dmgType), {
                         moabDmg: tower.stats.moabDmg || 0,
@@ -91,7 +91,7 @@ export default {
             const trap = tower.activeTrap; const nearby = GameEngine.enemyGrid.query(trap.x, trap.y, 25);
             for (let e of nearby) {
                 if (!e.alive) continue;
-                if (Utils.distance(trap.x, trap.y, e.x, e.y) < 25 + e.data.radius) {
+                if (Utils.withinRange(trap.x, trap.y, e.x, e.y, 25 + e.data.radius)) {
                     if (!e.data.isMoab || trap.moab) { if (trap.rbe + e.data.rbe <= trap.maxRbe) { trap.rbe += e.data.rbe; e.alive = false; GameEngine.spawnPopEffect(e.x, e.y, e.data.color); } else { trap.rbe = trap.maxRbe; } }
                 }
             }
@@ -108,7 +108,7 @@ export default {
     },
     ability(tower, engine) {
         let target = null; let maxCost = 0; let effRange = tower.stats.range * RANGE_SCALE * 3.0;
-        for (let ot of engine.towers) { if (ot === tower || ot.type === 'farm' || ot.type === 'village') continue; if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < effRange) { if (ot.totalSpent > maxCost) { maxCost = ot.totalSpent; target = ot; } } }
+        for (let ot of engine.towers) { if (ot === tower || ot.type === 'farm' || ot.type === 'village') continue; if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, effRange)) { if (ot.totalSpent > maxCost) { maxCost = ot.totalSpent; target = ot; } } }
         if (target) { target.overclockTimer = 10; if (tower.upgrades[1] === 5) { target.ultraboostStacks = Math.min(10, (target.ultraboostStacks || 0) + 1); } engine.log("Overclock Activated on " + target.type + "!"); }
         else { engine.log("No valid towers in range for Overclock!"); }
     }

@@ -134,7 +134,7 @@ export class Projectile {
         this.x += Math.cos(this.angle) * this.speed * dt;
         this.y += Math.sin(this.angle) * this.speed * dt;
 
-        if (Utils.distance(this.x, this.y, this.targetTower.x, this.targetTower.y) < 10) {
+        if (Utils.withinRange(this.x, this.y, this.targetTower.x, this.targetTower.y, 10)) {
             if (this.buffType === 'brew') {
                 this.targetTower.alchBuff = {
                     timer: this.tower.stats.brewTimer || 5,
@@ -160,7 +160,7 @@ export class Projectile {
         this.x += Math.cos(this.angle) * this.speed * dt;
         this.y += Math.sin(this.angle) * this.speed * dt;
 
-        if (Utils.distance(this.x, this.y, this.targetX, this.targetY) < 10) {
+        if (Utils.withinRange(this.x, this.y, this.targetX, this.targetY, 10)) {
             const nearby = GameEngine.enemyGrid.query(this.x, this.y, 100);
             let hits = 0;
             for (const e of nearby) {
@@ -208,13 +208,11 @@ export class Projectile {
     }
 
     _updateSpike(dt) {
-        // PRO FIX: Spike Factory "pop out" movement
         if (this.targetX !== undefined) {
             let dx = this.targetX - this.x;
             let dy = this.targetY - this.y;
-            let dist = Math.hypot(dx, dy);
-            if (dist < 5) {
-                // Arrived at target, stop moving
+            let distSq = dx * dx + dy * dy;
+            if (distSq < 25) { // 5^2
                 this.x = this.targetX;
                 this.y = this.targetY;
                 this.targetX = undefined;
@@ -223,20 +221,18 @@ export class Projectile {
                 this.vx = 0;
                 this.vy = 0;
             } else {
-                // Fly towards target
+                let dist = Math.sqrt(distSq);
                 this.vx = (dx / dist) * this.speed;
                 this.vy = (dy / dist) * this.speed;
                 this.x += this.vx * dt;
                 this.y += this.vy * dt;
             }
         } else {
-            // Standard spike friction behavior (for caltrops, etc.)
             this.x += Math.cos(this.angle) * this.speed * dt;
             this.y += Math.sin(this.angle) * this.speed * dt;
             this.speed *= SPIKE_FRICTION;
         }
         
-        // PRO FIX: Spikes MUST expire! Decrement lifespan here.
         this.life -= dt;
         if (this.life <= 0) {
             this.alive = false;
@@ -289,12 +285,12 @@ export class Projectile {
 
     _findSeekingTarget() {
         const nearby = GameEngine.enemyGrid.query(this.x, this.y, 250);
-        let bestDist = 250;
+        let bestDistSq = 250 * 250;
         for (const e of nearby) {
             if (!e.alive) continue;
-            const d = Utils.distance(this.x, this.y, e.x, e.y);
-            if (d < bestDist) {
-                bestDist = d;
+            const dSq = Utils.distanceSq(this.x, this.y, e.x, e.y);
+            if (dSq < bestDistSq) {
+                bestDistSq = dSq;
                 this.target = e;
             }
         }
@@ -309,16 +305,13 @@ export class Projectile {
         for (const e of nearby) {
             if (!e.alive) continue;
             
-            // PRO FIX: Spikes bypass the hitEnemies cooldown.
-            // This allows them to hit the same bloon multiple times and lose all pierce trying to pop it.
             if (this.type !== 'spike' && this.hitEnemies.has(e)) continue;
             
             if (e.isCamo && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
             
             const eRad = e.radius || e.data.radius || 10;
-            if (Utils.distance(this.x, this.y, e.x, e.y) < eRad + this.radius) {
+            if (Utils.withinRange(this.x, this.y, e.x, e.y, eRad + this.radius)) {
                 this.hit(e);
-                // Only add to hitEnemies for non-spikes
                 if (this.type !== 'spike') this.hitEnemies.add(e);
                 if (!this.alive) break;
             }
@@ -366,7 +359,7 @@ export class Projectile {
             if (e.data.isLead && !(this.effects && this.effects.canHitLead) && !(bombDmgType.canHitLead)) continue;
             if (e.data.isMoab && !(this.effects && this.effects.canHitMoab)) continue;
             
-            if (Utils.distance(this.x, this.y, e.x, e.y) < expRadius) {
+            if (Utils.withinRange(this.x, this.y, e.x, e.y, expRadius)) {
                 const expDmg = this._getExplosionDamage();
                 const dmg = e.takeDamage(expDmg, bombDmgType, this.effects);
                 if (dmg === -1) continue;

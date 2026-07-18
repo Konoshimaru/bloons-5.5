@@ -22,7 +22,6 @@ export default {
         ],
         2: [
             {name:"Stronger Acid", cost:250, stat:"dot", amount:1, desc:"Acid deals +1 damage per tick."},
-            // PRO FIX: Restored "Perishing Potions" that was accidentally deleted by a comment
             {name:"Perishing Potions", cost:475, stat:"moabDmg", amount:5, desc:"Deals 5 dmg to MOABs, 20 to Fortified. Strips Fortified off non-blimps.", extraMods:{brewShots:35, brewTimer:6}},
             {name:"Unstable Concoction", cost:3000, stat:"unstableConcoction", amount:true, desc:"Coats MOABs. Explodes on death for 10% base health."},
             {name:"Transforming Tonic", cost:4500, stat:"isAbility", amount:true, desc:"Ability: Turns into a laser monster for 20s.", extraMods:{unlocksAbility:true, abilityName:"Tonic", abilityCd:40}},
@@ -58,13 +57,14 @@ export default {
         if (tower.stats.canBrew || tower.stats.canDip) {
             tower.brewTimer -= dt;
             if (tower.brewTimer <= 0) {
-                let effRange = tower.stats.range * RANGE_SCALE; let targetTower = null; let bestDist = Infinity;
+                let effRange = tower.stats.range * RANGE_SCALE; let targetTower = null; let bestDistSq = Infinity;
+                let effRangeSq = effRange * effRange;
                 for (let ot of GameEngine.towers) {
                     if (!ot || ot === tower || ot.type === 'farm' || ot.type === 'village' || ot.type === 'alchemist' || ot.type === 'farmer') continue;
-                    let dist = Utils.distance(tower.x, tower.y, ot.x, ot.y);
-                    if (dist < effRange) {
-                        if (tower.stats.canBrew && (!ot.alchBuff || (!ot.alchBuff.isPerm && ot.alchBuff.shotsLeft < 10))) { if (dist < bestDist) { bestDist = dist; targetTower = ot; } }
-                        else if (tower.stats.canDip && (!ot.alchDip || (!ot.alchDip.isPerm && ot.alchDip.shotsLeft < 5))) { if (dist < bestDist) { bestDist = dist; targetTower = ot; } }
+                    let distSq = Utils.distanceSq(tower.x, tower.y, ot.x, ot.y);
+                    if (distSq < effRangeSq) {
+                        if (tower.stats.canBrew && (!ot.alchBuff || (!ot.alchBuff.isPerm && ot.alchBuff.shotsLeft < 10))) { if (distSq < bestDistSq) { bestDistSq = distSq; targetTower = ot; } }
+                        else if (tower.stats.canDip && (!ot.alchDip || (!ot.alchDip.isPerm && ot.alchDip.shotsLeft < 5))) { if (distSq < bestDistSq) { bestDistSq = distSq; targetTower = ot; } }
                     }
                 }
                 if (targetTower) {
@@ -108,7 +108,7 @@ export default {
             let count = 0;
             for (let ot of engine.towers) {
                 if (ot && ot !== tower && ot.upgrades[0] <= 3 && ot.upgrades[1] <= 3 && ot.upgrades[2] <= 3) {
-                    if (Utils.distance(tower.x, tower.y, ot.x, ot.y) < 200) { ot.isMonster = true; ot.monsterTimer = 20.0; ot.monsterFireTimer = 0; count++; if (count >= 5) break; }
+                    if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, 200)) { ot.isMonster = true; ot.monsterTimer = 20.0; ot.monsterFireTimer = 0; count++; if (count >= 5) break; }
                 }
             }
         }

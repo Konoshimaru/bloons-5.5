@@ -27,7 +27,6 @@ export function getEffectiveCooldown(tower) {
     if (tower.abilityActiveTime > 0) finalCooldown /= (tower.stats.rapidShotMult || 3);
     if (tower.alchBuff) finalCooldown /= (1 + tower.alchBuff.speed);
     
-    // PRO FIX: Elite Defender speed scaling
     if (tower.eliteDefenderSpeedMod) finalCooldown *= tower.eliteDefenderSpeedMod;
 
     return finalCooldown < MIN_FIRE_RATE ? MIN_FIRE_RATE : finalCooldown;
@@ -113,12 +112,9 @@ function _runCustomBehaviors(tower, dt, engine) {
 function _acquireAndFire(tower, dt, engine) {
     if (tower.isHollowCharging) return; 
     
-    // PRO FIX: Spike Factory passive firing logic
     if (tower.type === 'spike') {
-        // Only fire if a round is active and cooldown is ready
         if (engine.waveManager.waveActive && tower.cooldown <= 0 && tower.attackPointTimer <= 0) {
             const effFireRate = getEffectiveCooldown(tower);
-            // Call fire directly to bypass animation wind-up which breaks with null targets
             fire(tower, null, engine);
             tower.cooldown = effFireRate / (1 + tower.buffedFireRate);
         }
@@ -144,19 +140,15 @@ function _findTarget(tower, engine) {
     const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
     const alchRange = tower.alchBuff ? tower.alchBuff.range : 0;
     
-    // PRO FIX: Apply night mode range scaling
     const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
     const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange) * nightMod * GS;
     const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
     
-    // PRO FIX: Elite Targeting Logic
     let currentTargeting = tower.targetingMode;
     if (currentTargeting === 'Elite') {
-        // ISSUE 5 FIX: Read cached leaking status from engine instead of scanning array
         currentTargeting = engine.hasLeakingEnemy ? 'First' : 'Strong';
     }
 
-    // ISSUE 6 FIX: Track top 3 targets ignoring LOS, then check LOS only on them
     let t1 = null, v1 = (currentTargeting === 'First' || currentTargeting === 'Strong') ? -Infinity : Infinity;
     let t2 = null, v2 = v1;
     let t3 = null, v3 = v1;
@@ -166,18 +158,23 @@ function _findTarget(tower, engine) {
         return newVal < oldVal;
     };
 
+    const minRange = tower.stats.minRange ? (tower.stats.minRange * scale * GS) : 0;
+    const minRangeSq = minRange * minRange;
+    const effRangeSq = effRange * effRange;
+
     for (const e of candidates) {
         if (!e.alive) continue;
         if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
         if (tower.type === 'glue' && e.data.isMoab) continue; 
         
-        const dist = Utils.distance(tower.x, tower.y, e.x, e.y);
-        if (baseRange !== 9999 && dist > effRange) continue;
-        // PRO FIX: Apply global scale to minRange
-        if (tower.stats.minRange && dist < (tower.stats.minRange * scale * GS)) continue; 
+        // PRO FIX: Use squared distance for range checks to avoid Math.sqrt
+        const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
+        
+        if (baseRange !== 9999 && distSq > effRangeSq) continue;
+        if (minRangeSq > 0 && distSq < minRangeSq) continue; 
 
-        // NOTE: LOS check removed from loop body for performance profiling optimization
-        const val = _getTargetValue(tower, e, dist, currentTargeting);
+        // Only calculate real distance if targeting 'Close', otherwise pass 0
+        const val = _getTargetValue(tower, e, (currentTargeting === 'Close' ? Math.sqrt(distSq) : 0), currentTargeting);
         
         if (isBetter(val, v1)) {
             t3 = t2; v3 = v2;
@@ -191,7 +188,6 @@ function _findTarget(tower, engine) {
         }
     }
     
-    // ISSUE 6 FIX: Run LOS check only on the top 3 evaluated candidates
     if (t1) {
         if (_hasLineOfSight(tower, t1, engine)) return t1;
         if (t2 && _hasLineOfSight(tower, t2, engine)) return t2;
@@ -208,7 +204,6 @@ function _getTargetValue(tower, enemy, dist, targetingMode) {
 }
 
 function _isBetterTarget(tower, val, bestVal, currentTarget, e, targetingMode) {
-    // NOTE: Kept for compatibility/inheritance API, unused in optimized _findTarget
     if (targetingMode === 'First' || targetingMode === 'Strong') {
         if (val > bestVal) return true;
         if (val === bestVal && currentTarget && e.distanceTraveled > currentTarget.distanceTraveled) return true;
@@ -257,22 +252,16 @@ function _triggerAttack(tower, target, effFireRate, engine) {
     tower.cooldown = effFireRate / (1 + tower.buffedFireRate); 
 }
 
-// NEW: Centralized function to handle firing with predictive targeting
 function _executeFire(tower, target, engine) {
-    // PRO FIX: Predictive Targeting for high-range, slow projectiles
     const projSpeed = tower.stats.projectileSpeed || 0;
     let aimX = target.x, aimY = target.y;
     
-    // Only predict for moving projectiles (not instant hits like Sniper, or radial like Tack/Ice)
-    // Also limit to speeds < 1500 so we don't predict for things like Icicle Impale or Super Monkey (they rarely miss anyway)
     if (projSpeed > 0 && projSpeed < 1500 && target.data.speed > 0) {
+        // PRO FIX: Needs real distance for the prediction math
         const dist = Utils.distance(tower.x, tower.y, target.x, target.y);
         
-        // Calculate effective speed factoring in slows/glue/gojo
         const effSpeed = target.data.speed * (target.slowFactor || 1) * (target.gojoSlow || 1) * (target.permafrostSlow || 1);
         
-        // Add slight randomization so they aren't perfectly accurate (as requested)
-        // Time to hit is between 80% and 120% of the mathematical perfect time
         const timeToHit = (dist / projSpeed) * (0.8 + Math.random() * 0.4);
         
         const futureDist = target.distanceTraveled + (effSpeed * timeToHit);
@@ -287,7 +276,6 @@ function _executeFire(tower, target, engine) {
         }
     }
     
-    // Temporarily override target position for the fire() call so projectiles spawn aiming at the predicted spot
     const realX = target.x;
     const realY = target.y;
     target.x = aimX;
@@ -295,7 +283,6 @@ function _executeFire(tower, target, engine) {
     
     fire(tower, target, engine);
     
-    // Restore immediately so game logic isn't affected
     target.x = realX;
     target.y = realY;
 }
@@ -357,7 +344,6 @@ function _calculateDamage(tower) {
     let damage = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0); 
     let isCrit = tower.stats.critChance && Math.random() < tower.stats.critChance;
     if (isCrit) damage = tower.stats.critDmg;
-    // PRO FIX: Removed the 'heavy' dmgType override that was causing undefined damage for Snipers
     return damage;
 }
 
