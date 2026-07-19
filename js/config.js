@@ -30,7 +30,7 @@ const DEFAULT_DATA = {
     extremeSpeedEnabled: false,
     showTowerStats: false,
     uncapFps: false,
-    knowledgePoints: 65, // <-- ADD THIS (Starting KP)
+    knowledgePoints: 4, // <-- ADD THIS (Starting KP)
     monkeyKnowledge: {}, // <-- ADD THIS (Tracks unlocked nodes)
     unlocks: {
         extraStartingCash: false,

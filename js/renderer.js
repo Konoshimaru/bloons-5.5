@@ -218,16 +218,25 @@ export const Renderer = {
 
         const stats = TowerStats[engine.selectedTowerType] || HeroStats[engine.selectedTowerType];
         const mouse = engine.mouse;
-        const map = engine.map;
         
+        // --- NUDGE LOGIC: Use stuck position if active, otherwise use mouse ---
+        let previewX = mouse.x;
+        let previewY = mouse.y;
+
+        if (engine.stuckPlacement) {
+            previewX = engine.stuckPlacement.x;
+            previewY = engine.stuckPlacement.y;
+        }
+        // ----------------------------------------------------------------------
+
+        const map = engine.map;
         const placementRadius = Math.max(1, (stats.hitRadius || PLACEMENT_RADIUS) * GS);
         
-        const onPath = map.isOnPath(mouse.x, mouse.y) || map.isOnProp(mouse.x, mouse.y) || mouse.y > CANVAS_HEIGHT || mouse.x > CANVAS_WIDTH;
-        const onWater = map.isInWater(mouse.x, mouse.y);
-        const onFrozenWater = map.isOnFrozenWater(mouse.x, mouse.y, engine.towers);
+        const onPath = map.isOnPath(previewX, previewY) || map.isOnProp(previewX, previewY) || previewY > CANVAS_HEIGHT || previewX > CANVAS_WIDTH;
+        const onWater = map.isInWater(previewX, previewY);
+        const onFrozenWater = map.isOnFrozenWater(previewX, previewY, engine.towers);
         const validLandPlacement = !onPath && (!onWater || onFrozenWater);
 
-        // --- FREE DART MONKEY LOGIC ---
         let cost = engine.getCost(stats.cost);
         if (engine.selectedTowerType === 'dart' && !engine.isSandbox && engine.difficulty && !engine.difficulty.noSelling) {
             const mkActive = Config.data.mkActive !== false;
@@ -237,7 +246,6 @@ export const Renderer = {
             }
         }
         const canAfford = engine.cash >= cost;
-        // ------------------------------
 
         ctx.globalAlpha = 0.6;
 
@@ -245,38 +253,38 @@ export const Renderer = {
             const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
             const effRange = Math.max(1, stats.range * RANGE_SCALE * nightMod * GS);
             ctx.fillStyle = canAfford ? TOWER_AFFORDABLE_COLOR : TOWER_OUT_OF_BOUNDS_COLOR;
-            ctx.beginPath(); ctx.arc(mouse.x, mouse.y, effRange, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(previewX, previewY, effRange, 0, Math.PI * 2); ctx.fill();
         }
 
         if (!canAfford) {
             ctx.fillStyle = TOWER_OUT_OF_BOUNDS_COLOR;
-            ctx.beginPath(); ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(previewX, previewY, placementRadius, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 1; return;
         }
 
         if (stats.waterOnly) {
             if (!onWater || onPath) {
-                ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(previewX, previewY, placementRadius, 0, Math.PI * 2); ctx.fill();
             } else {
-                const isOverlapping = this._checkPlacementOverlap(engine, stats, mouse.x, mouse.y);
-                if (isOverlapping) { ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2); ctx.fill(); }
-                else { Tower.drawPreview(ctx, mouse.x, mouse.y, engine.selectedTowerType); }
+                const isOverlapping = this._checkPlacementOverlap(engine, stats, previewX, previewY);
+                if (isOverlapping) { ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(previewX, previewY, placementRadius, 0, Math.PI * 2); ctx.fill(); }
+                else { Tower.drawPreview(ctx, previewX, previewY, engine.selectedTowerType); }
             }
         } else if (stats.canPlaceOnWater) {
             if (onPath) {
-                ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(previewX, previewY, placementRadius, 0, Math.PI * 2); ctx.fill();
             } else {
-                const isOverlapping = this._checkPlacementOverlap(engine, stats, mouse.x, mouse.y);
-                if (isOverlapping) { ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2); ctx.fill(); }
-                else { Tower.drawPreview(ctx, mouse.x, mouse.y, engine.selectedTowerType); }
+                const isOverlapping = this._checkPlacementOverlap(engine, stats, previewX, previewY);
+                if (isOverlapping) { ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(previewX, previewY, placementRadius, 0, Math.PI * 2); ctx.fill(); }
+                else { Tower.drawPreview(ctx, previewX, previewY, engine.selectedTowerType); }
             }
         } else {
             if (!validLandPlacement) {
-                ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(previewX, previewY, placementRadius, 0, Math.PI * 2); ctx.fill();
             } else {
-                const isOverlapping = this._checkPlacementOverlap(engine, stats, mouse.x, mouse.y);
-                if (isOverlapping) { ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(mouse.x, mouse.y, placementRadius, 0, Math.PI * 2); ctx.fill(); }
-                else { Tower.drawPreview(ctx, mouse.x, mouse.y, engine.selectedTowerType); }
+                const isOverlapping = this._checkPlacementOverlap(engine, stats, previewX, previewY);
+                if (isOverlapping) { ctx.fillStyle = TOWER_OVERLAP_COLOR; ctx.beginPath(); ctx.arc(previewX, previewY, placementRadius, 0, Math.PI * 2); ctx.fill(); }
+                else { Tower.drawPreview(ctx, previewX, previewY, engine.selectedTowerType); }
             }
         }
         ctx.globalAlpha = 1;

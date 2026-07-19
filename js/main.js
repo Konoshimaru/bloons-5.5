@@ -244,7 +244,6 @@ function updateShopPrices() {
             let cost = Math.floor(stats.cost * costMod);
             const costEl = card.querySelector('.cost');
             
-            // --- FREE DART MONKEY LOGIC ---
             if (type === 'dart' && !GameEngine.isSandbox && GameEngine.difficulty && !GameEngine.difficulty.noSelling) {
                 const mkActive = Config.data.mkActive !== false;
                 const hasFreeMonkey = Config.data.unlocks.freeFirstDartMonkey || (mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_monkey);
@@ -252,7 +251,6 @@ function updateShopPrices() {
                     cost = 0;
                 }
             }
-            // ------------------------------
 
             if (costEl) costEl.innerText = cost === 0 ? "Free!" : `$${cost}`;
         }
@@ -540,6 +538,7 @@ function _setupShopListeners() {
             }
             
             GameEngine.deselectAll();
+            GameEngine.stuckPlacement = null;
             dom.towerCards.forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             GameEngine.selectedTowerType = card.dataset.tower;
@@ -549,6 +548,12 @@ function _setupShopListeners() {
             const startX = e.clientX;
             const startY = e.clientY;
 
+            const rect = GameEngine.canvas.getBoundingClientRect();
+            const scaleX = GameEngine.canvas.width / rect.width;
+            const scaleY = GameEngine.canvas.height / rect.height;
+            GameEngine.mouse.x = (e.clientX - rect.left) * scaleX;
+            GameEngine.mouse.y = (e.clientY - rect.top) * scaleY;
+
             const onMove = (ev) => {
                 const dx = Math.abs(ev.clientX - startX);
                 const dy = Math.abs(ev.clientY - startY);
@@ -556,9 +561,6 @@ function _setupShopListeners() {
                     isDragging = true;
                 }
                 if (isDragging) {
-                    const rect = GameEngine.canvas.getBoundingClientRect();
-                    const scaleX = GameEngine.canvas.width / rect.width;
-                    const scaleY = GameEngine.canvas.height / rect.height;
                     GameEngine.mouse.x = (ev.clientX - rect.left) * scaleX;
                     GameEngine.mouse.y = (ev.clientY - rect.top) * scaleY;
                 }
@@ -569,18 +571,25 @@ function _setupShopListeners() {
                 window.removeEventListener('pointerup', onUp);
 
                 if (isDragging) {
-                    const rect = GameEngine.canvas.getBoundingClientRect();
                     const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
 
                     if (ev.clientX >= sidebarRect.left && ev.clientX <= sidebarRect.right) {
                         GameEngine.deselectAll();
+                        return;
                     } else if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+                        const dropX = (ev.clientX - rect.left) * scaleX;
+                        const dropY = (ev.clientY - rect.top) * scaleY;
+                        
+                        GameEngine._suppressClick = true; // Prevent click event from double-firing
                         GameEngine.handleCanvasClick({ clientX: ev.clientX, clientY: ev.clientY });
+                        
+                        if (GameEngine.selectedTowerType) {
+                            GameEngine.stuckPlacement = { x: dropX, y: dropY };
+                        }
                     } else {
                         GameEngine.deselectAll();
                     }
                 }
-                // If not dragging, we leave it selected so the user can click the map via InputManager
             };
 
             window.addEventListener('pointermove', onMove);
@@ -594,7 +603,6 @@ function _setupShopListeners() {
         });
     });
 
-    // Update prices immediately after a map click (fixes "Free!" disappearing after placing the free dart)
     GameEngine.canvas.addEventListener('click', () => {
         setTimeout(updateShopPrices, 10);
     });
@@ -643,6 +651,176 @@ function setupEventListeners() {
     _setupGameListeners();
     _setupShopListeners();
     InputManager.init();
+
+    // --- NUDGE PLACEMENT LOGIC ---
+    GameEngine.stuckPlacement = null;
+    GameEngine._suppressClick = false;
+    if (!GameEngine._nudgeHooked) {
+        GameEngine._nudgeHooked = true;
+        
+        const originalHandleCanvasClick = GameEngine.handleCanvasClick.bind(GameEngine);
+        let isNudging = false;
+        let isCanvasDragging = false;
+        let nudgeStart = {};
+
+        const getCanvasPos = (clientX, clientY) => {
+            const rect = GameEngine.canvas.getBoundingClientRect();
+            const scaleX = GameEngine.canvas.width / rect.width;
+            const scaleY = GameEngine.canvas.height / rect.height;
+            return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+        };
+
+        GameEngine.canvas.addEventListener('pointerdown', (e) => {
+            if (GameEngine.gameState !== 'playing' || !GameEngine.selectedTowerType || !GameEngine.stuckPlacement) return;
+            
+            e.preventDefault();
+            const pos = getCanvasPos(e.clientX, e.clientY);
+            const dx = pos.x - GameEngine.stuckPlacement.x;
+            const dy = pos.y - GameEngine.stuckPlacement.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist < 60) {
+                // Grabbed closely: pop it off and follow mouse 1:1
+                isCanvasDragging = true;
+                GameEngine.stuckPlacement = null;
+                GameEngine.mouse.x = pos.x;
+                GameEngine.mouse.y = pos.y;
+            } else {
+                // Grabbed far away: start nudging (joystick mode)
+                isNudging = true;
+                nudgeStart = { mouseX: pos.x, mouseY: pos.y, stuckX: GameEngine.stuckPlacement.x, stuckY: GameEngine.stuckPlacement.y };
+            }
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (GameEngine.gameState !== 'playing' || !GameEngine.selectedTowerType) return;
+
+            const pos = getCanvasPos(e.clientX, e.clientY);
+            const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
+            const overSidebar = (e.clientX >= sidebarRect.left && e.clientX <= sidebarRect.right);
+
+            if (isNudging) {
+                if (overSidebar) {
+                    GameEngine.deselectAll();
+                    isNudging = false;
+                    return;
+                }
+                
+                const dx = pos.x - GameEngine.stuckPlacement.x;
+                const dy = pos.y - GameEngine.stuckPlacement.y;
+                const dist = Math.hypot(dx, dy);
+
+                // If mouse gets close to the stuck tower while nudging, pop it off and drag 1:1
+                if (dist < 60) {
+                    isNudging = false;
+                    isCanvasDragging = true;
+                    GameEngine.stuckPlacement = null;
+                    GameEngine.mouse.x = pos.x;
+                    GameEngine.mouse.y = pos.y;
+                } else {
+                    // Nudge math: move the stuck tower by (mouse delta / 10)
+                    const mdx = pos.x - nudgeStart.mouseX;
+                    const mdy = pos.y - nudgeStart.mouseY;
+                    GameEngine.stuckPlacement = {
+                        x: nudgeStart.stuckX + (mdx / 10),
+                        y: nudgeStart.stuckY + (mdy / 10)
+                    };
+                }
+            } else if (isCanvasDragging) {
+                if (overSidebar) {
+                    GameEngine.deselectAll();
+                    isCanvasDragging = false;
+                    return;
+                }
+                GameEngine.mouse.x = pos.x;
+                GameEngine.mouse.y = pos.y;
+            }
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (GameEngine.gameState !== 'playing' || !GameEngine.selectedTowerType) {
+                isNudging = false;
+                isCanvasDragging = false;
+                return;
+            }
+
+            const pos = getCanvasPos(e.clientX, e.clientY);
+            const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
+            const overSidebar = (e.clientX >= sidebarRect.left && e.clientX <= sidebarRect.right);
+
+            if (overSidebar) {
+                GameEngine.deselectAll();
+                GameEngine.stuckPlacement = null;
+                isNudging = false;
+                isCanvasDragging = false;
+                return;
+            }
+
+            if (isNudging) {
+                isNudging = false;
+                GameEngine._suppressClick = true; // Prevent the click event from firing and placing at the mouse
+                
+                // Attempt to place at the NUDGED position!
+                const rect = GameEngine.canvas.getBoundingClientRect();
+                const scaleX = GameEngine.canvas.width / rect.width;
+                const scaleY = GameEngine.canvas.height / rect.height;
+                const fakeClientX = rect.left + (GameEngine.stuckPlacement.x / scaleX);
+                const fakeClientY = rect.top + (GameEngine.stuckPlacement.y / scaleY);
+                
+                originalHandleCanvasClick({ clientX: fakeClientX, clientY: fakeClientY });
+                
+                // If placement failed, it stays stuck at the nudged position
+                if (!GameEngine.selectedTowerType) {
+                    GameEngine.stuckPlacement = null;
+                }
+            } else if (isCanvasDragging) {
+                isCanvasDragging = false;
+                GameEngine._suppressClick = true; // Prevent the click event from double-firing
+                
+                // Attempt to place where the mouse is
+                originalHandleCanvasClick(e);
+                
+                // If placement failed, stick it to the drop spot
+                if (GameEngine.selectedTowerType) {
+                    GameEngine.stuckPlacement = { x: pos.x, y: pos.y };
+                } else {
+                    GameEngine.stuckPlacement = null;
+                }
+            }
+        });
+
+        // Wrap handleCanvasClick to suppress double clicks and handle true clicks on stuck towers
+        GameEngine.handleCanvasClick = function(e) {
+            if (GameEngine._suppressClick) {
+                GameEngine._suppressClick = false;
+                return;
+            }
+            
+            if (this.selectedTowerType && this.stuckPlacement) {
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const mx = (e.clientX - rect.left) * scaleX;
+                const my = (e.clientY - rect.top) * scaleY;
+                const dx = mx - this.stuckPlacement.x;
+                const dy = my - this.stuckPlacement.y;
+                const dist = Math.hypot(dx, dy);
+
+                // If they clicked far away without dragging, force placement at the stuck spot
+                if (dist > 50) {
+                    e.clientX = rect.left + (this.stuckPlacement.x / scaleX);
+                    e.clientY = rect.top + (this.stuckPlacement.y / scaleY);
+                }
+            }
+            
+            originalHandleCanvasClick(e);
+            
+            if (!this.selectedTowerType) {
+                this.stuckPlacement = null;
+            }
+        };
+    }
+    // ------------------------------
 }
 
 window.addEventListener('load', () => {
