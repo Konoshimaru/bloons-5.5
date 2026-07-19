@@ -2,7 +2,7 @@
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
-import { Config } from './config.js';
+import { Config } from './config.js'; // ADDED BACK
 import { GameEngine } from './engine.js';
 import { drawImageCentered, drawShadow } from './utils.js';
 import Assets from './assets.js';
@@ -99,6 +99,19 @@ export class Tower {
         if (mk['inc_lifespan'] && ['dart', 'bomb', 'tack', 'glue'].includes(this.type)) {
             this.stats.lifespan = (this.stats.lifespan || 0.5) + 0.2;
         }
+
+        if (['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'].includes(this.type) && mk['advanced_logistics']) {
+            this.stats.cost = Math.floor(this.stats.cost * 0.95);
+        }
+        if (['buccaneer', 'sub'].includes(this.type) && mk['naval_upgrades']) {
+            this.stats.pierce = (this.stats.pierce || 1) + 1;
+        }
+        if (['ace', 'heli'].includes(this.type) && mk['airforce_upgrades']) {
+            this.stats.pierce = (this.stats.pierce || 1) + 1;
+        }
+        if (['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'].includes(this.type) && mk['elite_mil_training']) {
+            this.stats.xpMult = 1.05;
+        }
     }
 
     update(dt, engine) {
@@ -128,6 +141,12 @@ export class Tower {
             if (allLowTier) this._cooldownMult *= 0.95;
         }
 
+        if (this.type === 'ace' && mk['gun_coolant']) this._cooldownMult *= 0.90;
+        if (this.type === 'heli' && this.upgrades[1] >= 2 && mk['rapid_razors']) this._cooldownMult *= 0.80;
+        if (['sniper', 'sub', 'buccaneer'].includes(this.type) && mk['flanking_maneuvers'] && this.targetingMode === 'Last') {
+            this._cooldownMult *= 0.90;
+        }
+
         this._applyMonkeyKnowledge(mk);
     }
 
@@ -153,6 +172,23 @@ export class Tower {
         if (this.type === 'bomb' && this.upgrades[0] >= 2 && mk['fraggy_frags']) this.stats.fragCount = (this.stats.fragCount || 8) + 2;
         if (this.type === 'dart' && this.upgrades[0] >= 3 && mk['crossbow_reach']) this.stats.range = (this.stats.range || 32) + 3;
         if (this.type === 'boomerang' && mk['recurring_rangs']) this.stats.recurringRangs = true;
+
+        if (this.type === 'buccaneer' && this.upgrades[0] >= 2 && mk['big_bunch']) this.stats.grapeCount = (this.stats.grapeCount || 5) + 1;
+        if (this.type === 'ace' && mk['accel_aerodarts']) this.stats.projectileSpeed = (this.stats.projectileSpeed || 600) * 1.5;
+        if (this.type === 'sniper' && mk['ceramic_shock']) this.stats.ceramicShock = true;
+        if (this.type === 'sub' && this.upgrades[1] >= 3 && mk['breaking_ballistic']) this.stats.ceramicDmg = (this.stats.ceramicDmg || 0) + 1;
+        if (this.type === 'buccaneer' && this.upgrades[2] >= 4 && mk['faster_takedowns']) { if (this.stats.abilityCd) this.stats.abilityCd -= 5; }
+        if (this.type === 'mortar' && this.upgrades[2] >= 1 && mk['extra_burny_stuff']) this.stats.dotTick = 1.0; 
+        if (this.type === 'dartling' && this.upgrades[2] >= 4 && mk['gorgon_storm']) this.stats.gorgonStorm = true;
+        if (this.type === 'sub' && this.upgrades[1] >= 2 && mk['quad_burst']) this.stats.splitCount = 4;
+        if (this.type === 'buccaneer' && this.upgrades[2] >= 3 && mk['trade_agreements']) this.stats.income = (this.stats.income || 0) + 20;
+        if (this.type === 'mortar' && this.upgrades[0] >= 4 && mk['paint_stripper']) this.stats.canStripDDTFortified = true;
+        if (this.type === 'dartling' && this.upgrades[0] >= 5 && mk['cross_the_streams']) this.stats.crossStreams = true;
+        if (this.type === 'ace' && mk['wingmonkey']) this.stats.canWingmonkey = true;
+        if (this.type === 'heli' && this.upgrades[2] >= 4 && mk['charged_chinooks']) this.stats.chinookCashMult = 1.25;
+        if (this.type === 'sniper' && this.upgrades[2] >= 5 && mk['master_defender']) this.stats.masterDefender = true;
+        if (this.type === 'sub' && this.upgrades[1] >= 5 && mk['sub_admiral']) this.stats.subAdmiral = true;
+        if (this.type === 'heli' && this.upgrades[2] >= 5 && mk['door_gunner']) this.stats.canDoorGunner = true;
     }
 
     _applyUpgradeStats(upgradeData) {
@@ -225,7 +261,6 @@ export class Tower {
         if (asset && asset.loaded) {
             ctx.save();
             ctx.translate(x, y);
-            // PRO FIX: Removed SpriteConfig offset so preview is perfectly centered on cursor
             const size = stats?.drawSize ? stats.drawSize * GS : 45 * scaleVal;
             const maxDim = Math.max(asset.width, asset.height);
             if (maxDim > 0 && !isNaN(size)) {
@@ -274,8 +309,12 @@ export class Tower {
 
         let baseCost = upgradeData.cost;
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+
         if (this.type === 'bomb' && this.upgrades[0] === 2 && mk['budget_clusters']) baseCost -= 100;
         if (this.type === 'glue' && this.upgrades[1] === 4 && mk['cheaper_solution']) baseCost -= 1000;
+        if (this.type === 'sniper' && this.upgrades[0] === 3 && mk['cheaper_maiming']) baseCost -= 1000;
+        if (this.type === 'ace' && this.upgrades[0] === 4 && mk['aeronautic_subsidy']) baseCost *= 0.9;
+        if (this.type === 'mortar' && this.upgrades[1] === 4 && mk['budget_battery']) baseCost -= 600;
 
         let cost = engine.getCost(baseCost);
         if (this.discount > 0) cost = Math.floor(cost * (1 - this.discount));

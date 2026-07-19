@@ -1,14 +1,14 @@
-﻿// enemy.js
+﻿// js/enemy.js
 import { EnemyTypes } from './data.js';
-import { drawShadow } from './utils.js';
 import { AudioEngine } from './audio.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
 import { Utils } from './utils.js';
+import { Config } from './config.js';
 import { GLOBAL_SCALE } from './constants.js';
+import { EnemyRenderer } from './enemyRenderer.js';
 
-// PRO FIX: Safe fallback to prevent NaN crashes if import fails
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const ENEMY_NAMES = [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
@@ -22,11 +22,8 @@ const LIVES_LOST_CERAMIC_BASE = 94;
 const LIVES_LOST_FORTIFIED_LEAD = 26;
 
 export class Enemy {
-    // ISSUE 8 FIX: Empty constructor for ObjectPool compatibility
     constructor() {}
 
-    // ISSUE 8 FIX: Moved initialization logic to init()
-    // PRO FIX: Added isSuperCeramic parameter
     init(tier, map, isCamo = false, isRegen = false, maxTier = tier, isFortified = false, hpMod = null, pathIndex = 0, isSuperCeramic = false) {
         this.tier = tier;
         this.map = map;
@@ -35,7 +32,7 @@ export class Enemy {
         this.maxTier = maxTier;
         this.isFortified = isFortified;
         this.pathIndex = pathIndex;
-        this.isSuperCeramic = isSuperCeramic; // NEW: Super Ceramic flag
+        this.isSuperCeramic = isSuperCeramic;
 
         this.data = { ...EnemyTypes[tier] };
         this.radius = (this.data.radius || 10) * GS;
@@ -55,47 +52,28 @@ export class Enemy {
         this.angle = 0;
 
         this._initializeStats();
-        this._updateSpriteCache(); // PRO FIX: Initial sprite cache
+        this._updateSpriteCache();
 
-        // PRO FIX: Freeplay Rules (Rounds 81+)
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
         if (round > 80) {
-            // --- FREEPLAY SPEED RAMPING (Piecewise Linear with Discontinuities) ---
             let speedMult = 1.0;
-            if (round <= 100) {
-                speedMult = 1 + (round - 80) * 0.02;
-            } else if (round <= 150) {
-                speedMult = 1.6 + (round - 101) * 0.02;
-            } else if (round <= 200) {
-                speedMult = 3.0 + (round - 151) * 0.02;
-            } else if (round <= 251) {
-                speedMult = 4.5 + (round - 201) * 0.02;
-            } else {
-                speedMult = 6.0 + (round - 252) * 0.02;
-            }
+            if (round <= 100) speedMult = 1 + (round - 80) * 0.02;
+            else if (round <= 150) speedMult = 1.6 + (round - 101) * 0.02;
+            else if (round <= 200) speedMult = 3.0 + (round - 151) * 0.02;
+            else if (round <= 251) speedMult = 4.5 + (round - 201) * 0.02;
+            else speedMult = 6.0 + (round - 252) * 0.02;
             this.data.speed *= speedMult;
-            // -----------------------------------------------------------------------
 
-            // MOAB-class HP Ramping (Continuous Piecewise Linear)
             if (this.data.isMoab) {
                 let hpMult = 1.0;
-                if (round <= 100) {
-                    hpMult = 1.0 + (round - 80) * 0.02;
-                } else if (round <= 124) {
-                    hpMult = 1.4 + (round - 100) * 0.05;
-                } else if (round <= 150) {
-                    hpMult = 2.6 + (round - 124) * 0.15;
-                } else if (round <= 250) {
-                    hpMult = 6.5 + (round - 150) * 0.35;
-                } else if (round <= 300) {
-                    hpMult = 41.5 + (round - 250) * 1.0;
-                } else if (round <= 400) {
-                    hpMult = 91.5 + (round - 300) * 1.5;
-                } else if (round <= 500) {
-                    hpMult = 241.5 + (round - 400) * 2.5;
-                } else {
-                    hpMult = 5 * round - 2008.5;
-                }
+                if (round <= 100) hpMult = 1.0 + (round - 80) * 0.02;
+                else if (round <= 124) hpMult = 1.4 + (round - 100) * 0.05;
+                else if (round <= 150) hpMult = 2.6 + (round - 124) * 0.15;
+                else if (round <= 250) hpMult = 6.5 + (round - 150) * 0.35;
+                else if (round <= 300) hpMult = 41.5 + (round - 250) * 1.0;
+                else if (round <= 400) hpMult = 91.5 + (round - 300) * 1.5;
+                else if (round <= 500) hpMult = 241.5 + (round - 400) * 2.5;
+                else hpMult = 5 * round - 2008.5;
                 
                 this._maxHp *= hpMult;
                 this.hp = this._maxHp;
@@ -103,7 +81,6 @@ export class Enemy {
         }
     }
 
-    // PRO FIX: Cache sprite asset to prevent string allocation and Map lookup every frame
     _updateSpriteCache() {
         const assetKey = Names.getEnemyWithModifiers(this.tier, this.isCamo, this.isRegen);
         let asset = Assets.get(assetKey);
@@ -138,26 +115,32 @@ export class Enemy {
         this.brittleBonus = 0;          
         this.deepFreezeLayers = 0;      
         this.leadStripped = false;      
-
         this._maxHp = this.data.maxHp;
         if (this.isFortified && (this.data.isMoab || this.data.isCeramic)) {
             this._maxHp *= 2;
         }
         
-        // PRO FIX: Super Ceramic Freeplay Scaling
+        // --- MONKEY KNOWLEDGE: Big Bloon Sabotage ---
+        if (this.data.isMoab) {
+            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+            if (mk['big_bloon_sabotage']) {
+                this._maxHp = Math.floor(this._maxHp * 0.90); // 10% less HP
+            }
+        }
+        // ---------------------------------------------
+        
         if (this.isSuperCeramic) {
-            if (this.tier === 12) { // Super Ceramic
-                // 6x base health (60 HP at R81, +2 per round)
+            if (this.tier === 12) { 
                 this._maxHp = 60 + (GameEngine.waveManager.currentWave - 81) * 2;
                 this.data.livesLost = this.isFortified ? 75 : 65;
-                this.data.splitsInto = [{tier: 11, count: 1}]; // 1 Rainbow
-            } else if (this.tier === 11) { // Super Rainbow
+                this.data.splitsInto = [{tier: 11, count: 1}]; 
+            } else if (this.tier === 11) { 
                 this.data.livesLost = 0;
-                this.data.splitsInto = [{tier: 9, count: 1}]; // 1 Zebra
-            } else if (this.tier === 9) { // Super Zebra
+                this.data.splitsInto = [{tier: 9, count: 1}]; 
+            } else if (this.tier === 9) { 
                 this.data.livesLost = 0;
-                this.data.splitsInto = [{tier: 7, count: 1}]; // 1 White
-            } else if (this.tier === 16) { // Super DDT
+                this.data.splitsInto = [{tier: 7, count: 1}]; 
+            } else if (this.tier === 16) { 
                 this.data.livesLost = this.isFortified ? 1100 : 660;
             }
         }
@@ -180,7 +163,6 @@ export class Enemy {
 
     _updateTimers(dt) {
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
-        
         if (this.brittleTimer > 0) {
             this.brittleTimer -= dt;
             if (this.brittleTimer <= 0) {
@@ -189,7 +171,6 @@ export class Enemy {
                 this.leadStripped = false;
             }
         }
-        
         if (this.slowTimer > 0) {
             this.slowTimer -= dt;
             if (this.slowTimer <= 0) {
@@ -197,7 +178,6 @@ export class Enemy {
                 this.isFrozen = false;
             }
         }
-
         if (this.dotTimer > 0) {
             this.dotTimer -= dt;
             this.dotTick += dt;
@@ -220,7 +200,7 @@ export class Enemy {
             this.data.speed *= diffSpeedMod;
             if (this.data.isMoab) this.hp = this.data.maxHp * (this.isFortified ? 2 : 1);
             if (this.data.isCeramic) this.hp = this.data.maxHp * (this.isFortified ? 2 : 1);
-            this._updateSpriteCache(); // PRO FIX: Update cache on regen
+            this._updateSpriteCache();
         }
     }
 
@@ -251,12 +231,10 @@ export class Enemy {
     }
 
     getLivesLost() {
-        // PRO FIX: Use explicit livesLost value if defined (Super Ceramics)
         if (this.data.livesLost !== undefined) {
             return this.data.livesLost;
         }
 
-        // PRO FIX: Freeplay lives reduction for non-super bloons
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
         if (round > 80 && !this.isSuperCeramic) {
             if (this.data.isCeramic) return 47;
@@ -273,8 +251,6 @@ export class Enemy {
                 }
             }
             
-            // PRO FIX: Freeplay HP ramping should not affect lives lost.
-            // Calculate lives lost based on the unscaled base HP ratio.
             let baseMaxHp = this.data.maxHp;
             if (this.isFortified && (this.data.isMoab || this.data.isCeramic)) {
                 baseMaxHp *= 2;
@@ -297,12 +273,11 @@ export class Enemy {
         if (this.data.isBAD) return;
         if (isIce && (this.data.isWhite || this.data.isZebra || this.data.isLead) && !this.leadStripped) return;
         
-        // PRO FIX: Freeplay status resistance
         let actualDuration = duration;
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
         if (round > 80) {
             actualDuration *= (1 - (round - 80) * 0.01);
-            if (actualDuration < 0.1) actualDuration = 0.1; // Prevent 0 duration
+            if (actualDuration < 0.1) actualDuration = 0.1; 
         }
 
         if (factor <= this.slowFactor || this.slowTimer <= 0) {
@@ -321,7 +296,6 @@ export class Enemy {
             }
         }
 
-        // --- FREEPLAY CASH SCALING ---
         let cashMult = 1.0;
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
         if (round >= 141) cashMult = 0.02;
@@ -330,7 +304,6 @@ export class Enemy {
         else if (round >= 86) cashMult = 0.10;
         else if (round >= 61) cashMult = 0.20;
         else if (round >= 51) cashMult = 0.50;
-        // -----------------------------
 
         const layerCash = Math.max(1, Math.floor((this.data.rbe - childRbeTotal) * CASH_REWARD_MODIFIER * cashMult));
         GameEngine.addCash(layerCash);
@@ -349,9 +322,7 @@ export class Enemy {
             for (let i = 0; i < child.count; i++) {
                 const childCamo = child.forceCamo !== undefined ? child.forceCamo : this.isCamo;
                 const childRegen = child.forceRegen !== undefined ? child.forceRegen : this.isRegen;
-                // ISSUE 8 FIX: Use ObjectPool for children
                 const c = GameEngine.enemyPool.get();
-                // PRO FIX: Pass isSuperCeramic flag to children
                 c.init(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified, this.hpMod, this.pathIndex, this.isSuperCeramic);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
                 
@@ -399,7 +370,6 @@ export class Enemy {
     }
 
     takeDamage(damage, dmgType, effects) {
-        // PRO FIX: Bulletproof safety checks to prevent any crash from undefined dmgType or effects
         if (!dmgType) dmgType = {};
         if (!effects) effects = {};
         if (isNaN(damage)) damage = 0;
@@ -424,7 +394,6 @@ export class Enemy {
         if (effects.dot > 0) { this.dotDmg = Math.max(this.dotDmg, effects.dot); this.dotTimer = 3.0; }
         if (effects.moabDot > 0 && this.data.isMoab) { this.dotDmg = Math.max(this.dotDmg, effects.moabDot); this.dotTimer = 5.0; }
         
-        // PRO FIX: Invalidate sprite cache when camo/regen are stripped
         if (effects.stripCamo && this.isCamo) {
             this.isCamo = false;
             this._updateSpriteCache();
@@ -439,7 +408,6 @@ export class Enemy {
         
         if (effects.knockback) this.distanceTraveled = Math.max(0, this.distanceTraveled - effects.knockback);
         if (effects.stun) {
-            // PRO FIX: Freeplay status resistance for Stun
             let stunDur = effects.stun;
             const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
             if (round > 80) {
@@ -465,9 +433,8 @@ export class Enemy {
     }
 
     _isImmune(dmgType, effects) {
-        if (!dmgType) dmgType = {}; // Safety
+        if (!dmgType) dmgType = {}; 
         if (this.data.blocksDamageType && this.data.blocksDamageType(dmgType)) {
-            // PRO FIX: If leadStripped (via Embrittlement), Lead and DDTs lose ALL their immunities
             if ((this.data.isLead || this.data.isDDT) && this.leadStripped) return false;
             
             if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && !this.leadStripped) {
@@ -476,7 +443,6 @@ export class Enemy {
             }
             return true;
         }
-        // PRO FIX: If the bloon is brittle (Embrittlement/Super Brittle), sharp projectiles CAN hit them while frozen
         if (this.isFrozen && dmgType.isSharp && !dmgType.canHitLead && !this.brittle) {
             AudioEngine.playSfx('frozen_hit');
             return true;
@@ -593,169 +559,11 @@ export class Enemy {
             this.radius = (this.data.radius || 10) * GS;
             const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
             this.data.speed *= diffSpeedMod;
-            this._updateSpriteCache(); // PRO FIX: Update cache on layer pop
+            this._updateSpriteCache();
         }
         return layersPopped;
     }
-
-    draw(ctx) {
-        if (GameEngine.enemies.length < 800) drawShadow(ctx, this.x, this.y, this.radius); 
-        
-        // PRO FIX: Use cached sprite asset
-        let asset = this._spriteAsset;
-        if (!asset || !asset.loaded) {
-            this._updateSpriteCache(); // Fallback if asset wasn't loaded at init
-            asset = this._spriteAsset;
-        }
-
-        if (asset && asset.loaded) this._drawSprite(ctx, asset);
-        else if (this.data.isMoab) this._drawMoabFallback(ctx);
-        else this._drawStandardFallback(ctx);
-
-        if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) this._drawStunOverlay(ctx);
-    }
-
-    _drawSprite(ctx, asset) {
-        const targetSize = (this.data.size || (this.data.radius * 2)) * GS; 
-        const maxDim = Math.max(asset.width, asset.height);
-        const scale = targetSize / maxDim;
-        const w = asset.width * scale;
-        const h = asset.height * scale;
-        const drawX = this.x + (this.data.spriteOffsetX || 0);
-        const drawY = this.y + (this.data.spriteOffsetY || 0);
-        
-        ctx.save();
-        ctx.translate(drawX, drawY);
-        if (this.tier >= 13) ctx.rotate(this.angle + Math.PI / 2);
-        ctx.drawImage(asset, -w / 2, -h / 2, w, h);
-        ctx.restore();
-        
-        if (this.tier >= 12 && this.hp < this._maxHp) this._drawCracks(ctx, w, h, drawX, drawY);
-
-        if (this.isFrozen) {
-            ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke(); 
-        } else if (this.slowFactor < 1.0) {
-            ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke(); 
-        }
-        
-        if (this.brittle) {
-            ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 6, 0, Math.PI * 2); ctx.stroke(); 
-        }
-        
-        if (this.infinityTint > 0) {
-            ctx.globalCompositeOperation = 'source-atop';
-            ctx.globalAlpha = this.infinityTint * 0.6;
-            ctx.fillStyle = '#a253ff';
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill(); 
-            ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
-        }
-    }
-
-    _drawCracks(ctx, w, h, drawX, drawY) {
-        const maxHp = this._maxHp;
-        const damagePercent = 1 - (this.hp / maxHp);
-        const baseName = ENEMY_NAMES[this.tier];
-        const maxCracks = Assets.getMaxCracks(baseName);
-        
-        if (maxCracks <= 0 || damagePercent <= 0) return;
-        
-        let stage = Math.floor(damagePercent * maxCracks);
-        if (damagePercent >= 1.0) stage = maxCracks; 
-        if (stage <= 0) return;
-        if (stage > maxCracks) stage = maxCracks;
-        
-        const crackAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_${stage}`);
-        if (!crackAsset || !crackAsset.loaded) return;
-        
-        ctx.save();
-        ctx.translate(drawX, drawY);
-        if (this.tier >= 13) ctx.rotate(this.angle + Math.PI / 2);
-        ctx.drawImage(crackAsset, -w / 2, -h / 2, w, h);
-        ctx.restore();
-    }
-
-    _drawMoabFallback(ctx) {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle + Math.PI / 2);
-        ctx.fillStyle = this.data.color;
-        ctx.fillRect(-this.radius, -this.radius * 0.6, this.radius * 2, this.radius * 1.2);
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(-this.radius, -this.radius * 0.6, this.radius * 2, this.radius * 0.3);
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(-5, -this.radius * 0.6 - 5, 10, 5);
-        ctx.restore();
-        if (this.isFortified) {
-            ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 4;
-            ctx.strokeRect(this.x - this.radius, this.y - this.radius * 0.6, this.radius * 2, this.radius * 1.2);
-        }
-    }
-
-    _drawStandardFallback(ctx) {
-        ctx.fillStyle = this.data.color;
-        if (this.isRegen) {
-            const r = this.radius;
-            ctx.beginPath();
-            ctx.moveTo(this.x, this.y + r * 0.8);
-            ctx.bezierCurveTo(this.x, this.y, this.x - r, this.y, this.x - r, this.y - r * 0.4);
-            ctx.bezierCurveTo(this.x - r, this.y - r * 0.8, this.x - r * 0.5, this.y - r, this.x, this.y - r * 0.4);
-            ctx.bezierCurveTo(this.x + r * 0.5, this.y - r, this.x + r, this.y - r * 0.8, this.x + r, this.y - r * 0.4);
-            ctx.bezierCurveTo(this.x + r, this.y, this.x, this.y, this.x, this.y + r * 0.8);
-            ctx.fill();
-        } else {
-            ctx.beginPath();
-            ctx.ellipse(this.x, this.y, this.radius * 0.9, this.radius, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        if (this.data.isLead) {
-            ctx.fillStyle = '#7f8c8d';
-            ctx.beginPath(); ctx.ellipse(this.x, this.y, this.radius * 0.9, this.radius, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.beginPath(); ctx.ellipse(this.x - this.radius / 3, this.y - this.radius / 3, this.radius / 4, this.radius / 2, -0.5, 0, Math.PI * 2); ctx.fill();
-            if (this.isFortified) {
-                ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
-            } else {
-                ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
-            }
-        } else if (this.isCamo) {
-            ctx.fillStyle = '#5d4037';
-            ctx.beginPath(); ctx.arc(this.x - 4, this.y - 2, 4, 0, Math.PI * 2); ctx.arc(this.x + 5, this.y + 3, 5, 0, Math.PI * 2); ctx.fill();
-        } else if (this.data.isCeramic) {
-            ctx.strokeStyle = '#7f8c8d'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
-            if (this.isFortified) {
-                ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 5;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
-            }
-        }
-        if (this.isFrozen) {
-            ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke();
-        } else if (this.slowFactor < 1.0) {
-            ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke();
-        }
-    }
-
-    _drawStunOverlay(ctx) {
-        const t = performance.now() / 1000;
-        const fps = 15;
-        const frame = Math.floor(t * fps) % fps;
-        let stunAsset = Assets.get(Names.getStunFX(frame));
-        if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get(Names.getStunFX(0));
-        if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get('effect_stun');
-        if (stunAsset && stunAsset.loaded) {
-            const s = (this.data.size || 40) * GS * 0.8;
-            ctx.save();
-            ctx.translate(this.x, this.y - this.radius * 0.6 - s / 2);
-            ctx.rotate(t * 5);
-            ctx.drawImage(stunAsset, -s / 2, -s / 2, s, s);
-            ctx.restore();
-        }
-    }
 }
+
+// Apply the separated rendering methods to the Enemy class
+Object.assign(Enemy.prototype, EnemyRenderer);

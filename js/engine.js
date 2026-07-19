@@ -1,4 +1,4 @@
-﻿// engine.js
+﻿// js/engine.js
 import { Config, Difficulties, HeroStats, TargetingModes, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
@@ -187,12 +187,9 @@ export const GameEngine = {
         }
 
         // --- MONKEY KNOWLEDGE EFFECTS ---
-        const mk = Config.data.monkeyKnowledge || {};
+        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         if (!isSandbox) {
-            // More Cash
             if (mk['more_cash']) this.cash += 200;
-                        
-            // Bonus Glue Gunner
             if (mk['bonus_glue']) {
                 const t = new Tower(350, 350, 'glue');
                 this.towers.push(t);
@@ -201,7 +198,6 @@ export const GameEngine = {
         // --------------------------------
 
         this.hero = null;
-        // ... rest of startGame
         this.waveManager = new WaveManager();
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
         this.waveManager.currentWave = diff.startRound - 1;
@@ -269,8 +265,6 @@ export const GameEngine = {
             Config.data.playerXP -= Config.data.playerXPToNext; 
             Config.data.playerLevel++;
             Config.data.playerXPToNext = Math.floor(Config.data.playerXPToNext * 1.25);
-            
-            // Grant Knowledge Point for levels above 25
             if (Config.data.playerLevel > 25) {
                 Config.data.knowledgePoints = (Config.data.knowledgePoints || 0) + 1;
             }
@@ -295,7 +289,6 @@ export const GameEngine = {
         if (this.gameState === 'menu') {
             for (let i = this.menuClickables.length - 1; i >= 0; i--) {
                 let item = this.menuClickables[i];
-                // PRO FIX: Use withinRange for menu clickable check
                 if (Utils.withinRange(x, y, item.x, item.y, item.r + 10)) {
                     this.menuClickables.splice(i, 1);
                     Config.data.monkeyMoney += 1; Config.save();
@@ -314,7 +307,6 @@ export const GameEngine = {
         }
 
         for (const t of this.towers) {
-            // PRO FIX: Use withinRange for tower selection
             if (t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + 5)) {
                 if (this.selectedPlacedTower === t) { this.deselectAll(); } 
                 else { this.deselectAll(); this.selectedPlacedTower = t; UI.showUpgradeUI(t, this); }
@@ -326,23 +318,26 @@ export const GameEngine = {
             const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
             let cost = this.getCost(stats.cost);
             
-            // Existing Free Dart Monkey Power
             if (this.selectedTowerType === 'dart' && Config.data.unlocks.freeFirstDartMonkey && !this.isSandbox && !this.difficulty.noSelling) {
                 if (!this.towers.some(t => t.type === 'dart')) { cost = 0; }
             }
             
-            // --- MONKEY KNOWLEDGE: Bonus Monkey! ---
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             if (this.selectedTowerType === 'dart' && mk['bonus_monkey'] && !this.isSandbox && !this.difficulty.noSelling) {
                 if (!this.towers.some(t => t.type === 'dart')) { cost = 0; }
             }
-            // ----------------------------------------
+            
+            const militaryTypes = ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'];
+            if (militaryTypes.includes(this.selectedTowerType) && mk['military_conscription'] && !this.isSandbox) {
+                const hasMilitary = this.towers.some(t => militaryTypes.includes(t.type));
+                if (!hasMilitary) {
+                    cost = Math.floor(cost * 0.66);
+                }
+            }
 
             if (this.cash < cost) { this.log("Not enough cash!"); return; }
-            // ... rest of placement logic
 
             const placementRadius = (stats.hitRadius || 18) * GLOBAL_SCALE;
-            // PRO FIX: Use withinRange for overlap check
             const isOverlapping = this.towers.some(t => t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + placementRadius));
             if (isOverlapping) { this.log("Cannot place on top of another monkey!"); return; }
 
@@ -456,37 +451,58 @@ export const GameEngine = {
     },
 
     loop(timestamp) {
-        if (timestamp === undefined || timestamp === null) { timestamp = performance.now(); }
-        const rawDt = (timestamp - this.lastTime) / 1000;
-        this.lastTime = timestamp;
-        this.frames++;
-        if (timestamp > this.lastFpsUpdate + FPS_UPDATE_INTERVAL) {
-            this.fps = this.frames; this.lastFpsUpdate = timestamp; this.frames = 0;
-            if (this.fpsEl) this.fpsEl.innerText = `${this.fps} FPS`;
-        }
-        if (this.gameState === 'playing') {
-            const targetDt = Math.min(rawDt, 0.1) * this.timeScale;
-            const steps = Math.max(1, Math.min(Math.ceil(targetDt / FIXED_TIMESTEP), MAX_SUBSTEPS));
-            const stepDt = targetDt / steps;
-            const updateStartTime = performance.now();
-            try {
-                for (let i = 0; i < steps; i++) {
-                    this.update(stepDt);
-                    if (performance.now() - updateStartTime > HANG_THRESHOLD_MS) { throw new Error("Game Freeze: Infinite loop detected."); }
+        try {
+            if (timestamp === undefined || timestamp === null) { timestamp = performance.now(); }
+            const rawDt = (timestamp - this.lastTime) / 1000;
+            this.lastTime = timestamp;
+            this.frames++;
+            if (timestamp > this.lastFpsUpdate + FPS_UPDATE_INTERVAL) {
+                this.fps = this.frames; this.lastFpsUpdate = timestamp; this.frames = 0;
+                if (this.fpsEl) this.fpsEl.innerText = `${this.fps} FPS`;
+            }
+            if (this.gameState === 'playing') {
+                const targetDt = Math.min(rawDt, 0.1) * this.timeScale;
+                const steps = Math.max(1, Math.min(Math.ceil(targetDt / FIXED_TIMESTEP), MAX_SUBSTEPS));
+                const stepDt = targetDt / steps;
+                const updateStartTime = performance.now();
+                try {
+                    for (let i = 0; i < steps; i++) {
+                        this.update(stepDt);
+                        if (performance.now() - updateStartTime > HANG_THRESHOLD_MS) { throw new Error("Game Freeze: Infinite loop detected."); }
+                    }
+                } catch (err) {
+                    console.error("FATAL SIMULATION ERROR:", err); 
+                    this.gameState = 'gameover';
+                    try { 
+                        UI.toggleMenus('game-over-menu'); 
+                        document.getElementById('go-wave-stat').innerText = `Game Crash: ${err.message}.`; 
+                    } catch(e) {
+                        console.error("UI also crashed during game over:", e);
+                    }
                 }
-            } catch (err) {
-                console.error("FATAL SIMULATION ERROR:", err); this.gameState = 'gameover';
-                UI.toggleMenus('game-over-menu'); document.getElementById('go-wave-stat').innerText = `Game Crash: ${err.message}.`;
+                UI.updateAbilityBar(this); this.updateUI();
             }
-            UI.updateAbilityBar(this); this.updateUI();
-        }
-        if (this.gameState !== 'gameover') {
-            try { Renderer.render(this, rawDt); } 
-            catch (err) {
-                console.error("FATAL RENDER ERROR:", err); this.gameState = 'gameover';
-                UI.toggleMenus('game-over-menu'); document.getElementById('go-wave-stat').innerText = `Render Crash: ${err.message}.`;
+            if (this.gameState !== 'gameover') {
+                try { Renderer.render(this, rawDt); } 
+                catch (err) {
+                    console.error("FATAL RENDER ERROR:", err); this.gameState = 'gameover';
+                    try { 
+                        UI.toggleMenus('game-over-menu'); 
+                        document.getElementById('go-wave-stat').innerText = `Render Crash: ${err.message}.`; 
+                    } catch(e) {
+                        console.error("UI also crashed during render game over:", e);
+                    }
+                }
             }
+        } catch (fatalError) {
+            console.error("FATAL LOOP ERROR (This caused the freeze):", fatalError);
+            this.gameState = 'gameover';
+            try {
+                UI.toggleMenus('game-over-menu'); 
+                document.getElementById('go-wave-stat').innerText = `Fatal Loop Crash: ${fatalError.message}.`;
+            } catch(e) {}
         }
+        
         if (!this.bgInterval) { this._rafId = requestAnimationFrame(this._boundLoop); }
     },
 
@@ -528,7 +544,6 @@ export const GameEngine = {
                 pool.tick = 1.0;
                 const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
                 for (const e of nearby) {
-                    // PRO FIX: Use withinRange for acid pool check
                     if (e.alive && Utils.withinRange(pool.x, pool.y, e.x, e.y, pool.radius)) {
                         e.takeDamage(pool.dmg, { isAcid: true, canHitLead: true });
                     }
@@ -583,7 +598,6 @@ export const GameEngine = {
                 const b = t.bananas[i];
                 if (b.progress < 1) continue;
                 
-                // PRO FIX: Use squared distance for threshold, only sqrt if moving
                 const dx = this.mouse.x - b.x;
                 const dy = this.mouse.y - b.y;
                 const distSq = dx * dx + dy * dy;
