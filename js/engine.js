@@ -42,6 +42,8 @@ export const GameEngine = {
     _rafId: null,
     fpsEl: null,
     
+    get config() { return Config; }, // Allows tower.js and enemy.js to safely access Config without importing it directly
+    
     enemies: [],
     towers: [],
     explosions: [],
@@ -54,6 +56,9 @@ export const GameEngine = {
     
     lives: 100,
     cash: 650,
+    manaShield: 0,
+    maxManaShield: 0,
+    leakedThisRound: false,
     selectedTowerType: null,
     selectedPlacedTower: null,
     mouse: { x: 0, y: 0 },
@@ -142,7 +147,9 @@ export const GameEngine = {
     addCash(rawAmount) {
         if (rawAmount <= 0) return;
         if (this.imfDebt > 0) {
-            const tax = Math.floor(rawAmount * 0.5);
+            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+            const taxRate = mk['backroom_deals'] ? 0.40 : 0.50;
+            const tax = Math.floor(rawAmount * taxRate);
             if (tax >= this.imfDebt) { rawAmount -= this.imfDebt; this.imfDebt = 0; } 
             else { rawAmount -= tax; this.imfDebt -= tax; }
         }
@@ -194,6 +201,16 @@ export const GameEngine = {
                 const t = new Tower(350, 350, 'glue');
                 this.towers.push(t);
             }
+            
+            this.manaShield = 0;
+            this.maxManaShield = 0;
+            this.leakedThisRound = false;
+            if (mk['mana_shield'] && diff.name !== 'Impoppable') {
+                this.maxManaShield = 25;
+                this.manaShield = 25;
+            }
+
+            this.globalXpMult = mk['monkey_education'] ? 1.08 : 1.0;
         }
         // --------------------------------
 
@@ -258,7 +275,11 @@ export const GameEngine = {
     giveRewards() {
         const wavesSurvived = this.waveManager.currentWave;
         const xpEarned = wavesSurvived * 15;
-        const mmEarned = Math.floor(wavesSurvived / 3) + 5;
+        let mmEarned = Math.floor(wavesSurvived / 3) + 5;
+        
+        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+        if (mk['mo_monkey_money']) mmEarned = Math.floor(mmEarned * 1.1);
+        
         Config.data.playerXP += xpEarned; Config.data.monkeyMoney += mmEarned;
         
         while (Config.data.playerXP >= Config.data.playerXPToNext) {
@@ -317,12 +338,12 @@ export const GameEngine = {
         if (this.selectedTowerType) {
             const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
             let cost = this.getCost(stats.cost);
+            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             
             if (this.selectedTowerType === 'dart' && Config.data.unlocks.freeFirstDartMonkey && !this.isSandbox && !this.difficulty.noSelling) {
                 if (!this.towers.some(t => t.type === 'dart')) { cost = 0; }
             }
             
-            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             if (this.selectedTowerType === 'dart' && mk['bonus_monkey'] && !this.isSandbox && !this.difficulty.noSelling) {
                 if (!this.towers.some(t => t.type === 'dart')) { cost = 0; }
             }
@@ -332,6 +353,18 @@ export const GameEngine = {
                 const hasMilitary = this.towers.some(t => militaryTypes.includes(t.type));
                 if (!hasMilitary) {
                     cost = Math.floor(cost * 0.66);
+                }
+            }
+
+            if (this.selectedTowerType === 'spike' && mk['first_line_of_defense'] && !this.isSandbox) {
+                if (!this.towers.some(t => t.type === 'spike')) {
+                    cost = Math.max(0, cost - 150);
+                }
+            }
+
+            if (this.selectedTowerType === 'farm' && mk['farm_subsidy'] && !this.isSandbox) {
+                if (!this.towers.some(t => t.type === 'farm')) {
+                    cost = Math.max(0, cost - 100);
                 }
             }
 
@@ -398,15 +431,30 @@ export const GameEngine = {
         if (!t) return;
         const behavior = getBehavior(t.type);
         if (!behavior) return;
+
+        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+        let cdMult = 1.0;
+        if (mk['global_cooldowns']) cdMult = 0.97;
+
+        // MK: Ability Discipline (Hero Level 10 Ability -10% cd)
+        if (t.stats.isHero && mk['ability_discipline'] && slot === 2) cdMult *= 0.90;
+        // MK: Ability Mastery (Hero Level 3 Ability -30% cd at Level 20)
+        if (t.stats.isHero && mk['ability_mastery'] && slot === 1 && t.level >= 20) cdMult *= 0.70;
+
         if (slot === 1 && t.stats.isAbility && t.abilityCooldown <= 0 && behavior.ability) {
             behavior.ability(t, this);
-            t.abilityCooldown = t.stats.isHero ? (t.stats.rapidShotMult ? t.stats.rapidShotCd || 60 : 40) : (t.stats.abilityCd || 45); return;
+            let cd = t.stats.isHero ? (t.stats.rapidShotMult ? t.stats.rapidShotCd || 60 : 40) : (t.stats.abilityCd || 45);
+            t.abilityCooldown = cd * cdMult; return;
         }
         if (slot === 2 && t.stats.isAbility2 && t.ability2Cooldown <= 0 && behavior.ability2) {
-            behavior.ability2(t, this); t.ability2Cooldown = t.stats.isHero ? (t.stats.stormCd || 70) : 60; return;
+            behavior.ability2(t, this); 
+            let cd = t.stats.isHero ? (t.stats.stormCd || 70) : 60;
+            t.ability2Cooldown = cd * cdMult; return;
         }
         if (slot === 3 && t.stats.isAbility3 && t.ability3Cooldown <= 0 && behavior.ability3) {
-            behavior.ability3(t, this); t.ability3Cooldown = t.stats.isHero ? 120 : 60; return;
+            behavior.ability3(t, this); 
+            let cd = t.stats.isHero ? 120 : 60;
+            t.ability3Cooldown = cd * cdMult; return;
         }
     },
 
@@ -513,13 +561,39 @@ export const GameEngine = {
             if (damagedMoab) CutsceneManager.trigger(damagedMoab);
         }
         if (CutsceneManager.update(dt)) { return; }
+        
+        const prevWaveActive = this.waveManager.waveActive;
+        
         this.waveManager.update(dt); this._updateAcidPools(dt);
         const prevLives = this.lives; this._updateEnemies(dt);
-        if (this.lives < prevLives) { this.leakFlash = 0.3; AudioEngine.playSfx('leak'); }
+        if (this.lives < prevLives) { this.leakFlash = 0.3; AudioEngine.playSfx('leak'); this.leakedThisRound = true; }
         this.enemyGrid.clear();
         for (const e of this.enemies) this.enemyGrid.insert(e);
         this._updateTowers(dt); this._updateEconomy(dt); this._updateProjectiles(dt);
         this._updateExplosions(dt); this._updateParticles(dt);
+        
+        if (!this.waveManager.waveActive && prevWaveActive) {
+            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+            
+            if (this.maxManaShield > 0 && !this.leakedThisRound) {
+                this.manaShield = this.maxManaShield;
+            }
+            this.leakedThisRound = false;
+
+            if (mk['healthy_bananas']) {
+                let livesToAdd = 0;
+                for (const t of this.towers) {
+                    if (t && t.type === 'farm' && t.upgrades[2] >= 3) {
+                        livesToAdd += (t.upgrades[2] >= 4) ? 3 : 1;
+                    }
+                }
+                if (livesToAdd > 0) {
+                    this.lives += livesToAdd;
+                    this.log(`Healthy Bananas: +${livesToAdd} lives!`);
+                }
+            }
+        }
+
         if (this.lives <= 0) {
             AudioEngine.pause(); this.deselectAll(); this.gameState = 'gameover'; this.giveRewards();
             UI.toggleMenus('game-over-menu'); document.getElementById('go-wave-stat').innerText = `You survived to Wave ${this.waveManager.currentWave}`;

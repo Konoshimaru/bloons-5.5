@@ -1,6 +1,7 @@
-﻿// hero.js
+﻿// js/hero.js
 import { Tower } from './tower.js';
 import { HeroRegistry } from './heroes/index.js';
+import { GameEngine } from './engine.js'; // Added to safely access Config
 
 const MAX_LEVEL = 20;
 
@@ -19,11 +20,36 @@ export class Hero extends Tower {
         this.ability3Cooldown = 0;
         
         this.stormOfArrows = null;
+
+        // MK: Empowered Heroes (Start at level 3)
+        const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
+        if (mk['empowered_heroes']) {
+            while (this.level < 3) {
+                this._levelUp();
+            }
+        }
     }
 
     gainXp(amount) {
         if (this.level >= MAX_LEVEL) return;
         
+        // MK: Self Taught Heroes (+10% XP)
+        const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
+        if (mk['self_taught']) amount *= 1.10;
+        
+        // MK: Monkeys Together Strong (+5% XP per hero placed)
+        if (mk['monkeys_together']) {
+            let heroCount = 0;
+            for (let t of GameEngine.towers) {
+                if (t && t.stats.isHero) heroCount++;
+            }
+            if (heroCount > 1) {
+                amount *= (1 + (heroCount - 1) * 0.05);
+            } else {
+                amount *= 1.05; // +5% even if alone
+            }
+        }
+
         this.xp += amount;
         
         while (this.level < MAX_LEVEL && this.xp >= this.xpToNext) {
@@ -35,7 +61,12 @@ export class Hero extends Tower {
     buyLevel(engine) {
         if (this.level >= MAX_LEVEL) return;
         
-        const cost = this.xpToNext - this.xp;
+        let cost = this.xpToNext - this.xp;
+        
+        // MK: Scholarships (-10% hero level cost)
+        const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
+        if (mk['scholarships']) cost = Math.floor(cost * 0.9);
+
         if (engine.cash < cost) {
             engine.log("Not enough cash to buy level!");
             return;
@@ -64,7 +95,6 @@ export class Hero extends Tower {
     }
 
     _applyLevelStats() {
-        // PRO FIX: Use this.level directly because the levels object is 1-indexed
         const levelData = HeroRegistry[this.type].levels[this.level];
         if (!levelData) return;
         

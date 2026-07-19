@@ -224,8 +224,16 @@ export class Enemy {
         
         if (pos.finished) {
             this.alive = false;
-            const lost = this.getLivesLost();
-            if (isFinite(lost)) GameEngine.lives -= lost;
+            let lost = this.getLivesLost();
+            if (isFinite(lost) && lost > 0) {
+                // MK: Mana Shield absorbs leaks first
+                if (GameEngine.manaShield > 0) {
+                    const absorbed = Math.min(GameEngine.manaShield, lost);
+                    GameEngine.manaShield -= absorbed;
+                    lost -= absorbed;
+                }
+                if (lost > 0) GameEngine.lives -= lost;
+            }
             GameEngine.updateUI();
         }
     }
