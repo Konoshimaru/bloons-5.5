@@ -15,7 +15,7 @@ body {
 }
 
 /* Apply Luckiest Guy only to headings, titles, and main menu buttons */
-h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3, #mm-bottom-bar button, #mm-top-left, #mm-top-right {
+h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3, #mm-bottom-bar button, #mm-top-left, #mm-top-right, #shop-header {
     font-family: 'Luckiest Guy', cursive;
     font-weight: normal;
     letter-spacing: 1px;
@@ -137,35 +137,90 @@ h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3
 #up-collect-bank { background: #27ae60; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: 900; text-align: center; font-size: 13px; width: 100%; }
 #up-collect-bank:hover { background: #2ecc71; }
 
+/* --- SHOP SIDEBAR --- */
 #sidebar { 
     position: absolute; right: 0; top: 0; width: 220px; height: 100%; background: var(--bg); 
     display: flex; flex-direction: column; z-index: 5; border-left: 3px solid var(--accent); 
     box-shadow: -4px 0 10px rgba(0,0,0,0.3);
 }
-.sidebar-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; padding: 10px; }
+
+#shop-header {
+    text-align: center;
+    font-size: 22px;
+    color: var(--gold);
+    padding: 10px 0;
+    border-bottom: 2px solid var(--accent);
+    flex-shrink: 0; /* Prevents header from shrinking */
+}
+
+.sidebar-scroll { 
+    flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; padding: 10px; 
+}
 .sidebar-scroll::-webkit-scrollbar { display: none; }
-.sidebar-bottom { flex-shrink: 0; padding: 10px; border-top: 1px solid #7f8c8d; }
+
+.tower-shop {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 squares per row */
+    gap: 6px;
+}
 
 .tower-card { 
-    background: var(--panel); border: 2px solid #7f8c8d; border-radius: 6px; padding: 6px; margin-bottom: 6px; 
-    cursor: grab; display: flex; align-items: center; gap: 8px; color: white; transition: all 0.1s; touch-action: none;
+    position: relative;
+    aspect-ratio: 1 / 1; /* Makes it a perfect square */
+    background-color: #34495e; /* Default fallback for enemies */
+    background-size: cover; /* Fills the square with the image */
+    background-position: center;
+    border: 2px solid #7f8c8d; 
+    border-radius: 6px;  
+    cursor: grab; 
+    transition: all 0.1s; 
+    touch-action: none;
+    overflow: hidden;
+    display: flex; 
+    align-items: flex-end; /* Aligns price to bottom */
+    justify-content: center;
 }
+
+/* Category Background Colors */
+.tower-card.cat-primary { background-color: #3498db; } /* Blue */
+.tower-card.cat-military { background-color: #27ae60; } /* Green */
+.tower-card.cat-magic { background-color: #9b59b6; } /* Purple */
+.tower-card.cat-support { background-color: #f1c40f; } /* Yellow */
+.tower-card.cat-hero { background-color: #e67e22; } /* Orange */
+
 .tower-card:active { cursor: grabbing; }
-.tower-card:hover { border-color: var(--accent); transform: translateX(-2px); }
-.tower-card.selected { border-color: var(--gold); background: #3e5771; }
+.tower-card:hover { border-color: var(--accent); transform: scale(1.05); }
+.tower-card.selected { border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
 .tower-card.disabled { opacity: 0.4; cursor: not-allowed; }
-.tower-card span { flex-grow: 1; font-size: 14px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tower-card .cost { font-size: 12px; color: var(--gold); flex-grow: 0; }
+.tower-card .cost { 
+    background: rgba(0,0,0,0.7); 
+    width: 100%; 
+    text-align: center; 
+    font-size: 11px; 
+    font-weight: 900; 
+    color: var(--gold); 
+    padding: 2px 0;
+    flex-grow: 0;
+}
+
+/* Fix sandbox buttons to span full width in the grid */
+.sb-row {
+    grid-column: 1 / -1; 
+    display: flex; 
+    gap: 5px; 
+    margin-bottom: 5px;
+}
+.sb-row button { flex: 1; }
+.sb-toggle { background: var(--panel) !important; }
+.sb-toggle.active { background: var(--accent) !important; }
+
+.sidebar-bottom { flex-shrink: 0; padding: 10px; border-top: 1px solid #7f8c8d; }
 
 #wave-speed-btn, #sb-speed-btn, #sb-prev, #sb-next, #sb-view-toggle { 
     width: 100%; padding: 8px; margin-bottom: 5px; background: var(--accent); border: none; color: white; 
     cursor: pointer; border-radius: 4px; font-weight: 900; transition: background 0.2s;
 }
 #wave-speed-btn:hover, #sb-speed-btn:hover { background: #d35400; }
-.sb-row { display: flex; gap: 5px; }
-.sb-row button { flex: 1; }
-.sb-toggle { background: var(--panel) !important; }
-.sb-toggle.active { background: var(--accent) !important; }
 
 /* --- MAIN MENU UI --- */
 #main-menu-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }

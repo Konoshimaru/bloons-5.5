@@ -1,4 +1,4 @@
-﻿// ui.js
+﻿// js/ui.js
 import { TowerStats, Upgrades } from './towers/index.js';
 import { Config, HeroStats } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
@@ -266,12 +266,39 @@ export const UI = {
         }
         
         this._setupSellAndBankButtons(panel, t);
+        this._updatePortrait(t); // Update the portrait immediately when clicked
         
         if (t.stats.isHero) {
             this._showHeroUI(t, engine);
         } else {
             this._showTowerUI(t, engine);
         }
+    },
+
+    _updatePortrait(t) {
+        const portrait = el('up-portrait');
+        if (!portrait) return;
+
+        // Find the highest upgrade path and tier
+        let bestTier = 0, bestPath = 0;
+        for (let p = 1; p <= 3; p++) {
+            if (t.upgrades[p - 1] > bestTier) {
+                bestTier = t.upgrades[p - 1];
+                bestPath = p;
+            }
+        }
+
+        let imgPath = '';
+        // If upgraded, look for the specific tier portrait. Otherwise, use the base menu portrait.
+        if (bestTier > 0) {
+            imgPath = `sprites/portraits/${t.type}_p${bestPath}_t${bestTier}.png`;
+        } else {
+            imgPath = `sprites/portraits/${t.type}_menuportrait.png`;
+        }
+
+        portrait.style.backgroundImage = `url('${imgPath}')`;
+        portrait.style.backgroundSize = 'cover';
+        portrait.style.backgroundPosition = 'center';
     },
 
     _setupSellAndBankButtons(panel, t) {
@@ -489,5 +516,8 @@ export const UI = {
                 cache.locked = newLocked;
             }
         }
+        
+        // Call portrait update here as well, so if they buy an upgrade while the menu is open, the portrait updates instantly
+        this._updatePortrait(t);
     }
 };

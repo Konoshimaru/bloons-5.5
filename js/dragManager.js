@@ -3,7 +3,7 @@ import { GameEngine } from './engine.js';
 import { Config, HeroStats } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
 import { UI } from './ui.js';
-import { AudioEngine } from './audio.js'; // <-- ADDED THIS IMPORT
+import { AudioEngine } from './audio.js';
 
 const dom = {
     towerCards: document.querySelectorAll('.tower-card[data-tower]'),
@@ -19,7 +19,8 @@ const dom = {
     ],
     upBuyLevel: document.getElementById('up-buy-level'),
     upSell: document.getElementById('up-sell'),
-    upCollectBank: document.getElementById('up-collect-bank')
+    upCollectBank: document.getElementById('up-collect-bank'),
+    shopHeader: document.getElementById('shop-header')
 };
 
 export function updateShopPrices() {
@@ -49,6 +50,13 @@ export function setupShopListeners() {
     const shopView = document.getElementById('shop-view');
     const enemyView = document.getElementById('enemy-view');
     
+    // Helper to update the header text
+    const updateShopHeader = (name) => {
+        if (dom.shopHeader) {
+            dom.shopHeader.innerText = name || "Shop";
+        }
+    };
+
     if (dom.sbViewToggle) {
         dom.sbViewToggle.addEventListener('click', () => {
             const showingEnemies = enemyView && !enemyView.classList.contains('hidden');
@@ -56,10 +64,12 @@ export function setupShopListeners() {
                 enemyView.classList.add('hidden');
                 shopView.classList.remove('hidden');
                 dom.sbViewToggle.innerText = '🎈 Spawn Bloons';
+                updateShopHeader("Shop");
             } else {
                 shopView.classList.add('hidden');
                 enemyView.classList.remove('hidden');
                 dom.sbViewToggle.innerText = '🐵 Back to Shop';
+                updateShopHeader("Spawn Bloons");
             }
         });
     }
@@ -96,7 +106,8 @@ export function setupShopListeners() {
         card.addEventListener('pointerdown', (e) => {
             e.preventDefault(); 
             
-            const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
+            const type = card.dataset.tower;
+            const stats = TowerStats[type] || HeroStats[type];
             if (GameEngine.cash < GameEngine.getCost(stats.cost)) {
                 GameEngine.log("Not enough cash!");
                 return;
@@ -106,8 +117,11 @@ export function setupShopListeners() {
             GameEngine.stuckPlacement = null;
             dom.towerCards.forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
-            GameEngine.selectedTowerType = card.dataset.tower;
+            GameEngine.selectedTowerType = type;
             document.getElementById('cancel-btn').classList.remove('hidden');
+
+            // Update header on click/select
+            updateShopHeader(stats.name);
 
             let isDragging = false;
             const startX = e.clientX;
@@ -140,6 +154,7 @@ export function setupShopListeners() {
 
                     if (ev.clientX >= sidebarRect.left && ev.clientX <= sidebarRect.right) {
                         GameEngine.deselectAll();
+                        updateShopHeader(); // Revert to "Shop" if dropped on sidebar
                         return;
                     } else if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
                         const dropX = (ev.clientX - rect.left) * scaleX;
@@ -150,9 +165,12 @@ export function setupShopListeners() {
                         
                         if (GameEngine.selectedTowerType) {
                             GameEngine.stuckPlacement = { x: dropX, y: dropY };
+                        } else {
+                            updateShopHeader(); // Revert to "Shop" if placed successfully
                         }
                     } else {
                         GameEngine.deselectAll();
+                        updateShopHeader(); // Revert to "Shop" if dropped outside
                     }
                 }
             };
@@ -162,9 +180,18 @@ export function setupShopListeners() {
         });
 
         card.addEventListener('mouseenter', () => {
-            const tip = document.getElementById('shop-tooltip');
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
-            if (tip && stats) tip.innerText = stats.desc;
+            if (stats) updateShopHeader(stats.name);
+        });
+
+        card.addEventListener('mouseleave', () => {
+            if (!GameEngine.selectedTowerType) {
+                updateShopHeader();
+            } else {
+                const stats = TowerStats[GameEngine.selectedTowerType] || HeroStats[GameEngine.selectedTowerType];
+                if (stats) updateShopHeader(stats.name);
+                else updateShopHeader();
+            }
         });
     });
 
