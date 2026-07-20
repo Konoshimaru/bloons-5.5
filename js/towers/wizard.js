@@ -1,5 +1,4 @@
-﻿// wizard.js
-import { GameEngine } from '../engine.js';
+﻿import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
 export default {
@@ -42,7 +41,8 @@ export default {
                 const nearby = GameEngine.enemyGrid.query(w.x, w.y, w.radius);
                 for (let e of nearby) {
                     if (!e.alive) continue;
-                    if (Utils.distance(w.x, w.y, e.x, e.y) < w.radius) {
+                    // PRO FIX: Use withinRange for sqrt removal
+                    if (Utils.withinRange(w.x, w.y, e.x, e.y, w.radius)) {
                         e.takeDamage(tower.stats.damage * dt * 5, { isFire: true, canHitLead: true });
                     }
                 }

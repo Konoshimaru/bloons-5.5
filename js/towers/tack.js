@@ -1,16 +1,10 @@
-// js/towers/tack.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
-import Assets from '../assets.js';
-import { GLOBAL_SCALE } from '../constants.js';
-
-// PRO FIX: Safe fallback to prevent NaN crashes if import fails
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: { 
         name: "Tack Shooter", cost: 260, range: 23, 
-        baseCooldown: 1.12, fireRate: 1.12, // Standardized Base
+        baseCooldown: 1.12, fireRate: 1.12, 
         damage: 1, pierce: 1, projectileSpeed: 250, 
         lifespan: 0.35, desc: "Shoots a volley of tacks in 8 directions.", 
         dmgType: 'sharp', projectileType: 'tack', hitRadius: 18, 
@@ -19,12 +13,9 @@ export default {
     },
     upgrades: {
         1: [
-            // 0.84 / 1.12 = 0.75
             {name:"Faster Shooting", cost:150, desc:"Attacks +33% faster.", cooldownMult: 0.75},
-            // 0.63 / 0.84 = 0.75
             {name:"Even Faster Shooting", cost:300, desc:"Attacks even faster.", cooldownMult: 0.75},
             {name:"Hot Shots", cost:600, stat:"damage", amount:1, desc:"Superhot tacks deal +1 damage and pop Lead.", extraMods:{canHitLead:true, dmgType:'fire'}},
-            // 0.315 / 0.63 = 0.5
             {name:"Ring of Fire", cost:3500, stat:"damage", amount:3, desc:"Creates a deadly ring of flame instead of tacks.", cooldownMult: 0.5, extraMods:{pierce:29, dmgType:'fire', projectileType:'fire_ring', lifespan:0.1}},
             {name:"Inferno Ring", cost:45500, stat:"damage", amount:3, desc:"Deadly inferno roasts Bloons. Meteors fall!", extraMods:{moabDmg:4, range:12, pierce:15}}
         ],
@@ -39,24 +30,21 @@ export default {
             {name:"More Tacks", cost:110, stat:"tackCount", amount:2, desc:"Shoots 10 tacks instead of 8."},
             {name:"Even More Tacks", cost:110, stat:"tackCount", amount:2, desc:"Shoots 12 tacks per shot."},
             {name:"Tack Sprayer", cost:450, stat:"tackCount", amount:4, desc:"Sprays out 16 tacks per volley.", extraMods:{pierce:1}},
-            // 3x attack speed = 0.33 cooldown mult
             {name:"Overdrive", cost:3200, desc:"Shoots incredibly fast (3x attack speed).", cooldownMult: 0.33},
-            // Another 2x speed = 0.5 cooldown mult
             {name:"The Tack Zone", cost:20000, stat:"tackCount", amount:16, desc:"Many, many tacks. Attacks faster.", cooldownMult: 0.5, extraMods:{range:7, moabDmg:1}}
         ]
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
-        // Ring of Fire / Inferno Ring Logic
         if (tower.upgrades[0] >= 4) {
             let expRadius = tower.stats.range * 3.0; 
             GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#e67e22' });
             const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius);
             for (let e of nearby) {
                 if (!e.alive) continue;
-                if (Utils.distance(tower.x, tower.y, e.x, e.y) < expRadius) {
+                // PRO FIX: Use withinRange for sqrt removal
+                if (Utils.withinRange(tower.x, tower.y, e.x, e.y, expRadius)) {
                     e.takeDamage(damage, dmgType, effects);
                     if (tower.upgrades[0] >= 5) {
-                        // Inferno Ring DoT
                         e.dotTimer = 3.0; e.dotDmg = 50; 
                     }
                 }
@@ -64,13 +52,10 @@ export default {
             return;
         }
 
-        // Standard Tack / Blade Shooting
         let count = tower.stats.tackCount || 8;
         let projType = tower.stats.projectileType || 'tack';
         for (let i = 0; i < count; i++) {
             let angle = (i / count) * Math.PI * 2;
-            
-            // PRO REFACTOR: Use Object Pool
             let p = GameEngine.projectilePool.get();
             p.init(tower.x, tower.y, damage, null, projType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, angle, effects, 0, tower, dmgType);
         }
@@ -82,7 +67,6 @@ export default {
         let canHitLead = isSuper; 
         let dmgType = { isSharp: true, canHitLead: canHitLead };
         
-        // Spray blades everywhere using Object Pool
         for(let i=0; i<count; i++) {
             let angle = (i / count) * Math.PI * 2 + Math.random() * 0.1;
             let p = GameEngine.projectilePool.get();
@@ -91,32 +75,7 @@ export default {
         engine.log(isSuper ? "Super Maelstrom Activated!" : "Blade Maelstrom Activated!");
     },
     draw(ctx, tower, isPreview) {
-        // Use sprites if available
-        const baseAsset = Assets.get(`tower_${tower.type}_base`);
-        if (baseAsset && baseAsset.loaded) {
-            tower.drawBaseTower(ctx, isPreview);
-            return;
-        }
-        ctx.save(); ctx.translate(tower.x, tower.y);
-        // PRO FIX: Apply GS to scaleVal so fallback shape matches preview size
-        let scaleVal = (tower.stats.scale || 1.0) * GS; 
-        let bodyColor = '#e74c3c';
-        if (tower.upgrades[0] >= 4) bodyColor = '#d35400'; 
-        if (tower.upgrades[1] >= 3) bodyColor = '#95a5a6'; 
-        
-        ctx.fillStyle = bodyColor;
-        ctx.beginPath(); ctx.arc(0, 0, 15 * scaleVal, 0, Math.PI*2); ctx.fill();
-        
-        ctx.fillStyle = '#2c3e50';
-        let barrelCount = tower.stats.tackCount || 8;
-        for(let i=0; i<barrelCount; i++) {
-            ctx.save(); ctx.rotate(i * (Math.PI*2 / barrelCount));
-            ctx.fillRect(10 * scaleVal, -2 * scaleVal, 8 * scaleVal, 4 * scaleVal);
-            ctx.restore();
-        }
-        
-        ctx.fillStyle = '#7f8c8d';
-        ctx.beginPath(); ctx.arc(0, 0, 5 * scaleVal, 0, Math.PI*2); ctx.fill();
-        ctx.restore();
+        // Fully sprited, no canvas fallback needed
+        tower.drawBaseTower(ctx, isPreview);
     }
 };

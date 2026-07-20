@@ -1,4 +1,3 @@
-// js/towers/farmer.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
@@ -7,7 +6,7 @@ import { RANGE_SCALE } from '../config.js';
 export default {
     stats: { 
         name: "Banana Farmer", cost: 1000, range: 40, 
-        baseCooldown: 0, fireRate: 0, // Standardized Base (Does not attack)
+        baseCooldown: 0, fireRate: 0, 
         damage: 0, pierce: 0, projectileSpeed: 0, 
         lifespan: 0, desc: "Automatically collects bananas in range.", dmgType: 'none', hitRadius: 18, 
         isStaticRotation: true
@@ -29,9 +28,10 @@ export default {
                 for (let i = ot.bananas.length - 1; i >= 0; i--) {
                     let b = ot.bananas[i];
                     if (b.progress >= 1) {
-                        if (Utils.distance(tower.x, tower.y, b.x, b.y) < effRange) {
+                        // PRO FIX: Use withinRange for sqrt removal
+                        if (Utils.withinRange(tower.x, tower.y, b.x, b.y, effRange)) {
                             GameEngine.addCash(b.value);
-                            ot.cashGenerated = (ot.cashGenerated || 0) + b.value; // PRO FIX: Attribute cash to the farm!
+                            ot.cashGenerated = (ot.cashGenerated || 0) + b.value; 
                             ot.bananas.splice(i, 1);
                             collected = true;
                         }

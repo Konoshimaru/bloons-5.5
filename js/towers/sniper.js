@@ -1,4 +1,3 @@
-// js/towers/sniper.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
@@ -31,7 +30,6 @@ export default {
             {name:"Even Faster Firing", cost:400, desc:"Attacks even faster.", cooldownMult: 0.70},
             {name:"Semi-Automatic", cost:2700, desc:"Attacks 3x faster.", cooldownMult: 0.333},
             {name:"Full Auto Rifle", cost:4100, desc:"Attacks incredibly fast. Can pop Lead.", cooldownMult: 0.33, extraMods:{dmgType:'heavy'}},
-            // PRO FIX: cooldownMult moved to top level
             {name:"Elite Defender", cost:14000, desc:"Hyper-flurry. 2x dmg to MOABs. Speed scales with track distance. Life-loss frenzy.", cooldownMult: 0.5, extraMods:{eliteDefender:true}}
         ]
     },
@@ -46,7 +44,6 @@ export default {
                 tower.frenzyTimer = 4.0;
             }
             tower._lastLives = engine.lives;
-            
             if (tower.frenzyTimer > 0) {
                 tower.frenzyTimer -= dt;
                 tower.eliteDefenderSpeedMod = 0.25;
@@ -57,13 +54,32 @@ export default {
                 }
                 let totalLen = engine.map.getTotalLength();
                 let progress = Math.min(1, maxDist / totalLen);
-                tower.eliteDefenderSpeedMod = 1 - progress * 0.5; 
+                tower.eliteDefenderSpeedMod = 1 - progress * 0.5;
             }
         } else {
             tower.eliteDefenderSpeedMod = 1;
         }
-    }, 
-    
+
+        // PRO FIX: Animate the Supply Drop banana crate falling
+        if (tower.bananas && tower.bananas.length > 0) {
+            for (let i = tower.bananas.length - 1; i >= 0; i--) {
+                let b = tower.bananas[i];
+                if (b.progress < 1) {
+                    b.progress += dt / 0.8; // Takes 0.8 seconds to fall
+                    if (b.progress >= 1) {
+                        b.progress = 1;
+                        b.x = b.targetX;
+                        b.y = b.targetY;
+                        b.arc = 0;
+                    } else {
+                        b.x = b.targetX;
+                        b.y = b.startY + (b.targetY - b.startY) * b.progress;
+                        b.arc = Math.sin(b.progress * Math.PI) * 20; // Slight curve
+                    }
+                }
+            }
+        }
+    },
     updateSupport(tower, dt) {
         if (tower.stats.globalSniperBuff) {
             for (let t of GameEngine.towers) {
@@ -73,18 +89,15 @@ export default {
             }
         }
     },
-
     fire(tower, target, damage, dmgType, isCrit, effects, engine) {
         let actualDmg = damage;
         if (tower.stats.eliteDefender && target.data.isMoab) actualDmg *= 2;
         if (tower.stats.bonusCeramic && target.data.isCeramic) actualDmg += tower.stats.bonusCeramic;
         if (tower.stats.bonusCamo && target.isCamo) actualDmg += tower.stats.bonusCamo;
-        
         if (tower.stats.crippleDebuff) {
             target.crippled = true;
             target.crippleTimer = 4.0;
         }
-        
         let stunDur = 0;
         if (target.data.isMoab) {
             if (target.tier === 13) stunDur = tower.stats.stunMoab || 0;
@@ -92,47 +105,38 @@ export default {
             else if (target.tier === 15) stunDur = tower.stats.stunZomg || 0;
             else if (target.tier === 16) stunDur = tower.stats.stunDdt || 0;
         }
-        
         let dmgDealt = target.takeDamage(actualDmg, dmgType, { stun: stunDur });
         if (dmgDealt > 0) tower.damageDealt += dmgDealt;
-        
         tower.hitscans.push({ x1: tower.x, y1: tower.y, x2: target.x, y2: target.y, life: 0.1 });
-        
         let bounces = tower.stats.bounces || 0;
         let hitSet = new Set([target]);
         let currentTarget = target;
-        
         for (let i = 0; i <= bounces; i++) {
             if (tower.stats.shrapnel) {
                 this._fireShrapnel(tower, currentTarget, dmgType, engine);
             }
-            
             if (i >= bounces) break;
-            
             const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40);
             let nextTarget = null;
-            let bestDist = Infinity;
+            // PRO FIX: Rank by distanceSq instead of distance
+            let bestDistSq = Infinity;
             for (let e of nearby) {
                 if (!e.alive || hitSet.has(e)) continue;
-                let dist = Utils.distance(currentTarget.x, currentTarget.y, e.x, e.y);
-                if (dist < bestDist) { bestDist = dist; nextTarget = e; }
+                let distSq = Utils.distanceSq(currentTarget.x, currentTarget.y, e.x, e.y);
+                if (distSq < bestDistSq) { bestDistSq = distSq; nextTarget = e; }
             }
-            
             if (nextTarget) {
                 tower.hitscans.push({ x1: currentTarget.x, y1: currentTarget.y, x2: nextTarget.x, y2: nextTarget.y, life: 0.1 });
                 hitSet.add(nextTarget);
                 currentTarget = nextTarget;
-                
                 let bounceDmg = actualDmg;
                 if (tower.stats.eliteDefender && currentTarget.data.isMoab) bounceDmg *= 2;
                 if (tower.stats.bonusCeramic && currentTarget.data.isCeramic) bounceDmg += tower.stats.bonusCeramic;
                 if (tower.stats.bonusCamo && currentTarget.isCamo) bounceDmg += tower.stats.bonusCamo;
-                
                 if (tower.stats.crippleDebuff) {
                     currentTarget.crippled = true;
                     currentTarget.crippleTimer = 4.0;
                 }
-                
                 let bounceStun = 0;
                 if (currentTarget.data.isMoab) {
                     if (currentTarget.tier === 13) bounceStun = tower.stats.stunMoab || 0;
@@ -140,7 +144,6 @@ export default {
                     else if (currentTarget.tier === 15) bounceStun = tower.stats.stunZomg || 0;
                     else if (currentTarget.tier === 16) bounceStun = tower.stats.stunDdt || 0;
                 }
-                
                 let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, { stun: bounceStun });
                 if (bounceDmgDealt > 0) tower.damageDealt += bounceDmgDealt;
             } else {
@@ -148,46 +151,55 @@ export default {
             }
         }
     },
-    
     _fireShrapnel(tower, originTarget, dmgType, engine) {
         let count = 5;
         let baseAngle = Math.atan2(originTarget.y - tower.y, originTarget.x - tower.x);
         let spread = Math.PI / 4;
         let startAngle = baseAngle - spread / 2;
-        
-        // Base damage from Path 1
         let shrapDmg = 1;
         if (tower.upgrades[0] >= 1) shrapDmg = 2;
         if (tower.upgrades[0] >= 2) shrapDmg = 3;
         if (tower.upgrades[0] >= 3) shrapDmg = 4;
         if (tower.upgrades[0] >= 4) shrapDmg = 6;
         if (tower.upgrades[0] >= 5) shrapDmg = 12;
-        
-        // PRO FIX: Add bonus damage from Path 2 if it exists
         if (tower.stats.shrapnelDmg) shrapDmg += tower.stats.shrapnelDmg;
-        
         let shrapPierce = tower.upgrades[0] >= 5 ? 3 : (tower.stats.shrapnelPierce || 3);
         let shrapDmgType = { isSharp: true, canHitLead: dmgType.canHitLead };
         let shrapEffects = {};
         if (tower.stats.stunMoab) {
-            shrapEffects.stun = tower.stats.stunMoab; 
+            shrapEffects.stun = tower.stats.stunMoab;
         }
-        
         for (let i = 0; i < count; i++) {
             let a = startAngle + (i / (count - 1)) * spread;
             let p = engine.projectilePool.get();
             p.init(originTarget.x, originTarget.y, shrapDmg, null, 'nail', 600, shrapPierce, 0.5, a, shrapEffects, 0, tower, shrapDmgType);
         }
     },
-    
     ability(tower, engine) {
         if (tower.abilityUsesThisRound >= 3) {
             engine.log("Max Supply Drops reached this round!");
             return;
         }
         let cash = tower.stats.supplyCash || 1100;
-        engine.addCash(cash);
+        
+        // PRO FIX: Physically drop a huge banana crate onto the middle of the map!
+        tower.bananas = tower.bananas || [];
+        let targetX = 640 + (Math.random() - 0.5) * 400;
+        let targetY = 360 + (Math.random() - 0.5) * 200;
+        tower.bananas.push({
+            startX: targetX, startY: -50, 
+            targetX: targetX, targetY: targetY,
+            x: targetX, y: -50, arc: 0, progress: 0,
+            life: 15, maxLife: 15,
+            value: cash,
+            isCrate: true
+        });
+        
         tower.abilityUsesThisRound = (tower.abilityUsesThisRound || 0) + 1;
-        engine.log(`Supply Drop! +$${cash}`);
+        engine.log("Supply Drop Incoming!");
+    },
+    draw(ctx, tower, isPreview) {
+        // Fully sprited, no canvas fallback needed
+        tower.drawBaseTower(ctx, isPreview);
     }
 };
