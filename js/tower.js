@@ -332,13 +332,18 @@ export class Tower {
         if (asset && asset.loaded) {
             ctx.save();
             ctx.translate(x, y);
-            const size = stats?.drawSize ? stats.drawSize * GS : 45 * scaleVal;
+            
+            // Use SpriteConfig for scale AND offset to match placed tower exactly
+            const off = SpriteConfig[type]?.["base"] || { x: 0, y: 0, scale: 1 };
+            const size = SpriteConfig[type]?.["base"] ? (45 * (off.scale || 1) * GS) : (stats?.drawSize ? stats.drawSize * GS : 45 * scaleVal);
+            
             const maxDim = Math.max(asset.width, asset.height);
             if (maxDim > 0 && !isNaN(size)) {
                 const scale = size / maxDim;
                 const w = asset.width * scale;
                 const h = asset.height * scale;
-                ctx.drawImage(asset, -w / 2, -h / 2, w, h);
+                // Apply X and Y offsets from SpriteConfig
+                ctx.drawImage(asset, -w / 2 + (off.x || 0), -h / 2 + (off.y || 0), w, h);
             } else {
                 drawImageCentered(ctx, asset, 45 * scaleVal);
             }

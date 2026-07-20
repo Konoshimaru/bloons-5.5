@@ -90,16 +90,23 @@ function _updateAnimations(tower, dt) {
     tower.attackAnimTimer += dt;
     if (tower.attackAnimTimer <= ANIM_FRAME_DURATION) return;
     
-    tower.attackAnimTimer = 0;
-    tower.attackAnimFrame++;
-    
     const prefix = `${tower.attackPrefix}attack_${tower.isFullAnim ? 'full_' : ''}`;
-    const nextAsset = Assets.get(`${prefix}${tower.attackAnimFrame}`);
+    const nextFrame = tower.attackAnimFrame + 1;
+    const nextAsset = Assets.get(`${prefix}${nextFrame}`);
     
-    if (!nextAsset || !nextAsset.loaded) {
+    // If asset definitively failed to load (404 error), stop animation
+    if (nextAsset && nextAsset.complete && !nextAsset.loaded) {
         tower.attackAnimActive = false;
         tower.attackAnimFrame = 0;
+        return;
     }
+    
+    // If asset is loaded, advance frame
+    if (nextAsset && nextAsset.loaded) {
+        tower.attackAnimTimer = 0; // Consume timer
+        tower.attackAnimFrame = nextFrame;
+    }
+    // If asset is still loading (!complete or !loaded), wait for it
 }
 
 function _runCustomBehaviors(tower, dt, engine) {
@@ -201,16 +208,6 @@ function _getTargetValue(tower, enemy, dist, targetingMode) {
     if (targetingMode === 'First' || targetingMode === 'Last') return enemy.distanceTraveled; 
     if (targetingMode === 'Strong') return enemy.data.rbe; 
     return dist; // Close
-}
-
-function _isBetterTarget(tower, val, bestVal, currentTarget, e, targetingMode) {
-    if (targetingMode === 'First' || targetingMode === 'Strong') {
-        if (val > bestVal) return true;
-        if (val === bestVal && currentTarget && e.distanceTraveled > currentTarget.distanceTraveled) return true;
-    } else if (targetingMode === 'Last' || targetingMode === 'Close') {
-        if (val < bestVal) return true;
-    }
-    return false;
 }
 
 function _hasLineOfSight(tower, e, engine) {

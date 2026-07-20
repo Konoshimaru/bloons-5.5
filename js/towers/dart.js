@@ -1,6 +1,7 @@
 import { GameEngine } from '../engine.js';
 import Assets from '../assets.js';
 import { drawImageCentered, Utils } from '../utils.js';
+import { SpriteConfig } from '../spriteConfig.js';
 import { GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
@@ -63,7 +64,9 @@ export default {
         }
     },
     draw(ctx, tower, isPreview) {
-        let dartOffsetX = 1; ctx.save(); ctx.translate(tower.x, tower.y);
+        ctx.save(); ctx.translate(tower.x, tower.y);
+        
+        // Fan Club Buff visual (temporary transformation)
         if (tower.fanClubBuffTimer > 0) {
             const s = (tower.stats.scale || 1.0) * GS;
             ctx.fillStyle = '#34495e'; ctx.beginPath(); ctx.arc(0, 0, 15 * s, 0, Math.PI * 2); ctx.fill();
@@ -74,44 +77,107 @@ export default {
             else { ctx.fillStyle = '#34495e'; ctx.fillRect(0, -4 * s, 20 * s, 8 * s); ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(20 * s, 0); ctx.lineTo(15 * s, -5 * s); ctx.lineTo(15 * s, 5 * s); ctx.fill(); }
             ctx.restore(); return;
         }
+
         const { baseAsset, armAsset, targetSize, isCustomBase } = tower.getActiveAssets();
         const catapultAsset = Assets.get('tower_dart_catapult');
+        
+        // Helper to get correct size and offset from SpriteConfig
+        const getDrawParams = (key) => {
+            let bestTier = 0, bestPath = 0;
+            for (let p = 1; p <= 3; p++) {
+                if (tower.upgrades[p - 1] > bestTier) { bestTier = tower.upgrades[p - 1]; bestPath = p; }
+            }
+            const configKey = bestTier > 0 ? `dart_p${bestPath}_t${bestTier}` : 'dart';
+            const off = SpriteConfig[configKey]?.[key] || { x: 0, y: 0, scale: 1 };
+            const size = 45 * (off.scale || 1) * GS;
+            return { size, x: off.x || 0, y: off.y || 0 };
+        };
+
+        // Full body attack animation
         if (tower.attackAnimActive && tower.isFullAnim) {
             let animAsset = Assets.get(`${tower.attackPrefix}attack_full_${tower.attackAnimFrame}`);
             if (animAsset && animAsset.loaded) {
-                ctx.rotate(tower.angle + Math.PI / 2); drawImageCentered(ctx, animAsset, targetSize, dartOffsetX, 0); ctx.restore();
-                if (!isCustomBase) { ctx.save(); ctx.translate(tower.x, tower.y); for (let p=1; p<=3; p++) { let t = tower.upgrades[p-1]; if (t > 0) { let ovAsset = Assets.get(`tower_dart_p${p}_t${t}`); if (ovAsset && ovAsset.loaded) drawImageCentered(ctx, ovAsset, targetSize, dartOffsetX, 0); } } ctx.restore(); }
+                const p = getDrawParams(`attack_full_${tower.attackAnimFrame}`);
+                ctx.rotate(tower.angle + Math.PI / 2); 
+                drawImageCentered(ctx, animAsset, p.size, p.x, p.y); 
+                ctx.restore();
+                
+                if (!isCustomBase) { 
+                    ctx.save(); ctx.translate(tower.x, tower.y); 
+                    if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2); 
+                    for (let i=1; i<=3; i++) { 
+                        let t = tower.upgrades[i-1]; 
+                        if (t > 0) { 
+                            let ovAsset = Assets.get(`tower_dart_p${i}_t${t}`); 
+                            if (ovAsset && ovAsset.loaded) { 
+                                const op = getDrawParams('base'); 
+                                drawImageCentered(ctx, ovAsset, op.size, op.x, op.y); 
+                            } 
+                        } 
+                    } 
+                    ctx.restore(); 
+                }
                 return;
             }
         }
+        
+        // Normal arm animation
         let activeArmAsset = armAsset;
-        if (tower.attackAnimActive && !tower.isFullAnim) { let animAsset = Assets.get(`${tower.attackPrefix}attack_${tower.attackAnimFrame}`); if (animAsset && animAsset.loaded) activeArmAsset = animAsset; }
+        if (tower.attackAnimActive && !tower.isFullAnim) { 
+            let animAsset = Assets.get(`${tower.attackPrefix}attack_${tower.attackAnimFrame}`); 
+            if (animAsset && animAsset.loaded) { activeArmAsset = animAsset; } 
+        }
+        
+        // Catapult base override
         let useCustomBase = baseAsset && baseAsset.loaded && baseAsset !== Assets.get('tower_dart_base');
-        if (tower.upgrades[0] >= 3 && !useCustomBase && catapultAsset && catapultAsset.loaded) { ctx.rotate(tower.angle + Math.PI / 2); drawImageCentered(ctx, catapultAsset, targetSize, dartOffsetX, 0); ctx.restore(); return; }
+        if (tower.upgrades[0] >= 3 && !useCustomBase && catapultAsset && catapultAsset.loaded) { 
+            const p = getDrawParams('base');
+            ctx.rotate(tower.angle + Math.PI / 2); 
+            drawImageCentered(ctx, catapultAsset, p.size, p.x, p.y); 
+            ctx.restore(); return; 
+        }
+        
+        // Standard base + arm drawing using SpriteConfig
         if (baseAsset && baseAsset.loaded) {
             ctx.rotate(tower.angle + Math.PI / 2);
-            if (armAsset) drawImageCentered(ctx, activeArmAsset, targetSize, dartOffsetX, 0);
-            if (!isCustomBase) { for (let p=1; p<=3; p++) { let t = tower.upgrades[p-1]; if (t > 0) { let ovAsset = Assets.get(`tower_dart_p${p}_t${t}_a`); if (ovAsset && ovAsset.loaded) drawImageCentered(ctx, ovAsset, targetSize, dartOffsetX, 0); } } }
-            drawImageCentered(ctx, baseAsset, targetSize, dartOffsetX, 0);
-            if (!isCustomBase) { for (let p=1; p<=3; p++) { let t = tower.upgrades[p-1]; if (t > 0) { let ovAsset = Assets.get(`tower_dart_p${p}_t${t}`); if (ovAsset && ovAsset.loaded) drawImageCentered(ctx, ovAsset, targetSize, dartOffsetX, 0); } } }
+            
+            if (activeArmAsset && activeArmAsset.loaded) {
+                const armP = getDrawParams(tower.attackAnimFrame === 0 ? "arm" : `attack_${tower.attackAnimFrame}`);
+                drawImageCentered(ctx, activeArmAsset, armP.size, armP.x, armP.y);
+            }
+            
+            if (!isCustomBase) { 
+                for (let i=1; i<=3; i++) { 
+                    let t = tower.upgrades[i-1]; 
+                    if (t > 0) { 
+                        let ovAsset = Assets.get(`tower_dart_p${i}_t${i}_a`); // Check for arm overlay
+                        if (ovAsset && ovAsset.loaded) { 
+                            const op = getDrawParams('base'); 
+                            drawImageCentered(ctx, ovAsset, op.size, op.x, op.y); 
+                        } 
+                    } 
+                } 
+            }
+            
+            const baseP = getDrawParams("base");
+            drawImageCentered(ctx, baseAsset, baseP.size, baseP.x, baseP.y);
+            
+            if (!isCustomBase) { 
+                for (let i=1; i<=3; i++) { 
+                    let t = tower.upgrades[i-1]; 
+                    if (t > 0) { 
+                        let ovAsset = Assets.get(`tower_dart_p${i}_t${t}`); 
+                        if (ovAsset && ovAsset.loaded) { 
+                            const op = getDrawParams('base'); 
+                            drawImageCentered(ctx, ovAsset, op.size, op.x, op.y); 
+                        } 
+                    } 
+                } 
+            }
             ctx.restore(); return;
         }
-        ctx.rotate(tower.angle);
-        if (tower.upgrades[0] >= 3) {
-            let size = (tower.stats.scale || 1.0) * GS; if (tower.upgrades[0] === 4) size *= 1.3; if (tower.upgrades[0] === 5) size *= 1.6;
-            ctx.fillStyle = '#8B4513'; ctx.fillRect(-10*size, 5*size, 20*size, 5*size);
-            ctx.beginPath(); ctx.moveTo(-10*size, 5*size); ctx.lineTo(-15*size, 15*size); ctx.lineTo(-5*size, 15*size); ctx.fill();
-            ctx.beginPath(); ctx.moveTo(10*size, 5*size); ctx.lineTo(15*size, 15*size); ctx.lineTo(5*size, 15*size); ctx.fill();
-            ctx.save(); ctx.rotate(-Math.PI/4); ctx.fillStyle = '#8B4513'; ctx.fillRect(0, -2*size, 20*size, 4*size); ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(20*size, 0, 8*size, 0, Math.PI*2); ctx.fill(); ctx.restore();
-            ctx.restore(); return;
-        }
-        let bodyColor = '#795548'; if (tower.upgrades[2] >= 4) bodyColor = '#2c3e50';
-        const s = (tower.stats.scale || 1.0) * GS;
-        ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0, 0, 15 * s, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = '#D7BCA3'; ctx.beginPath(); ctx.arc(0, 2 * s, 10 * s, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(-12 * s, -8 * s, 5 * s, 0, Math.PI * 2); ctx.arc(12 * s, -8 * s, 5 * s, 0, Math.PI * 2); ctx.fill();
-        if (tower.upgrades[2] >= 3) { ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 4 * s; ctx.beginPath(); ctx.moveTo(0, -10 * s); ctx.lineTo(15 * s, 0); ctx.lineTo(0, 10 * s); ctx.stroke(); ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 2 * s; ctx.beginPath(); ctx.moveTo(15 * s, 0); ctx.lineTo(25 * s, 0); ctx.stroke(); }
-        else { ctx.fillStyle = '#8B4513'; ctx.fillRect(0, -2 * s, 15 * s, 4 * s); ctx.fillStyle = '#95a5a6'; ctx.beginPath(); ctx.moveTo(15 * s, 0); ctx.lineTo(10 * s, -3 * s); ctx.lineTo(10 * s, 3 * s); ctx.fill(); ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-5 * s, -3 * s); ctx.lineTo(-5 * s, 3 * s); ctx.fill(); }
+        
+        // Fully sprited, no canvas fallback needed
         ctx.restore();
     }
 };
