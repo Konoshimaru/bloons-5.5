@@ -181,6 +181,13 @@ h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3
     justify-content: center;
 }
 
+/* Fix sandbox bloon images to fit nicely inside the squares without stretching */
+#enemy-view .tower-card {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-color: #34495e; /* Keeps the dark background behind smaller bloons */
+}
+
 /* Category Background Colors */
 .tower-card.cat-primary { background-color: #3498db; } /* Blue */
 .tower-card.cat-military { background-color: #27ae60; } /* Green */

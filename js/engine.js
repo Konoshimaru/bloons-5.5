@@ -301,11 +301,14 @@ export const GameEngine = {
     toggleMenus(menuId) { UI.toggleMenus(menuId); },
 
     handleCanvasClick(e) {
-        const rect = this.canvas.getBoundingClientRect();
+        // PRO FIX: Use cached canvas rect if available to avoid layout thrashing
+        const rect = (window.InputManager && window.InputManager.canvasRect) ? window.InputManager.canvasRect : this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
+
+        // ... rest of handleCanvasClick remains exactly the same
 
         if (this.gameState === 'menu') {
             for (let i = this.menuClickables.length - 1; i >= 0; i--) {

@@ -26,11 +26,19 @@ export const EnemyRenderer = {
     },
 
     _drawSprite(ctx, asset) {
-        const targetSize = (this.data.size || (this.data.radius * 2)) * GS; 
-        const maxDim = Math.max(asset.width, asset.height);
-        const scale = targetSize / maxDim;
-        const w = asset.width * scale;
-        const h = asset.height * scale;
+        // PRO FIX: Recalculate dimensions if the asset just finished loading or changed
+        if (asset.width !== this._cachedSpriteW || asset.height !== this._cachedSpriteH) {
+            const targetSize = (this.data.size || (this.data.radius * 2)) * GS;
+            const maxDim = Math.max(asset.width, asset.height);
+            const scale = targetSize / maxDim;
+            this._spriteW = asset.width * scale;
+            this._spriteH = asset.height * scale;
+            this._cachedSpriteW = asset.width;
+            this._cachedSpriteH = asset.height;
+        }
+        
+        const w = this._spriteW;
+        const h = this._spriteH;
         const drawX = this.x + (this.data.spriteOffsetX || 0);
         const drawY = this.y + (this.data.spriteOffsetY || 0);
         

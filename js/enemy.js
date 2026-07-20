@@ -91,6 +91,19 @@ export class Enemy {
             this._spriteAsset = Assets.get(Names.getEnemy(this.tier));
             this._usedModifierSprite = false;
         }
+        
+        // PRO FIX: Cache sprite draw dimensions to avoid per-frame math
+        if (this._spriteAsset && this._spriteAsset.loaded) {
+            const targetSize = (this.data.size || (this.data.radius * 2)) * GS;
+            const maxDim = Math.max(this._spriteAsset.width, this._spriteAsset.height);
+            const scale = targetSize / maxDim;
+            this._spriteW = this._spriteAsset.width * scale;
+            this._spriteH = this._spriteAsset.height * scale;
+        } else {
+            // Fallback dimensions if asset not loaded
+            this._spriteW = (this.data.radius || 10) * 2 * GS;
+            this._spriteH = (this.data.radius || 10) * 2 * GS;
+        }
     }
 
     _initializeStats() {

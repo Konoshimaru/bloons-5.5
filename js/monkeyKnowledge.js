@@ -408,6 +408,13 @@ export const MonkeyKnowledge = {
     },
 
     _animate() {
+        // PRO FIX: Gate the entire animation loop behind menu visibility to save performance
+        const menu = document.getElementById('knowledge-menu');
+        if (menu && menu.classList.contains('hidden')) {
+            this.rafId = requestAnimationFrame(() => this._animate());
+            return;
+        }
+
         if (!this.isFocused) {
             if (!this.isDragging) {
                 this.targetBgX -= 0.3;
