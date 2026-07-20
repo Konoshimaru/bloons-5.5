@@ -425,9 +425,12 @@ export const UI = {
         }
         
         // PRO FIX: Hide targeting row for Spike Factory without Smart Spikes
+        // And hide for Village without Primary Expertise (5-x-x)
         const targetingRow = el('up-targeting-row');
         if (targetingRow) {
             if (t.type === 'spike' && !t.stats.smartSpikes) {
+                targetingRow.classList.add('hidden');
+            } else if (t.type === 'village' && t.upgrades[0] < 5) {
                 targetingRow.classList.add('hidden');
             } else {
                 targetingRow.classList.remove('hidden');

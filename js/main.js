@@ -1,3 +1,4 @@
+// js/main.js
 import { GameEngine } from './engine.js';
 import { Config, HeroStats, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
@@ -327,7 +328,8 @@ function _setupMenuListeners() {
             Config.data.currentDifficulty = btn.dataset.diff;
             Config.save();
             startGameUI(false);
-        });
+        }
+    );
     });
     dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => UI.toggleMenus(e.target.dataset.target)));
     dom.settingsBackBtn?.addEventListener('click', () => UI.toggleMenus(GameEngine.lastMenu));
@@ -465,6 +467,9 @@ function setupEventListeners() {
     setupShopListeners(); // From dragManager.js
     setupNudgeLogic(); // From dragManager.js
     InputManager.init();
+    
+    // NEW: Attach updateShopPrices to GameEngine to avoid circular imports
+    GameEngine.updateShopPrices = updateShopPrices;
 }
 
 window.addEventListener('load', () => {

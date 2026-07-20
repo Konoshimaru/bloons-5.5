@@ -1,4 +1,5 @@
-﻿import { TowerStats } from './towers/index.js';
+﻿// js/projectile.js
+import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
 import { GameEngine } from './engine.js';
@@ -112,7 +113,6 @@ export class Projectile {
             case 'mortar_shell': this._updateMortarShell(dt); return;
             case 'boomerang': this._updateBoomerang(dt); break;
             case 'spike': this._updateSpike(dt); break;
-            // PRO FIX: Spike Factory projectiles land on the track, Dart Monkey projectiles fly straight
             case 'spike_opult':
             case 'juggernaut':
             case 'ultra_juggernaut':
@@ -217,12 +217,11 @@ export class Projectile {
     }
 
     _updateSpike(dt) {
-        // If targetX/Y are set, fly towards them and land. Otherwise, just sit there.
         if (this.targetX !== 0 || this.targetY !== 0) {
             let dx = this.targetX - this.x;
             let dy = this.targetY - this.y;
             let distSq = dx * dx + dy * dy;
-            if (distSq < 25) { // 5^2
+            if (distSq < 25) {
                 this.x = this.targetX;
                 this.y = this.targetY;
                 this.targetX = 0;
@@ -437,6 +436,8 @@ export class Projectile {
     }
 
     _handleStandardHit(enemy) {
+        this.hitEnemies.add(enemy); // FIX: Immediately add to hit list so it doesn't bounce back to it
+        
         let dmg = this.damage;
         if (this.bonusCeramic && enemy.data.isCeramic) dmg += this.bonusCeramic;
         
@@ -477,6 +478,30 @@ export class Projectile {
         
         if (this.type === 'ninja' && this.target === enemy) {
             this.target = null;
+        }
+
+        // FIX: Ricochet Logic (e.g. Village Primary Expertise)
+        if (this.effects && this.effects.ricochet > 0) {
+            const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.effects.ricochetRange);
+            let bestDistSq = this.effects.ricochetRange * this.effects.ricochetRange;
+            let nextTarget = null;
+            for (const e of nearby) {
+                if (!e.alive || this.hitEnemies.has(e)) continue;
+                const dSq = Utils.distanceSq(this.x, this.y, e.x, e.y);
+                if (dSq < bestDistSq) {
+                    bestDistSq = dSq;
+                    nextTarget = e;
+                }
+            }
+            if (nextTarget) {
+                this.target = nextTarget;
+                // FIX: Force the projectile to turn towards the new target
+                this.angle = Utils.angle(this.x, this.y, nextTarget.x, nextTarget.y);
+                this.effects.ricochet--;
+                this.pierce = Math.max(this.pierce, 1); // Ensure it survives
+                this.alive = true;
+                return; // Skip killing the projectile
+            }
         }
 
         this.pierce--;

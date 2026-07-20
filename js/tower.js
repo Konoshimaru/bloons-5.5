@@ -9,6 +9,7 @@ import { Names } from './names.js';
 import { SpriteConfig } from './spriteConfig.js';
 import * as TowerBehavior from './towerBehavior.js';
 import { GLOBAL_SCALE } from './constants.js';
+import { RANGE_SCALE } from './config.js'; // NEW: Import RANGE_SCALE for Monkeyopolis check
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -89,6 +90,9 @@ export class Tower {
         this._nightGlowX = 0;
         this._nightGlowY = 0;
 
+        // Initialize activeBuffs array for stackable buffs
+        this.activeBuffs = [];
+
         // --- MONKEY KNOWLEDGE EFFECTS (Base) ---
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         
@@ -134,6 +138,18 @@ export class Tower {
         // MK: Heroic Velocity (+10% projectile speed)
         if (this.stats.isHero && mk['heroic_velocity']) {
             this.stats.projectileSpeed = (this.stats.projectileSpeed || 600) * 1.1;
+        }
+    }
+
+    // FIX: Added addStacks parameter to prevent aura buffs from infinitely incrementing the stack counter
+    addBuff(id, name, duration, stacks = 1, data = {}, addStacks = true) {
+        let existingBuff = this.activeBuffs.find(b => b.id === id);
+        if (existingBuff) {
+            if (addStacks) existingBuff.stacks += stacks;
+            existingBuff.duration = Math.max(existingBuff.duration, duration); // Refresh duration
+            existingBuff.data = { ...existingBuff.data, ...data };
+        } else {
+            this.activeBuffs.push({ id, name, duration, stacks, data });
         }
     }
 
@@ -197,7 +213,7 @@ export class Tower {
         if (this.type === 'boomerang' && this.upgrades[2] >= 3 && mk['hard_press']) this.stats.hardPressMult = 1.3;
         if (this.type === 'ice' && this.upgrades[2] >= 3 && mk['big_cryo']) this.stats.explosionRadius = (this.stats.explosionRadius || 20) * 1.12;
         if (this.type === 'ice' && this.upgrades[1] >= 4 && mk['hypothermia']) this.stats.freezeDuration = (this.stats.freezeDuration || 1.5) + 1.0;
-        if (this.type === 'bomb' && this.upgrades[0] >= 3 && mk['violent_impact']) this.stats.stunDurationMult = 1.25;
+        if (this.type === 'bomb' && this.upgrades[0] >= 2 && mk['violent_impact']) this.stats.stunDurationMult = 1.25;
         if (this.type === 'boomerang' && this.upgrades[1] >= 4 && mk['long_turbo']) this.stats.turboDuration = 15;
         if (this.type === 'boomerang' && this.upgrades[1] >= 4 && mk['bionic_aug']) this.stats.turboSeesCamo = true;
         if (this.type === 'bomb' && this.upgrades[0] >= 2 && mk['fraggy_frags']) this.stats.fragCount = (this.stats.fragCount || 8) + 2;
@@ -375,6 +391,22 @@ export class Tower {
             }
             return false;
         }
+        
+        // FIX: Monkeyopolis requires nearby Banana Farms (Tier 4 or below)
+        if (this.type === 'village' && path === 3 && tier === 4) {
+            const effRange = this.stats.range * RANGE_SCALE;
+            let hasFarm = false;
+            for (let t of engine.towers) {
+                if (t && t !== this && t.type === 'farm' && t.upgrades[0] < 5) {
+                    if (Utils.withinRange(this.x, this.y, t.x, t.y, effRange)) {
+                        hasFarm = true;
+                        break;
+                    }
+                }
+            }
+            if (!hasFarm) return false;
+        }
+        
         return true;
     }
 
@@ -384,6 +416,19 @@ export class Tower {
         if (!upgradeData) return false;
 
         let baseCost = upgradeData.cost;
+        
+        // FIX: Monkeyopolis cost increases by $5000 per nearby Banana Farm
+        if (this.type === 'village' && path === 3 && tier === 4) {
+            const effRange = this.stats.range * RANGE_SCALE;
+            for (let t of engine.towers) {
+                if (t && t !== this && t.type === 'farm' && t.upgrades[0] < 5) {
+                    if (Utils.withinRange(this.x, this.y, t.x, t.y, effRange)) {
+                        baseCost += 5000;
+                    }
+                }
+            }
+        }
+
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
 
         if (this.type === 'bomb' && this.upgrades[0] === 2 && mk['budget_clusters']) baseCost -= 100;
@@ -448,10 +493,21 @@ export class Tower {
         }
         if (!isPreview) drawShadow(ctx, this.x, this.y, SHADOW_SCALE * (this.stats.scale || 1.0) * GS);
         this._drawHitscans(ctx);
-        this._drawBananas(ctx);
+        
         const behavior = getBehavior(this.type);
-        if (behavior && behavior.draw) { behavior.draw(ctx, this, isPreview, engine); return; }
-        this._drawBaseTower(ctx, isPreview);
+        if (behavior && behavior.draw) {
+            behavior.draw(ctx, this, isPreview, engine);
+        } else {
+            this._drawBaseTower(ctx, isPreview);
+        }
+        
+        // FIX: Draw bananas AFTER the tower so they are visible and clickable
+        this._drawBananas(ctx);
+        
+        // Draw buffs above the monkey's head ONLY if this tower is currently selected
+        if (!isPreview && GameEngine.selectedPlacedTower === this) {
+            this._drawBuffs(ctx);
+        }
     }
 
     drawBaseTower(ctx, isPreview = false) { this._drawBaseTower(ctx, isPreview); }
@@ -560,10 +616,7 @@ export class Tower {
 
     _drawFarmOrVillage(ctx) {
         const asset = Assets.get(`tower_${this.type}_base`);
-        if (this.type === 'village') {
-            ctx.fillStyle = 'rgba(155, 89, 182, 0.1)'; ctx.beginPath(); ctx.arc(this.x, this.y, this.stats.range * GS, 0, Math.PI * 2); ctx.fill();
-            ctx.strokeStyle = 'rgba(155, 89, 182, 0.4)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(this.x, this.y, this.stats.range * GS, 0, Math.PI * 2); ctx.stroke();
-        }
+        // REMOVED: The purple circle range indicator. It is no longer drawn.
         if (asset && asset.loaded) {
             ctx.save(); ctx.translate(this.x, this.y); drawImageCentered(ctx, asset, 45 * GS);
             for (let p = 1; p <= 3; p++) {
@@ -595,6 +648,209 @@ export class Tower {
         ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.arc(0, 0, 15 * scale, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#D7BCA3'; ctx.beginPath(); ctx.arc(0, 0, 10 * scale, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.arc(-12 * scale, -8 * scale, 5 * scale, 0, Math.PI * 2); ctx.arc(12 * scale, -8 * scale, 5 * scale, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+    }
+
+    // Draws buff icons directly on the canvas above the monkey
+    _drawBuffs(ctx) {
+        const buffsToDraw = [];
+        
+        // Legacy buffs
+        if (this.alchBuff && (!this.alchBuff.isPerm || this.alchBuff.shotsLeft > 0)) {
+            buffsToDraw.push({ type: 'alch', stacks: this.alchBuff.shotsLeft > 0 ? this.alchBuff.shotsLeft : '', name: 'Alchemist Buff' });
+        }
+        if (this.overclockTimer > 0) {
+            buffsToDraw.push({ type: 'oc', stacks: this.ultraboostStacks > 1 ? this.ultraboostStacks : '', name: 'Overclock' });
+        }
+
+        // Custom stackable buffs (Village Path 1, Call to Arms, etc.)
+        if (this.activeBuffs && this.activeBuffs.length > 0) {
+            for (let buff of this.activeBuffs) {
+                buffsToDraw.push({ 
+                    type: buff.data.type || 'generic', 
+                    stacks: buff.stacks > 1 ? buff.stacks : '', 
+                    name: buff.name 
+                });
+            }
+        }
+
+        if (buffsToDraw.length === 0) return;
+
+        const spacing = 20 * GS;
+        const totalWidth = (buffsToDraw.length - 1) * spacing;
+        const startX = this.x - totalWidth / 2;
+        const y = this.y - (this.hitRadius * 1.5) - 15 * GS; 
+
+        buffsToDraw.forEach((buff, i) => {
+            const x = startX + i * spacing;
+            this._drawBuffIcon(ctx, x, y, buff.type, buff.stacks, buff.name);
+        });
+    }
+
+    // Helper to draw individual buff icon graphics
+    _drawBuffIcon(ctx, x, y, type, stacks, name) {
+        ctx.save();
+        ctx.translate(x, y);
+
+        const sizeScale = 1.2;
+
+        let bgColor = '#2ecc71'; // generic green
+        if (type === 'alch') bgColor = '#9b59b6'; // purple
+        if (type === 'oc') bgColor = '#e74c3c'; // red
+        if (type === 'village') bgColor = '#3498db'; // blue
+        if (type === 'jd') bgColor = '#27ae60'; // green
+        if (type === 'ptr') bgColor = '#f1c40f'; // yellow
+        if (type === 'pm') bgColor = '#e67e22'; // orange
+        if (type === 'pe') bgColor = '#c0392b'; // dark red
+        if (type === 'cta') bgColor = '#9b59b6'; // purple (Call to Arms)
+        if (type === 'radar') bgColor = '#16a085'; // teal
+        if (type === 'mib') bgColor = '#34495e'; // dark blue/grey
+
+        // Draw background circle
+        ctx.fillStyle = bgColor;
+        ctx.beginPath();
+        ctx.arc(0, 0, 10 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+        ctx.lineWidth = 2 * GS;
+        ctx.stroke();
+
+        // Draw specific symbol
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5 * GS;
+        
+        if (type === 'village') {
+            // Draw a little house
+            ctx.beginPath();
+            ctx.moveTo(0, -6 * GS * sizeScale);
+            ctx.lineTo(5 * GS * sizeScale, 0);
+            ctx.lineTo(5 * GS * sizeScale, 5 * GS * sizeScale);
+            ctx.lineTo(-5 * GS * sizeScale, 5 * GS * sizeScale);
+            ctx.lineTo(-5 * GS * sizeScale, 0);
+            ctx.closePath();
+            ctx.fill();
+        } else if (type === 'oc') {
+            // Draw a lightning bolt
+            ctx.beginPath();
+            ctx.moveTo(-2 * GS * sizeScale, -7 * GS * sizeScale);
+            ctx.lineTo(4 * GS * sizeScale, -1 * GS * sizeScale);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(2 * GS * sizeScale, 7 * GS * sizeScale);
+            ctx.lineTo(-4 * GS * sizeScale, 1 * GS * sizeScale);
+            ctx.lineTo(0, 0);
+            ctx.closePath();
+            ctx.fill();
+        } else if (type === 'alch') {
+            // Draw a potion drop
+            ctx.beginPath();
+            ctx.moveTo(0, -7 * GS * sizeScale);
+            ctx.bezierCurveTo(5 * GS * sizeScale, -2 * GS * sizeScale, 5 * GS * sizeScale, 5 * GS * sizeScale, 0, 5 * GS * sizeScale);
+            ctx.bezierCurveTo(-5 * GS * sizeScale, 5 * GS * sizeScale, -5 * GS * sizeScale, -2 * GS * sizeScale, 0, -7 * GS * sizeScale);
+            ctx.fill();
+        } else if (type === 'jd') {
+            // Draw a Drum
+            ctx.beginPath();
+            ctx.ellipse(0, 3 * GS * sizeScale, 5 * GS * sizeScale, 2 * GS * sizeScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillRect(-3 * GS * sizeScale, -4 * GS * sizeScale, 6 * GS * sizeScale, 7 * GS * sizeScale);
+            ctx.beginPath();
+            ctx.ellipse(0, -4 * GS * sizeScale, 3 * GS * sizeScale, 1 * GS * sizeScale, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'ptr') {
+            // Draw a Target / Crosshair
+            ctx.beginPath();
+            ctx.arc(0, 0, 5 * GS * sizeScale, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-7 * GS * sizeScale, 0); ctx.lineTo(-2 * GS * sizeScale, 0);
+            ctx.moveTo(2 * GS * sizeScale, 0); ctx.lineTo(7 * GS * sizeScale, 0);
+            ctx.moveTo(0, -7 * GS * sizeScale); ctx.lineTo(0, -2 * GS * sizeScale);
+            ctx.moveTo(0, 2 * GS * sizeScale); ctx.lineTo(0, 7 * GS * sizeScale);
+            ctx.stroke();
+        } else if (type === 'pm') {
+            // Draw a Book / Cap
+            ctx.beginPath();
+            ctx.moveTo(-5 * GS * sizeScale, -2 * GS * sizeScale);
+            ctx.lineTo(0, -5 * GS * sizeScale);
+            ctx.lineTo(5 * GS * sizeScale, -2 * GS * sizeScale);
+            ctx.lineTo(5 * GS * sizeScale, 4 * GS * sizeScale);
+            ctx.lineTo(0, 7 * GS * sizeScale);
+            ctx.lineTo(-5 * GS * sizeScale, 4 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+        } else if (type === 'pe') {
+            // Draw an Arrow
+            ctx.beginPath();
+            ctx.moveTo(0, -7 * GS * sizeScale);
+            ctx.lineTo(4 * GS * sizeScale, -2 * GS * sizeScale);
+            ctx.lineTo(1 * GS * sizeScale, -2 * GS * sizeScale);
+            ctx.lineTo(1 * GS * sizeScale, 6 * GS * sizeScale);
+            ctx.lineTo(-1 * GS * sizeScale, 6 * GS * sizeScale);
+            ctx.lineTo(-1 * GS * sizeScale, -2 * GS * sizeScale);
+            ctx.lineTo(-4 * GS * sizeScale, -2 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+        } else if (type === 'cta') {
+            // Draw a Megaphone
+            ctx.beginPath();
+            ctx.moveTo(-4 * GS * sizeScale, -3 * GS * sizeScale);
+            ctx.lineTo(2 * GS * sizeScale, -6 * GS * sizeScale);
+            ctx.lineTo(2 * GS * sizeScale, 6 * GS * sizeScale);
+            ctx.lineTo(-4 * GS * sizeScale, 3 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(-7 * GS * sizeScale, -2 * GS * sizeScale, 3 * GS * sizeScale, 4 * GS * sizeScale);
+        } else if (type === 'radar') {
+            // Draw a Satellite Dish
+            ctx.beginPath();
+            ctx.moveTo(-5 * GS * sizeScale, -2 * GS * sizeScale);
+            ctx.quadraticCurveTo(0, -8 * GS * sizeScale, 5 * GS * sizeScale, -2 * GS * sizeScale);
+            ctx.fill();
+            ctx.fillRect(-1 * GS * sizeScale, -1 * GS * sizeScale, 2 * GS * sizeScale, 6 * GS * sizeScale);
+            ctx.beginPath();
+            ctx.arc(0, 6 * GS * sizeScale, 2 * GS * sizeScale, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'mib') {
+            // Draw a Shield
+            ctx.beginPath();
+            ctx.moveTo(0, -7 * GS * sizeScale);
+            ctx.lineTo(5 * GS * sizeScale, -4 * GS * sizeScale);
+            ctx.lineTo(4 * GS * sizeScale, 4 * GS * sizeScale);
+            ctx.lineTo(0, 7 * GS * sizeScale);
+            ctx.lineTo(-4 * GS * sizeScale, 4 * GS * sizeScale);
+            ctx.lineTo(-5 * GS * sizeScale, -4 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            // Draw a star for generic
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
+                const x1 = Math.cos(angle) * 6 * GS * sizeScale;
+                const y1 = Math.sin(angle) * 6 * GS * sizeScale;
+                if (i === 0) ctx.moveTo(x1, y1);
+                else ctx.lineTo(x1, y1);
+            }
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Draw stacks
+        if (stacks !== '' && stacks !== undefined) {
+            ctx.fillStyle = 'rgba(0,0,0,0.85)';
+            ctx.beginPath();
+            ctx.arc(7 * GS * sizeScale, 7 * GS * sizeScale, 7 * GS * sizeScale, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${10 * GS}px Nunito, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(stacks, 7 * GS * sizeScale, 7.5 * GS * sizeScale);
+        }
+
         ctx.restore();
     }
 }

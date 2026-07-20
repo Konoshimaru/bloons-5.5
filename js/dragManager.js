@@ -35,7 +35,10 @@ export function updateShopPrices() {
             if (type === 'dart' && !GameEngine.isSandbox && GameEngine.difficulty && !GameEngine.difficulty.noSelling) {
                 const mkActive = Config.data.mkActive !== false;
                 const hasFreeMonkey = Config.data.unlocks.freeFirstDartMonkey || (mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_monkey);
-                if (hasFreeMonkey && !GameEngine.towers.some(t => t.type === 'dart')) {
+                const hasNoDarts = !GameEngine.towers.some(t => t.type === 'dart');
+                const hasMonkeyCity = GameEngine.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
+
+                if ((hasFreeMonkey && hasNoDarts) || (hasMonkeyCity && !GameEngine.freeDartMonkeyClaimed)) {
                     cost = 0;
                 }
             }

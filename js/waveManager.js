@@ -3,6 +3,7 @@ import { Waves } from './data.js';
 import { Enemy } from './enemy.js';
 import { GameEngine } from './engine.js';
 import { UI } from './ui.js';
+import { updateShopPrices } from './dragManager.js';
 
 const SPAWN_INTERVAL_DEFAULT = 0.35;
 const AUTO_WAVE_DELAY = 0.1;
@@ -166,6 +167,12 @@ export class WaveManager {
         if (GameEngine.hero) {
             this._grantHeroXP();
         }
+
+        // Reset Monkey City free dart monkey
+        GameEngine.freeDartMonkeyClaimed = false;
+        
+        // Refresh shop UI to show "Free!" again
+        updateShopPrices();
 
         GameEngine.updateUI();
 

@@ -25,6 +25,10 @@ export function getEffectiveCooldown(tower) {
     if (tower.overclockTimer > 0) finalCooldown *= 0.6;
     if (tower.ultraboostStacks > 0) finalCooldown *= (1 - 0.066 * tower.ultraboostStacks);
     if (tower.abilityActiveTime > 0) finalCooldown /= (tower.stats.rapidShotMult || 3);
+    
+    // FIX: Apply Village/Jungle Drums/Call to Arms attack speed buffs
+    if (tower.buffedFireRate > 0) finalCooldown /= (1 + tower.buffedFireRate);
+    
     if (tower.alchBuff) finalCooldown /= (1 + tower.alchBuff.speed);
     
     if (tower.eliteDefenderSpeedMod) finalCooldown *= tower.eliteDefenderSpeedMod;
@@ -82,6 +86,17 @@ function _updateTimers(tower, dt, engine) {
             tower.attackPointTimer = 0;
         }
     }
+
+    // Tick down active buffs
+    if (tower.activeBuffs && tower.activeBuffs.length > 0) {
+        for (let i = tower.activeBuffs.length - 1; i >= 0; i--) {
+            let buff = tower.activeBuffs[i];
+            buff.duration -= dt;
+            if (buff.duration <= 0) {
+                tower.activeBuffs.splice(i, 1);
+            }
+        }
+    }
 }
 
 function _updateAnimations(tower, dt) {
@@ -94,19 +109,16 @@ function _updateAnimations(tower, dt) {
     const nextFrame = tower.attackAnimFrame + 1;
     const nextAsset = Assets.get(`${prefix}${nextFrame}`);
     
-    // If asset definitively failed to load (404 error), stop animation
     if (nextAsset && nextAsset.complete && !nextAsset.loaded) {
         tower.attackAnimActive = false;
         tower.attackAnimFrame = 0;
         return;
     }
     
-    // If asset is loaded, advance frame
     if (nextAsset && nextAsset.loaded) {
-        tower.attackAnimTimer = 0; // Consume timer
+        tower.attackAnimTimer = 0;
         tower.attackAnimFrame = nextFrame;
     }
-    // If asset is still loading (!complete or !loaded), wait for it
 }
 
 function _runCustomBehaviors(tower, dt, engine) {
@@ -174,13 +186,11 @@ function _findTarget(tower, engine) {
         if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
         if (tower.type === 'glue' && e.data.isMoab) continue; 
         
-        // PRO FIX: Use squared distance for range checks to avoid Math.sqrt
         const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
         
         if (baseRange !== 9999 && distSq > effRangeSq) continue;
         if (minRangeSq > 0 && distSq < minRangeSq) continue; 
 
-        // Only calculate real distance if targeting 'Close', otherwise pass 0
         const val = _getTargetValue(tower, e, (currentTargeting === 'Close' ? Math.sqrt(distSq) : 0), currentTargeting);
         
         if (isBetter(val, v1)) {
@@ -254,7 +264,6 @@ function _executeFire(tower, target, engine) {
     let aimX = target.x, aimY = target.y;
     
     if (projSpeed > 0 && projSpeed < 1500 && target.data.speed > 0) {
-        // PRO FIX: Needs real distance for the prediction math
         const dist = Utils.distance(tower.x, tower.y, target.x, target.y);
         
         const effSpeed = target.data.speed * (target.slowFactor || 1) * (target.gojoSlow || 1) * (target.permafrostSlow || 1);
@@ -356,7 +365,16 @@ function _isCriticalHit(tower) {
 }
 
 function _calculatePierce(tower) {
-    return tower.stats.pierce + (tower.buffedPierce || 0) + (tower.alchBuff ? tower.alchBuff.pierce : 0);
+    let pierce = tower.stats.pierce + (tower.buffedPierce || 0) + (tower.alchBuff ? tower.alchBuff.pierce : 0);
+    // FIX: Check activeBuffs for pierce bonuses (like Call to Arms)
+    if (tower.activeBuffs && tower.activeBuffs.length > 0) {
+        for (let buff of tower.activeBuffs) {
+            if (buff.data && buff.data.pierce) {
+                pierce += buff.data.pierce;
+            }
+        }
+    }
+    return pierce;
 }
 
 function _createDamageType(dmgTypeStr, canHitLead, tower) {
@@ -384,9 +402,21 @@ function _decrementBuffs(tower) {
 function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine) {
     const behavior = getBehavior(tower.type);
     if (behavior && behavior.fire) {
+        // FIX: Temporarily apply Village Primary Training projectile speed buff
+        const originalSpeed = tower.stats.projectileSpeed;
+        if (tower.buffedProjSpeed && tower.buffedProjSpeed !== 1.0) {
+            tower.stats.projectileSpeed = originalSpeed * tower.buffedProjSpeed;
+        }
+        
         behavior.fire(tower, target, damage, dmgType, isCrit, effects, engine);
+        
+        // Restore original speed so it doesn't compound exponentially
+        if (tower.buffedProjSpeed && tower.buffedProjSpeed !== 1.0) {
+            tower.stats.projectileSpeed = originalSpeed;
+        }
     } else {
         const p = engine.projectilePool.get();
-        p.init(tower.x, tower.y, damage, target, projType, tower.stats.projectileSpeed, pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
+        const projSpeed = tower.stats.projectileSpeed * (tower.buffedProjSpeed || 1);
+        p.init(tower.x, tower.y, damage, target, projType, projSpeed, pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
     }
 }

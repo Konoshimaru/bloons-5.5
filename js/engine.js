@@ -93,6 +93,7 @@ export const GameEngine = {
     imfDebt: 0,
     acidPools: [],
     menuClickables: [],
+    updateShopPrices: null, // NEW: Placeholder for UI shop refresh
 
     init() {
         Config.load();
@@ -220,6 +221,7 @@ export const GameEngine = {
         this.waveManager.currentWave = diff.startRound - 1;
         this.tier5Bought = {};
         this.speedState = 0; this.timeScale = 1;
+        this.freeDartMonkeyClaimed = false; // Reset Monkey City free dart
         UI.updateWaveSpeedBtn(this.speedState);
         CutsceneManager.reset(); 
         this.updateUI();
@@ -343,12 +345,19 @@ export const GameEngine = {
             let cost = this.getCost(stats.cost);
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             
-            if (this.selectedTowerType === 'dart' && Config.data.unlocks.freeFirstDartMonkey && !this.isSandbox && !this.difficulty.noSelling) {
-                if (!this.towers.some(t => t.type === 'dart')) { cost = 0; }
-            }
+            this._monkeyCityFreeDart = false; // Reset flag
             
-            if (this.selectedTowerType === 'dart' && mk['bonus_monkey'] && !this.isSandbox && !this.difficulty.noSelling) {
-                if (!this.towers.some(t => t.type === 'dart')) { cost = 0; }
+            if (this.selectedTowerType === 'dart' && !this.isSandbox && this.difficulty && !this.difficulty.noSelling) {
+                const hasNoDarts = !this.towers.some(t => t.type === 'dart');
+                const mkBonus = Config.data.unlocks.freeFirstDartMonkey || mk['bonus_monkey'];
+                const hasMonkeyCity = this.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
+
+                if (mkBonus && hasNoDarts) {
+                    cost = 0;
+                } else if (hasMonkeyCity && !this.freeDartMonkeyClaimed) {
+                    cost = 0;
+                    this._monkeyCityFreeDart = true;
+                }
             }
             
             const militaryTypes = ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'];
@@ -391,8 +400,20 @@ export const GameEngine = {
             const newTower = stats.isHero ? new Hero(x, y, this.selectedTowerType) : new Tower(x, y, this.selectedTowerType);
             if (stats.isHero) this.hero = newTower;
             if (newTower.type === 'spike') newTower.targetingMode = 'Normal';
+            if (newTower.type === 'village') newTower.targetingMode = 'First';
             this.towers.push(newTower); this.cash -= cost; AudioEngine.playSfx('place');
-            this.updateUI(); this.log("Tower placed!"); this.deselectAll(); return; 
+            
+            if (this._monkeyCityFreeDart) {
+                this.freeDartMonkeyClaimed = true;
+                this._monkeyCityFreeDart = false;
+                this.log("Monkey City: Free Dart Monkey placed!");
+            }
+            
+            this.updateUI(); this.log("Tower placed!"); this.deselectAll(); 
+            
+            // NEW: Force shop UI to refresh prices immediately after placement
+            if (this.updateShopPrices) this.updateShopPrices();
+            return; 
         }
         this.deselectAll();
     },
@@ -403,6 +424,10 @@ export const GameEngine = {
         let modes = ['First', 'Last', 'Strong', 'Close'];
         if (t.stats.unlocksElite) { modes.push('Elite'); }
         if (t.type === 'spike') { modes = t.stats.smartSpikes ? ['Normal', 'Close', 'Smart'] : ['Normal']; }
+        if (t.type === 'village') { 
+            if (t.upgrades[0] < 5) return; // No targeting for Village without 5-x-x
+            modes = ['First', 'Last', 'Strong', 'Close']; 
+        }
         let idx = modes.indexOf(t.targetingMode);
         if (idx === -1) idx = 0; 
         idx = (idx + direction + modes.length) % modes.length; 
@@ -443,6 +468,9 @@ export const GameEngine = {
         if (t.stats.isHero && mk['ability_discipline'] && slot === 2) cdMult *= 0.90;
         // MK: Ability Mastery (Hero Level 3 Ability -30% cd at Level 20)
         if (t.stats.isHero && mk['ability_mastery'] && slot === 1 && t.level >= 20) cdMult *= 0.70;
+
+        // Village: Primary Mentoring / Expertise ability cooldown reduction
+        if (t.abilityCdMult) cdMult *= t.abilityCdMult;
 
         if (slot === 1 && t.stats.isAbility && t.abilityCooldown <= 0 && behavior.ability) {
             behavior.ability(t, this);
@@ -647,6 +675,9 @@ export const GameEngine = {
             if (!t) continue;
             t.buffedRange = 0; t.buffedFireRate = 0; t.buffedCamo = false; t.buffedLead = false;
             t.discount = 0; t.buffedDmg = 0; t.buffedPierce = 0; t.buffedValueMult = 0;
+            // Reset Village Path 1 specific buffs so they can be reapplied
+            t.buffedProjSpeed = 1.0; 
+            t.abilityCdMult = 1.0;
         }
         this.hasIceShardTower = false; this.hasLeakingEnemy = false;
         if (this.map) {
