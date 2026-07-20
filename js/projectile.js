@@ -1,5 +1,4 @@
-﻿// projectile.js
-import { TowerStats } from './towers/index.js';
+﻿import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
 import { GameEngine } from './engine.js';
@@ -89,7 +88,7 @@ export class Projectile {
 
     _getRadius(type) {
         if (type === 'bomb') return 8;
-        if (type === 'spike') return 10;
+        if (type === 'spike' || type === 'spike_opult' || type === 'juggernaut' || type === 'ultra_juggernaut') return 10;
         return 5;
     }
 
@@ -113,6 +112,16 @@ export class Projectile {
             case 'mortar_shell': this._updateMortarShell(dt); return;
             case 'boomerang': this._updateBoomerang(dt); break;
             case 'spike': this._updateSpike(dt); break;
+            // PRO FIX: Spike Factory projectiles land on the track, Dart Monkey projectiles fly straight
+            case 'spike_opult':
+            case 'juggernaut':
+            case 'ultra_juggernaut':
+                if (this.tower && this.tower.type === 'spike') {
+                    this._updateSpike(dt);
+                } else {
+                    this._updateStandard(dt);
+                }
+                break;
             default: this._updateStandard(dt); break;
         }
 
@@ -208,15 +217,16 @@ export class Projectile {
     }
 
     _updateSpike(dt) {
-        if (this.targetX !== undefined) {
+        // If targetX/Y are set, fly towards them and land. Otherwise, just sit there.
+        if (this.targetX !== 0 || this.targetY !== 0) {
             let dx = this.targetX - this.x;
             let dy = this.targetY - this.y;
             let distSq = dx * dx + dy * dy;
             if (distSq < 25) { // 5^2
                 this.x = this.targetX;
                 this.y = this.targetY;
-                this.targetX = undefined;
-                this.targetY = undefined;
+                this.targetX = 0;
+                this.targetY = 0;
                 this.speed = 0;
                 this.vx = 0;
                 this.vy = 0;
@@ -305,14 +315,14 @@ export class Projectile {
         for (const e of nearby) {
             if (!e.alive) continue;
             
-            if (this.type !== 'spike' && this.hitEnemies.has(e)) continue;
+            if (this.type !== 'spike' && this.type !== 'spike_opult' && this.type !== 'juggernaut' && this.type !== 'ultra_juggernaut' && this.hitEnemies.has(e)) continue;
             
             if (e.isCamo && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
             
             const eRad = e.radius || e.data.radius || 10;
             if (Utils.withinRange(this.x, this.y, e.x, e.y, eRad + this.radius)) {
                 this.hit(e);
-                if (this.type !== 'spike') this.hitEnemies.add(e);
+                if (this.type !== 'spike' && this.type !== 'spike_opult' && this.type !== 'juggernaut' && this.type !== 'ultra_juggernaut') this.hitEnemies.add(e);
                 if (!this.alive) break;
             }
         }
