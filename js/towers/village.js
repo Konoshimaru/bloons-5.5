@@ -18,7 +18,8 @@ export default {
             {name:"Jungle Drums",cost:1500,stat:"fireRateBuff",amount:0.18,desc:"Increases attack speed of all Monkeys in the radius."},
             {name:"Primary Training",cost:800,desc:"All Primary Monkeys in radius get more range, pierce and projectile speed."},
             {name:"Primary Mentoring",cost:2500,desc:"All Primary Monkeys in radius get tier 1 upgrades for free, increased range and reduced ability cooldowns."},
-            {name:"Primary Expertise",cost:25000,stat:"damage",amount:10,desc:"Adds Mega Ballista attack, plus all Primary Monkeys in radius get more popping power and tier 1 and 2 upgrades for free.", extraMods:{fireRate: 2.5, pierce: 100, dmgType: 'energy', range: 8}}
+            // FIX 4: Added bonusCeramic to extraMods so it applies to tower.stats.bonusCeramic
+            {name:"Primary Expertise",cost:25000,stat:"damage",amount:10,desc:"Adds Mega Ballista attack, plus all Primary Monkeys in radius get more popping power and tier 1 and 2 upgrades for free.", extraMods:{fireRate: 2.5, pierce: 100, dmgType: 'energy', range: 8, bonusCeramic: 190}}
         ],
         2: [
             {name:"Grow Blocker",cost:250,desc:"Prevents Regrow Bloons from working while in the radius of the Village."},
@@ -117,21 +118,8 @@ export default {
                     t.addBuff('mib', 'MIB', 0.5, 1, { type: 'mib' }, false);
                 }
 
-                // Call to Arms / Homeland Defense Ability Check
-                if (t.abilityActiveTime > 0) {
-                    let isHomeland = tower.upgrades[1] === 5;
-                    t.buffedFireRate = Math.max(t.buffedFireRate, isHomeland ? 1.0 : 0.5);
-                    
-                    let pierceBuffAmount = (t.stats.pierce || 1) * (isHomeland ? 1.0 : 0.5);
-                    if (pierceBuffAmount > 0) {
-                        let existingBuff = t.activeBuffs.find(b => b.id === 'cta');
-                        if (!existingBuff || existingBuff.data.pierce < pierceBuffAmount) {
-                            let buffDuration = isHomeland ? 20 : 15;
-                            if (mk['to_arms']) buffDuration += 3;
-                            t.addBuff('cta', 'Call to Arms', buffDuration, 1, { type: 'cta', pierce: Math.floor(pierceBuffAmount) }, false);
-                        }
-                    }
-                }
+                // FIX 5: Removed redundant Call to Arms / Homeland Defense Ability Check from updateSupport.
+                // The global cast in ability() handles this correctly.
             }
         }
     },
@@ -139,8 +127,31 @@ export default {
     update(tower, dt) {
         const effRange = tower.stats.range * RANGE_SCALE;
 
+        // FIX 3: Monkey City free Dart Monkey (0-0-4) on wave start
+        if (tower.upgrades[2] >= 4) {
+            if (!tower._waveActive && GameEngine.waveManager.waveActive) {
+                tower._waveActive = true;
+                if (GameEngine.waveManager.currentWave > 0 && !tower._freeDartSpawnedThisWave) {
+                    tower._freeDartSpawnedThisWave = true;
+                    let angle = Math.random() * Math.PI * 2;
+                    let dist = 45;
+                    let x = tower.x + Math.cos(angle) * dist;
+                    let y = tower.y + Math.sin(angle) * dist;
+                    // Basic placement validation
+                    let canPlace = !GameEngine.map.isOnPath(x, y) && !GameEngine.map.isOnProp(x, y) && y < 720 && x < 1280 - 300;
+                    if (canPlace) {
+                        let t = new Tower(x, y, 'dart');
+                        GameEngine.towers.push(t);
+                        GameEngine.log("Monkey City: Free Dart Monkey placed!");
+                    }
+                }
+            } else if (tower._waveActive && !GameEngine.waveManager.waveActive) {
+                tower._waveActive = false;
+                tower._freeDartSpawnedThisWave = false;
+            }
+        }
+
         // Income Generation (Monkeyopolis) - Spawns Huge Bananas!
-        // Splits the total income into 5 crates per round (spawning every 6 seconds)
         if (tower.upgrades[2] >= 5 && tower.stats.income) {
             tower.incomeTimer = (tower.incomeTimer || 0) - dt;
             if (tower.incomeTimer <= 0) {
@@ -223,7 +234,8 @@ export default {
                 }
                 if (target) {
                     let p = GameEngine.projectilePool.get();
-                    p.init(tower.x, tower.y - 20, 10, target, 'nail', 800, 100, 10.0, null, { homing: true, moabDmg: 190, bonusCeramic: 190, ricochet: 5, ricochetRange: 150 }, 0, tower, { isEnergy: true, canHitLead: true });
+                    // FIX 4: Moved moabDmg to dmgType object, removed bonusCeramic from effects (it's now on tower.stats)
+                    p.init(tower.x, tower.y - 20, 10, target, 'nail', 800, 100, 10.0, null, { homing: true, ricochet: 5, ricochetRange: 150 }, 0, tower, { isEnergy: true, canHitLead: true, moabDmg: 190 });
                 }
             }
         }

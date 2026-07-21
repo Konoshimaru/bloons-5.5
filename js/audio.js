@@ -1,6 +1,4 @@
-﻿// audio.js
-// Handles music and sound effect playback for the game.
-
+﻿// js/audio.js
 import { Config } from './config.js';
 
 const SFX_VOLUME_MODIFIER = 0.1;
@@ -10,13 +8,19 @@ const SHOOT_THROTTLE_MS = 30;
 const HIT_THROTTLE_MS = 100; // Prevents hit sounds from queueing up
 const DEFAULT_GAME_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
 const MENU_PLAYLIST = ['music/mainmenu_1.mp3', 'music/mainmenu_2.mp3'];
+
+// FIX 3: Added Sauda SFX to the map so they get preloaded and pooled
 const SFX_ASSET_MAP = {
     pop: ['pop1.mp3', 'pop2.mp3', 'pop3.mp3', 'pop4.mp3'],
     moab_destroy: ['moab_destroy1.mp3', 'moab_destroy2.mp3', 'moab_destroy3.mp3'],
     moab_hit: ['moab_hit1.mp3', 'moab_hit2.mp3', 'moab_hit3.mp3'],
     ceramic_hit: ['ceramic_hit.mp3'],
     frozen_hit: ['frozen_hit.mp3'],
-    lead_hit: ['lead_hit.mp3']
+    lead_hit: ['lead_hit.mp3'],
+    sauda_attack: ['Sauda_attack_1.mp3', 'Sauda_attack_2.mp3', 'Sauda_attack_3.mp3', 'Sauda_attack_4.mp3', 'Sauda_attack_5.mp3'],
+    sauda_leap_activate: ['LeapingSword_activate.mp3'],
+    sauda_leap_landing: ['LeapingSword_landing.mp3'],
+    sauda_charge: ['SwordCharge.mp3']
 };
 
 let ctx = null;

@@ -13,7 +13,8 @@ export default {
         damage: 1, pierce: 2, projectileSpeed: 350,
         lifespan: 0.5, desc: "Shoots a single dart. Low range, but cheap.",
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 18,
-        projectileCount: 1
+        projectileCount: 1,
+        category: 'Primary' // FIX 1
     },
     upgrades: {
         1: [
@@ -59,14 +60,12 @@ export default {
         }
         for(let i=0; i<count; i++) {
             let p = GameEngine.projectilePool.get();
-            p.init(tower.x, tower.y, damage, target, projType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 15 * (i - (count-1)/2), tower, dmgType);
-            p.isCrit = isCrit;
+            p.init(tower.x, tower.y, damage, target, projType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 15 * (i - (count-1)/2), tower, dmgType, isCrit);
         }
     },
     draw(ctx, tower, isPreview) {
         ctx.save(); ctx.translate(tower.x, tower.y);
         
-        // Fan Club Buff visual (temporary transformation)
         if (tower.fanClubBuffTimer > 0) {
             const s = (tower.stats.scale || 1.0) * GS;
             ctx.fillStyle = '#34495e'; ctx.beginPath(); ctx.arc(0, 0, 15 * s, 0, Math.PI * 2); ctx.fill();
@@ -81,7 +80,6 @@ export default {
         const { baseAsset, armAsset, targetSize, isCustomBase } = tower.getActiveAssets();
         const catapultAsset = Assets.get('tower_dart_catapult');
         
-        // Helper to get correct size and offset from SpriteConfig
         const getDrawParams = (key) => {
             let bestTier = 0, bestPath = 0;
             for (let p = 1; p <= 3; p++) {
@@ -93,7 +91,6 @@ export default {
             return { size, x: off.x || 0, y: off.y || 0 };
         };
 
-        // Full body attack animation
         if (tower.attackAnimActive && tower.isFullAnim) {
             let animAsset = Assets.get(`${tower.attackPrefix}attack_full_${tower.attackAnimFrame}`);
             if (animAsset && animAsset.loaded) {
@@ -121,14 +118,12 @@ export default {
             }
         }
         
-        // Normal arm animation
         let activeArmAsset = armAsset;
         if (tower.attackAnimActive && !tower.isFullAnim) { 
             let animAsset = Assets.get(`${tower.attackPrefix}attack_${tower.attackAnimFrame}`); 
             if (animAsset && animAsset.loaded) { activeArmAsset = animAsset; } 
         }
         
-        // Catapult base override
         let useCustomBase = baseAsset && baseAsset.loaded && baseAsset !== Assets.get('tower_dart_base');
         if (tower.upgrades[0] >= 3 && !useCustomBase && catapultAsset && catapultAsset.loaded) { 
             const p = getDrawParams('base');
@@ -137,7 +132,6 @@ export default {
             ctx.restore(); return; 
         }
         
-        // Standard base + arm drawing using SpriteConfig
         if (baseAsset && baseAsset.loaded) {
             ctx.rotate(tower.angle + Math.PI / 2);
             
@@ -150,7 +144,7 @@ export default {
                 for (let i=1; i<=3; i++) { 
                     let t = tower.upgrades[i-1]; 
                     if (t > 0) { 
-                        let ovAsset = Assets.get(`tower_dart_p${i}_t${i}_a`); // Check for arm overlay
+                        let ovAsset = Assets.get(`tower_dart_p${i}_t${i}_a`); 
                         if (ovAsset && ovAsset.loaded) { 
                             const op = getDrawParams('base'); 
                             drawImageCentered(ctx, ovAsset, op.size, op.x, op.y); 
@@ -177,7 +171,6 @@ export default {
             ctx.restore(); return;
         }
         
-        // Fully sprited, no canvas fallback needed
         ctx.restore();
     }
 };

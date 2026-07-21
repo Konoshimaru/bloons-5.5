@@ -23,6 +23,16 @@ const dom = {
     shopHeader: document.getElementById('shop-header')
 };
 
+// FIX 2: Cache sidebar rect to avoid layout thrashing in nudge logic
+let cachedSidebarRect = null;
+function getSidebarRect() {
+    if (!cachedSidebarRect) {
+        cachedSidebarRect = document.getElementById('sidebar').getBoundingClientRect();
+    }
+    return cachedSidebarRect;
+}
+window.addEventListener('resize', () => { cachedSidebarRect = null; });
+
 export function updateShopPrices() {
     const costMod = GameEngine.difficulty ? GameEngine.difficulty.costMod : 1.0;
     dom.towerCards.forEach(card => {
@@ -153,7 +163,7 @@ export function setupShopListeners() {
                 window.removeEventListener('pointerup', onUp);
 
                 if (isDragging) {
-                    const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
+                    const sidebarRect = getSidebarRect();
 
                     if (ev.clientX >= sidebarRect.left && ev.clientX <= sidebarRect.right) {
                         GameEngine.deselectAll();
@@ -250,8 +260,9 @@ export function setupNudgeLogic() {
     let isCanvasDragging = false;
     let nudgeStart = {};
 
+    // FIX 2: Use cached InputManager.canvasRect instead of calling getBoundingClientRect() on every move
     const getCanvasPos = (clientX, clientY) => {
-        const rect = GameEngine.canvas.getBoundingClientRect();
+        const rect = (window.InputManager && window.InputManager.canvasRect) ? window.InputManager.canvasRect : GameEngine.canvas.getBoundingClientRect();
         const scaleX = GameEngine.canvas.width / rect.width;
         const scaleY = GameEngine.canvas.height / rect.height;
         return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
@@ -266,7 +277,7 @@ export function setupNudgeLogic() {
         }
         
         if (GameEngine.selectedTowerType && GameEngine.stuckPlacement) {
-            const rect = GameEngine.canvas.getBoundingClientRect();
+            const rect = (window.InputManager && window.InputManager.canvasRect) ? window.InputManager.canvasRect : GameEngine.canvas.getBoundingClientRect();
             const scaleX = GameEngine.canvas.width / rect.width;
             const scaleY = GameEngine.canvas.height / rect.height;
             const mx = (e.clientX - rect.left) * scaleX;
@@ -311,7 +322,7 @@ export function setupNudgeLogic() {
         if (GameEngine.gameState !== 'playing' || !GameEngine.selectedTowerType) return;
 
         const pos = getCanvasPos(e.clientX, e.clientY);
-        const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
+        const sidebarRect = getSidebarRect();
         const overSidebar = (e.clientX >= sidebarRect.left && e.clientX <= sidebarRect.right);
 
         if (isNudging) {
@@ -358,7 +369,7 @@ export function setupNudgeLogic() {
         }
 
         const pos = getCanvasPos(e.clientX, e.clientY);
-        const sidebarRect = document.getElementById('sidebar').getBoundingClientRect();
+        const sidebarRect = getSidebarRect();
         const overSidebar = (e.clientX >= sidebarRect.left && e.clientX <= sidebarRect.right);
 
         if (overSidebar) {
@@ -374,7 +385,7 @@ export function setupNudgeLogic() {
             GameEngine._ignoreNextClick = true; // Prevent native click from firing
             
             // Attempt to place at the NUDGED position!
-            const rect = GameEngine.canvas.getBoundingClientRect();
+            const rect = (window.InputManager && window.InputManager.canvasRect) ? window.InputManager.canvasRect : GameEngine.canvas.getBoundingClientRect();
             const scaleX = GameEngine.canvas.width / rect.width;
             const scaleY = GameEngine.canvas.height / rect.height;
             const fakeClientX = rect.left + (GameEngine.stuckPlacement.x / scaleX);

@@ -16,7 +16,8 @@ export default {
         dmgType: 'ice', projectileType: 'ice', hitRadius: 18,
         isStaticRotation: true,
         freezeDuration: 1.5,
-        canPlaceOnWater: true 
+        canPlaceOnWater: true,
+        category: 'Primary' // FIX 1
     },
     upgrades: {
         1: [
@@ -58,7 +59,7 @@ export default {
     },
     update(tower, dt) {
         if (tower.stats.arcticWind) {
-            const auraRange = tower.stats.range * RANGE_SCALE * GS;
+            const auraRange = Utils.getEffectiveRange(tower, GameEngine);
             const slowFactor = tower.stats.arcticSlowFactor || 0.6; 
             const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, auraRange);
             for (let e of nearby) {
@@ -81,7 +82,7 @@ export default {
             tower._icicleTick = (tower._icicleTick || 0) - dt;
             if (tower._icicleTick <= 0) {
                 tower._icicleTick = 0.3;
-                const range = tower.stats.range * RANGE_SCALE * GS;
+                const range = Utils.getEffectiveRange(tower, GameEngine);
                 const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, range);
                 for (let e of nearby) {
                     if (!e.alive || !e.isFrozen) continue;
@@ -125,7 +126,7 @@ export default {
                 superBrittle: tower.stats.superBrittle || false,
                 freezeDurationStat: tower.stats.freezeDuration || 1.5
             };
-            p.init(tower.x, tower.y, damage, target, 'icicle', 1500, tower.stats.pierce, 0.8, null, impaleEffects, 0, tower, impaleDmgType);
+            p.init(tower.x, tower.y, damage, target, 'icicle', 1500, tower.stats.pierce, 0.8, null, impaleEffects, 0, tower, impaleDmgType, isCrit);
             return;
         }
         if (tower.stats.cryoCannon) {
@@ -145,11 +146,11 @@ export default {
                 moabDmg: tower.stats.moabDmg || 0,
                 isCryoBomb: true
             };
-            p.init(tower.x, tower.y, damage, target, 'ice_bomb', 500, 1, 0.5, null, bombEffects, 0, tower, dmgType);
+            p.init(tower.x, tower.y, damage, target, 'ice_bomb', 500, 1, 0.5, null, bombEffects, 0, tower, dmgType, isCrit);
             return;
         }
         
-        let expRadius = tower.stats.range * RANGE_SCALE * GS;
+        let expRadius = Utils.getEffectiveRange(tower, GameEngine);
         GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#1abc9c' });
         const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius);
         let hits = 0;
@@ -169,14 +170,14 @@ export default {
                     e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0;
                     e.isCamo = false; e.isRegen = false;
                     e.permafrostSlow = 0.75; 
-                    let moabDmg = e.takeDamage(5, { isExplosion: true, canHitLead: true });
+                    let moabDmg = e.takeDamage(5, { isExplosion: true, canHitLead: true }, null, tower);
                     if (!isNaN(moabDmg) && moabDmg !== -1) tower.damageDealt += moabDmg;
                 } else if (tower.stats.embrittlement) {
                     e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 4.0;
                     e.isCamo = false; e.isRegen = false;
                     if (e.data.isDDT) e.leadStripped = true;
                 } else if (tower.stats.icicles) {
-                    let moabDmg = e.takeDamage(tower.stats.moabDmg || 8, { isExplosion: true, canHitLead: true });
+                    let moabDmg = e.takeDamage(tower.stats.moabDmg || 8, { isExplosion: true, canHitLead: true }, null, tower);
                     if (!isNaN(moabDmg) && moabDmg !== -1) tower.damageDealt += moabDmg;
                 }
                 continue;
@@ -202,10 +203,10 @@ export default {
                     e.isCamo = false; e.isRegen = false;
                     e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0;
                     if (e.data.isLead) e.leadStripped = true;
-                    let dmg = e.takeDamage(5, { isExplosion: true, canHitLead: true });
+                    let dmg = e.takeDamage(5, { isExplosion: true, canHitLead: true }, null, tower);
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                 } else {
-                    let dmg = e.takeDamage(damage, dmgType, effects);
+                    let dmg = e.takeDamage(damage, dmgType, effects, tower);
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                 }
                 if (tower.stats.permafrost) e.permafrostSlow = 0.5; 

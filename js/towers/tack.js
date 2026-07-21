@@ -9,7 +9,8 @@ export default {
         lifespan: 0.35, desc: "Shoots a volley of tacks in 8 directions.", 
         dmgType: 'sharp', projectileType: 'tack', hitRadius: 18, 
         isStaticRotation: true, 
-        tackCount: 8 
+        tackCount: 8,
+        category: 'Primary' // FIX 1
     },
     upgrades: {
         1: [
@@ -41,7 +42,6 @@ export default {
             const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius);
             for (let e of nearby) {
                 if (!e.alive) continue;
-                // PRO FIX: Use withinRange for sqrt removal
                 if (Utils.withinRange(tower.x, tower.y, e.x, e.y, expRadius)) {
                     e.takeDamage(damage, dmgType, effects);
                     if (tower.upgrades[0] >= 5) {
@@ -57,7 +57,7 @@ export default {
         for (let i = 0; i < count; i++) {
             let angle = (i / count) * Math.PI * 2;
             let p = GameEngine.projectilePool.get();
-            p.init(tower.x, tower.y, damage, null, projType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, angle, effects, 0, tower, dmgType);
+            p.init(tower.x, tower.y, damage, null, projType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, angle, effects, 0, tower, dmgType, isCrit);
         }
     },
     ability(tower, engine) {
@@ -75,7 +75,6 @@ export default {
         engine.log(isSuper ? "Super Maelstrom Activated!" : "Blade Maelstrom Activated!");
     },
     draw(ctx, tower, isPreview) {
-        // Fully sprited, no canvas fallback needed
         tower.drawBaseTower(ctx, isPreview);
     }
 };

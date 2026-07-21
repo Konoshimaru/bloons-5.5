@@ -250,8 +250,8 @@ export const Renderer = {
         ctx.globalAlpha = 0.6;
 
         if (stats.range < 9999) {
-            const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
-            const effRange = Math.max(1, stats.range * RANGE_SCALE * nightMod * GS);
+            // FIX: Use unified getEffectiveRange
+            const effRange = Math.max(1, Utils.getEffectiveRange({ stats }, engine));
             ctx.fillStyle = canAfford ? TOWER_AFFORDABLE_COLOR : TOWER_OUT_OF_BOUNDS_COLOR;
             ctx.beginPath(); ctx.arc(previewX, previewY, effRange, 0, Math.PI * 2); ctx.fill();
         }
@@ -308,11 +308,8 @@ export const Renderer = {
         ctx.beginPath(); ctx.arc(t.x, t.y, Math.max(1, t.hitRadius + TOWER_HIT_RADIUS_PADDING), 0, Math.PI * 2); ctx.stroke();
 
         if (t.stats.range < 9999) {
-            const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
-            const buffMult = typeof t.buffedRange === 'number' ? t.buffedRange : 0;
-            const alchBuff = t.alchBuff ? t.alchBuff.range : 0;
-            const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
-            const effRange = Math.max(1, t.stats.range * scale * (1 + buffMult + alchBuff) * nightMod * GS);
+            // FIX: Use unified getEffectiveRange
+            const effRange = Math.max(1, Utils.getEffectiveRange(t, engine));
 
             ctx.fillStyle = TOWER_RANGE_FILL_COLOR; ctx.globalAlpha = TOWER_SELECTION_FILL_ALPHA;
             ctx.beginPath(); ctx.arc(t.x, t.y, effRange, 0, Math.PI * 2); ctx.fill();

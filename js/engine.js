@@ -244,16 +244,33 @@ export const GameEngine = {
 
     saveGame() {
         if (this.gameState !== 'playing' && this.gameState !== 'paused') return;
-        const state = { mapIndex: this.currentMap, difficulty: this.difficulty.name, lives: this.lives, cash: this.cash, wave: this.waveManager.currentWave,
-            towers: this.towers.map(t => ({ x: t.x, y: t.y, type: t.type, upgrades: [...t.upgrades], targeting: t.targetingMode, heroLevel: t.level || 0 })) };
-        Config.data.savedRun = state; Config.save();
+        // FIX: Store the actual difficulty key to prevent reconstruction issues
+        const state = { 
+            mapIndex: this.currentMap, 
+            difficultyKey: Config.data.currentDifficulty, 
+            lives: this.lives, 
+            cash: this.cash, 
+            wave: this.waveManager.currentWave,
+            towers: this.towers.map(t => ({ x: t.x, y: t.y, type: t.type, upgrades: [...t.upgrades], targeting: t.targetingMode, heroLevel: t.level || 0 })) 
+        };
+        Config.data.savedRun = state; 
+        Config.save();
     },
 
     loadGame() {
         if (!Config.data.savedRun) return false;
         const state = Config.data.savedRun;
         this.currentMap = state.mapIndex;
-        Config.data.currentDifficulty = state.difficulty.toLowerCase().replace(/\s+/g, '');
+        
+        // FIX: Use stored difficultyKey, fallback to legacy string manipulation for old saves
+        if (state.difficultyKey) {
+            Config.data.currentDifficulty = state.difficultyKey;
+        } else if (state.difficulty) {
+            Config.data.currentDifficulty = state.difficulty.toLowerCase().replace(/\s+/g, '');
+        } else {
+            Config.data.currentDifficulty = 'medium';
+        }
+        
         this.startGame(false);
         this.lives = state.lives; this.cash = state.cash;
         this.waveManager.currentWave = state.wave - 1;
@@ -266,7 +283,8 @@ export const GameEngine = {
             if (t.stats.isHero && tData.heroLevel > 1) { while (t.level < tData.heroLevel) t.levelUp(); }
             this.towers.push(t);
         }
-        this.updateUI(); return true;
+        this.updateUI(); 
+        return true;
     },
 
     abandonRun() {
@@ -309,8 +327,6 @@ export const GameEngine = {
         const scaleY = this.canvas.height / rect.height;
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
-
-        // ... rest of handleCanvasClick remains exactly the same
 
         if (this.gameState === 'menu') {
             for (let i = this.menuClickables.length - 1; i >= 0; i--) {
@@ -706,16 +722,15 @@ export const GameEngine = {
                 const b = t.bananas[i];
                 if (b.progress < 1) continue;
                 
-                const dx = this.mouse.x - b.x;
-                const dy = this.mouse.y - b.y;
-                const distSq = dx * dx + dy * dy;
+                // FIX: Use Utils.distanceSq instead of inline math
+                const distSq = Utils.distanceSq(this.mouse.x, b.x, this.mouse.y, b.y);
                 const range = t.stats.collectionRange || 40;
                 
                 if (distSq < range * range) {
                     const dist = Math.sqrt(distSq) || 1;
                     const speed = 500 * dt;
-                    b.x += (dx / dist) * speed;
-                    b.y += (dy / dist) * speed;
+                    b.x += ((this.mouse.x - b.x) / dist) * speed;
+                    b.y += ((this.mouse.y - b.y) / dist) * speed;
                     if (dist < 15) {
                         this.addCash(b.value); t.cashGenerated = (t.cashGenerated || 0) + b.value;
                         AudioEngine.playSfx('cash'); t.bananas.splice(i, 1);

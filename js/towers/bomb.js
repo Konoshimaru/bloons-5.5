@@ -9,7 +9,8 @@ export default {
         explosionRadius: 36, explosionDamage: 1, explosionPierce: 40, 
         lifespan: 1.0, canHitLead: true, 
         desc: "Launches a powerful bomb at the Bloons. Slow rate of fire but affects a radius around the explosion.", 
-        dmgType: 'explosion', hitRadius: 18 
+        dmgType: 'explosion', hitRadius: 18,
+        category: 'Primary' // FIX 1
     },
     upgrades: {
         1: [ 
@@ -36,6 +37,6 @@ export default {
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
         let p = GameEngine.projectilePool.get();
-        p.init(tower.x, tower.y, damage, target, 'bomb', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, null, 0, tower, dmgType);
+        p.init(tower.x, tower.y, damage, target, 'bomb', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType, isCrit);
     }
 };

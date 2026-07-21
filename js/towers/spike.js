@@ -65,7 +65,7 @@ export default {
         }
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
-        const range = tower.stats.range * RANGE_SCALE * (1 + tower.buffedRange);
+        const range = Utils.getEffectiveRange(tower, GameEngine);
         const trackPoints = GameEngine.map.getTrackPointsInRange(tower.x, tower.y, range);
         
         let placeX = tower.x;

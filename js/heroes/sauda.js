@@ -4,6 +4,7 @@ import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { Config, RANGE_SCALE } from '../config.js';
 import { GLOBAL_SCALE } from '../constants.js';
+import { AudioEngine } from '../audio.js'; // FIX 3: Import AudioEngine
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -17,17 +18,6 @@ export const SlashConfig = {
 
 // --- SFX HELPER ---
 let lastSaudaAttackSfx = 0;
-function playSaudaSfx(file) {
-    const now = performance.now();
-    if (file.startsWith('Sauda_attack_') && now - lastSaudaAttackSfx < 100) return;
-    if (file.startsWith('Sauda_attack_')) lastSaudaAttackSfx = now;
-    
-    try {
-        const audio = new Audio(`sfx/${file}.mp3`);
-        audio.volume = (Config.data.sfxVolume ?? 0.5) * 0.75; 
-        audio.play().catch(e => console.warn("SFX blocked:", e));
-    } catch (e) {}
-}
 
 export default {
     stats: {
@@ -136,7 +126,6 @@ export default {
                         if (shadow.hitSet.has(e)) continue;
                         if (shadow.hitSet.size >= pierce) break;
                         
-                        // PRO FIX: Use withinRange
                         if (Utils.withinRange(pos.x, pos.y, e.x, e.y, chargeRadius)) {
                             let stunned = e.slowFactor <= 0.01;
                             let harmed = (e.slowFactor > 0.01 && e.slowFactor < 1.0) || (e.dotTimer > 0 && e.saudaBleed !== true);
@@ -176,7 +165,6 @@ export default {
                     let hits = 0;
                     for (let e of nearby) {
                         if (!e.alive || hits >= 5) continue;
-                        // PRO FIX: Use withinRange
                         if (Utils.withinRange(tower.aftersword.x, tower.aftersword.y, e.x, e.y, 15)) {
                             if (tower.aftersword.hitTimers.has(e) && tower.aftersword.hitTimers.get(e) > 0) continue;
                             
@@ -283,7 +271,7 @@ export default {
         if (tower.chargeLockout > 0) return; 
         
         tower.leapLockout = 0.5;
-        playSaudaSfx('LeapingSword_activate'); 
+        AudioEngine.playSfx('sauda_leap_activate'); // FIX 3: Routed through AudioEngine
 
         let target = null;
         let bestVal = (tower.targetingMode === 'First' || tower.targetingMode === 'Strong') ? -Infinity : Infinity;
@@ -306,7 +294,6 @@ export default {
             
             for (let e of leapNearby) {
                 if (!e.alive || hits >= maxHits) continue;
-                // PRO FIX: Use withinRange
                 if (Utils.withinRange(target.x, target.y, e.x, e.y, 15)) {
                     let stunned = e.slowFactor <= 0.01;
                     let harmed = (e.slowFactor > 0.01 && e.slowFactor < 1.0) || (e.dotTimer > 0 && e.saudaBleed !== true);
@@ -335,7 +322,7 @@ export default {
                 hitTimers: new Map()
             };
             
-            setTimeout(() => playSaudaSfx('LeapingSword_landing'), 500);
+            setTimeout(() => AudioEngine.playSfx('sauda_leap_landing'), 500); // FIX 3: Routed through AudioEngine
             
             engine.log("Sauda: Leaping Sword!");
         }
@@ -361,7 +348,7 @@ export default {
             });
         }
         
-        playSaudaSfx('SwordCharge'); 
+        AudioEngine.playSfx('sauda_charge'); // FIX 3: Routed through AudioEngine
         engine.log("Sauda: Sword Charge!");
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
@@ -369,7 +356,7 @@ export default {
         
         if (!target) return;
         
-        const actualRange = tower.stats.range * RANGE_SCALE * GS;
+        const actualRange = Utils.getEffectiveRange(tower, GameEngine);
         const centerAngle = Utils.angle(tower.x, tower.y, target.x, target.y);
         const halfCone = Math.PI / 2; 
         
@@ -380,7 +367,6 @@ export default {
             if (!e.alive || hits >= tower.stats.pierce) continue;
             if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
             
-            // PRO FIX: Use withinRange to skip out-of-range enemies
             if (!Utils.withinRange(tower.x, tower.y, e.x, e.y, actualRange)) continue;
             
             const angleToEnemy = Utils.angle(tower.x, tower.y, e.x, e.y);
@@ -426,7 +412,7 @@ export default {
                     e.saudaBleed = true; 
                 }
                 
-                let dmgDealt = e.takeDamage(dmg, actualDmgType, fx);
+                let dmgDealt = e.takeDamage(dmg, actualDmgType, fx, tower);
                 if (dmgDealt > 0) tower.damageDealt += dmgDealt;
                 hits++;
                 
@@ -448,8 +434,12 @@ export default {
         }
         
         if (hits > 0) {
-            const attackNum = Math.floor(Math.random() * 5) + 1;
-            playSaudaSfx(`Sauda_attack_${attackNum}`);
+            // FIX 3: Throttle attack SFX and route through AudioEngine
+            const now = performance.now();
+            if (now - lastSaudaAttackSfx > 100) {
+                lastSaudaAttackSfx = now;
+                AudioEngine.playSfx('sauda_attack');
+            }
         }
         
         if (!tower.stats.isStaticRotation) {

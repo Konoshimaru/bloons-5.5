@@ -92,7 +92,6 @@ export class Enemy {
             this._usedModifierSprite = false;
         }
         
-        // PRO FIX: Cache sprite draw dimensions to avoid per-frame math
         if (this._spriteAsset && this._spriteAsset.loaded) {
             const targetSize = (this.data.size || (this.data.radius * 2)) * GS;
             const maxDim = Math.max(this._spriteAsset.width, this._spriteAsset.height);
@@ -100,7 +99,6 @@ export class Enemy {
             this._spriteW = this._spriteAsset.width * scale;
             this._spriteH = this._spriteAsset.height * scale;
         } else {
-            // Fallback dimensions if asset not loaded
             this._spriteW = (this.data.radius || 10) * 2 * GS;
             this._spriteH = (this.data.radius || 10) * 2 * GS;
         }
@@ -133,14 +131,12 @@ export class Enemy {
             this._maxHp *= 2;
         }
         
-        // --- MONKEY KNOWLEDGE: Big Bloon Sabotage ---
         if (this.data.isMoab) {
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             if (mk['big_bloon_sabotage']) {
-                this._maxHp = Math.floor(this._maxHp * 0.90); // 10% less HP
+                this._maxHp = Math.floor(this._maxHp * 0.90);
             }
         }
-        // ---------------------------------------------
         
         if (this.isSuperCeramic) {
             if (this.tier === 12) { 
@@ -239,7 +235,6 @@ export class Enemy {
             this.alive = false;
             let lost = this.getLivesLost();
             if (isFinite(lost) && lost > 0) {
-                // MK: Mana Shield absorbs leaks first
                 if (GameEngine.manaShield > 0) {
                     const absorbed = Math.min(GameEngine.manaShield, lost);
                     GameEngine.manaShield -= absorbed;
@@ -308,7 +303,8 @@ export class Enemy {
         }
     }
 
-    giveCash(canSpawn = true) {
+    // FIX 2: Added killerTower parameter to giveCash to apply Monkey Town's buffedCashMult
+    giveCash(canSpawn = true, killerTower = null) {
         let childRbeTotal = 0;
         if (this.data.splitsInto) {
             for (const child of this.data.splitsInto) {
@@ -325,6 +321,10 @@ export class Enemy {
         else if (round >= 86) cashMult = 0.10;
         else if (round >= 61) cashMult = 0.20;
         else if (round >= 51) cashMult = 0.50;
+
+        if (killerTower && killerTower.buffedCashMult > 0) {
+            cashMult += killerTower.buffedCashMult;
+        }
 
         const layerCash = Math.max(1, Math.floor((this.data.rbe - childRbeTotal) * CASH_REWARD_MODIFIER * cashMult));
         GameEngine.addCash(layerCash);
@@ -390,7 +390,8 @@ export class Enemy {
         }
     }
 
-    takeDamage(damage, dmgType, effects) {
+    // FIX 2: Added killerTower parameter to takeDamage and threaded it through to giveCash
+    takeDamage(damage, dmgType, effects, killerTower = null) {
         if (!dmgType) dmgType = {};
         if (!effects) effects = {};
         if (isNaN(damage)) damage = 0;
@@ -405,7 +406,7 @@ export class Enemy {
         
         if (effects.instakill && !this.data.isMoab && !this.data.isBAD) {
             this.alive = false;
-            this.giveCash(true);
+            this.giveCash(true, killerTower);
             GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
             AudioEngine.playSfx('pop');
             return 999;
@@ -446,11 +447,11 @@ export class Enemy {
         
         const canSpawn = GameEngine.enemies.length < 3500;
 
-        if (this.data.isMoab) return this._handleMoabDamage(damage, dmgType, effects, canSpawn);
-        if (this.data.isCeramic) return this._handleCeramicDamage(damage, dmgType, effects, canSpawn);
-        if (this.data.isLead && this.isFortified) return this._handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn);
-        if (this.data.splitsInto) return this._handleSplitDamage(damage, dmgType, effects, canSpawn);
-        return this._handleStandardDamage(damage, dmgType, effects);
+        if (this.data.isMoab) return this._handleMoabDamage(damage, dmgType, effects, canSpawn, killerTower);
+        if (this.data.isCeramic) return this._handleCeramicDamage(damage, dmgType, effects, canSpawn, killerTower);
+        if (this.data.isLead && this.isFortified) return this._handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn, killerTower);
+        if (this.data.splitsInto) return this._handleSplitDamage(damage, dmgType, effects, canSpawn, killerTower);
+        return this._handleStandardDamage(damage, dmgType, effects, killerTower);
     }
 
     _isImmune(dmgType, effects) {
@@ -475,14 +476,14 @@ export class Enemy {
         return false;
     }
 
-    _handleMoabDamage(damage, dmgType, effects, canSpawn) {
+    _handleMoabDamage(damage, dmgType, effects, canSpawn, killerTower) {
         const previousHp = this.hp;
         const dmgDealt = Math.max(0, Math.min(this.hp, damage));
         this.hp -= damage;
         
         if (this.hp <= 0) {
             this.alive = false;
-            this.giveCash(canSpawn);
+            this.giveCash(canSpawn, killerTower);
             GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
             AudioEngine.playSfx('moab_destroy');
             
@@ -504,7 +505,7 @@ export class Enemy {
         return Math.ceil(dmgDealt);
     }
 
-    _handleCeramicDamage(damage, dmgType, effects, canSpawn) {
+    _handleCeramicDamage(damage, dmgType, effects, canSpawn, killerTower) {
         const shellHp = this.hp;
         const dmgDealt = Math.max(0, Math.min(this.hp, damage));
         this.hp -= damage;
@@ -513,7 +514,7 @@ export class Enemy {
             if (this.isFrozen) this._spawnIceShards();
             
             this.alive = false;
-            this.giveCash(canSpawn);
+            this.giveCash(canSpawn, killerTower);
             GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
             AudioEngine.playSfx('pop'); 
             const carryOver = damage - shellHp;
@@ -524,7 +525,7 @@ export class Enemy {
         return Math.ceil(dmgDealt);
     }
 
-    _handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn) {
+    _handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn, killerTower) {
         this.leadHp -= damage;
         if (this.leadHp > 0) {
             if (damage > 0) AudioEngine.playSfx('pop');
@@ -534,7 +535,7 @@ export class Enemy {
         if (this.isFrozen) this._spawnIceShards();
         
         this.alive = false;
-        this.giveCash(canSpawn);
+        this.giveCash(canSpawn, killerTower);
         GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
         AudioEngine.playSfx('pop');
         const carryOver = damage - this.leadHp;
@@ -542,11 +543,11 @@ export class Enemy {
         return 1;
     }
 
-    _handleSplitDamage(damage, dmgType, effects, canSpawn) {
+    _handleSplitDamage(damage, dmgType, effects, canSpawn, killerTower) {
         if (this.isFrozen) this._spawnIceShards();
         
         this.alive = false;
-        this.giveCash(canSpawn);
+        this.giveCash(canSpawn, killerTower);
         GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
         AudioEngine.playSfx('pop');
         const carryOver = damage - 1;
@@ -554,7 +555,7 @@ export class Enemy {
         return 1;
     }
 
-    _handleStandardDamage(damage, dmgType, effects) {
+    _handleStandardDamage(damage, dmgType, effects, killerTower) {
         let currentTier = this.tier;
         let remainingDamage = damage;
         let layersPopped = 0;
@@ -573,7 +574,7 @@ export class Enemy {
             if (this.isFrozen) this._spawnIceShards();
             
             this.alive = false;
-            this.giveCash(true);
+            this.giveCash(true, killerTower);
         } else {
             this.tier = currentTier;
             this.data = { ...EnemyTypes[currentTier] };
@@ -586,5 +587,4 @@ export class Enemy {
     }
 }
 
-// Apply the separated rendering methods to the Enemy class
 Object.assign(Enemy.prototype, EnemyRenderer);

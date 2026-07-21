@@ -1,6 +1,4 @@
 ﻿// boomerang_monkey.js
-// Defines the Boomerang Monkey tower and its returning projectiles.
-
 import { GameEngine } from '../engine.js';
 
 export default {
@@ -9,7 +7,8 @@ export default {
         baseCooldown: 1.0, fireRate: 1.0, 
         damage: 1, projectileSpeed: 500, pierce: 50, lifespan: 1.5, 
         desc: "Throws a boomerang in a perfect arc. High pierce.", 
-        dmgType: 'sharp', hitRadius: 18 
+        dmgType: 'sharp', hitRadius: 18,
+        category: 'Primary' // FIX 1
     },
     upgrades: { 
         1: [
@@ -34,9 +33,8 @@ export default {
             {name:"Omega Glaive",cost:30000,stat:"damage",amount:15,desc:"Omega damage."}
         ]
     },
-    fire(tower, target, damage, dmgType) {
-        // Boomerang monkeys throw a piercing projectile that loops back after hitting targets.
+    fire(tower, target, damage, dmgType, isCrit, effects) {
         let p = GameEngine.projectilePool.get();
-        p.init(tower.x, tower.y, damage, target, 'boomerang', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, null, 0, tower, dmgType);
+        p.init(tower.x, tower.y, damage, target, 'boomerang', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType, isCrit);
     }
 };

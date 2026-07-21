@@ -2,6 +2,9 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
+import { GLOBAL_SCALE } from '../constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: {
@@ -43,7 +46,7 @@ export default {
                 tower.monsterFireTimer -= dt;
                 if (tower.monsterFireTimer <= 0) {
                     tower.monsterFireTimer = 0.03;
-                    let target = null, bestVal = -Infinity, effRange = (tower.stats.range + 27) * RANGE_SCALE;
+                    let target = null, bestVal = -Infinity, effRange = Utils.getEffectiveRange(tower, GameEngine) + (27 * RANGE_SCALE * GS);
                     const candidates = GameEngine.enemyGrid.query(tower.x, tower.y, effRange);
                     for (let e of candidates) { if (!e.alive) continue; if (e.distanceTraveled > bestVal) { bestVal = e.distanceTraveled; target = e; } }
                     if (target) {
@@ -57,7 +60,7 @@ export default {
         if (tower.stats.canBrew || tower.stats.canDip) {
             tower.brewTimer -= dt;
             if (tower.brewTimer <= 0) {
-                let effRange = tower.stats.range * RANGE_SCALE; let targetTower = null; let bestDistSq = Infinity;
+                let effRange = Utils.getEffectiveRange(tower, GameEngine); let targetTower = null; let bestDistSq = Infinity;
                 let effRangeSq = effRange * effRange;
                 for (let ot of GameEngine.towers) {
                     if (!ot || ot === tower || ot.type === 'farm' || ot.type === 'village' || ot.type === 'alchemist' || ot.type === 'farmer') continue;

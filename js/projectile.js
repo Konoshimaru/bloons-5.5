@@ -21,7 +21,7 @@ export class Projectile {
         this.reset();
     }
 
-    init(x, y, damage, target, type, speed, pierce, lifespan, fixedAngle = null, effects = null, angleOffset = 0, tower = null, dmgType = {}) {
+    init(x, y, damage, target, type, speed, pierce, lifespan, fixedAngle = null, effects = null, angleOffset = 0, tower = null, dmgType = {}, isCrit = false) {
         this.x = x;
         this.y = y;
         this.startX = x;
@@ -47,7 +47,7 @@ export class Projectile {
         this.dmgType = dmgType;
         
         this.bonusCeramic = tower ? tower.stats.bonusCeramic : 0;
-        this.isCrit = false;
+        this.isCrit = isCrit;
         this.hasSplit = false;
         this.t = 0;
         this.targetTower = null;
@@ -218,9 +218,7 @@ export class Projectile {
 
     _updateSpike(dt) {
         if (this.targetX !== 0 || this.targetY !== 0) {
-            let dx = this.targetX - this.x;
-            let dy = this.targetY - this.y;
-            let distSq = dx * dx + dy * dy;
+            let distSq = Utils.distanceSq(this.x, this.y, this.targetX, this.targetY);
             if (distSq < 25) {
                 this.x = this.targetX;
                 this.y = this.targetY;
@@ -231,8 +229,8 @@ export class Projectile {
                 this.vy = 0;
             } else {
                 let dist = Math.sqrt(distSq);
-                this.vx = (dx / dist) * this.speed;
-                this.vy = (dy / dist) * this.speed;
+                this.vx = ((this.targetX - this.x) / dist) * this.speed;
+                this.vy = ((this.targetY - this.y) / dist) * this.speed;
                 this.x += this.vx * dt;
                 this.y += this.vy * dt;
             }
@@ -333,7 +331,7 @@ export class Projectile {
         for (let i = 0; i < 6; i++) {
             const ang = (i / 6) * Math.PI * 2;
             const p = GameEngine.projectilePool.get();
-            p.init(this.x, this.y, 2, null, 'juggernaut_sub', 400, 10, 1.0, ang, null, 0, this.tower, this.dmgType);
+            p.init(this.x, this.y, 2, null, 'juggernaut_sub', 400, 10, 1.0, ang, null, 0, this.tower, this.dmgType, this.isCrit);
             p.bonusCeramic = this.bonusCeramic;
         }
     }
@@ -370,7 +368,8 @@ export class Projectile {
             
             if (Utils.withinRange(this.x, this.y, e.x, e.y, expRadius)) {
                 const expDmg = this._getExplosionDamage();
-                const dmg = e.takeDamage(expDmg, bombDmgType, this.effects);
+                // FIX 2: Pass this.tower as killerTower
+                const dmg = e.takeDamage(expDmg, bombDmgType, this.effects, this.tower);
                 if (dmg === -1) continue;
                 if (this.tower) this.tower.damageDealt += dmg;
                 
@@ -436,12 +435,13 @@ export class Projectile {
     }
 
     _handleStandardHit(enemy) {
-        this.hitEnemies.add(enemy); // FIX: Immediately add to hit list so it doesn't bounce back to it
+        this.hitEnemies.add(enemy);
         
         let dmg = this.damage;
         if (this.bonusCeramic && enemy.data.isCeramic) dmg += this.bonusCeramic;
         
-        const actualDmg = enemy.takeDamage(dmg, this.dmgType, this.effects);
+        // FIX 2: Pass this.tower as killerTower
+        const actualDmg = enemy.takeDamage(dmg, this.dmgType, this.effects, this.tower);
         if (actualDmg === -1 || isNaN(actualDmg)) {
             this.alive = false;
             return;
@@ -480,7 +480,6 @@ export class Projectile {
             this.target = null;
         }
 
-        // FIX: Ricochet Logic (e.g. Village Primary Expertise)
         if (this.effects && this.effects.ricochet > 0) {
             const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.effects.ricochetRange);
             let bestDistSq = this.effects.ricochetRange * this.effects.ricochetRange;
@@ -495,12 +494,11 @@ export class Projectile {
             }
             if (nextTarget) {
                 this.target = nextTarget;
-                // FIX: Force the projectile to turn towards the new target
                 this.angle = Utils.angle(this.x, this.y, nextTarget.x, nextTarget.y);
                 this.effects.ricochet--;
-                this.pierce = Math.max(this.pierce, 1); // Ensure it survives
+                this.pierce = Math.max(this.pierce, 1); 
                 this.alive = true;
-                return; // Skip killing the projectile
+                return; 
             }
         }
 

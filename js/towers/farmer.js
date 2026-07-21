@@ -20,7 +20,7 @@ export default {
     },
     
     update(tower, dt) {
-        let effRange = tower.stats.range * RANGE_SCALE;
+        let effRange = Utils.getEffectiveRange(tower, GameEngine);
         let collected = false;
         
         for (let ot of GameEngine.towers) {
@@ -28,7 +28,6 @@ export default {
                 for (let i = ot.bananas.length - 1; i >= 0; i--) {
                     let b = ot.bananas[i];
                     if (b.progress >= 1) {
-                        // PRO FIX: Use withinRange for sqrt removal
                         if (Utils.withinRange(tower.x, tower.y, b.x, b.y, effRange)) {
                             GameEngine.addCash(b.value);
                             ot.cashGenerated = (ot.cashGenerated || 0) + b.value; 

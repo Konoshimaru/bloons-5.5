@@ -226,14 +226,18 @@ function refreshHeroSelector() {
     });
 }
 
+// FIX: Updated to correctly target the cost element and change the background image
 function updateHeroShopCard() {
     const card = document.getElementById('hero-shop-card');
     const heroKey = Config.data.selectedHero || 'quincy';
     const hero = HeroRegistry[heroKey];
     if (card && hero) {
         card.dataset.tower = heroKey;
-        card.querySelector('span').innerText = hero.stats.name;
-        card.querySelector('.cost').innerText = `$${hero.stats.cost}`;
+        card.style.backgroundImage = `url('sprites/portraits/${heroKey}_menuportrait.png')`;
+        const costEl = card.querySelector('.cost');
+        if (costEl) {
+            costEl.innerText = `$${hero.stats.cost}`;
+        }
     }
 }
 
@@ -328,8 +332,7 @@ function _setupMenuListeners() {
             Config.data.currentDifficulty = btn.dataset.diff;
             Config.save();
             startGameUI(false);
-        }
-    );
+        });
     });
     dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => UI.toggleMenus(e.target.dataset.target)));
     dom.settingsBackBtn?.addEventListener('click', () => UI.toggleMenus(GameEngine.lastMenu));

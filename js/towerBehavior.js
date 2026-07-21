@@ -333,10 +333,10 @@ export function fire(tower, target, engine) {
     if (target && !target.alive) return; 
     AudioEngine.playSfx('shoot'); 
     
-    const damage = _calculateDamage(tower);
+    // FIX: Roll crit and damage together to prevent desyncs
+    const { damage, isCrit } = _rollDamage(tower);
     const dmgTypeStr = tower.stats.dmgType;
     const canHitLead = _canHitLead(tower);
-    const isCrit = _isCriticalHit(tower);
     const projType = tower.stats.projectileType || 'dart';
     const pierce = _calculatePierce(tower);
     const dmgType = _createDamageType(dmgTypeStr, canHitLead, tower);
@@ -346,11 +346,12 @@ export function fire(tower, target, engine) {
     _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine);
 }
 
-function _calculateDamage(tower) {
-    let damage = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0); 
-    let isCrit = tower.stats.critChance && Math.random() < tower.stats.critChance;
+// FIX: Single function to calculate damage and roll crit
+function _rollDamage(tower) {
+    const isCrit = !!tower.stats.critChance && Math.random() < tower.stats.critChance;
+    let damage = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0);
     if (isCrit) damage = tower.stats.critDmg;
-    return damage;
+    return { damage, isCrit };
 }
 
 function _canHitLead(tower) {
@@ -358,10 +359,6 @@ function _canHitLead(tower) {
     if (tower.stats.dmgType === 'heavy') canHitLead = true;
     if (tower.fanClubBuffTimer > 0) canHitLead = true;
     return canHitLead;
-}
-
-function _isCriticalHit(tower) {
-    return tower.stats.critChance && Math.random() < tower.stats.critChance;
 }
 
 function _calculatePierce(tower) {
@@ -417,6 +414,7 @@ function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType
     } else {
         const p = engine.projectilePool.get();
         const projSpeed = tower.stats.projectileSpeed * (tower.buffedProjSpeed || 1);
-        p.init(tower.x, tower.y, damage, target, projType, projSpeed, pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
+        // FIX: Pass isCrit into init so all towers get crit visuals
+        p.init(tower.x, tower.y, damage, target, projType, projSpeed, pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType, isCrit);
     }
 }

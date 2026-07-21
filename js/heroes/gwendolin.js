@@ -36,9 +36,8 @@ export default {
     update(tower, dt) {
         if (tower.heatItUpTimer > 0) {
             tower.heatItUpTimer -= dt;
-            let hiuRange = (tower.stats.heatItUpRange || 0) + (tower.stats.range * 3.0);
+            let hiuRange = (tower.stats.heatItUpRange || 0) + Utils.getEffectiveRange(tower, GameEngine);
             for (let ot of GameEngine.towers) {
-                // PRO FIX: Use withinRange
                 if (ot && Utils.withinRange(tower.x, tower.y, ot.x, ot.y, hiuRange)) {
                     ot.buffedPierce = (ot.buffedPierce || 0) + 1;
                     if (tower.level >= 17) {
@@ -60,7 +59,6 @@ export default {
                     for (let e of nearby) {
                         if (hits >= (tower.stats.cocktailPierce || 20)) break;
                         if (!e.alive) continue;
-                        // PRO FIX: Use withinRange
                         if (Utils.withinRange(c.x, c.y, e.x, e.y, 60)) {
                             let dmg = tower.stats.cocktailDmg || 1;
                             let dmgType = { isFire: true, canHitLead: true, canHitPurple: tower.level >= 16 };
@@ -91,8 +89,8 @@ export default {
     },
     ability(tower, engine) {
         let target = null;
-        let bestValSq = Infinity; // PRO FIX: Sort by squared distance
-        const effRange = tower.stats.range * 3.0;
+        let bestValSq = Infinity;
+        const effRange = Utils.getEffectiveRange(tower, GameEngine);
         const effRangeSq = effRange * effRange;
         for (let e of engine.enemies) {
             if (!e.alive) continue;
@@ -133,15 +131,13 @@ export default {
         let count = tower.stats.projectileCount || 1;
         tower.shotCount = (tower.shotCount || 0) + 1;
         if (tower.stats.heatItUp && tower.shotCount % 40 === 0) {
-            let hiuRange = (tower.stats.heatItUpRange || 0) + (tower.stats.range * 3.0);
+            let hiuRange = (tower.stats.heatItUpRange || 0) + Utils.getEffectiveRange(tower, GameEngine);
             for (let e of GameEngine.enemies) {
-                // PRO FIX: Use withinRange
                 if (e.alive && Utils.withinRange(tower.x, tower.y, e.x, e.y, hiuRange)) {
                     e.takeDamage(tower.stats.heatItUpDmg || 3, { isFire: true, canHitLead: true });
                 }
             }
             for (let ot of GameEngine.towers) {
-                // PRO FIX: Use withinRange
                 if (ot && Utils.withinRange(tower.x, tower.y, ot.x, ot.y, hiuRange)) {
                     ot.heatItUpTimer = 8;
                     ot.buffedPierce = (ot.buffedPierce || 0) + 1;

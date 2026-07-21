@@ -30,8 +30,8 @@ const DEFAULT_DATA = {
     extremeSpeedEnabled: false,
     showTowerStats: false,
     uncapFps: false,
-    knowledgePoints: 1, // <-- ADD THIS (Starting KP)
-    monkeyKnowledge: {}, // <-- ADD THIS (Tracks unlocked nodes)
+    knowledgePoints: 1, // Starting KP
+    monkeyKnowledge: {}, // Tracks unlocked nodes
     unlocks: {
         extraStartingCash: false,
         extraStartingLives: false,
@@ -40,34 +40,35 @@ const DEFAULT_DATA = {
 };
 
 export const Config = {
-    data: { ...DEFAULT_DATA },
+    // FIX: Use structuredClone to deep clone nested objects/arrays
+    data: structuredClone(DEFAULT_DATA),
     load() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                const parsed = JSON.parse(saved);
-                this.data = { ...DEFAULT_DATA, ...parsed };
-            }
+            const parsed = saved ? JSON.parse(saved) : {};
+            
+            // Deep clone defaults, then shallow merge parsed data over it.
+            this.data = { ...structuredClone(DEFAULT_DATA), ...parsed };
+            
+            // --- Nested Object Backfilling ---
+            // Top-level keys are already handled by the spread operator above.
+            // Only nested objects need manual patching to prevent missing keys.
+            
             if (!Array.isArray(this.data.customMaps)) this.data.customMaps = [];
-            if (typeof this.data.currentMap !== 'number') this.data.currentMap = 0;
-            if (!this.data.currentDifficulty) this.data.currentDifficulty = 'medium';
-            if (!this.data.monkeyMoney) this.data.monkeyMoney = 0;
-            if (!this.data.playerLevel) this.data.playerLevel = 1;
-            if (!this.data.playerXP) this.data.playerXP = 0;
-            if (!this.data.playerXPToNext) this.data.playerXPToNext = 1000;
-            if (!this.data.extremeSpeedEnabled) this.data.extremeSpeedEnabled = false;
-            if (this.data.showTowerStats === undefined) this.data.showTowerStats = false;
-            if (this.data.uncapFps === undefined) this.data.uncapFps = false; // NEW
             if (!this.data.unlocks) this.data.unlocks = {};
+            if (!this.data.monkeyKnowledge) this.data.monkeyKnowledge = {};
+            if (!Array.isArray(this.data.unlockedPerks)) this.data.unlockedPerks = [];
+            
             if (this.data.unlocks.extraStartingCash === undefined) this.data.unlocks.extraStartingCash = false;
             if (this.data.unlocks.extraStartingLives === undefined) this.data.unlocks.extraStartingLives = false;
             if (this.data.unlocks.freeFirstDartMonkey === undefined) this.data.unlocks.freeFirstDartMonkey = false;
+            
             if (this.data.customMaps.length > 0) {
                 Maps.push(...this.data.customMaps);
             }
         } catch (e) {
             console.error("Failed to load config, resetting to default.", e);
-            this.data = { ...DEFAULT_DATA };
+            this.data = structuredClone(DEFAULT_DATA);
         }
     },
     save() {

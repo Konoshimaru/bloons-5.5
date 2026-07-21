@@ -141,13 +141,16 @@ export class Tower {
         }
     }
 
-    // FIX: Added addStacks parameter to prevent aura buffs from infinitely incrementing the stack counter
+    // FIX 1A: Optimized addBuff to avoid object allocation on refreshes
     addBuff(id, name, duration, stacks = 1, data = {}, addStacks = true) {
         let existingBuff = this.activeBuffs.find(b => b.id === id);
         if (existingBuff) {
             if (addStacks) existingBuff.stacks += stacks;
             existingBuff.duration = Math.max(existingBuff.duration, duration); // Refresh duration
-            existingBuff.data = { ...existingBuff.data, ...data };
+            // Only update data object if the type actually changes, avoiding spread allocation
+            if (existingBuff.data.type !== data.type) {
+                existingBuff.data = data;
+            }
         } else {
             this.activeBuffs.push({ id, name, duration, stacks, data });
         }
@@ -498,7 +501,7 @@ export class Tower {
         if (behavior && behavior.draw) {
             behavior.draw(ctx, this, isPreview, engine);
         } else {
-            this._drawBaseTower(ctx, isPreview);
+            this.drawBaseTower(ctx, isPreview);
         }
         
         // FIX: Draw bananas AFTER the tower so they are visible and clickable
@@ -510,7 +513,21 @@ export class Tower {
         }
     }
 
-    drawBaseTower(ctx, isPreview = false) { this._drawBaseTower(ctx, isPreview); }
+    // FIX: Merged redundant wrapper directly into the public function
+    drawBaseTower(ctx, isPreview = false) {
+        if (FARM_VILLAGE_TYPES.has(this.type)) { this._drawFarmOrVillage(ctx); return; }
+        const { baseAsset, armAsset, targetSize, isCustomBase } = this.getActiveAssets();
+        const isStatic = this.stats.isStaticRotation || false;
+        if (this._drawFullBodyAnimation(ctx, isStatic, targetSize, isCustomBase)) return;
+
+        let activeArmAsset = armAsset;
+        if (this.attackAnimActive && !this.isFullAnim) {
+            const animAsset = Assets.get(`${this.attackPrefix}attack_${this.attackAnimFrame}`);
+            if (animAsset && animAsset.loaded) activeArmAsset = animAsset;
+        }
+        if (baseAsset && baseAsset.loaded) { this._drawSprite(ctx, baseAsset, armAsset, activeArmAsset, targetSize, isStatic, isCustomBase); return; }
+        this._drawFallbackSprite(ctx, isStatic);
+    }
 
     _drawHitscans(ctx) {
         for (const h of this.hitscans) {
@@ -534,21 +551,6 @@ export class Tower {
             }
             ctx.globalAlpha = 1;
         }
-    }
-
-    _drawBaseTower(ctx, isPreview = false) {
-        if (FARM_VILLAGE_TYPES.has(this.type)) { this._drawFarmOrVillage(ctx); return; }
-        const { baseAsset, armAsset, targetSize, isCustomBase } = this.getActiveAssets();
-        const isStatic = this.stats.isStaticRotation || false;
-        if (this._drawFullBodyAnimation(ctx, isStatic, targetSize, isCustomBase)) return;
-
-        let activeArmAsset = armAsset;
-        if (this.attackAnimActive && !this.isFullAnim) {
-            const animAsset = Assets.get(`${this.attackPrefix}attack_${this.attackAnimFrame}`);
-            if (animAsset && animAsset.loaded) activeArmAsset = animAsset;
-        }
-        if (baseAsset && baseAsset.loaded) { this._drawSprite(ctx, baseAsset, armAsset, activeArmAsset, targetSize, isStatic, isCustomBase); return; }
-        this._drawFallbackSprite(ctx, isStatic);
     }
 
     _drawAsset(ctx, asset, type, key, defaultSize) {
@@ -616,7 +618,6 @@ export class Tower {
 
     _drawFarmOrVillage(ctx) {
         const asset = Assets.get(`tower_${this.type}_base`);
-        // REMOVED: The purple circle range indicator. It is no longer drawn.
         if (asset && asset.loaded) {
             ctx.save(); ctx.translate(this.x, this.y); drawImageCentered(ctx, asset, 45 * GS);
             for (let p = 1; p <= 3; p++) {
@@ -651,7 +652,7 @@ export class Tower {
         ctx.restore();
     }
 
-    // Draws buff icons directly on the canvas above the monkey
+    // FIX 1B: Draws buff icons using pre-rendered offscreen canvases instead of vector paths
     _drawBuffs(ctx) {
         const buffsToDraw = [];
         
@@ -683,16 +684,38 @@ export class Tower {
 
         buffsToDraw.forEach((buff, i) => {
             const x = startX + i * spacing;
-            this._drawBuffIcon(ctx, x, y, buff.type, buff.stacks, buff.name);
+            const iconCanvas = this._getBuffIconCanvas(buff.type);
+            // Draw the cached 32x32 icon centered at x, y
+            ctx.drawImage(iconCanvas, x - 16, y - 16);
+
+            // Draw stacks directly on main ctx
+            if (buff.stacks !== '' && buff.stacks !== undefined) {
+                ctx.fillStyle = 'rgba(0,0,0,0.85)';
+                ctx.beginPath();
+                ctx.arc(x + 7 * GS, y + 7 * GS, 7 * GS, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = `bold ${10 * GS}px Nunito, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(buff.stacks, x + 7 * GS, y + 7.5 * GS);
+            }
         });
     }
 
-    // Helper to draw individual buff icon graphics
-    _drawBuffIcon(ctx, x, y, type, stacks, name) {
-        ctx.save();
-        ctx.translate(x, y);
-
+    // Pre-renders buff icons to an offscreen canvas to avoid per-frame vector drawing
+    static _buffIconCache = {};
+    _getBuffIconCanvas(type) {
+        if (Tower._buffIconCache[type]) return Tower._buffIconCache[type];
+        
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
         const sizeScale = 1.2;
+        
+        ctx.translate(16, 16); // Center drawing
 
         let bgColor = '#2ecc71'; // generic green
         if (type === 'alch') bgColor = '#9b59b6'; // purple
@@ -722,7 +745,6 @@ export class Tower {
         ctx.lineWidth = 1.5 * GS;
         
         if (type === 'village') {
-            // Draw a little house
             ctx.beginPath();
             ctx.moveTo(0, -6 * GS * sizeScale);
             ctx.lineTo(5 * GS * sizeScale, 0);
@@ -732,7 +754,6 @@ export class Tower {
             ctx.closePath();
             ctx.fill();
         } else if (type === 'oc') {
-            // Draw a lightning bolt
             ctx.beginPath();
             ctx.moveTo(-2 * GS * sizeScale, -7 * GS * sizeScale);
             ctx.lineTo(4 * GS * sizeScale, -1 * GS * sizeScale);
@@ -743,14 +764,12 @@ export class Tower {
             ctx.closePath();
             ctx.fill();
         } else if (type === 'alch') {
-            // Draw a potion drop
             ctx.beginPath();
             ctx.moveTo(0, -7 * GS * sizeScale);
             ctx.bezierCurveTo(5 * GS * sizeScale, -2 * GS * sizeScale, 5 * GS * sizeScale, 5 * GS * sizeScale, 0, 5 * GS * sizeScale);
             ctx.bezierCurveTo(-5 * GS * sizeScale, 5 * GS * sizeScale, -5 * GS * sizeScale, -2 * GS * sizeScale, 0, -7 * GS * sizeScale);
             ctx.fill();
         } else if (type === 'jd') {
-            // Draw a Drum
             ctx.beginPath();
             ctx.ellipse(0, 3 * GS * sizeScale, 5 * GS * sizeScale, 2 * GS * sizeScale, 0, 0, Math.PI * 2);
             ctx.fill();
@@ -759,7 +778,6 @@ export class Tower {
             ctx.ellipse(0, -4 * GS * sizeScale, 3 * GS * sizeScale, 1 * GS * sizeScale, 0, 0, Math.PI * 2);
             ctx.fill();
         } else if (type === 'ptr') {
-            // Draw a Target / Crosshair
             ctx.beginPath();
             ctx.arc(0, 0, 5 * GS * sizeScale, 0, Math.PI * 2);
             ctx.stroke();
@@ -770,7 +788,6 @@ export class Tower {
             ctx.moveTo(0, 2 * GS * sizeScale); ctx.lineTo(0, 7 * GS * sizeScale);
             ctx.stroke();
         } else if (type === 'pm') {
-            // Draw a Book / Cap
             ctx.beginPath();
             ctx.moveTo(-5 * GS * sizeScale, -2 * GS * sizeScale);
             ctx.lineTo(0, -5 * GS * sizeScale);
@@ -781,7 +798,6 @@ export class Tower {
             ctx.closePath();
             ctx.fill();
         } else if (type === 'pe') {
-            // Draw an Arrow
             ctx.beginPath();
             ctx.moveTo(0, -7 * GS * sizeScale);
             ctx.lineTo(4 * GS * sizeScale, -2 * GS * sizeScale);
@@ -793,7 +809,6 @@ export class Tower {
             ctx.closePath();
             ctx.fill();
         } else if (type === 'cta') {
-            // Draw a Megaphone
             ctx.beginPath();
             ctx.moveTo(-4 * GS * sizeScale, -3 * GS * sizeScale);
             ctx.lineTo(2 * GS * sizeScale, -6 * GS * sizeScale);
@@ -803,7 +818,6 @@ export class Tower {
             ctx.fill();
             ctx.fillRect(-7 * GS * sizeScale, -2 * GS * sizeScale, 3 * GS * sizeScale, 4 * GS * sizeScale);
         } else if (type === 'radar') {
-            // Draw a Satellite Dish
             ctx.beginPath();
             ctx.moveTo(-5 * GS * sizeScale, -2 * GS * sizeScale);
             ctx.quadraticCurveTo(0, -8 * GS * sizeScale, 5 * GS * sizeScale, -2 * GS * sizeScale);
@@ -813,7 +827,6 @@ export class Tower {
             ctx.arc(0, 6 * GS * sizeScale, 2 * GS * sizeScale, 0, Math.PI * 2);
             ctx.fill();
         } else if (type === 'mib') {
-            // Draw a Shield
             ctx.beginPath();
             ctx.moveTo(0, -7 * GS * sizeScale);
             ctx.lineTo(5 * GS * sizeScale, -4 * GS * sizeScale);
@@ -824,7 +837,6 @@ export class Tower {
             ctx.closePath();
             ctx.fill();
         } else {
-            // Draw a star for generic
             ctx.beginPath();
             for (let i = 0; i < 5; i++) {
                 const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
@@ -836,21 +848,8 @@ export class Tower {
             ctx.closePath();
             ctx.fill();
         }
-
-        // Draw stacks
-        if (stacks !== '' && stacks !== undefined) {
-            ctx.fillStyle = 'rgba(0,0,0,0.85)';
-            ctx.beginPath();
-            ctx.arc(7 * GS * sizeScale, 7 * GS * sizeScale, 7 * GS * sizeScale, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = `bold ${10 * GS}px Nunito, sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(stacks, 7 * GS * sizeScale, 7.5 * GS * sizeScale);
-        }
-
-        ctx.restore();
+        
+        Tower._buffIconCache[type] = canvas;
+        return canvas;
     }
 }

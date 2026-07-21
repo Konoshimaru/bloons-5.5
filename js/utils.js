@@ -1,4 +1,7 @@
 ﻿// utils.js
+import { RANGE_SCALE } from './config.js';
+import { GLOBAL_SCALE } from './constants.js';
+
 // Holds shared utility functions used across the game.
 
 export const distance = (x1, y1, x2, y2) => {
@@ -48,13 +51,33 @@ export const distToSegment = (px, py, x1, y1, x2, y2) => {
     return Math.sqrt(ddx * ddx + ddy * ddy);
 };
 
+// FIX: Unified effective range calculation to prevent formula drift
+export function getEffectiveRange(tower, engine, { includeBuffs = true, includeNight = true } = {}) {
+    const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
+    const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
+    const baseRange = typeof tower.stats.range === 'number' ? tower.stats.range : 100;
+    const buffMult = includeBuffs ? (tower.buffedRange || 0) : 0;
+    const alchRange = includeBuffs ? (tower.alchBuff ? tower.alchBuff.range : 0) : 0;
+    
+    let range = baseRange * scale * (1 + buffMult + alchRange);
+    
+    if (includeNight && engine && engine.nightAlpha) {
+        const nightMod = 1.0 - (0.5 * engine.nightAlpha);
+        range *= nightMod;
+    }
+    
+    range *= GS;
+    return Math.max(0, range);
+}
+
 export const Utils = {
     distance,
     distanceSq,
     withinRange,
     lerp,
     angle,
-    distToSegment
+    distToSegment,
+    getEffectiveRange
 };
 
 export function drawShadow(ctx, x, y, r) {

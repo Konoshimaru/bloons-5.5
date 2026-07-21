@@ -107,7 +107,7 @@ export default {
         p.init(tower.x, tower.y, damage, target, 'nail', tower.stats.projectileSpeed, tower.stats.pierce, 0.5, null, effects, 0, tower, dmgType);
     },
     ability(tower, engine) {
-        let target = null; let maxCost = 0; let effRange = tower.stats.range * RANGE_SCALE * 3.0;
+        let target = null; let maxCost = 0; let effRange = Utils.getEffectiveRange(tower, GameEngine) * 3.0;
         for (let ot of engine.towers) { if (ot === tower || ot.type === 'farm' || ot.type === 'village') continue; if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, effRange)) { if (ot.totalSpent > maxCost) { maxCost = ot.totalSpent; target = ot; } } }
         if (target) { target.overclockTimer = 10; if (tower.upgrades[1] === 5) { target.ultraboostStacks = Math.min(10, (target.ultraboostStacks || 0) + 1); } engine.log("Overclock Activated on " + target.type + "!"); }
         else { engine.log("No valid towers in range for Overclock!"); }

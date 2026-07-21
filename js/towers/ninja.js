@@ -38,7 +38,7 @@ export default {
     updateSupport(tower, dt) {
         if (tower.stats.shinobi) {
             let ninjaCount = 0; 
-            let effRange = tower.stats.range * RANGE_SCALE;
+            let effRange = Utils.getEffectiveRange(tower, GameEngine);
             const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange);
             for (let ot of nearbyTowers) { 
                 if (ot && ot.type === 'ninja' && ot !== tower) { 
@@ -62,7 +62,7 @@ export default {
         }
     },
     _fireCaltrops(tower) {
-        const range = tower.stats.range * RANGE_SCALE;
+        const range = Utils.getEffectiveRange(tower, GameEngine);
         const trackPoints = GameEngine.map.getTrackPointsInRange(tower.x, tower.y, range);
         if (trackPoints.length > 0) {
             let pt = trackPoints[Math.floor(Math.random() * trackPoints.length)];

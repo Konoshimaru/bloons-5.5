@@ -1,6 +1,4 @@
 ﻿// glue.js
-// Defines the Glue tower and its slowing effects.
-
 import { GameEngine } from '../engine.js';
 
 export default {
@@ -10,7 +8,8 @@ export default {
         damage: 0, projectileSpeed: 600, pierce: 1, lifespan: 0.5, 
         slow: 0.5, slowDuration: 11, 
         desc: "Glues bloons, slowing them down. Doesn't damage.", 
-        dmgType: 'glue', hitRadius: 18 
+        dmgType: 'glue', hitRadius: 18,
+        category: 'Primary' // FIX 1
     },
     upgrades: {
         1: [
@@ -35,9 +34,8 @@ export default {
             {name:"Super Glue",cost:25000,stat:"slow",amount:0.1,desc:"Almost stops bloons entirely."}
         ]
     },
-    fire(tower, target, damage, dmgType) {
-        // The glue tower does not deal direct damage; it fires a projectile that applies a slow effect on impact.
+    fire(tower, target, damage, dmgType, isCrit, effects) {
         let p = GameEngine.projectilePool.get();
-        p.init(tower.x, tower.y, damage, target, 'glue', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, { slow: tower.stats.slow, slowDuration: tower.stats.slowDuration }, 0, tower, dmgType);
+        p.init(tower.x, tower.y, damage, target, 'glue', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, { slow: tower.stats.slow, slowDuration: tower.stats.slowDuration }, 0, tower, dmgType, isCrit);
     }
 };
