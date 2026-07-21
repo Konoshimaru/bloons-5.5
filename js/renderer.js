@@ -1,4 +1,5 @@
-﻿import { Config, RANGE_SCALE, HeroStats } from './config.js';
+﻿// js/renderer.js
+import { Config, RANGE_SCALE, HeroStats } from './config.js';
 import { TowerStats } from './towers/index.js';
 import { Utils } from './utils.js';
 import { Tower } from './tower.js';
@@ -6,6 +7,7 @@ import { CutsceneManager } from './cutscene.js';
 import { KnightEnemy } from './bosses/knight.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
 import { BossHealthBarHandler } from './BossHealthBarHandler.js';
+import { applyBossEffects } from './input.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -120,6 +122,7 @@ export const Renderer = {
         
         BossHealthBarHandler.draw(ctx);
 
+        // FIX: Draw the cursor on the MAIN canvas AFTER the split.
         this._drawCursor(ctx, engine);
     },
 
@@ -130,9 +133,19 @@ export const Renderer = {
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         
-        // FIX: Removed Math.round to perfectly align with CSS pixel mapping (top-left corner)
-        const cx = engine.mouse.rawX !== undefined ? engine.mouse.rawX : engine.mouse.x;
-        const cy = engine.mouse.rawY !== undefined ? engine.mouse.rawY : engine.mouse.y;
+        let cx = engine.mouse.rawX !== undefined ? engine.mouse.rawX : engine.mouse.x;
+        let cy = engine.mouse.rawY !== undefined ? engine.mouse.rawY : engine.mouse.y;
+
+        // FIX: Manually apply the visual offset to the cursor so it snaps 
+        // perfectly with the torn screen, without being torn itself!
+        let boss = BossHealthBarHandler.activeBosses.length > 0 ? BossHealthBarHandler.activeBosses[0].enemy : null;
+        if (boss && (boss.screenSplitActive || boss.currentOffset !== 0)) {
+            if (cy < 360) {
+                cx += boss.currentOffset; // Top half is drawn at +offset
+            } else {
+                cx -= boss.currentOffset; // Bottom half is drawn at -offset
+            }
+        }
         
         ctx.beginPath();
         ctx.moveTo(cx, cy);
@@ -299,8 +312,9 @@ export const Renderer = {
         let previewY = mouse.y;
 
         if (engine.stuckPlacement) {
-            previewX = engine.stuckPlacement.x;
-            previewY = engine.stuckPlacement.y;
+            const adj = applyBossEffects(engine.stuckPlacement.x, engine.stuckPlacement.y);
+            previewX = adj.x;
+            previewY = adj.y;
         }
 
         const map = engine.map;

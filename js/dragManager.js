@@ -138,7 +138,6 @@ export function setupShopListeners() {
             const startX = e.clientX;
             const startY = e.clientY;
 
-            // FIX: Fetch rect live on pointerdown to capture the exact canvas position at the start of the drag
             const rect = GameEngine.canvas.getBoundingClientRect();
             const scaleX = GameEngine.canvas.width / rect.width;
             const scaleY = GameEngine.canvas.height / rect.height;
@@ -146,7 +145,6 @@ export function setupShopListeners() {
             let initMx = (e.clientX - rect.left) * scaleX;
             let initMy = (e.clientY - rect.top) * scaleY;
             
-            // FIX: Update rawX/rawY on click so the cursor doesn't lag behind on the first frame
             GameEngine.mouse.rawX = initMx;
             GameEngine.mouse.rawY = initMy;
             
@@ -164,7 +162,6 @@ export function setupShopListeners() {
                     let mx = (ev.clientX - rect.left) * scaleX;
                     let my = (ev.clientY - rect.top) * scaleY;
                     
-                    // FIX: Update rawX/rawY continuously so the custom cursor is perfectly synced with the drag
                     GameEngine.mouse.rawX = mx;
                     GameEngine.mouse.rawY = my;
                     
@@ -189,19 +186,14 @@ export function setupShopListeners() {
                         const dropX = (ev.clientX - rect.left) * scaleX;
                         const dropY = (ev.clientY - rect.top) * scaleY;
                         
-                        // FIX: Update rawX/Y on pointerup so the cursor doesn't teleport back to the last pointermove position
                         GameEngine.mouse.rawX = dropX;
                         GameEngine.mouse.rawY = dropY;
                         
-                        const dropAdj = applyBossEffects(dropX, dropY);
-                        const fakeClientX = rect.left + (dropAdj.x / scaleX);
-                        const fakeClientY = rect.top + (dropAdj.y / scaleY);
-                        
                         GameEngine._ignoreNextClick = true; 
-                        GameEngine.handleCanvasClick({ clientX: fakeClientX, clientY: fakeClientY });
+                        GameEngine.handleCanvasClick(ev); 
                         
                         if (GameEngine.selectedTowerType) {
-                            GameEngine.stuckPlacement = { x: dropAdj.x, y: dropAdj.y };
+                            GameEngine.stuckPlacement = { x: dropX, y: dropY };
                         } else {
                             updateShopHeader(); 
                         }
@@ -284,7 +276,6 @@ export function setupNudgeLogic() {
     let isCanvasDragging = false;
     let nudgeStart = {};
 
-    // FIX: Fetch rect live inside getCanvasPos to prevent drift
     const getCanvasPos = (clientX, clientY) => {
         const rect = GameEngine.canvas.getBoundingClientRect();
         const scaleX = GameEngine.canvas.width / rect.width;
@@ -315,8 +306,12 @@ export function setupNudgeLogic() {
                 e.stopImmediatePropagation();
                 return;
             } else {
-                e.clientX = rect.left + (GameEngine.stuckPlacement.x / scaleX);
-                e.clientY = rect.top + (GameEngine.stuckPlacement.y / scaleY);
+                // CRITICAL FIX: e.clientX is read-only in modern browsers!
+                // We must stop the event and manually call handleCanvasClick with a fake event.
+                e.stopImmediatePropagation();
+                const fakeClientX = rect.left + (GameEngine.stuckPlacement.x / scaleX);
+                const fakeClientY = rect.top + (GameEngine.stuckPlacement.y / scaleY);
+                GameEngine.handleCanvasClick({ clientX: fakeClientX, clientY: fakeClientY });
             }
         }
     }, true);
@@ -327,13 +322,12 @@ export function setupNudgeLogic() {
         e.preventDefault();
         const pos = getCanvasPos(e.clientX, e.clientY);
         
-        // FIX: Update rawX/rawY on nudge start
         GameEngine.mouse.rawX = pos.x;
         GameEngine.mouse.rawY = pos.y;
         
         const adj = applyBossEffects(pos.x, pos.y);
-        const dx = adj.x - GameEngine.stuckPlacement.x;
-        const dy = adj.y - GameEngine.stuckPlacement.y;
+        const dx = pos.x - GameEngine.stuckPlacement.x;
+        const dy = pos.y - GameEngine.stuckPlacement.y;
         const dist = Math.hypot(dx, dy);
 
         if (dist < 60) {
@@ -343,7 +337,7 @@ export function setupNudgeLogic() {
             GameEngine.mouse.y = adj.y;
         } else {
             isNudging = true;
-            nudgeStart = { mouseX: adj.x, mouseY: adj.y, stuckX: GameEngine.stuckPlacement.x, stuckY: GameEngine.stuckPlacement.y };
+            nudgeStart = { mouseX: pos.x, mouseY: pos.y, stuckX: GameEngine.stuckPlacement.x, stuckY: GameEngine.stuckPlacement.y };
         }
     });
 
@@ -352,7 +346,6 @@ export function setupNudgeLogic() {
 
         const pos = getCanvasPos(e.clientX, e.clientY);
         
-        // FIX: Update rawX/rawY continuously during nudge
         GameEngine.mouse.rawX = pos.x;
         GameEngine.mouse.rawY = pos.y;
         
@@ -367,8 +360,8 @@ export function setupNudgeLogic() {
                 return;
             }
             
-            const dx = adj.x - GameEngine.stuckPlacement.x;
-            const dy = adj.y - GameEngine.stuckPlacement.y;
+            const dx = pos.x - GameEngine.stuckPlacement.x;
+            const dy = pos.y - GameEngine.stuckPlacement.y;
             const dist = Math.hypot(dx, dy);
 
             if (dist < 60) {
@@ -378,8 +371,8 @@ export function setupNudgeLogic() {
                 GameEngine.mouse.x = adj.x;
                 GameEngine.mouse.y = adj.y;
             } else {
-                const mdx = adj.x - nudgeStart.mouseX;
-                const mdy = adj.y - nudgeStart.mouseY;
+                const mdx = pos.x - nudgeStart.mouseX;
+                const mdy = pos.y - nudgeStart.mouseY;
                 GameEngine.stuckPlacement = {
                     x: nudgeStart.stuckX + (mdx / 10),
                     y: nudgeStart.stuckY + (mdy / 10)
@@ -419,7 +412,6 @@ export function setupNudgeLogic() {
         const scaleX = GameEngine.canvas.width / rect.width;
         const scaleY = GameEngine.canvas.height / rect.height;
 
-        // FIX: Update rawX/Y on pointerup so the cursor doesn't teleport
         GameEngine.mouse.rawX = pos.x;
         GameEngine.mouse.rawY = pos.y;
 
@@ -429,7 +421,6 @@ export function setupNudgeLogic() {
             
             const fakeClientX = rect.left + (GameEngine.stuckPlacement.x / scaleX);
             const fakeClientY = rect.top + (GameEngine.stuckPlacement.y / scaleY);
-            
             GameEngine.handleCanvasClick({ clientX: fakeClientX, clientY: fakeClientY });
             
             if (!GameEngine.selectedTowerType) {
@@ -438,15 +429,12 @@ export function setupNudgeLogic() {
         } else if (isCanvasDragging) {
             isCanvasDragging = false;
             GameEngine._ignoreNextClick = true; 
-            
-            const adj = applyBossEffects(pos.x, pos.y);
-            const fakeClientX = rect.left + (adj.x / scaleX);
-            const fakeClientY = rect.top + (adj.y / scaleY);
-            
-            GameEngine.handleCanvasClick({ clientX: fakeClientX, clientY: fakeClientY });
+            GameEngine.handleCanvasClick(e);
             
             if (GameEngine.selectedTowerType) {
-                GameEngine.stuckPlacement = { x: adj.x, y: adj.y };
+                const dropX = (e.clientX - rect.left) * scaleX;
+                const dropY = (e.clientY - rect.top) * scaleY;
+                GameEngine.stuckPlacement = { x: dropX, y: dropY };
             } else {
                 GameEngine.stuckPlacement = null;
             }

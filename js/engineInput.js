@@ -9,6 +9,7 @@ import { UI } from './ui.js';
 import { Tower } from './tower.js';
 import { Hero } from './hero.js';
 import { GLOBAL_SCALE } from './constants.js';
+import { applyBossEffects } from './input.js';
 
 const MAX_SPEED_NORMAL = 3;
 const MAX_SPEED_EXTREME = 6;
@@ -31,12 +32,23 @@ export default {
     },
 
     handleCanvasClick(e) {
-        // PRO FIX: Use cached canvas rect if available to avoid layout thrashing
-        const rect = (window.InputManager && window.InputManager.canvasRect) ? window.InputManager.canvasRect : this.canvas.getBoundingClientRect();
+        // FIX: Prevent placing towers/selecting if the boss is freezing the mouse
+        const boss = this.enemies.find(en => en.tier === 99);
+        if (boss && boss.freezeMouse) {
+            return; // Ignore the click entirely!
+        }
+
+        // FIX: Fetch rect LIVE to prevent 20px drift when scrollbars appear
+        const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
-        const x = (e.clientX - rect.left) * scaleX;
-        const y = (e.clientY - rect.top) * scaleY;
+        const rawX = (e.clientX - rect.left) * scaleX;
+        const rawY = (e.clientY - rect.top) * scaleY;
+
+        // CRITICAL FIX: Apply boss effects ONCE here at the placement layer.
+        const adj = applyBossEffects(rawX, rawY);
+        const x = adj.x;
+        const y = adj.y;
 
         if (this.gameState === 'menu') {
             for (let i = this.menuClickables.length - 1; i >= 0; i--) {
