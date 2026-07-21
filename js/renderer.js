@@ -23,10 +23,16 @@ const LEAK_FLASH_LINE_WIDTH = 10;
 
 let _engineInstance = null;
 
+const _worldCanvas = document.createElement('canvas');
+_worldCanvas.width = CANVAS_WIDTH;
+_worldCanvas.height = CANVAS_HEIGHT;
+const _worldCtx = _worldCanvas.getContext('2d');
+
 export const Renderer = {
     render(engine, dt) {
         _engineInstance = engine; 
         const ctx = engine.ctx;
+        const wctx = _worldCtx; 
         
         if (engine.isNight === undefined) engine.isNight = false;
         if (engine.nightAlpha === undefined) engine.nightAlpha = 0;
@@ -39,37 +45,107 @@ export const Renderer = {
             return;
         }
 
+        if (engine.canvas) {
+            engine.canvas.style.cursor = (engine.gameState === 'playing') ? 'none' : 'auto';
+        }
+
         this._setupContext(ctx);
+        this._setupContext(wctx);
+        wctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         
         let camOffset = CutsceneManager.cameraOffsetX || 0;
         if (camOffset !== 0) {
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, camOffset, CANVAS_HEIGHT);
-            ctx.save();
-            ctx.translate(camOffset, 0);
+            wctx.fillStyle = '#000000';
+            wctx.fillRect(0, 0, camOffset, CANVAS_HEIGHT);
+            wctx.save();
+            wctx.translate(camOffset, 0);
         }
 
-        engine.map.draw(ctx);
-        this._drawExplosions(ctx, engine.explosions);
-        this._drawEntities(ctx, engine);
-        this._drawPlacementPreview(ctx, engine);
-        this._drawSelection(ctx, engine);
-        this._drawLeakFlash(ctx, engine);
+        engine.map.draw(wctx);
+        this._drawExplosions(wctx, engine.explosions);
+        this._drawEntities(wctx, engine);
+        this._drawPlacementPreview(wctx, engine);
+        this._drawSelection(wctx, engine);
+        this._drawLeakFlash(wctx, engine);
 
-        if (camOffset !== 0) ctx.restore();
+        if (camOffset !== 0) wctx.restore();
         
-        CutsceneManager.drawBalls(ctx);
+        CutsceneManager.drawBalls(wctx); 
+        
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        
+        let boss = BossHealthBarHandler.activeBosses.length > 0 ? BossHealthBarHandler.activeBosses[0].enemy : null;
+        
+        if (boss && boss.warningLineActive) {
+            ctx.drawImage(_worldCanvas, 0, 0);
+            
+            let lineAlpha = 1.0 - (boss.stateTimer / 2.0); 
+            ctx.strokeStyle = `rgba(231, 76, 60, ${lineAlpha * 0.9})`;
+            ctx.lineWidth = 4;
+            ctx.shadowColor = '#e74c3c';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(0, 360);
+            ctx.lineTo(CANVAS_WIDTH, 360);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        } else if (boss && (boss.screenSplitActive || boss.currentOffset !== 0)) {
+            let offset = boss.currentOffset;
+            
+            ctx.drawImage(_worldCanvas, 0, 0, CANVAS_WIDTH, 360, offset, 0, CANVAS_WIDTH, 360);
+            ctx.drawImage(_worldCanvas, 0, 360, CANVAS_WIDTH, 360, -offset, 360, CANVAS_WIDTH, 360);
+            
+            if (Math.abs(offset) > 10) {
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                ctx.fillRect(0, 355, CANVAS_WIDTH, 10);
+                ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, 360);
+                ctx.lineTo(CANVAS_WIDTH, 360);
+                ctx.stroke();
+            }
+        } else {
+            ctx.drawImage(_worldCanvas, 0, 0);
+        }
         
         if (camOffset !== 0) {
             ctx.save();
             ctx.translate(camOffset, 0);
         }
-        
         CutsceneManager.draw(ctx);
-
         if (camOffset !== 0) ctx.restore();
         
         BossHealthBarHandler.draw(ctx);
+
+        this._drawCursor(ctx, engine);
+    },
+
+    _drawCursor(ctx, engine) {
+        if (engine.gameState !== 'playing') return;
+        ctx.save();
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        
+        // FIX: Removed Math.round to perfectly align with CSS pixel mapping (top-left corner)
+        const cx = engine.mouse.rawX !== undefined ? engine.mouse.rawX : engine.mouse.x;
+        const cy = engine.mouse.rawY !== undefined ? engine.mouse.rawY : engine.mouse.y;
+        
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + 10, cy + 15);
+        ctx.lineTo(cx + 4, cy + 15);
+        ctx.lineTo(cx + 2, cy + 20);
+        ctx.lineTo(cx - 2, cy + 18);
+        ctx.lineTo(cx - 4, cy + 13);
+        ctx.lineTo(cx - 10, cy + 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
     },
 
     _drawMainMenuScenery(ctx, engine, dt) {
@@ -219,7 +295,6 @@ export const Renderer = {
         const stats = TowerStats[engine.selectedTowerType] || HeroStats[engine.selectedTowerType];
         const mouse = engine.mouse;
         
-        // --- NUDGE LOGIC: Use stuck position if active, otherwise use mouse ---
         let previewX = mouse.x;
         let previewY = mouse.y;
 
@@ -227,7 +302,6 @@ export const Renderer = {
             previewX = engine.stuckPlacement.x;
             previewY = engine.stuckPlacement.y;
         }
-        // ----------------------------------------------------------------------
 
         const map = engine.map;
         const placementRadius = Math.max(1, (stats.hitRadius || PLACEMENT_RADIUS) * GS);
@@ -250,7 +324,6 @@ export const Renderer = {
         ctx.globalAlpha = 0.6;
 
         if (stats.range < 9999) {
-            // FIX: Use unified getEffectiveRange
             const effRange = Math.max(1, Utils.getEffectiveRange({ stats }, engine));
             ctx.fillStyle = canAfford ? TOWER_AFFORDABLE_COLOR : TOWER_OUT_OF_BOUNDS_COLOR;
             ctx.beginPath(); ctx.arc(previewX, previewY, effRange, 0, Math.PI * 2); ctx.fill();
@@ -308,7 +381,6 @@ export const Renderer = {
         ctx.beginPath(); ctx.arc(t.x, t.y, Math.max(1, t.hitRadius + TOWER_HIT_RADIUS_PADDING), 0, Math.PI * 2); ctx.stroke();
 
         if (t.stats.range < 9999) {
-            // FIX: Use unified getEffectiveRange
             const effRange = Math.max(1, Utils.getEffectiveRange(t, engine));
 
             ctx.fillStyle = TOWER_RANGE_FILL_COLOR; ctx.globalAlpha = TOWER_SELECTION_FILL_ALPHA;

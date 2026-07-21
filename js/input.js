@@ -3,14 +3,13 @@ import { GameEngine } from './engine.js';
 
 export const InputManager = {
     canvas: null,
-    canvasRect: null,
+    canvasRect: null, // Kept for compatibility, but we fetch live now
 
     init(canvas = GameEngine.canvas) {
         if (!canvas) return;
         this.canvas = canvas;
         this._updateCanvasRect();
         
-        // PRO FIX: Recompute rect on resize/orientationchange instead of every mousemove
         window.addEventListener('resize', () => this._updateCanvasRect());
         window.addEventListener('orientationchange', () => this._updateCanvasRect());
         
@@ -27,7 +26,20 @@ export const InputManager = {
 
     _setupMouseEvents(canvas) {
         canvas.addEventListener('mousemove', (e) => this._updateMousePosFromClientCoords(e.clientX, e.clientY, canvas));
-        canvas.addEventListener('click', (e) => GameEngine.handleCanvasClick(e));
+        
+        // FIX: Adjust clientX/Y before passing to handleCanvasClick to prevent cursor snapping and offset bugs
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let mx = (e.clientX - rect.left) * scaleX;
+            let my = (e.clientY - rect.top) * scaleY;
+            const adj = applyBossEffects(mx, my);
+            const fakeClientX = rect.left + (adj.x / scaleX);
+            const fakeClientY = rect.top + (adj.y / scaleY);
+            GameEngine.handleCanvasClick({ clientX: fakeClientX, clientY: fakeClientY });
+        });
+
         canvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             GameEngine.deselectAll();
@@ -35,12 +47,20 @@ export const InputManager = {
     },
 
     _updateMousePosFromClientCoords(clientX, clientY, canvas) {
-        // PRO FIX: Use cached rect
-        const rect = this.canvasRect || canvas.getBoundingClientRect();
+        // FIX: Fetch rect live to prevent 20px drift when scrollbars appear or layout shifts
+        const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
-        GameEngine.mouse.x = (clientX - rect.left) * scaleX;
-        GameEngine.mouse.y = (clientY - rect.top) * scaleY;
+        let mx = (clientX - rect.left) * scaleX;
+        let my = (clientY - rect.top) * scaleY;
+
+        // FIX: Store raw coordinates for drawing the visual cursor accurately
+        GameEngine.mouse.rawX = mx;
+        GameEngine.mouse.rawY = my;
+
+        const adj = applyBossEffects(mx, my);
+        GameEngine.mouse.x = adj.x;
+        GameEngine.mouse.y = adj.y;
     },
 
     _setupTouchEvents(canvas) {
@@ -77,3 +97,32 @@ export const InputManager = {
         });
     }
 };
+
+// Central function to apply boss mouse kidnapping effects
+export function applyBossEffects(rawX, rawY) {
+    const boss = GameEngine.enemies.find(e => e.tier === 99); // KnightEnemy is tier 99
+    if (!boss) {
+        return { x: rawX, y: rawY };
+    }
+
+    // 1. Full Freeze (2 seconds)
+    if (boss.freezeMouse) {
+        return { x: boss.freezeX, y: boss.freezeY };
+    }
+
+    let x = rawX;
+    let y = rawY;
+
+    // 2. Portal Offset
+    if (boss.screenSplitActive || boss.currentOffset !== 0) {
+        // FIX: If the visual screen shifts right (+offset), the logical coordinate must shift left (-offset) 
+        // to place the tower at the correct logical position on the map.
+        if (y < 360) {
+            x -= boss.currentOffset;
+        } else {
+            x += boss.currentOffset;
+        }
+    }
+
+    return { x, y };
+}
