@@ -19,12 +19,12 @@ import Assets from './assets.js';
 import { UI } from './ui.js';
 import { Renderer } from './renderer.js';
 import { CutsceneManager } from './cutscene.js';
+import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 // FIX: Import the extracted input handler
 import EngineInput from './engineInput.js';
 
 const MAX_SUBSTEPS = 10;
-// ... [Rest of the engine.js file remains exactly the same from here down] ...
 const MAX_PROJECTILES = 1500;
 const MAX_PARTICLES = 400;
 const MAX_EXPLOSIONS = 100;
@@ -42,7 +42,7 @@ export const GameEngine = {
     _rafId: null,
     fpsEl: null,
     
-    get config() { return Config; }, // Allows tower.js and enemy.js to safely access Config without importing it directly
+    get config() { return Config; }, 
     
     enemies: [],
     towers: [],
@@ -93,7 +93,7 @@ export const GameEngine = {
     imfDebt: 0,
     acidPools: [],
     menuClickables: [],
-    updateShopPrices: null, // Placeholder for UI shop refresh
+    updateShopPrices: null,
 
     init() {
         Config.load();
@@ -149,7 +149,12 @@ export const GameEngine = {
         if (rawAmount <= 0) return;
         if (this.imfDebt > 0) {
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
-            const taxRate = mk['backroom_deals'] ? 0.40 : 0.50;
+            let taxRate = 0.50;
+            // FIX: Apply economy MK effects generically
+            for (const eff of MKEffects.economy) {
+                if (!mk[eff.id]) continue;
+                if (eff.id === 'backroom_deals') taxRate = eff.action();
+            }
             const tax = Math.floor(rawAmount * taxRate);
             if (tax >= this.imfDebt) { rawAmount -= this.imfDebt; this.imfDebt = 0; } 
             else { rawAmount -= tax; this.imfDebt -= tax; }
@@ -182,21 +187,16 @@ export const GameEngine = {
         // --- MONKEY KNOWLEDGE EFFECTS ---
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         if (!isSandbox) {
-            if (mk['more_cash']) this.cash += 200;
-            if (mk['bonus_glue']) {
-                const t = new Tower(350, 350, 'glue');
-                this.towers.push(t);
-            }
-            
             this.manaShield = 0;
             this.maxManaShield = 0;
             this.leakedThisRound = false;
-            if (mk['mana_shield'] && diff.name !== 'Impoppable') {
-                this.maxManaShield = 25;
-                this.manaShield = 25;
+            this.globalXpMult = 1.0;
+            // FIX: Apply gameInit MK effects generically
+            for (const eff of MKEffects.gameInit) {
+                if (!mk[eff.id]) continue;
+                if (eff.condition && !eff.condition(this, diff)) continue;
+                if (eff.action) eff.action(this, diff, { Tower });
             }
-
-            this.globalXpMult = mk['monkey_education'] ? 1.08 : 1.0;
         }
         // --------------------------------
 
@@ -206,7 +206,7 @@ export const GameEngine = {
         this.waveManager.currentWave = diff.startRound - 1;
         this.tier5Bought = {};
         this.speedState = 0; this.timeScale = 1;
-        this.freeDartMonkeyClaimed = false; // Reset Monkey City free dart
+        this.freeDartMonkeyClaimed = false; 
         UI.updateWaveSpeedBtn(this.speedState);
         CutsceneManager.reset(); 
         this.updateUI();
@@ -229,7 +229,6 @@ export const GameEngine = {
 
     saveGame() {
         if (this.gameState !== 'playing' && this.gameState !== 'paused') return;
-        // FIX: Store the actual difficulty key to prevent reconstruction issues
         const state = { 
             mapIndex: this.currentMap, 
             difficultyKey: Config.data.currentDifficulty, 
@@ -247,7 +246,6 @@ export const GameEngine = {
         const state = Config.data.savedRun;
         this.currentMap = state.mapIndex;
         
-        // FIX: Use stored difficultyKey, fallback to legacy string manipulation for old saves
         if (state.difficultyKey) {
             Config.data.currentDifficulty = state.difficultyKey;
         } else if (state.difficulty) {
@@ -283,7 +281,11 @@ export const GameEngine = {
         let mmEarned = Math.floor(wavesSurvived / 3) + 5;
         
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
-        if (mk['mo_monkey_money']) mmEarned = Math.floor(mmEarned * 1.1);
+        // FIX: Apply economy MK effects generically
+        for (const eff of MKEffects.economy) {
+            if (!mk[eff.id]) continue;
+            if (eff.id === 'mo_monkey_money') mmEarned = Math.floor(mmEarned * eff.action());
+        }
         
         Config.data.playerXP += xpEarned; Config.data.monkeyMoney += mmEarned;
         
@@ -403,24 +405,21 @@ export const GameEngine = {
         this._updateExplosions(dt); this._updateParticles(dt);
         
         if (!this.waveManager.waveActive && prevWaveActive) {
-            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
-            
             if (this.maxManaShield > 0 && !this.leakedThisRound) {
                 this.manaShield = this.maxManaShield;
             }
             this.leakedThisRound = false;
 
-            if (mk['healthy_bananas']) {
-                let livesToAdd = 0;
-                for (const t of this.towers) {
-                    if (t && t.type === 'farm' && t.upgrades[2] >= 3) {
-                        livesToAdd += (t.upgrades[2] >= 4) ? 3 : 1;
-                    }
+            // FIX: Healthy Bananas is now fully data-driven. Just check the stat on the towers!
+            let livesToAdd = 0;
+            for (const t of this.towers) {
+                if (t && t.stats.healthyBananas > 0) {
+                    livesToAdd += t.stats.healthyBananas;
                 }
-                if (livesToAdd > 0) {
-                    this.lives += livesToAdd;
-                    this.log(`Healthy Bananas: +${livesToAdd} lives!`);
-                }
+            }
+            if (livesToAdd > 0) {
+                this.lives += livesToAdd;
+                this.log(`Healthy Bananas: +${livesToAdd} lives!`);
             }
         }
 
@@ -474,7 +473,6 @@ export const GameEngine = {
             if (!t) continue;
             t.buffedRange = 0; t.buffedFireRate = 0; t.buffedCamo = false; t.buffedLead = false;
             t.discount = 0; t.buffedDmg = 0; t.buffedPierce = 0; t.buffedValueMult = 0;
-            // Reset Village Path 1 specific buffs so they can be reapplied
             t.buffedProjSpeed = 1.0; 
             t.abilityCdMult = 1.0;
         }
@@ -505,7 +503,6 @@ export const GameEngine = {
                 const b = t.bananas[i];
                 if (b.progress < 1) continue;
                 
-                // FIX: Use Utils.distanceSq instead of inline math
                 const distSq = Utils.distanceSq(this.mouse.x, b.x, this.mouse.y, b.y);
                 const range = t.stats.collectionRange || 40;
                 
@@ -557,6 +554,4 @@ export const GameEngine = {
     }
 };
 
-// FIX: Merge extracted input methods into the GameEngine object
 Object.assign(GameEngine, EngineInput);
-

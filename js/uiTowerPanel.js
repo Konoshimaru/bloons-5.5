@@ -136,15 +136,14 @@ const uiTowerPanel = {
         if (!panel) return;
         panel.classList.remove('hidden');
         
-        // PRO FIX: Dynamic sidebar positioning (Opposite side of the monkey)
         if (t.x > 640) {
-            panel.classList.remove('sidebar-right'); // Monkey on right -> menu on left
+            panel.classList.remove('sidebar-right'); 
         } else {
-            panel.classList.add('sidebar-right'); // Monkey on left -> menu on right
+            panel.classList.add('sidebar-right'); 
         }
         
         this._setupSellAndBankButtons(panel, t);
-        this._updatePortrait(t); // Update the portrait immediately when clicked
+        this._updatePortrait(t);
         
         if (t.stats.isHero) {
             this._showHeroUI(t, engine);
@@ -157,7 +156,6 @@ const uiTowerPanel = {
         const portrait = el('up-portrait');
         if (!portrait) return;
 
-        // Find the highest upgrade path and tier
         let bestTier = 0, bestPath = 0;
         for (let p = 1; p <= 3; p++) {
             if (t.upgrades[p - 1] > bestTier) {
@@ -167,7 +165,6 @@ const uiTowerPanel = {
         }
 
         let imgPath = '';
-        // If upgraded, look for the specific tier portrait. Otherwise, use the base menu portrait.
         if (bestTier > 0) {
             imgPath = `sprites/portraits/${t.type}_p${bestPath}_t${bestTier}.png`;
         } else {
@@ -302,8 +299,6 @@ const uiTowerPanel = {
             if (statsEl) statsEl.classList.add('hidden');
         }
         
-        // PRO FIX: Hide targeting row for Spike Factory without Smart Spikes
-        // And hide for Village without Primary Expertise (5-x-x)
         const targetingRow = el('up-targeting-row');
         if (targetingRow) {
             if (t.type === 'spike' && !t.stats.smartSpikes) {
@@ -313,6 +308,41 @@ const uiTowerPanel = {
             } else {
                 targetingRow.classList.remove('hidden');
             }
+        }
+
+        // FIX: Setup Second Targeting Row for Robo Monkey properly handling the cache
+        let targetingRow2 = el('up-targeting-row-2');
+        if (t.type === 'super' && t.upgrades[1] >= 3) { // Robo Monkey or Anti-Bloon
+            if (!targetingRow2 && targetingRow) {
+                targetingRow2 = targetingRow.cloneNode(true);
+                targetingRow2.id = 'up-targeting-row-2';
+                
+                const prev2 = targetingRow2.querySelector('#up-target-prev');
+                const next2 = targetingRow2.querySelector('#up-target-next');
+                const text2 = targetingRow2.querySelector('#up-target-text');
+                
+                if (prev2) prev2.id = 'up-target-prev-2';
+                if (next2) next2.id = 'up-target-next-2';
+                if (text2) text2.id = 'up-target-text-2';
+                
+                targetingRow.parentNode.insertBefore(targetingRow2, targetingRow.nextSibling);
+                
+                // FIX: Manually fetch the new elements to attach listeners and update cache
+                const newPrev2 = targetingRow2.querySelector('#up-target-prev-2');
+                const newNext2 = targetingRow2.querySelector('#up-target-next-2');
+                
+                if (newPrev2) newPrev2.addEventListener('click', () => engine.cycleTargeting(-1, 2));
+                if (newNext2) newNext2.addEventListener('click', () => engine.cycleTargeting(1, 2));
+                
+                // Update the cache so future calls to el() find the new elements
+                _elCache['up-targeting-row-2'] = targetingRow2;
+                _elCache['up-target-prev-2'] = newPrev2;
+                _elCache['up-target-next-2'] = newNext2;
+                _elCache['up-target-text-2'] = targetingRow2.querySelector('#up-target-text-2');
+            }
+            if (targetingRow2) targetingRow2.classList.remove('hidden');
+        } else if (targetingRow2) {
+            targetingRow2.classList.add('hidden');
         }
         
         this._updateTargetingText(t);
@@ -337,7 +367,10 @@ const uiTowerPanel = {
 
     _updateTargetingText(t) {
         const targetText = el('up-target-text');
-        if (targetText) targetText.innerText = t.targetingMode;
+        if (targetText) targetText.innerText = t.targetingMode || 'First';
+        
+        const targetText2 = el('up-target-text-2');
+        if (targetText2) targetText2.innerText = t.targetingMode2 || 'First';
     },
 
     _updateUpgradeCards(t, engine) {
@@ -366,11 +399,9 @@ const uiTowerPanel = {
                 }
             }
 
-            // ISSUE 1 FIX: Cache state to prevent unnecessary DOM updates
             if (!card._cache) card._cache = { tier: -1, name: "", cost: "", locked: null };
             const cache = card._cache;
             
-            // Rebuild tier boxes only if tier changed
             if (cache.tier !== tier && tierBoxes) {
                 tierBoxes.innerHTML = '';
                 for (let j = 0; j < 5; j++) {
@@ -382,7 +413,6 @@ const uiTowerPanel = {
                 cache.tier = tier;
             }
 
-            // Update text and locked state only if changed
             if (cache.name !== newName || cache.cost !== newCost || cache.locked !== newLocked) {
                 const nameEl = card.querySelector('.up-name');
                 const costEl = card.querySelector('.cost');
@@ -398,7 +428,6 @@ const uiTowerPanel = {
             }
         }
         
-        // Call portrait update here as well, so if they buy an upgrade while the menu is open, the portrait updates instantly
         this._updatePortrait(t);
     }
 };

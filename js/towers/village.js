@@ -3,6 +3,7 @@ import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 import { Tower } from '../tower.js';
+import { MKEffects } from '../monkeyKnowledgeEffects.js';
 
 export default {
     stats: { 
@@ -18,7 +19,6 @@ export default {
             {name:"Jungle Drums",cost:1500,stat:"fireRateBuff",amount:0.18,desc:"Increases attack speed of all Monkeys in the radius."},
             {name:"Primary Training",cost:800,desc:"All Primary Monkeys in radius get more range, pierce and projectile speed."},
             {name:"Primary Mentoring",cost:2500,desc:"All Primary Monkeys in radius get tier 1 upgrades for free, increased range and reduced ability cooldowns."},
-            // FIX 4: Added bonusCeramic to extraMods so it applies to tower.stats.bonusCeramic
             {name:"Primary Expertise",cost:25000,stat:"damage",amount:10,desc:"Adds Mega Ballista attack, plus all Primary Monkeys in radius get more popping power and tier 1 and 2 upgrades for free.", extraMods:{fireRate: 2.5, pierce: 100, dmgType: 'energy', range: 8, bonusCeramic: 190}}
         ],
         2: [
@@ -46,7 +46,6 @@ export default {
             if (t === tower) continue;
             
             if (Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
-                // FIX: Calculate total Village buff first so tiers stack properly
                 let totalRangeBuff = tower.stats.rangeBuff || 0;
                 let totalPierceBuff = 0;
                 let projSpeedBuff = 1.0;
@@ -59,17 +58,16 @@ export default {
                         projSpeedBuff = 1.25;
                     }
                     if (tower.upgrades[0] >= 4) {
-                        totalRangeBuff += 0.05; // +5% more
-                        totalPierceBuff += 1;   // +2 total
+                        totalRangeBuff += 0.05; 
+                        totalPierceBuff += 1;   
                         abilityCdBuff = 0.9;
                     }
                     if (tower.upgrades[0] >= 5) {
-                        totalPierceBuff += 2;   // +4 total
+                        totalPierceBuff += 2;   
                         abilityCdBuff = 0.8;
                     }
                 }
                 
-                // Apply Standard Buffs
                 t.buffedRange = Math.max(t.buffedRange, totalRangeBuff);
                 t.buffedFireRate = Math.max(t.buffedFireRate, tower.stats.fireRateBuff || 0);
                 t.buffedPierce = Math.max(t.buffedPierce, totalPierceBuff);
@@ -79,22 +77,25 @@ export default {
                 if (tower.stats.grantsCamo) t.buffedCamo = true;
                 if (tower.stats.grantsLead) t.buffedLead = true;
                 
-                // Discount (Monkey Business / Commerce)
+                // Discount (Monkey Business / Commerce + Insider Trades MK)
+                // FIX: MK discount is already added to tower.stats.discount by tower.js! Just pass it directly.
                 if (tower.stats.discount) {
-                    let discountVal = tower.stats.discount;
-                    if (tower.upgrades[2] >= 1 && mk['insider_trades']) {
-                        discountVal = 0.12; 
-                    }
-                    t.discount = Math.max(t.discount, discountVal);
+                    t.discount = Math.max(t.discount, tower.stats.discount);
                 }
                 
-                // Monkey Town Cash Boost
+                // Monkey Town Cash Boost (+ Inland Revenue MK)
                 if (tower.upgrades[2] >= 3) {
-                    let cashMult = mk['inland_revenue'] ? 0.6 : 0.5;
+                    let cashMult = 0.5;
+                    // FIX: Apply MK village buffs generically
+                    for (const eff of MKEffects.villageBuff) {
+                        if (!mk[eff.id]) continue;
+                        if (eff.condition && !eff.condition(tower)) continue;
+                        if (eff.stat === 'cashMult') cashMult += eff.amount;
+                    }
                     t.buffedCashMult = Math.max(t.buffedCashMult || 0, cashMult);
                 }
 
-                // Buff Icons (Independent 'if' statements so they all show up)
+                // Buff Icons
                 if (tower.stats.rangeBuff > 0 || tower.stats.discount > 0) {
                     t.addBuff('village', 'Village Buff', 0.5, 1, { type: 'village' }, false);
                 }
@@ -117,9 +118,6 @@ export default {
                 if (tower.upgrades[1] >= 3) {
                     t.addBuff('mib', 'MIB', 0.5, 1, { type: 'mib' }, false);
                 }
-
-                // FIX 5: Removed redundant Call to Arms / Homeland Defense Ability Check from updateSupport.
-                // The global cast in ability() handles this correctly.
             }
         }
     },
@@ -127,7 +125,6 @@ export default {
     update(tower, dt) {
         const effRange = tower.stats.range * RANGE_SCALE;
 
-        // FIX 3: Monkey City free Dart Monkey (0-0-4) on wave start
         if (tower.upgrades[2] >= 4) {
             if (!tower._waveActive && GameEngine.waveManager.waveActive) {
                 tower._waveActive = true;
@@ -137,7 +134,6 @@ export default {
                     let dist = 45;
                     let x = tower.x + Math.cos(angle) * dist;
                     let y = tower.y + Math.sin(angle) * dist;
-                    // Basic placement validation
                     let canPlace = !GameEngine.map.isOnPath(x, y) && !GameEngine.map.isOnProp(x, y) && y < 720 && x < 1280 - 300;
                     if (canPlace) {
                         let t = new Tower(x, y, 'dart');
@@ -151,7 +147,6 @@ export default {
             }
         }
 
-        // Income Generation (Monkeyopolis) - Spawns Huge Bananas!
         if (tower.upgrades[2] >= 5 && tower.stats.income) {
             tower.incomeTimer = (tower.incomeTimer || 0) - dt;
             if (tower.incomeTimer <= 0) {
@@ -171,7 +166,6 @@ export default {
             }
         }
 
-        // Grow Blocker (0-1-0)
         if (tower.upgrades[1] >= 1) {
             const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, effRange);
             for (let e of nearby) {
@@ -181,7 +175,6 @@ export default {
             }
         }
 
-        // Monkeyopolis Sacrifice Logic (0-0-5)
         if (tower.upgrades[2] >= 5 && !tower._opolisInit) {
             tower._opolisInit = true;
             let farmVal = 0;
@@ -199,7 +192,6 @@ export default {
             if (farmVal > 0) GameEngine.log("Monkeyopolis absorbed " + farmVal + " worth of farms!");
         }
 
-        // Primary Expertise Attack (5-x-x)
         if (tower.upgrades[0] >= 5 && tower.stats.fireRate > 0) {
             tower.cooldown -= dt;
             if (tower.cooldown <= 0) {
@@ -234,7 +226,6 @@ export default {
                 }
                 if (target) {
                     let p = GameEngine.projectilePool.get();
-                    // FIX 4: Moved moabDmg to dmgType object, removed bonusCeramic from effects (it's now on tower.stats)
                     p.init(tower.x, tower.y - 20, 10, target, 'nail', 800, 100, 10.0, null, { homing: true, ricochet: 5, ricochetRange: 150 }, 0, tower, { isEnergy: true, canHitLead: true, moabDmg: 190 });
                 }
             }
@@ -246,11 +237,10 @@ export default {
     },
 
     ability(tower, engine) {
-        const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         let isHomeland = tower.upgrades[1] === 5;
         
-        let duration = isHomeland ? 20 : 15;
-        if (mk['to_arms']) duration += 3;
+        // FIX: Use abilityDuration stat which is populated by MKEffects.to_arms (+3s)
+        let duration = (isHomeland ? 20 : 15) + (tower.stats.abilityDuration || 0);
         
         for (let t of engine.towers) {
             if (!t || t.type === 'village') continue;

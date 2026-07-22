@@ -4,7 +4,10 @@
 import { GameEngine } from '../engine.js';
 import { AudioEngine } from '../audio.js';
 import { Utils } from '../utils.js';
-import { TowerStats } from './index.js'; 
+import { TowerStats } from './index.js';
+import { GLOBAL_SCALE } from '../constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: { 
@@ -25,10 +28,10 @@ export default {
         ],
         2: [
             {name:"Super Range", cost:1500, stat:"range", amount:10, desc:"Super Monkeys need Super Range.", extraMods:{pierce:1}},
-            {name:"Epic Range", cost:1900, stat:"range", amount:12, desc:"Why settle for super when you can have EPIC?", extraMods:{pierce:2, projectileSpeed:1400}},
+            {name:"Epic Range", cost:1900, stat:"range", amount:12, desc:"Why settle for super when you can have EPIC?", extraMods:{pierce:2, projectileSpeed:600}}, // +600 to base 800 = 1400 (+75%)
             {name:"Robo Monkey", cost:7500, stat:"projectileCount", amount:1, desc:"Half Super Monkey, half killer robot of death. Shoots from 2 guns and can crit!", extraMods:{canCrit:true, critChance:0.06, critDmg:10, pierce:2}},
             {name:"Tech Terror", cost:25000, stat:"dmgType", amount:'plasma', desc:"Annihilation ability: Destroys most Bloons completely within blast radius.", extraMods:{projectileType:'plasma', pierce:3, isAbility:true, abilityName:"Annihilate", abilityCd:40}},
-            {name:"The Anti-Bloon", cost:70000, stat:"damage", amount:4, desc:"<Program Directive> <Eradicate Bloons> <INITIATE>", extraMods:{pierce:5, range:10, isAbility:true, abilityName:"Annihilate 2.0", abilityCd:30, critChance:0.07, critDmg:50, canHitLead:true}}
+            {name:"The Anti-Bloon", cost:70000, stat:"damage", amount:4, desc:"<Program Directive> <Eradicate Bloons> <INITIATE>", extraMods:{pierce:5, range:10, isAbility:true, abilityName:"Annihilate 2.0", abilityCd:30, critChance:0.07, critDmg:50, dmgType:'normal', canHitLead:true}}
         ],
         3: [
             {name:"Knockback", cost:3000, stat:"dmgType", amount:'sharp', desc:"Bloons get pushed backwards or slowed after each hit.", extraMods:{knockback:25, slow:0.4, slowDuration:0.5}},
@@ -279,13 +282,43 @@ export default {
                     const target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
                     if (target && target.alive) {
                         const p = engine.projectilePool.get();
-                        // FIX: Check tower.upgrades[0] === 5 instead of isTrueSunGod variable
                         const dmgMult = tower.upgrades[0] === 5 ? 2 : 1;
                         p.init(tower.x + (i-1)*20, tower.y + (i-1)*20, 4 * dmgMult, target, 'plasma', 800, 6, 0.5, null, {}, 15 * (i - 1), tower, {isPlasma: true, canHitLead: true});
                     }
                 }
             }
         }
+    },
+
+    _findSecondTarget(tower, engine, primaryTarget) {
+        const scale = 3.0; // RANGE_SCALE
+        const baseRange = typeof tower.stats.range === 'number' ? tower.stats.range : 100;
+        const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
+        const alchRange = tower.alchBuff ? tower.alchBuff.range : 0;
+        
+        const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
+        const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange) * nightMod * GS;
+        const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
+        
+        let mode = tower.targetingMode2 || 'First';
+        let best = null;
+        let bestVal = (mode === 'First' || mode === 'Strong') ? -Infinity : Infinity;
+        
+        for (const e of candidates) {
+            if (!e.alive || e === primaryTarget) continue;
+            if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
+            
+            let val;
+            if (mode === 'First' || mode === 'Last') val = e.distanceTraveled; 
+            else if (mode === 'Strong') val = e.data.rbe; 
+            else val = Utils.distanceSq(tower.x, tower.y, e.x, e.y); // Close
+            
+            if ((mode === 'First' || mode === 'Strong') ? val > bestVal : val < bestVal) {
+                bestVal = val;
+                best = e;
+            }
+        }
+        return best;
     },
 
     fire(tower, target, damage, dmgType, isCrit, effects, engine) {
@@ -301,13 +334,35 @@ export default {
 
         let count = tower.stats.projectileCount || 1;
         let spreadAngle = 0;
-        if (count === 3) spreadAngle = 15; 
-        else if (count === 2) spreadAngle = 7.5; 
+        if (count === 3) spreadAngle = 15;  // Sun Avatar / True Sun God
+        else if (count === 2 && !tower.stats.canCrit) spreadAngle = 7.5; // Tech Terror (shoots same target, spread)
         
+        let target2 = target;
+        // FIX: Robo Monkey / Anti-Bloon (canCrit === true) target independently
+        if (count === 2 && tower.stats.canCrit) {
+            target2 = this._findSecondTarget(tower, engine, target) || target;
+        }
+
+        const baseDmg = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0);
+
         for(let i=0; i<count; i++) {
+            let armDmg = baseDmg;
+            let armCrit = false;
+            
+            // Roll crit independently for this arm
+            if (tower.stats.canCrit && Math.random() < (tower.stats.critChance || 0)) {
+                armDmg = tower.stats.critDmg;
+                armCrit = true;
+            }
+
             let p = engine.projectilePool.get();
-            let offset = count > 1 ? (spreadAngle * (i - (count-1)/2)) : 0;
-            p.init(tower.x, tower.y, damage, target, tower.stats.projectileType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, offset, tower, dmgType, isCrit);
+            // Robo arms don't use a forced spread angle; they aim at their respective targets
+            let offset = (count > 1 && !tower.stats.canCrit) ? (spreadAngle * (i - (count-1)/2)) : 0;
+            
+            // Arm 0 shoots primary target, Arm 1 shoots secondary target
+            let currentTarget = (i === 0) ? target : target2;
+            
+            p.init(tower.x, tower.y, armDmg, currentTarget, tower.stats.projectileType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, offset, tower, dmgType, armCrit);
         }
     },
     
@@ -316,12 +371,26 @@ export default {
         
         if (name === "Annihilate" || name === "Annihilate 2.0") {
             const isUpgraded = name === "Annihilate 2.0";
-            const pulseDmg = isUpgraded ? 10400 : 2600; 
+            let pulseDmg = isUpgraded ? 10400 : 2600; 
             const expRadius = isUpgraded ? 800 : 500;
+            
+            // FIX: Tech Terror every 3rd use is a crit for 3900 damage
+            if (!isUpgraded) {
+                tower.annihilateUseCount = (tower.annihilateUseCount || 0) + 1;
+                if (tower.annihilateUseCount % 3 === 0) {
+                    pulseDmg = 3900;
+                }
+            }
+            
             engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.5, maxLife: 0.5, color: '#3498db' });
             const nearby = engine.enemyGrid.query(tower.x, tower.y, expRadius);
+            let hits = 0;
             for (const e of nearby) {
-                if (e.alive) e.takeDamage(pulseDmg, { isExplosion: true, canHitLead: true });
+                if (hits >= 2000) break; // Max 2000 bloons
+                if (e.alive) {
+                    e.takeDamage(pulseDmg, { isExplosion: true, canHitLead: true });
+                    hits++;
+                }
             }
             AudioEngine.playSfx('moab_destroy');
         } else if (name === "Darkshift") {

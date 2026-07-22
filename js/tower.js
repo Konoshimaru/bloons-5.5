@@ -7,9 +7,12 @@ import Assets from './assets.js';
 import * as TowerBehavior from './towerBehavior.js';
 import { GLOBAL_SCALE } from './constants.js';
 import { RANGE_SCALE } from './config.js'; 
-import { getBehavior } from './registry.js'; // FIX: Ensure getBehavior is imported
+import { getBehavior } from './registry.js'; 
+import { MKEffects } from './monkeyKnowledgeEffects.js';
 
+// FIX: Import the extracted modules
 import TowerRenderer from './towerRenderer.js';
+import TowerEconomy from './towerEconomy.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -35,6 +38,7 @@ export class Tower {
         this.hitscans = [];
         this.bananas = [];
         this.targetingMode = 'First';
+        this.targetingMode2 = 'Last'; // FIX: Default second arm to Last for Robo Monkey
         
         this.stats.canSeeCamo = this.stats.canSeeCamo || false;
         this.stats.canHitLead = this.stats.canHitLead || false;
@@ -90,48 +94,9 @@ export class Tower {
 
         this.activeBuffs = [];
 
+        // FIX: Apply base MK effects generically
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
-        
-        if (this.type === 'dart' && mk['extra_darts']) this.stats.pierce += 1;
-        if (this.type === 'tack' && mk['hard_tacks']) this.stats.canHitFrozen = true;
-        if (this.type === 'boomerang' && mk['cheap_rangs']) this.stats.cost -= 50;
-        if (mk['inc_lifespan'] && ['dart', 'bomb', 'tack', 'glue'].includes(this.type)) {
-            this.stats.lifespan = (this.stats.lifespan || 0.5) + 0.2;
-        }
-
-        if (['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'].includes(this.type) && mk['advanced_logistics']) {
-            this.stats.cost = Math.floor(this.stats.cost * 0.95);
-        }
-        if (['buccaneer', 'sub'].includes(this.type) && mk['naval_upgrades']) {
-            this.stats.pierce = (this.stats.pierce || 1) + 1;
-        }
-        if (['ace', 'heli'].includes(this.type) && mk['airforce_upgrades']) {
-            this.stats.pierce = (this.stats.pierce || 1) + 1;
-        }
-
-        if (mk['lingering_magic'] && ['wizard', 'super', 'ninja', 'druid'].includes(this.type)) {
-            this.stats.lifespan = (this.stats.lifespan || 0.5) * 1.2;
-        }
-        if (mk['hot_magic'] && ['wizard', 'super', 'ninja', 'druid', 'alchemist'].includes(this.type)) {
-            this.stats.canHitFrozen = true;
-        }
-
-        if (['farm', 'village'].includes(this.type) && mk['flat_pack']) {
-            this.stats.cost = Math.floor(this.stats.cost * 0.98);
-        }
-        if (this.type === 'spike' && mk['one_more_spike']) {
-            this.stats.pierce = (this.stats.pierce || 1) + 1;
-        }
-
-        if (this.stats.isHero && mk['hero_favors']) {
-            this.stats.cost = Math.floor(this.stats.cost * 0.9);
-        }
-        if (this.stats.isHero && mk['heroic_reach']) {
-            this.stats.range += 3;
-        }
-        if (this.stats.isHero && mk['heroic_velocity']) {
-            this.stats.projectileSpeed = (this.stats.projectileSpeed || 600) * 1.1;
-        }
+        this._applyMKEffects(mk, MKEffects.base, GameEngine);
     }
 
     addBuff(id, name, duration, stacks = 1, data = {}, addStacks = true) {
@@ -165,104 +130,31 @@ export class Tower {
             }
         }
 
+        // FIX: Apply cooldown and tier MK effects generically
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
-        
-        if (this.type === 'tack' && mk['fast_tack']) this._cooldownMult *= 0.92;
-        if (this.type === 'glue' && mk['fast_glue']) this._cooldownMult *= 0.90;
-        if (mk['come_on_everybody'] && ['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue'].includes(this.type)) {
-            const allLowTier = GameEngine.towers.every(t => !t || (['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue'].includes(t.type) && t.upgrades[0] < 3 && t.upgrades[1] < 3 && t.upgrades[2] < 3));
-            if (allLowTier) this._cooldownMult *= 0.95;
-        }
-
-        if (this.type === 'ace' && mk['gun_coolant']) this._cooldownMult *= 0.90;
-        if (this.type === 'heli' && this.upgrades[1] >= 2 && mk['rapid_razors']) this._cooldownMult *= 0.80;
-        if (['sniper', 'sub', 'buccaneer'].includes(this.type) && mk['flanking_maneuvers'] && this.targetingMode === 'Last') {
-            this._cooldownMult *= 0.90;
-        }
-
-        if (this.type === 'alchemist' && mk['speedy_brewing']) this._cooldownMult *= 0.95;
-
-        if (mk['veteran_training']) this._cooldownMult *= 0.97;
-
-        if (this.stats.isHero && mk['quick_hands']) this._cooldownMult *= 0.96;
-
-        this._applyMonkeyKnowledge(mk);
+        this._applyMKEffects(mk, MKEffects.cooldown, GameEngine);
+        this._applyMKEffects(mk, MKEffects.tier, GameEngine);
     }
 
-    _applyMonkeyKnowledge(mk) {
-        if (Object.keys(mk).length === 0) return;
+    // FIX: Generic MK application loop
+    _applyMKEffects(mk, effectList, engine) {
+        for (const eff of effectList) {
+            if (!mk[eff.id]) continue;
+            // Check if it applies to this tower type or if it's a hero perk and this is a hero
+            if (eff.type && !eff.type.includes(this.type) && !(this.stats.isHero && eff.hero)) continue;
+            if (eff.condition && !eff.condition(this, engine)) continue;
 
-        if (this.type === 'tack' && this.upgrades[1] >= 3 && mk['poppy_blades']) this.stats.pierce = (this.stats.pierce || 0) + 2;
-        if (this.type === 'ice' && mk['icy_chill']) this.stats.range = (this.stats.range || 20) + 3;
-        if (this.type === 'glue' && this.upgrades[1] >= 2 && mk['more_splatty']) this.stats.pierce = (this.stats.pierce || 1) + 2;
-        if (this.type === 'boomerang' && this.upgrades[1] >= 2 && mk['extra_bounce']) this.stats.pierce = (this.stats.pierce || 50) + 30;
-        if (this.type === 'dart' && this.upgrades[1] >= 2 && mk['four_and_four']) this.stats.fourAndFour = true;
-        if (this.type === 'dart' && this.upgrades[0] >= 3 && mk['force_vs_force']) this.stats.moabDmg = (this.stats.moabDmg || 0) + 2;
-        if (this.type === 'tack' && this.upgrades[0] >= 5 && mk['big_inferno']) this.stats.explosionRadius = (this.stats.explosionRadius || 0) + 3;
-        if (this.type === 'ice' && this.upgrades[0] >= 1 && mk['so_cold']) this.stats.permafrostSlow = 0.4;
-        if (this.type === 'glue' && this.upgrades[2] >= 4 && mk['aviation_glue']) this.stats.slow = 0.55;
-        if (this.type === 'bomb' && this.upgrades[1] >= 3 && mk['mega_mauler']) this.stats.moabDmg = (this.stats.moabDmg || 0) + 2;
-        if (this.type === 'boomerang' && this.upgrades[2] >= 3 && mk['hard_press']) this.stats.hardPressMult = 1.3;
-        if (this.type === 'ice' && this.upgrades[2] >= 3 && mk['big_cryo']) this.stats.explosionRadius = (this.stats.explosionRadius || 20) * 1.12;
-        if (this.type === 'ice' && this.upgrades[1] >= 4 && mk['hypothermia']) this.stats.freezeDuration = (this.stats.freezeDuration || 1.5) + 1.0;
-        if (this.type === 'bomb' && this.upgrades[0] >= 2 && mk['violent_impact']) this.stats.stunDurationMult = 1.25;
-        if (this.type === 'boomerang' && this.upgrades[1] >= 4 && mk['long_turbo']) this.stats.turboDuration = 15;
-        if (this.type === 'boomerang' && this.upgrades[1] >= 4 && mk['bionic_aug']) this.stats.turboSeesCamo = true;
-        if (this.type === 'bomb' && this.upgrades[0] >= 2 && mk['fraggy_frags']) this.stats.fragCount = (this.stats.fragCount || 8) + 2;
-        if (this.type === 'dart' && this.upgrades[0] >= 3 && mk['crossbow_reach']) this.stats.range = (this.stats.range || 32) + 3;
-        if (this.type === 'boomerang' && mk['recurring_rangs']) this.stats.recurringRangs = true;
-
-        if (this.type === 'buccaneer' && this.upgrades[0] >= 2 && mk['big_bunch']) this.stats.grapeCount = (this.stats.grapeCount || 5) + 1;
-        if (this.type === 'ace' && mk['accel_aerodarts']) this.stats.projectileSpeed = (this.stats.projectileSpeed || 600) * 1.5;
-        if (this.type === 'sniper' && mk['ceramic_shock']) this.stats.ceramicShock = true;
-        if (this.type === 'sub' && this.upgrades[1] >= 3 && mk['breaking_ballistic']) this.stats.ceramicDmg = (this.stats.ceramicDmg || 0) + 1;
-        if (this.type === 'buccaneer' && this.upgrades[2] >= 4 && mk['faster_takedowns']) { if (this.stats.abilityCd) this.stats.abilityCd -= 5; }
-        if (this.type === 'mortar' && this.upgrades[2] >= 1 && mk['extra_burny_stuff']) this.stats.dotTick = 1.0; 
-        if (this.type === 'dartling' && this.upgrades[2] >= 4 && mk['gorgon_storm']) this.stats.gorgonStorm = true;
-        if (this.type === 'sub' && this.upgrades[1] >= 2 && mk['quad_burst']) this.stats.splitCount = 4;
-        if (this.type === 'buccaneer' && this.upgrades[2] >= 3 && mk['trade_agreements']) this.stats.income = (this.stats.income || 0) + 20;
-        if (this.type === 'mortar' && this.upgrades[0] >= 4 && mk['paint_stripper']) this.stats.canStripDDTFortified = true;
-        if (this.type === 'dartling' && this.upgrades[0] >= 5 && mk['cross_the_streams']) this.stats.crossStreams = true;
-        if (this.type === 'ace' && mk['wingmonkey']) this.stats.canWingmonkey = true;
-        if (this.type === 'heli' && this.upgrades[2] >= 4 && mk['charged_chinooks']) this.stats.chinookCashMult = 1.25;
-        if (this.type === 'sniper' && this.upgrades[2] >= 5 && mk['master_defender']) this.stats.masterDefender = true;
-        if (this.type === 'sub' && this.upgrades[1] >= 5 && mk['sub_admiral']) this.stats.subAdmiral = true;
-        if (this.type === 'heli' && this.upgrades[2] >= 5 && mk['door_gunner']) this.stats.canDoorGunner = true;
-
-        if (this.type === 'super' && this.upgrades[0] >= 1 && mk['super_range']) this.stats.range = (this.stats.range || 63) + 3;
-        if (this.type === 'super' && this.upgrades[2] >= 2 && mk['heavy_knockback']) this.stats.knockbackMult = 1.05;
-        if (this.type === 'ninja' && this.upgrades[1] >= 1 && mk['diversion_tactics']) this.stats.distractionChance = (this.stats.distractionChance || 0.3) + 0.025;
-        if (this.type === 'super' && this.upgrades[0] >= 3 && this.upgrades[0] < 5 && mk['strike_down_false']) this.stats.canHitPurple = true;
-        if (this.type === 'wizard' && this.upgrades[1] >= 3 && mk['flame_jet']) this.stats.projectileSpeed = (this.stats.projectileSpeed || 500) * 1.5;
-        if (this.type === 'alchemist' && this.upgrades[1] >= 4 && mk['strong_tonic']) this.stats.tonicDuration = 24;
-        if (this.type === 'druid' && this.upgrades[1] >= 4 && mk['cold_front']) this.stats.lightningFreezes = true;
-        if (this.type === 'wizard' && this.upgrades[0] >= 4 && mk['arcane_impale']) {
-            this.stats.moabDmg = (this.stats.moabDmg || 0) + 1;
-            this.stats.ceramicDmg = (this.stats.ceramicDmg || 0) + 1;
-        }
-        if (this.type === 'alchemist' && mk['acid_stability']) this.stats.acidPoolLife = 12;
-        if (this.type === 'super' && this.upgrades[1] >= 2 && mk['xray_ultra']) this.stats.canSeeThroughBlockers = true;
-        if (this.type === 'ninja' && this.upgrades[0] >= 4 && mk['deadly_tranquility']) this.stats.projectileCount = (this.stats.projectileCount || 1) + 1;
-        if (this.type === 'super' && this.upgrades[0] >= 5 && mk['there_can_be_only_one']) this.stats.canBeVengeful = true;
-        if (this.type === 'druid' && this.upgrades[2] >= 5 && mk['vine_rupture']) this.stats.hasVineRupture = true;
-        if (this.type === 'druid' && this.upgrades[1] >= 3 && mk['tiny_tornadoes']) this.stats.splitTornadoes = true;
-
-        if (this.type === 'village' && this.upgrades[2] >= 3 && mk['insider_trades']) this.stats.discount = (this.stats.discount || 0) + 0.02;
-        if (this.type === 'farm' && this.upgrades[1] >= 1 && mk['more_valuable_bananas']) this.stats.bananaValueMult = (this.stats.bananaValueMult || 0) + 0.05;
-        if (this.type === 'engineer' && this.upgrades[0] >= 1 && mk['vigilant_sentries']) this.stats.sentryLife = (this.stats.sentryLife || 25) + 5;
-        if (this.type === 'engineer' && this.upgrades[1] >= 2 && mk['thicker_foams']) this.stats.foamPierce = (this.stats.foamPierce || 10) + 3;
-        if (this.type === 'spike' && this.upgrades[1] >= 2 && mk['very_shreddy']) this.stats.moabDmg = (this.stats.moabDmg || 0) + 1;
-        if (this.type === 'farm' && this.upgrades[1] >= 3 && mk['bigger_banks']) this.stats.bankCap = (this.stats.bankCap || 7000) + 2500;
-        if (this.type === 'village' && this.upgrades[2] >= 4 && mk['inland_revenue']) this.stats.income = (this.stats.income || 0) + 10;
-        if (this.type === 'engineer' && this.upgrades[2] >= 4 && mk['big_traps']) this.stats.trapRbe = (this.stats.trapRbe || 500) + 30;
-        if (this.type === 'farm' && this.upgrades[2] >= 3 && mk['healthy_bananas']) this.stats.healthyBananas = this.upgrades[2] >= 4 ? 3 : 1;
-        if (this.type === 'village' && this.upgrades[2] >= 4 && mk['to_arms']) this.stats.abilityDuration = 18;
-
-        if (this.stats.isHero && mk['more_splody']) this.stats.explosionPierce = (this.stats.explosionPierce || 0) + 2;
-        if (this.stats.isHero && mk['big_bloon_blueprints']) this.stats.moabDmg = (this.stats.moabDmg || 0) + 1;
-        if (this.stats.isHero && mk['weak_point']) {
-            this.stats.ceramicDmg = (this.stats.ceramicDmg || 0) + 1;
-            this.stats.fortifiedDmg = (this.stats.fortifiedDmg || 0) + 1;
+            if (eff.action) {
+                eff.action(this);
+            } else if (eff.stat) {
+                if (eff.mode === 'mult') {
+                    this.stats[eff.stat] = (this.stats[eff.stat] || 1) * eff.amount;
+                } else if (typeof eff.amount === 'number') {
+                    this.stats[eff.stat] = (this.stats[eff.stat] || 0) + eff.amount;
+                } else {
+                    this.stats[eff.stat] = eff.amount;
+                }
+            }
         }
     }
 
@@ -302,7 +194,6 @@ export class Tower {
     }
 
     _postUpgradeHook(path) {
-        // FIX: Call the custom behavior's postUpgrade hook if it exists (for Sun Temple sacrifices)
         const behavior = getBehavior(this.type);
         if (behavior && behavior.postUpgrade) {
             behavior.postUpgrade(this, path);
@@ -334,107 +225,9 @@ export class Tower {
         }
         return { baseAsset, armAsset, targetSize, isCustomBase };
     }
-
-    canUpgrade(path, engine) {
-        const tier = this.upgrades[path - 1];
-        if (tier >= 5) return false;
-        const pathsStarted = this.upgrades.filter(u => u > 0).length;
-        if (tier === 0 && pathsStarted >= 2) return false;
-        for (let i = 0; i < 3; i++) {
-            if (i !== path - 1 && this.upgrades[i] >= 3 && tier >= 2) return false;
-        }
-        if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) {
-            const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
-            if (this.type === 'dart' && path === 3 && mk['master_double']) {
-                let count = 0;
-                for(let t of engine.towers) { if(t && t.type === 'dart' && t.upgrades[2] === 5) count++; }
-                if (count < 2) return true; 
-            }
-            return false;
-        }
-        
-        if (this.type === 'village' && path === 3 && tier === 4) {
-            const effRange = this.stats.range * RANGE_SCALE;
-            let hasFarm = false;
-            for (let t of engine.towers) {
-                if (t && t !== this && t.type === 'farm' && t.upgrades[0] < 5) {
-                    if (Utils.withinRange(this.x, this.y, t.x, t.y, effRange)) {
-                        hasFarm = true;
-                        break;
-                    }
-                }
-            }
-            if (!hasFarm) return false;
-        }
-        
-        return true;
-    }
-
-    upgrade(path, engine) {
-        const tier = this.upgrades[path - 1];
-        const upgradeData = Upgrades[this.type][path][tier];
-        if (!upgradeData) return false;
-
-        let baseCost = upgradeData.cost;
-        
-        if (this.type === 'village' && path === 3 && tier === 4) {
-            const effRange = this.stats.range * RANGE_SCALE;
-            for (let t of engine.towers) {
-                if (t && t !== this && t.type === 'farm' && t.upgrades[0] < 5) {
-                    if (Utils.withinRange(this.x, this.y, t.x, t.y, effRange)) {
-                        baseCost += 5000;
-                    }
-                }
-            }
-        }
-
-        const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
-
-        if (this.type === 'bomb' && this.upgrades[0] === 2 && mk['budget_clusters']) baseCost -= 100;
-        if (this.type === 'glue' && this.upgrades[1] === 4 && mk['cheaper_solution']) baseCost -= 1000;
-        if (this.type === 'sniper' && this.upgrades[0] === 3 && mk['cheaper_maiming']) baseCost -= 1000;
-        if (this.type === 'ace' && this.upgrades[0] === 4 && mk['aeronautic_subsidy']) baseCost *= 0.9;
-        if (this.type === 'mortar' && this.upgrades[1] === 4 && mk['budget_battery']) baseCost -= 600;
-        if (this.type === 'wizard' && (this.upgrades[0] === 0 || this.upgrades[0] === 1) && mk['magic_tricks']) baseCost -= 25;
-        if (this.type === 'ninja' && this.upgrades[1] === 1 && mk['cheaper_doubles']) baseCost -= 100;
-        if (this.type === 'druid' && this.upgrades[0] === 1 && mk['warm_oak']) baseCost -= 100;
-        if (this.type === 'spike' && this.upgrades[0] === 3 && mk['hi_value_mines']) baseCost -= 1500;
-
-        let cost = engine.getCost(baseCost);
-        if (this.discount > 0) cost = Math.floor(cost * (1 - this.discount));
-        if (engine.cash < cost || !this.canUpgrade(path, engine)) return false;
-
-        engine.cash -= cost;
-        this.totalSpent += cost;
-        this.upgrades[path - 1]++;
-        
-        this._applyUpgradeStats(upgradeData);
-        this._recalculateStats();
-        this._postUpgradeHook(path);
-
-        if (this.stats.fireRate < MIN_FIRE_RATE && !this.stats.baseCooldown) this.stats.fireRate = MIN_FIRE_RATE;
-        if (tier === 4) engine.tier5Bought[`${this.type}-${path}`] = true;
-        engine.updateUI();
-        return true;
-    }
-
-    sell(engine) {
-        let resaleRate = 0.70;
-        const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
-        
-        if (mk['better_sell_deals']) resaleRate = 0.75;
-        if (['farm', 'village'].includes(this.type) && mk['flat_pack']) {
-            resaleRate = mk['better_sell_deals'] ? 0.77 : 0.72;
-        }
-        if (this.type === 'farm' && this.upgrades[2] >= 2) resaleRate = Math.max(resaleRate, 0.80); 
-        
-        engine.cash += Math.floor(this.totalSpent * resaleRate);
-        for (let i = 0; i < 3; i++) {
-            if (this.upgrades[i] === 5) engine.tier5Bought[`${this.type}-${i + 1}`] = false;
-        }
-        engine.updateUI();
-    }
 }
 
+// FIX: Merge extracted modules
 Object.assign(Tower.prototype, TowerRenderer);
+Object.assign(Tower.prototype, TowerEconomy);
 Tower.drawPreview = TowerRenderer.drawPreview;

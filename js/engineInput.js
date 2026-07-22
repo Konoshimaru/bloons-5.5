@@ -10,6 +10,7 @@ import { Tower } from './tower.js';
 import { Hero } from './hero.js';
 import { GLOBAL_SCALE } from './constants.js';
 import { applyBossEffects } from './input.js';
+import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 const MAX_SPEED_NORMAL = 3;
 const MAX_SPEED_EXTREME = 6;
@@ -32,20 +33,17 @@ export default {
     },
 
     handleCanvasClick(e) {
-        // FIX: Prevent placing towers/selecting if the boss is freezing the mouse
         const boss = this.enemies.find(en => en.tier === 99);
         if (boss && boss.freezeMouse) {
-            return; // Ignore the click entirely!
+            return; 
         }
 
-        // FIX: Fetch rect LIVE to prevent 20px drift when scrollbars appear
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
         const rawX = (e.clientX - rect.left) * scaleX;
         const rawY = (e.clientY - rect.top) * scaleY;
 
-        // CRITICAL FIX: Apply boss effects ONCE here at the placement layer.
         const adj = applyBossEffects(rawX, rawY);
         const x = adj.x;
         const y = adj.y;
@@ -83,38 +81,22 @@ export default {
             let cost = this.getCost(stats.cost);
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             
-            this._monkeyCityFreeDart = false; // Reset flag
+            this._monkeyCityFreeDart = false; 
             
-            if (this.selectedTowerType === 'dart' && !this.isSandbox && this.difficulty && !this.difficulty.noSelling) {
-                const hasNoDarts = !this.towers.some(t => t.type === 'dart');
-                const mkBonus = Config.data.unlocks.freeFirstDartMonkey || mk['bonus_monkey'];
-                const hasMonkeyCity = this.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
+            // FIX: Apply MK placement discounts generically
+            for (const eff of MKEffects.towerPlacement) {
+                if (!mk[eff.id]) continue;
+                if (eff.type && !eff.type.includes(this.selectedTowerType)) continue;
+                if (eff.condition && !eff.condition(this, this.selectedTowerType)) continue;
+                if (eff.action) cost = eff.action(cost);
+            }
 
-                if (mkBonus && hasNoDarts) {
-                    cost = 0;
-                } else if (hasMonkeyCity && !this.freeDartMonkeyClaimed) {
+            // Handle Monkey City free dart (Village upgrade, not MK)
+            if (this.selectedTowerType === 'dart' && !this.isSandbox && this.difficulty && !this.difficulty.noSelling) {
+                const hasMonkeyCity = this.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
+                if (hasMonkeyCity && !this.freeDartMonkeyClaimed) {
                     cost = 0;
                     this._monkeyCityFreeDart = true;
-                }
-            }
-            
-            const militaryTypes = ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'];
-            if (militaryTypes.includes(this.selectedTowerType) && mk['military_conscription'] && !this.isSandbox) {
-                const hasMilitary = this.towers.some(t => militaryTypes.includes(t.type));
-                if (!hasMilitary) {
-                    cost = Math.floor(cost * 0.66);
-                }
-            }
-
-            if (this.selectedTowerType === 'spike' && mk['first_line_of_defense'] && !this.isSandbox) {
-                if (!this.towers.some(t => t.type === 'spike')) {
-                    cost = Math.max(0, cost - 150);
-                }
-            }
-
-            if (this.selectedTowerType === 'farm' && mk['farm_subsidy'] && !this.isSandbox) {
-                if (!this.towers.some(t => t.type === 'farm')) {
-                    cost = Math.max(0, cost - 100);
                 }
             }
 
@@ -149,27 +131,31 @@ export default {
             
             this.updateUI(); this.log("Tower placed!"); this.deselectAll(); 
             
-            // NEW: Force shop UI to refresh prices immediately after placement
             if (this.updateShopPrices) this.updateShopPrices();
             return; 
         }
         this.deselectAll();
     },
 
-    cycleTargeting(direction = 1) {
+    cycleTargeting(direction = 1, arm = 1) {
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
         let modes = ['First', 'Last', 'Strong', 'Close'];
         if (t.stats.unlocksElite) { modes.push('Elite'); }
         if (t.type === 'spike') { modes = t.stats.smartSpikes ? ['Normal', 'Close', 'Smart'] : ['Normal']; }
         if (t.type === 'village') { 
-            if (t.upgrades[0] < 5) return; // No targeting for Village without 5-x-x
+            if (t.upgrades[0] < 5) return; 
             modes = ['First', 'Last', 'Strong', 'Close']; 
         }
-        let idx = modes.indexOf(t.targetingMode);
+        
+        const modeKey = arm === 2 ? 'targetingMode2' : 'targetingMode';
+        let currentMode = t[modeKey] || 'First';
+        
+        let idx = modes.indexOf(currentMode);
         if (idx === -1) idx = 0; 
         idx = (idx + direction + modes.length) % modes.length; 
-        t.targetingMode = modes[idx];
+        t[modeKey] = modes[idx];
+        
         UI.showUpgradeUI(t, this);
     },
 
@@ -200,14 +186,15 @@ export default {
 
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         let cdMult = 1.0;
-        if (mk['global_cooldowns']) cdMult = 0.97;
+        
+        // FIX: Apply ability cooldown MK effects generically
+        for (const eff of MKEffects.abilityCooldown) {
+            if (!mk[eff.id]) continue;
+            if (eff.hero && !t.stats.isHero) continue;
+            if (eff.condition && !eff.condition(t, slot)) continue;
+            if (eff.action) cdMult *= eff.action();
+        }
 
-        // MK: Ability Discipline (Hero Level 10 Ability -10% cd)
-        if (t.stats.isHero && mk['ability_discipline'] && slot === 2) cdMult *= 0.90;
-        // MK: Ability Mastery (Hero Level 3 Ability -30% cd at Level 20)
-        if (t.stats.isHero && mk['ability_mastery'] && slot === 1 && t.level >= 20) cdMult *= 0.70;
-
-        // Village: Primary Mentoring / Expertise ability cooldown reduction
         if (t.abilityCdMult) cdMult *= t.abilityCdMult;
 
         if (slot === 1 && t.stats.isAbility && t.abilityCooldown <= 0 && behavior.ability) {

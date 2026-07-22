@@ -9,6 +9,7 @@ import { Config } from './config.js';
 import { GLOBAL_SCALE } from './constants.js';
 import { EnemyRenderer } from './enemyRenderer.js';
 import EnemyDamage from './enemyDamage.js';
+import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -131,10 +132,22 @@ export class Enemy {
             this._maxHp *= 2;
         }
         
-        if (this.data.isMoab) {
-            const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
-            if (mk['big_bloon_sabotage']) {
-                this._maxHp = Math.floor(this._maxHp * 0.90);
+        // FIX: Apply MK enemyInit effects generically
+        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
+        for (const eff of MKEffects.enemyInit) {
+            if (!mk[eff.id]) continue;
+            if (eff.condition && !eff.condition(this)) continue;
+
+            if (eff.action) {
+                eff.action(this);
+            } else if (eff.stat) {
+                if (eff.mode === 'mult') {
+                    this[eff.stat] = Math.floor((this[eff.stat] || 1) * eff.amount);
+                } else if (typeof eff.amount === 'number') {
+                    this[eff.stat] = (this[eff.stat] || 0) + eff.amount;
+                } else {
+                    this[eff.stat] = eff.amount;
+                }
             }
         }
         

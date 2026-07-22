@@ -2,6 +2,7 @@
 import { Tower } from './tower.js';
 import { HeroRegistry } from './heroes/index.js';
 import { GameEngine } from './engine.js'; // Added to safely access Config
+import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 const MAX_LEVEL = 20;
 
@@ -23,32 +24,22 @@ export class Hero extends Tower {
 
         // MK: Empowered Heroes (Start at level 3)
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
-        if (mk['empowered_heroes']) {
-            while (this.level < 3) {
-                this._levelUp();
-            }
-        }
+        this._applyMKEffects(mk, MKEffects.heroInit, GameEngine);
     }
 
     gainXp(amount) {
         if (this.level >= MAX_LEVEL) return;
         
-        // MK: Self Taught Heroes (+10% XP)
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
-        if (mk['self_taught']) amount *= 1.10;
-        
-        // MK: Monkeys Together Strong (+5% XP per hero placed)
-        if (mk['monkeys_together']) {
-            let heroCount = 0;
-            for (let t of GameEngine.towers) {
-                if (t && t.stats.isHero) heroCount++;
-            }
-            if (heroCount > 1) {
-                amount *= (1 + (heroCount - 1) * 0.05);
-            } else {
-                amount *= 1.05; // +5% even if alone
+        let mult = 1.0;
+        for (const eff of MKEffects.heroXpGain) {
+            if (!mk[eff.id]) continue;
+            if (eff.hero && !this.stats.isHero) continue;
+            if (eff.action) {
+                mult *= eff.action(this, GameEngine);
             }
         }
+        amount *= mult;
 
         this.xp += amount;
         
@@ -63,9 +54,16 @@ export class Hero extends Tower {
         
         let cost = this.xpToNext - this.xp;
         
-        // MK: Scholarships (-10% hero level cost)
-        const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
-        if (mk['scholarships']) cost = Math.floor(cost * 0.9);
+        const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
+        let mult = 1.0;
+        for (const eff of MKEffects.heroBuyLevel) {
+            if (!mk[eff.id]) continue;
+            if (eff.hero && !this.stats.isHero) continue;
+            if (eff.action) {
+                mult *= eff.action(this, engine);
+            }
+        }
+        cost = Math.floor(cost * mult);
 
         if (engine.cash < cost) {
             engine.log("Not enough cash to buy level!");
