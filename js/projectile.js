@@ -267,7 +267,9 @@ export class Projectile {
     }
 
     _isHomingType() {
-        const nonHomingTypes = ['tack', 'dart', 'ninja', 'nail', 'potion', 'spike_opult', 'juggernaut', 'ultra_juggernaut', 'arrow', 'fire'];
+        // FIX: Added super_dart, laser, plasma, sun_ball, dark_blade to nonHomingTypes
+        // so they don't overwrite the angle offset (arc spread) every frame.
+        const nonHomingTypes = ['tack', 'dart', 'ninja', 'nail', 'potion', 'spike_opult', 'juggernaut', 'ultra_juggernaut', 'arrow', 'fire', 'super_dart', 'laser', 'plasma', 'sun_ball', 'dark_blade'];
         return !nonHomingTypes.includes(this.type);
     }
 

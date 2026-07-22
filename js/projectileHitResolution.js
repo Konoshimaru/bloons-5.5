@@ -65,7 +65,6 @@ const ProjectileHitResolution = {
             
             if (Utils.withinRange(this.x, this.y, e.x, e.y, expRadius)) {
                 const expDmg = this._getExplosionDamage();
-                // FIX 2: Pass this.tower as killerTower
                 const dmg = e.takeDamage(expDmg, bombDmgType, this.effects, this.tower);
                 if (dmg === -1) continue;
                 if (this.tower) this.tower.damageDealt += dmg;
@@ -137,7 +136,10 @@ const ProjectileHitResolution = {
         let dmg = this.damage;
         if (this.bonusCeramic && enemy.data.isCeramic) dmg += this.bonusCeramic;
         
-        // FIX 2: Pass this.tower as killerTower
+        // FIX: Apply custom damage bonuses from effects (Super Monkey Ultravision/Dark Champion)
+        if (this.effects && this.effects.camoDmg && enemy.isCamo) dmg += this.effects.camoDmg;
+        if (this.effects && this.effects.ceramicDmg && enemy.data.isCeramic) dmg += this.effects.ceramicDmg;
+
         const actualDmg = enemy.takeDamage(dmg, this.dmgType, this.effects, this.tower);
         if (actualDmg === -1 || isNaN(actualDmg)) {
             this.alive = false;

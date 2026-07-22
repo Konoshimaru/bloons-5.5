@@ -74,6 +74,13 @@ const EnemyDamage = {
 
     _isImmune(dmgType, effects) {
         if (!dmgType) dmgType = {}; 
+        
+        // FIX: Energy and Fire damage types cannot pop Lead unless explicitly allowed
+        if (this.data.isLead && (dmgType.isEnergy || dmgType.isFire) && !dmgType.canHitLead && !this.leadStripped) {
+            AudioEngine.playSfx('lead_hit');
+            return true;
+        }
+
         if (this.data.blocksDamageType && this.data.blocksDamageType(dmgType)) {
             if ((this.data.isLead || this.data.isDDT) && this.leadStripped) return false;
             

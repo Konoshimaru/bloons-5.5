@@ -1,14 +1,14 @@
 ﻿// js/tower.js
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
-import { GameEngine } from './engine.js'; // Config removed to break circular dependency
+import { GameEngine } from './engine.js'; 
 import { Utils } from './utils.js';
 import Assets from './assets.js';
 import * as TowerBehavior from './towerBehavior.js';
 import { GLOBAL_SCALE } from './constants.js';
-import { RANGE_SCALE } from './config.js'; // Import RANGE_SCALE for Monkeyopolis check
+import { RANGE_SCALE } from './config.js'; 
+import { getBehavior } from './registry.js'; // FIX: Ensure getBehavior is imported
 
-// FIX: Import the extracted renderer
 import TowerRenderer from './towerRenderer.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
@@ -88,10 +88,8 @@ export class Tower {
         this._nightGlowX = 0;
         this._nightGlowY = 0;
 
-        // Initialize activeBuffs array for stackable buffs
         this.activeBuffs = [];
 
-        // --- MONKEY KNOWLEDGE EFFECTS (Base) ---
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         
         if (this.type === 'dart' && mk['extra_darts']) this.stats.pierce += 1;
@@ -125,27 +123,22 @@ export class Tower {
             this.stats.pierce = (this.stats.pierce || 1) + 1;
         }
 
-        // MK: Hero Favors (Hero base cost -10%)
         if (this.stats.isHero && mk['hero_favors']) {
             this.stats.cost = Math.floor(this.stats.cost * 0.9);
         }
-        // MK: Heroic Reach (+3 Range)
         if (this.stats.isHero && mk['heroic_reach']) {
             this.stats.range += 3;
         }
-        // MK: Heroic Velocity (+10% projectile speed)
         if (this.stats.isHero && mk['heroic_velocity']) {
             this.stats.projectileSpeed = (this.stats.projectileSpeed || 600) * 1.1;
         }
     }
 
-    // FIX 1A: Optimized addBuff to avoid object allocation on refreshes
     addBuff(id, name, duration, stacks = 1, data = {}, addStacks = true) {
         let existingBuff = this.activeBuffs.find(b => b.id === id);
         if (existingBuff) {
             if (addStacks) existingBuff.stacks += stacks;
-            existingBuff.duration = Math.max(existingBuff.duration, duration); // Refresh duration
-            // Only update data object if the type actually changes, avoiding spread allocation
+            existingBuff.duration = Math.max(existingBuff.duration, duration);
             if (existingBuff.data.type !== data.type) {
                 existingBuff.data = data;
             }
@@ -191,7 +184,6 @@ export class Tower {
 
         if (mk['veteran_training']) this._cooldownMult *= 0.97;
 
-        // MK: Quick Hands (Heroes attack 4% faster)
         if (this.stats.isHero && mk['quick_hands']) this._cooldownMult *= 0.96;
 
         this._applyMonkeyKnowledge(mk);
@@ -200,7 +192,6 @@ export class Tower {
     _applyMonkeyKnowledge(mk) {
         if (Object.keys(mk).length === 0) return;
 
-        // Primary MK
         if (this.type === 'tack' && this.upgrades[1] >= 3 && mk['poppy_blades']) this.stats.pierce = (this.stats.pierce || 0) + 2;
         if (this.type === 'ice' && mk['icy_chill']) this.stats.range = (this.stats.range || 20) + 3;
         if (this.type === 'glue' && this.upgrades[1] >= 2 && mk['more_splatty']) this.stats.pierce = (this.stats.pierce || 1) + 2;
@@ -221,7 +212,6 @@ export class Tower {
         if (this.type === 'dart' && this.upgrades[0] >= 3 && mk['crossbow_reach']) this.stats.range = (this.stats.range || 32) + 3;
         if (this.type === 'boomerang' && mk['recurring_rangs']) this.stats.recurringRangs = true;
 
-        // Military MK
         if (this.type === 'buccaneer' && this.upgrades[0] >= 2 && mk['big_bunch']) this.stats.grapeCount = (this.stats.grapeCount || 5) + 1;
         if (this.type === 'ace' && mk['accel_aerodarts']) this.stats.projectileSpeed = (this.stats.projectileSpeed || 600) * 1.5;
         if (this.type === 'sniper' && mk['ceramic_shock']) this.stats.ceramicShock = true;
@@ -239,7 +229,6 @@ export class Tower {
         if (this.type === 'sub' && this.upgrades[1] >= 5 && mk['sub_admiral']) this.stats.subAdmiral = true;
         if (this.type === 'heli' && this.upgrades[2] >= 5 && mk['door_gunner']) this.stats.canDoorGunner = true;
 
-        // Magic MK
         if (this.type === 'super' && this.upgrades[0] >= 1 && mk['super_range']) this.stats.range = (this.stats.range || 63) + 3;
         if (this.type === 'super' && this.upgrades[2] >= 2 && mk['heavy_knockback']) this.stats.knockbackMult = 1.05;
         if (this.type === 'ninja' && this.upgrades[1] >= 1 && mk['diversion_tactics']) this.stats.distractionChance = (this.stats.distractionChance || 0.3) + 0.025;
@@ -258,7 +247,6 @@ export class Tower {
         if (this.type === 'druid' && this.upgrades[2] >= 5 && mk['vine_rupture']) this.stats.hasVineRupture = true;
         if (this.type === 'druid' && this.upgrades[1] >= 3 && mk['tiny_tornadoes']) this.stats.splitTornadoes = true;
 
-        // Support MK
         if (this.type === 'village' && this.upgrades[2] >= 3 && mk['insider_trades']) this.stats.discount = (this.stats.discount || 0) + 0.02;
         if (this.type === 'farm' && this.upgrades[1] >= 1 && mk['more_valuable_bananas']) this.stats.bananaValueMult = (this.stats.bananaValueMult || 0) + 0.05;
         if (this.type === 'engineer' && this.upgrades[0] >= 1 && mk['vigilant_sentries']) this.stats.sentryLife = (this.stats.sentryLife || 25) + 5;
@@ -270,7 +258,6 @@ export class Tower {
         if (this.type === 'farm' && this.upgrades[2] >= 3 && mk['healthy_bananas']) this.stats.healthyBananas = this.upgrades[2] >= 4 ? 3 : 1;
         if (this.type === 'village' && this.upgrades[2] >= 4 && mk['to_arms']) this.stats.abilityDuration = 18;
 
-        // Heroes MK
         if (this.stats.isHero && mk['more_splody']) this.stats.explosionPierce = (this.stats.explosionPierce || 0) + 2;
         if (this.stats.isHero && mk['big_bloon_blueprints']) this.stats.moabDmg = (this.stats.moabDmg || 0) + 1;
         if (this.stats.isHero && mk['weak_point']) {
@@ -315,6 +302,12 @@ export class Tower {
     }
 
     _postUpgradeHook(path) {
+        // FIX: Call the custom behavior's postUpgrade hook if it exists (for Sun Temple sacrifices)
+        const behavior = getBehavior(this.type);
+        if (behavior && behavior.postUpgrade) {
+            behavior.postUpgrade(this, path);
+        }
+
         if (this.type === 'engineer' && this.upgrades[2] === 5 && this.activeTrap) {
             this.activeTrap.maxRbe = this.stats.trapRbe;
             this.activeTrap.moab = this.stats.trapMoab;
@@ -360,7 +353,6 @@ export class Tower {
             return false;
         }
         
-        // FIX: Monkeyopolis requires nearby Banana Farms (Tier 4 or below)
         if (this.type === 'village' && path === 3 && tier === 4) {
             const effRange = this.stats.range * RANGE_SCALE;
             let hasFarm = false;
@@ -385,7 +377,6 @@ export class Tower {
 
         let baseCost = upgradeData.cost;
         
-        // FIX: Monkeyopolis cost increases by $5000 per nearby Banana Farm
         if (this.type === 'village' && path === 3 && tier === 4) {
             const effRange = this.stats.range * RANGE_SCALE;
             for (let t of engine.towers) {
@@ -445,7 +436,5 @@ export class Tower {
     }
 }
 
-// FIX: Assign renderer methods to Tower prototype
 Object.assign(Tower.prototype, TowerRenderer);
-// Assign static drawPreview method
 Tower.drawPreview = TowerRenderer.drawPreview;

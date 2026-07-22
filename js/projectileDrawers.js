@@ -80,6 +80,25 @@ export const ProjectileDrawers = {
     potion: (ctx) => { 
         ctx.fillStyle = '#9b59b6'; ctx.beginPath(); ctx.arc(0, 2, 6, 0, Math.PI * 2); ctx.fill(); 
         ctx.fillStyle = '#34495e'; ctx.fillRect(-3, -6, 6, 4); 
+    },
+    
+    // --- SUPER MONKEY PROJECTILES ---
+    laser: (ctx) => {
+        ctx.fillStyle = '#e74c3c'; ctx.fillRect(-12, -2, 24, 4);
+        ctx.fillStyle = '#f1c40f'; ctx.fillRect(-12, -1, 24, 2);
+    },
+    plasma: (ctx) => {
+        ctx.fillStyle = '#9b59b6'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.fill();
+    },
+    sun_ball: (ctx) => {
+        ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#e67e22'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    },
+    dark_blade: (ctx) => {
+        ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-6, -6); ctx.lineTo(-6, 6); ctx.fill();
+        ctx.fillStyle = '#8e44ad'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-2, -3); ctx.lineTo(-2, 3); ctx.fill();
     }
 };
 
