@@ -6,10 +6,11 @@ const MIN_VOLUME = 0.0001;
 const POP_THROTTLE_MS = 50;
 const SHOOT_THROTTLE_MS = 30;
 const HIT_THROTTLE_MS = 100; // Prevents hit sounds from queueing up
+const MOAB_DESTROY_THROTTLE_MS = 200; // FIX: Prevents explosion sounds from queueing up
 const DEFAULT_GAME_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
 const MENU_PLAYLIST = ['music/mainmenu_1.mp3', 'music/mainmenu_2.mp3'];
 
-// FIX 3: Added Sauda SFX to the map so they get preloaded and pooled
+// FIX: Added knight_slash_moab to the map
 const SFX_ASSET_MAP = {
     pop: ['pop1.mp3', 'pop2.mp3', 'pop3.mp3', 'pop4.mp3'],
     moab_destroy: ['moab_destroy1.mp3', 'moab_destroy2.mp3', 'moab_destroy3.mp3'],
@@ -17,6 +18,7 @@ const SFX_ASSET_MAP = {
     ceramic_hit: ['ceramic_hit.mp3'],
     frozen_hit: ['frozen_hit.mp3'],
     lead_hit: ['lead_hit.mp3'],
+    knight_slash_moab: ['knight_slash_moab.mp3'], // FIX: Added slash sound
     sauda_attack: ['Sauda_attack_1.mp3', 'Sauda_attack_2.mp3', 'Sauda_attack_3.mp3', 'Sauda_attack_4.mp3', 'Sauda_attack_5.mp3'],
     sauda_leap_activate: ['LeapingSword_activate.mp3'],
     sauda_leap_landing: ['LeapingSword_landing.mp3'],
@@ -34,8 +36,8 @@ let isPlaying = false;
 let lastPopTime = 0;
 let lastShootTime = 0;
 let lastHitTime = 0;
+let lastMoabDestroyTime = 0;
 
-// PRO FIX: Cache for preloaded AudioBuffers to avoid per-shot allocations
 const sfxBufferCache = new Map();
 
 async function _loadPlaylistInternal() {
@@ -114,14 +116,12 @@ export const AudioEngine = {
                 musicAudio.addEventListener('ended', () => this.nextTrack());
             }
             
-            // PRO FIX: Preload all SFX files into AudioBuffers
             await this._preloadSfx();
         } catch (e) {
             console.error("Failed to initialize AudioEngine:", e);
         }
     },
 
-    // PRO FIX: Fetch and decode all SFX files once at startup
     async _preloadSfx() {
         if (!ctx) return;
         const uniqueFiles = new Set();
@@ -164,7 +164,7 @@ export const AudioEngine = {
     },
 
     playGameMusic() {
-        if (activePlaylist === gamePlaylist && isPlaying) return; // Already playing game music
+        if (activePlaylist === gamePlaylist && isPlaying) return;
         activePlaylist = gamePlaylist;
         currentTrack = Config.data.musicRandomStart ? Math.floor(Math.random() * activePlaylist.length) : 0;
         _loadTrackInternal(currentTrack);
@@ -172,9 +172,9 @@ export const AudioEngine = {
     },
 
     playMenuMusic() {
-        if (activePlaylist === MENU_PLAYLIST && isPlaying) return; // Already playing menu music
+        if (activePlaylist === MENU_PLAYLIST && isPlaying) return;
         activePlaylist = MENU_PLAYLIST;
-        currentTrack = Math.floor(Math.random() * activePlaylist.length); // Pick a random song
+        currentTrack = Math.floor(Math.random() * activePlaylist.length);
         _loadTrackInternal(currentTrack);
         this.play();
     },
@@ -227,12 +227,14 @@ export const AudioEngine = {
 
         if (type === 'pop' && now - lastPopTime < POP_THROTTLE_MS) return;
         if (type === 'shoot' && now - lastShootTime < SHOOT_THROTTLE_MS) return;
+        if (type === 'moab_destroy' && now - lastMoabDestroyTime < MOAB_DESTROY_THROTTLE_MS) return;
         
         const isHitSound = ['moab_hit', 'ceramic_hit', 'frozen_hit', 'lead_hit'].includes(type);
         if (isHitSound && now - lastHitTime < HIT_THROTTLE_MS) return;
 
         if (type === 'pop') lastPopTime = now;
         if (type === 'shoot') lastShootTime = now;
+        if (type === 'moab_destroy') lastMoabDestroyTime = now;
         if (isHitSound) lastHitTime = now;
 
         const choices = getSfxAssetChoices(type);
@@ -240,7 +242,6 @@ export const AudioEngine = {
             const file = choices[Math.floor(Math.random() * choices.length)];
             const buffer = sfxBufferCache.get(file);
             
-            // PRO FIX: Play via AudioBufferSourceNode if cached
             if (buffer && ctx) {
                 try {
                     if (ctx.state === 'suspended') ctx.resume();
@@ -261,7 +262,6 @@ export const AudioEngine = {
                 }
             }
             
-            // Fallback to new Audio() if buffer not ready or unavailable
             const asset = new URL(`../sfx/${file}`, import.meta.url).href;
             try {
                 const audio = new Audio(asset);

@@ -4,6 +4,8 @@ import { Enemy } from '../enemy.js';
 import { EnemyTypes } from '../data.js';
 import { BossHealthBarHandler } from '../BossHealthBarHandler.js';
 import { Config } from '../config.js';
+import { UI } from '../ui.js';
+import { AudioEngine } from '../audio.js';
 import { getBossMusic } from './knightMusic.js';
 import KnightRenderer from './knightRenderer.js';
 import KnightAttacks from './knightAttacks.js';
@@ -53,24 +55,69 @@ export class KnightEnemy extends Enemy {
         this.freezeX = 0;
         this.freezeY = 0;
 
+        // FIX: Add homeX/homeY so his floating animation follows his teleport position
+        this.homeX = 200;
+        this.homeY = 300;
+
         BossHealthBarHandler.registerBoss(this);
     }
 
     update(dt) {
         this.time += dt / 1.25; 
 
+        // Flinch Tracking
         if (this.recentDamageTimer > 0) {
             this.recentDamageTimer -= dt;
             if (this.recentDamageTimer <= 0) this.recentDamage = 0;
         }
 
+        // --- DEATH SEQUENCE ---
+        if (this.state === 'dying') {
+            this.stateTimer -= dt;
+            this.alpha = Math.max(0, this.stateTimer / 3.0);
+            
+            // Shake violently
+            this.x = this.homeX + (Math.random() - 0.5) * 15;
+            this.y = this.homeY + (Math.random() - 0.5) * 15;
+
+            // Spawn constant explosions
+            if (Math.random() < 0.4) {
+                let ex = this.x + (Math.random() - 0.5) * 120;
+                let ey = this.y + (Math.random() - 0.5) * 120;
+                GameEngine.explosions.push({ x: ex, y: ey, radius: 0, maxRadius: 80, life: 0.5, maxLife: 0.5, color: '#9b59b6' });
+                GameEngine.spawnPopEffect(ex, ey, '#9b59b6');
+            }
+
+            // Final Detonation (Only runs once!)
+            if (this.stateTimer <= 0 && !this.isDyingComplete) {
+                this.isDyingComplete = true; 
+                this.alive = false;
+                getBossMusic().pause(); 
+                BossHealthBarHandler.unregisterBoss(this);
+                
+                // Massive final explosion
+                GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 400, life: 1.5, maxLife: 1.5, color: '#000000' });
+                GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 250, life: 1.0, maxLife: 1.0, color: '#9b59b6' });
+                GameEngine.spawnPopEffect(this.x, this.y, '#000000');
+                
+                GameEngine.log("The Black Knight has been vanquished!");
+                
+                // Safely remove self from game engine immediately
+                const idx = GameEngine.enemies.indexOf(this);
+                if (idx > -1) GameEngine.enemies.splice(idx, 1);
+            }
+            return; 
+        }
+
+        // Float constantly around homeX/homeY, unless teleporting
         if (this.isCinematic) {
             this.y = 300 + Math.cos(this.time * 3) * 20;
         } else if (this.state !== 'repositioning') {
-            this.y = 300 + Math.cos(this.time * 3) * 20;
-            this.x = 200 + Math.sin(this.time * 2) * 30;
+            this.y = this.homeY + Math.cos(this.time * 3) * 20;
+            this.x = this.homeX + Math.sin(this.time * 2) * 30;
         }
 
+        // Update Trail
         this.trailTimer += dt;
         if (this.trailTimer > 0.04) {
             this.knightTrail.unshift({ x: this.x, y: this.y, alpha: 0.7 * this.alpha });
@@ -109,21 +156,40 @@ export class KnightEnemy extends Enemy {
     takeDamage(damage, dmgType, effects) {
         if (this.isCinematic) return 0; 
         if (this.invulnerable) return 0;
+        if (this.state === 'dying') return 0; 
         if (this._isImmune(dmgType, effects)) return -1;
         
         this.hp -= damage;
         
         this.recentDamage += damage;
         this.recentDamageTimer = 2.0;
-        if (this.recentDamage > this._maxHp * 0.15) {
+        
+        // FIX: Teleport every 2% max HP damage
+        if (this.recentDamage > this._maxHp * 0.02) {
             this._reposition();
         }
 
+        // --- TRIGGER DEATH SEQUENCE ---
         if (this.hp <= 0) {
-            this.alive = false;
-            GameEngine.spawnPopEffect(this.x, this.y, '#000000');
-            getBossMusic().pause(); 
-            BossHealthBarHandler.unregisterBoss(this);
+            this.hp = 0;
+            this.state = 'dying';
+            this.stateTimer = 3.0; 
+            this.invulnerable = true;
+            
+            this.spinningSlashes = [];
+            this.thrownSwords = [];
+            this.screenSplitActive = false;
+            this.targetOffset = 0;
+            this.freezeMouse = false;
+            
+            GameEngine.log("Black Knight: Impossible... I am... defeated...");
+            AudioEngine.playSfx('moab_destroy');
+            
+            Config.data.monkeyMoney = (Config.data.monkeyMoney || 0) + 250;
+            Config.save();
+            GameEngine.addCash(5000);
+            GameEngine.updateUI();
+            if (UI.updateMetaStats) UI.updateMetaStats();
         }
         return damage;
     }

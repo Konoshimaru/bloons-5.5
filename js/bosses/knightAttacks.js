@@ -45,14 +45,7 @@ const KnightAttacks = {
                 this.targetOffset = this.screenSplitOffset * this.splitDirection;
                 GameEngine.log("Reality shatters!");
                 
-                // STUN LOGIC: Stun towers caught in the center line
-                AudioEngine.playSfx('moab_hit');
-                for (let t of GameEngine.towers) {
-                    if (t && Math.abs(t.y - 360) < 60) {
-                        t.stunTimer = 3.0;
-                        t.buffedFireRate = -1; 
-                    }
-                }
+                // FIX: Removed the split screen stun logic completely.
             }
         } else if (this.state === 'split_active') {
             if (this.stateTimer <= 0) {
@@ -81,6 +74,9 @@ const KnightAttacks = {
     },
 
     _updateProjectiles(dt) {
+        const projectiles = GameEngine.projectilePool.active;
+
+        // Update Spinning Slashes
         for (let i = this.spinningSlashes.length - 1; i >= 0; i--) {
             let s = this.spinningSlashes[i];
             if (s.phase === 'spin') {
@@ -93,34 +89,46 @@ const KnightAttacks = {
                 s.pivotX += s.vx * dt;
                 s.pivotY += s.vy * dt;
                 s.life -= dt;
-                
-                let p1x = s.pivotX - Math.cos(s.angle) * s.length;
-                let p1y = s.pivotY - Math.sin(s.angle) * s.length;
-                let p2x = s.pivotX + Math.cos(s.angle) * s.length;
-                let p2y = s.pivotY + Math.sin(s.angle) * s.length;
+                s.alpha = Math.max(0, s.life / 0.5);
+            }
+
+            let p1x = s.pivotX - Math.cos(s.angle) * s.length;
+            let p1y = s.pivotY - Math.sin(s.angle) * s.length;
+            let p2x = s.pivotX + Math.cos(s.angle) * s.length;
+            let p2y = s.pivotY + Math.sin(s.angle) * s.length;
+
+            // Erase player projectiles that touch the slash
+            for (let j = 0; j < projectiles.length; j++) {
+                const p = projectiles[j];
+                if (!p || !p.alive) continue;
+                let dist = Utils.distToSegment(p.x, p.y, p1x, p1y, p2x, p2y);
+                if (dist < 15) { 
+                    p.alive = false; 
+                    GameEngine.spawnPopEffect(p.x, p.y, '#e74c3c');
+                }
+            }
+
+            if (s.phase === 'dash') {
                 let distToMouse = Utils.distToSegment(GameEngine.mouse.x, GameEngine.mouse.y, p1x, p1y, p2x, p2y);
-                
                 if (distToMouse < 25 && !s.hit) {
                     s.hit = true;
                     GameEngine.log("Cursor Slash! Towers near cursor stunned.");
                     AudioEngine.playSfx('moab_hit');
                     for (let t of GameEngine.towers) {
                         if (t && Utils.withinRange(t.x, t.y, GameEngine.mouse.x, GameEngine.mouse.y, 100)) {
-                            t.buffedFireRate = -1; 
                             t.stunTimer = 3.0;
                         }
                     }
                     GameEngine.addCash(-500); 
                 }
+            }
 
-                s.alpha = Math.max(0, s.life / 0.5);
-
-                if (s.life <= 0) {
-                    this.spinningSlashes.splice(i, 1);
-                }
+            if (s.life <= 0) {
+                this.spinningSlashes.splice(i, 1);
             }
         }
 
+        // Update Thrown Swords
         for (let i = this.thrownSwords.length - 1; i >= 0; i--) {
             let s = this.thrownSwords[i];
             s.life -= dt;
@@ -142,13 +150,24 @@ const KnightAttacks = {
                 } else if (s.phase === 'dash') {
                     s.x += s.vx * dt;
                     
+                    // FIX: Removed t.alive check! Towers don't have an .alive property.
                     for (let t of GameEngine.towers) {
-                        if (t && t.alive && Utils.withinRange(s.x, s.y, t.x, t.y, t.hitRadius + 20)) {
+                        if (t && Utils.withinRange(s.x, s.y, t.x, t.y, t.hitRadius + 20)) {
                             this._hitTower(t);
                             s.life = 0; 
                             break;
                         }
                     }
+                }
+            }
+
+            // Erase player projectiles that touch the sword
+            for (let j = 0; j < projectiles.length; j++) {
+                const p = projectiles[j];
+                if (!p || !p.alive) continue;
+                if (Utils.withinRange(s.x, s.y, p.x, p.y, 20)) { 
+                    p.alive = false;
+                    GameEngine.spawnPopEffect(p.x, p.y, '#bdc3c7');
                 }
             }
 
@@ -227,8 +246,10 @@ const KnightAttacks = {
 
     _hitTower(tower) {
         let isHighTier = tower.upgrades.some(u => u >= 4);
+        let isHero = !!tower.stats.isHero; // FIX: Check if the tower is a hero
         
-        if (!isHighTier && Math.random() < 0.5) {
+        // FIX: Heroes cannot be sold, they will always be stunned instead.
+        if (!isHighTier && !isHero && Math.random() < 0.5) {
             GameEngine.log("Sword Strike! " + tower.stats.name + " was sold!");
             AudioEngine.playSfx('cash');
             let resaleRate = 0.50;
@@ -241,22 +262,36 @@ const KnightAttacks = {
             GameEngine.log("Sword Strike! " + tower.stats.name + " was stunned!");
             AudioEngine.playSfx('frozen_hit');
             tower.stunTimer = 8.0;
-            tower.buffedFireRate = -1; 
         }
     },
 
     _reposition() {
         GameEngine.log("Black Knight vanishes!");
-        this.invulnerable = true;
         this.state = 'repositioning';
-        this.stateTimer = 1.0;
+        this.stateTimer = 0.5; 
         this.recentDamage = 0;
+        
+        this.spinningSlashes = [];
+        this.thrownSwords = [];
+        this.waveSpawnTimers = [];
+        this.warningLineActive = false;
+        this.screenSplitActive = false;
+        this.targetOffset = 0;
+        this.freezeMouse = false;
         
         let attempts = 0;
         while (attempts < 10) {
-            let nx = 100 + Math.random() * (CANVAS_WIDTH - 400);
-            let ny = 100 + Math.random() * (CANVAS_HEIGHT - 200);
+            let angle = Math.random() * Math.PI * 2;
+            let dist = 150 + Math.random() * 200; 
+            let nx = this.homeX + Math.cos(angle) * dist;
+            let ny = this.homeY + Math.sin(angle) * dist;
+            
+            nx = Math.max(200, Math.min(CANVAS_WIDTH - 330, nx));
+            ny = Math.max(120, Math.min(CANVAS_HEIGHT - 120, ny));
+            
             if (!GameEngine.map.isOnPath(nx, ny) && !GameEngine.map.isOnProp(nx, ny)) {
+                this.homeX = nx;
+                this.homeY = ny;
                 this.x = nx;
                 this.y = ny;
                 break;

@@ -54,6 +54,7 @@ function _updateTimers(tower, dt, engine) {
     if (tower.abilityActiveTime > 0) tower.abilityActiveTime -= dt;
     if (tower.fanClubBuffTimer > 0) tower.fanClubBuffTimer -= dt;
     if (tower.overclockTimer > 0) tower.overclockTimer -= dt; 
+    if (tower.stunTimer > 0) tower.stunTimer -= dt; // FIX: Decrement stun timer
     
     if (tower.alchBuff && !tower.alchBuff.isPerm) {
         tower.alchBuff.timer -= dt;
@@ -130,6 +131,7 @@ function _runCustomBehaviors(tower, dt, engine) {
 
 function _acquireAndFire(tower, dt, engine) {
     if (tower.isHollowCharging) return; 
+    if (tower.stunTimer > 0) return; // FIX: Prevent firing while stunned
     
     if (tower.type === 'spike') {
         if (engine.waveManager.waveActive && tower.cooldown <= 0 && tower.attackPointTimer <= 0) {

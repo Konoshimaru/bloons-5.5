@@ -50,6 +50,11 @@ export default {
         if (!isPreview && GameEngine.selectedPlacedTower === this) {
             this._drawBuffs(ctx);
         }
+
+        // FIX: Draw stun stars if stunned
+        if (!isPreview && this.stunTimer > 0) {
+            this._drawStunOverlay(ctx);
+        }
     },
 
     drawPreview(ctx, x, y, type) {
@@ -422,5 +427,23 @@ export default {
         
         _buffIconCache[type] = canvas;
         return canvas;
+    },
+
+    // FIX: Draw stun stars overlay (same as bloons)
+    _drawStunOverlay(ctx) {
+        const t = performance.now() / 1000;
+        const fps = 15;
+        const frame = Math.floor(t * fps) % fps;
+        let stunAsset = Assets.get(Names.getStunFX(frame));
+        if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get(Names.getStunFX(0));
+        if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get('effect_stun');
+        if (stunAsset && stunAsset.loaded) {
+            const s = 30 * GS; // Fixed size for towers
+            ctx.save();
+            ctx.translate(this.x, this.y - this.hitRadius - s / 2);
+            ctx.rotate(t * 5);
+            ctx.drawImage(stunAsset, -s / 2, -s / 2, s, s);
+            ctx.restore();
+        }
     }
 };

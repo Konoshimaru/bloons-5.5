@@ -18,7 +18,7 @@ const PHASE_RIP_DURATION = 0.8;
 const PHASE_PAN_DURATION = 1.2;
 const PHASE_REVEAL_DURATION = 1.5;
 
-const knightSlashSfx = new Audio('sfx/knight_slash_moab.mp3');
+// FIX: Removed the hardcoded Audio object. It is now handled by AudioEngine.
 
 Assets.get('enemy_knight_front');
 Assets.get('enemy_knight_back');
@@ -59,8 +59,6 @@ export const CutsceneManager = {
         const music = getBossMusic();
         music.pause();
         music.currentTime = 0;
-        knightSlashSfx.pause();
-        knightSlashSfx.currentTime = 0;
     },
 
     trigger(moabEnemy) {
@@ -87,6 +85,10 @@ export const CutsceneManager = {
         if (this.state === 'idle') return false;
 
         if (this.knightEnemy) {
+            if (this.knightEnemy.isDyingComplete || !this.knightEnemy.alive || GameEngine.enemies.indexOf(this.knightEnemy) === -1) {
+                this.reset();
+                return false;
+            }
             this.knightEnemy.update(dt);
         }
 
@@ -121,8 +123,8 @@ export const CutsceneManager = {
                 this.state = 'slashing';
                 this.timer = PHASE_SLASH_DURATION;
                 
-                knightSlashSfx.currentTime = 0;
-                knightSlashSfx.play().catch(e => console.warn("Slash SFX blocked:", e));
+                // FIX: Play the slash sound through the AudioEngine so it respects the volume slider!
+                AudioEngine.playSfx('knight_slash_moab');
             }
         }
         else if (this.state === 'slashing') {
@@ -314,41 +316,4 @@ window.triggerBossCutscene = function() {
 window.applyBallsConfig = function() {
     CutsceneBalls.init();
     console.log("✅ Balls config applied!");
-};
-window.toggleSplitScreen = function() {
-    if (!GameEngine.map || GameEngine.gameState !== 'playing') {
-        console.error("❌ Split Screen Error: You must be in an active game to trigger the split screen!");
-        return;
-    }
-
-    // Find the boss
-    let boss = GameEngine.enemies.find(e => e.tier === 99);
-
-    // If no boss exists, spawn one instantly so we have something to work with
-    if (!boss) {
-        console.log("✅ No Knight found. Spawning one instantly...");
-        boss = new KnightEnemy(640, 360);
-        boss.isCinematic = false; // Skip intro animation
-        GameEngine.enemies.push(boss);
-    }
-
-    // If the split is currently active, turn it OFF
-    if (boss.screenSplitActive || boss.currentOffset !== 0) {
-        console.log("✅ Split screen OFF");
-        boss.screenSplitActive = false;
-        boss.targetOffset = 0; // Ease back to normal
-        boss.state = 'idle';   // Return to normal attacks
-        boss.stateTimer = 1.0;
-    } else {
-        // Turn it ON indefinitely
-        console.log("✅ Split screen ON (indefinite)");
-        boss.state = 'split_active';
-        boss.stateTimer = 999999; // Infinite duration
-        boss.warningLineActive = false;
-        boss.freezeMouse = false; // Make sure mouse isn't frozen
-        boss.screenSplitActive = true;
-        boss.screenSplitTimer = 999999; // Infinite duration
-        boss.splitDirection = 1; // Force shift right (change to -1 for left)
-        boss.targetOffset = boss.screenSplitOffset * boss.splitDirection;
-    }
 };
