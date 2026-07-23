@@ -99,6 +99,12 @@ export const ProjectileDrawers = {
     dark_blade: (ctx) => {
         ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-6, -6); ctx.lineTo(-6, 6); ctx.fill();
         ctx.fillStyle = '#8e44ad'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-2, -3); ctx.lineTo(-2, 3); ctx.fill();
+    },
+
+    // --- GOJO PROJECTILE ---
+    blue: (ctx) => {
+        ctx.fillStyle = '#0000ff'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
     }
 };
 

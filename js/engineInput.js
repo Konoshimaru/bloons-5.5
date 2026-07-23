@@ -83,9 +83,9 @@ export default {
             
             this._monkeyCityFreeDart = false; 
             
-            // FIX: Apply MK placement discounts generically
+            // FIX: Apply MK placement discounts generically. Support alwaysActive for account unlocks.
             for (const eff of MKEffects.towerPlacement) {
-                if (!mk[eff.id]) continue;
+                if (!mk[eff.id] && !eff.alwaysActive) continue;
                 if (eff.type && !eff.type.includes(this.selectedTowerType)) continue;
                 if (eff.condition && !eff.condition(this, this.selectedTowerType)) continue;
                 if (eff.action) cost = eff.action(cost);
@@ -187,12 +187,12 @@ export default {
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         let cdMult = 1.0;
         
-        // FIX: Apply ability cooldown MK effects generically
+        // FIX: Apply ability cooldown MK effects generically using stat/amount
         for (const eff of MKEffects.abilityCooldown) {
             if (!mk[eff.id]) continue;
             if (eff.hero && !t.stats.isHero) continue;
             if (eff.condition && !eff.condition(t, slot)) continue;
-            if (eff.action) cdMult *= eff.action();
+            if (eff.stat === 'cdMult') cdMult *= eff.amount;
         }
 
         if (t.abilityCdMult) cdMult *= t.abilityCdMult;

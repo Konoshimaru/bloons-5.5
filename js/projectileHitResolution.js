@@ -2,21 +2,24 @@
 import { Utils } from './utils.js';
 import { GameEngine } from './engine.js';
 import { DamageType, createDmgType } from './damageTypes.js';
+import { ProjectileTypeConfig } from './projectileTypeConfig.js';
 
 const ProjectileHitResolution = {
     _checkCollisions() {
         const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.radius + 40);
+        const cfg = ProjectileTypeConfig[this.type] || {};
+        
         for (const e of nearby) {
             if (!e.alive) continue;
             
-            if (this.type !== 'spike' && this.type !== 'spike_opult' && this.type !== 'juggernaut' && this.type !== 'ultra_juggernaut' && this.hitEnemies.has(e)) continue;
+            if (!cfg.exemptFromHitTracking && this.hitEnemies.has(e)) continue;
             
             if (e.isCamo && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
             
             const eRad = e.radius || e.data.radius || 10;
             if (Utils.withinRange(this.x, this.y, e.x, e.y, eRad + this.radius)) {
                 this.hit(e);
-                if (this.type !== 'spike' && this.type !== 'spike_opult' && this.type !== 'juggernaut' && this.type !== 'ultra_juggernaut') this.hitEnemies.add(e);
+                if (!cfg.exemptFromHitTracking) this.hitEnemies.add(e);
                 if (!this.alive) break;
             }
         }
@@ -42,12 +45,14 @@ const ProjectileHitResolution = {
     },
 
     _isExplosive() {
-        return this.type === 'bomb' || this.type === 'mortar_shell' || this.type === 'potion' || this.type === 'flash_bomb' || this.type === 'sticky_bomb' || this.type === 'ice_bomb' || (this.effects && this.effects.isExplosive);
+        const cfg = ProjectileTypeConfig[this.type] || {};
+        return !!cfg.isExplosive || (this.effects && this.effects.isExplosive);
     },
 
     _handleExplosiveHit() {
         const expRadius = this._getExplosionRadius();
-        GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.3, maxLife: 0.3, color: this._getExplosionColor() });
+        const expColor = this._getExplosionColor();
+        GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.3, maxLife: 0.3, color: expColor });
         
         const bombDmgType = this._createBombDmgType();
         const nearby = GameEngine.enemyGrid.query(this.x, this.y, expRadius);
@@ -93,7 +98,8 @@ const ProjectileHitResolution = {
             }
         }
 
-        if (this.type === 'arrow') {
+        const cfg = ProjectileTypeConfig[this.type] || {};
+        if (cfg.decrementsPierceOnExplosion) {
             this.pierce--;
             if (this.pierce <= 0) this.alive = false;
         } else {
@@ -106,18 +112,21 @@ const ProjectileHitResolution = {
     },
 
     _getExplosionColor() {
-        if (this.type === 'potion') return '#9b59b6';
-        if (this.type === 'ice_bomb') return '#1abc9c';
-        return '#e67e22';
+        const cfg = ProjectileTypeConfig[this.type] || {};
+        return cfg.explosionColor || '#e67e22';
     },
 
     _createBombDmgType() {
+        const cfg = ProjectileTypeConfig[this.type] || {};
         const bombCanHitLead = this.tower ? (this.tower.stats.canHitLead || this.tower.buffedLead || (this.effects && this.effects.canHitLead)) : true;
+        
+        // FIX: Bulletproof null-safe access to this.dmgType
+        const dt = this.dmgType || {};
         return createDmgType(DamageType.EXPLOSION, {
-            isFire: this.dmgType.isFire,
-            isAcid: this.type === 'potion',
-            moabDmg: this.dmgType.moabDmg || 0,
-            fortifiedDmg: this.dmgType.fortifiedDmg || 0,
+            isFire: dt.isFire || false,
+            isAcid: !!cfg.isAcid,
+            moabDmg: dt.moabDmg || 0,
+            fortifiedDmg: dt.fortifiedDmg || 0,
             canHitLead: bombCanHitLead
         });
     },
@@ -136,7 +145,6 @@ const ProjectileHitResolution = {
         let dmg = this.damage;
         if (this.bonusCeramic && enemy.data.isCeramic) dmg += this.bonusCeramic;
         
-        // FIX: Apply custom damage bonuses from effects (Super Monkey Ultravision/Dark Champion)
         if (this.effects && this.effects.camoDmg && enemy.isCamo) dmg += this.effects.camoDmg;
         if (this.effects && this.effects.ceramicDmg && enemy.data.isCeramic) dmg += this.effects.ceramicDmg;
 
@@ -201,9 +209,11 @@ const ProjectileHitResolution = {
             }
         }
 
+        const cfg = ProjectileTypeConfig[this.type] || {};
         this.pierce--;
-        if (this.pierce <= 0 && this.type !== 'boomerang') {
-            if (this.type === 'ultra_juggernaut' && !this.hasSplit) {
+        
+        if (this.pierce <= 0 && !cfg.survivesZeroPierce) {
+            if (cfg.splitsOnZeroPierce && !this.hasSplit) {
                 this.split();
             }
             this.alive = false;

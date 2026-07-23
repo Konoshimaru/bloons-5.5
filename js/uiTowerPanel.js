@@ -3,6 +3,7 @@ import { TowerStats, Upgrades } from './towers/index.js';
 import { Config } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 import { HeroRegistry } from './heroes/index.js';
+import { getSellRate } from './towerEconomy.js'; // FIX: Import getSellRate
 
 const _elCache = {};
 function el(id) {
@@ -142,7 +143,7 @@ const uiTowerPanel = {
             panel.classList.add('sidebar-right'); 
         }
         
-        this._setupSellAndBankButtons(panel, t);
+        this._setupSellAndBankButtons(panel, t, engine);
         this._updatePortrait(t);
         
         if (t.stats.isHero) {
@@ -176,15 +177,15 @@ const uiTowerPanel = {
         portrait.style.backgroundPosition = 'center';
     },
 
-    _setupSellAndBankButtons(panel, t) {
+    _setupSellAndBankButtons(panel, t, engine) {
         const sellBtn = el('up-sell');
         if (sellBtn && sellBtn.parentElement !== panel) {
             panel.appendChild(sellBtn);
         }
         if (sellBtn) {
             sellBtn.classList.remove('hidden');
-            let resaleRate = 0.70;
-            if (t.type === 'farm' && t.upgrades[2] >= 2) resaleRate = 0.80;
+            // FIX: Use the authoritative getSellRate function
+            const resaleRate = getSellRate(t, engine);
             const sellValue = Math.floor(t.totalSpent * resaleRate);
             sellBtn.innerText = `Sell ($${sellValue})`;
         }
@@ -310,9 +311,8 @@ const uiTowerPanel = {
             }
         }
 
-        // FIX: Setup Second Targeting Row for Robo Monkey properly handling the cache
         let targetingRow2 = el('up-targeting-row-2');
-        if (t.type === 'super' && t.upgrades[1] >= 3) { // Robo Monkey or Anti-Bloon
+        if (t.type === 'super' && t.upgrades[1] >= 3) {
             if (!targetingRow2 && targetingRow) {
                 targetingRow2 = targetingRow.cloneNode(true);
                 targetingRow2.id = 'up-targeting-row-2';
@@ -327,14 +327,12 @@ const uiTowerPanel = {
                 
                 targetingRow.parentNode.insertBefore(targetingRow2, targetingRow.nextSibling);
                 
-                // FIX: Manually fetch the new elements to attach listeners and update cache
                 const newPrev2 = targetingRow2.querySelector('#up-target-prev-2');
                 const newNext2 = targetingRow2.querySelector('#up-target-next-2');
                 
                 if (newPrev2) newPrev2.addEventListener('click', () => engine.cycleTargeting(-1, 2));
                 if (newNext2) newNext2.addEventListener('click', () => engine.cycleTargeting(1, 2));
                 
-                // Update the cache so future calls to el() find the new elements
                 _elCache['up-targeting-row-2'] = targetingRow2;
                 _elCache['up-target-prev-2'] = newPrev2;
                 _elCache['up-target-next-2'] = newNext2;

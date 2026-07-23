@@ -112,10 +112,14 @@ export const MKEffects = {
     ],
 
     // Applied inside TowerEconomy.sell()
+    // FIX: flat_pack uses an action to dynamically check for better_sell_deals
     sellRate: [
-        { id: 'better_sell_deals', amount: 0.75 },
-        { id: 'flat_pack', type: ['farm', 'village'], amount: 0.77 },
-        { id: 'farm_resale', type: ['farm'], condition: t => t.upgrades[2] >= 2, amount: 0.80 }
+        { id: 'better_sell_deals', stat: 'resaleRate', amount: 0.75 },
+        { id: 'flat_pack', type: ['farm', 'village'], action: (t, eng) => {
+            const mk = eng.config.data.mkActive === false ? {} : (eng.config.data.monkeyKnowledge || {});
+            return mk['better_sell_deals'] ? 0.77 : 0.72;
+        }},
+        { id: 'farm_resale', type: ['farm'], condition: t => t.upgrades[2] >= 2, stat: 'resaleRate', amount: 0.80 }
     ],
 
     // --- HERO SPECIFIC EFFECTS ---
@@ -128,8 +132,9 @@ export const MKEffects = {
         }}
     ],
 
+    // FIX: Use stat/amount for static multipliers to be fully generic
     heroXpGain: [
-        { id: 'self_taught', hero: true, action: () => 1.10 },
+        { id: 'self_taught', hero: true, stat: 'mult', amount: 1.10 },
         { id: 'monkeys_together', hero: true, action: (hero, engine) => {
             let heroCount = 0;
             for (let t of engine.towers) {
@@ -144,7 +149,7 @@ export const MKEffects = {
     ],
 
     heroBuyLevel: [
-        { id: 'scholarships', hero: true, action: () => 0.9 }
+        { id: 'scholarships', hero: true, stat: 'mult', amount: 0.9 }
     ],
 
     // --- VILLAGE SUPPORT EFFECTS ---
@@ -168,21 +173,24 @@ export const MKEffects = {
         { id: 'monkey_education', action: (eng) => eng.globalXpMult = 1.08 }
     ],
 
+    // FIX: Added unlock_free_dart as an alwaysActive entry to sync with UI checks
     towerPlacement: [
         { id: 'bonus_monkey', type: ['dart'], condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && !eng.towers.some(t => t.type === 'dart'), action: (cost) => 0 },
+        { id: 'unlock_free_dart', type: ['dart'], alwaysActive: true, condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && eng.config.data.unlocks.freeFirstDartMonkey && !eng.towers.some(t => t.type === 'dart'), action: (cost) => 0 },
         { id: 'military_conscription', type: ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'], condition: (eng, type) => !eng.isSandbox && !eng.towers.some(t => ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'].includes(t.type)), action: (cost) => Math.floor(cost * 0.66) },
         { id: 'first_line_of_defense', type: ['spike'], condition: (eng, type) => !eng.isSandbox && !eng.towers.some(t => t.type === 'spike'), action: (cost) => Math.max(0, cost - 150) },
         { id: 'farm_subsidy', type: ['farm'], condition: (eng, type) => !eng.isSandbox && !eng.towers.some(t => t.type === 'farm'), action: (cost) => Math.max(0, cost - 100) }
     ],
 
     abilityCooldown: [
-        { id: 'global_cooldowns', action: () => 0.97 },
-        { id: 'ability_discipline', hero: true, condition: (t, slot) => slot === 2, action: () => 0.90 },
-        { id: 'ability_mastery', hero: true, condition: (t, slot) => slot === 1 && t.level >= 20, action: () => 0.70 }
+        { id: 'global_cooldowns', stat: 'cdMult', amount: 0.97 },
+        { id: 'ability_discipline', hero: true, condition: (t, slot) => slot === 2, stat: 'cdMult', amount: 0.90 },
+        { id: 'ability_mastery', hero: true, condition: (t, slot) => slot === 1 && t.level >= 20, stat: 'cdMult', amount: 0.70 }
     ],
 
+    // FIX: Use stat/amount for economy effects to be fully generic
     economy: [
-        { id: 'backroom_deals', action: () => 0.40 },
-        { id: 'mo_monkey_money', action: () => 1.10 }
+        { id: 'backroom_deals', stat: 'imfTaxRate', amount: 0.40 },
+        { id: 'mo_monkey_money', stat: 'mmRewardMult', amount: 1.10 }
     ]
 };

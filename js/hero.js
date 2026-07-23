@@ -32,12 +32,14 @@ export class Hero extends Tower {
         
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         let mult = 1.0;
+        // FIX: Fully generic loop using stat/amount or action
         for (const eff of MKEffects.heroXpGain) {
             if (!mk[eff.id]) continue;
             if (eff.hero && !this.stats.isHero) continue;
-            if (eff.action) {
-                mult *= eff.action(this, GameEngine);
-            }
+            if (eff.condition && !eff.condition(this, GameEngine)) continue;
+            
+            if (eff.action) mult *= eff.action(this, GameEngine);
+            else if (eff.stat === 'mult') mult *= eff.amount;
         }
         amount *= mult;
 
@@ -56,12 +58,14 @@ export class Hero extends Tower {
         
         const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
         let mult = 1.0;
+        // FIX: Fully generic loop using stat/amount or action
         for (const eff of MKEffects.heroBuyLevel) {
             if (!mk[eff.id]) continue;
             if (eff.hero && !this.stats.isHero) continue;
-            if (eff.action) {
-                mult *= eff.action(this, engine);
-            }
+            if (eff.condition && !eff.condition(this, engine)) continue;
+            
+            if (eff.action) mult *= eff.action(this, engine);
+            else if (eff.stat === 'mult') mult *= eff.amount;
         }
         cost = Math.floor(cost * mult);
 

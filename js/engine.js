@@ -150,10 +150,10 @@ export const GameEngine = {
         if (this.imfDebt > 0) {
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             let taxRate = 0.50;
-            // FIX: Apply economy MK effects generically
+            // FIX: Apply economy MK effects generically using stat/amount
             for (const eff of MKEffects.economy) {
                 if (!mk[eff.id]) continue;
-                if (eff.id === 'backroom_deals') taxRate = eff.action();
+                if (eff.stat === 'imfTaxRate') taxRate = eff.amount;
             }
             const tax = Math.floor(rawAmount * taxRate);
             if (tax >= this.imfDebt) { rawAmount -= this.imfDebt; this.imfDebt = 0; } 
@@ -281,11 +281,13 @@ export const GameEngine = {
         let mmEarned = Math.floor(wavesSurvived / 3) + 5;
         
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
-        // FIX: Apply economy MK effects generically
+        let mmMult = 1.0;
+        // FIX: Apply economy MK effects generically using stat/amount
         for (const eff of MKEffects.economy) {
             if (!mk[eff.id]) continue;
-            if (eff.id === 'mo_monkey_money') mmEarned = Math.floor(mmEarned * eff.action());
+            if (eff.stat === 'mmRewardMult') mmMult = eff.amount;
         }
+        mmEarned = Math.floor(mmEarned * mmMult);
         
         Config.data.playerXP += xpEarned; Config.data.monkeyMoney += mmEarned;
         
@@ -531,7 +533,7 @@ export const GameEngine = {
     },
 
     _updateExplosions(dt) {
-        for (let i = this.explosions.length - 1; i >= 0; i--) {
+        for (let i = this.explosions.length - 1; i >= 0; i++) {
             const exp = this.explosions[i];
             if (!exp) continue;
             exp.life -= dt;

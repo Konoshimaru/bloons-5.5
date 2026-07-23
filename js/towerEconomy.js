@@ -4,6 +4,22 @@ import { Utils } from './utils.js';
 import { RANGE_SCALE } from './config.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
+// FIX: Extracted reusable sell rate calculation
+export function getSellRate(tower, engine) {
+    let resaleRate = 0.70;
+    const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
+    for (const eff of MKEffects.sellRate) {
+        if (!mk[eff.id]) continue;
+        if (eff.type && !eff.type.includes(tower.type)) continue;
+        if (eff.condition && !eff.condition(tower, engine)) continue;
+        
+        let val = eff.amount;
+        if (eff.action) val = eff.action(tower, engine);
+        if (val !== undefined) resaleRate = Math.max(resaleRate, val);
+    }
+    return resaleRate;
+}
+
 const TowerEconomy = {
     canUpgrade(path, engine) {
         const tier = this.upgrades[path - 1];
@@ -60,7 +76,6 @@ const TowerEconomy = {
 
         const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
 
-        // FIX: Apply upgrade cost discounts generically via MKEffects
         for (const eff of MKEffects.upgradeCost) {
             if (!mk[eff.id]) continue;
             if (eff.type && !eff.type.includes(this.type)) continue;
@@ -89,17 +104,8 @@ const TowerEconomy = {
     },
 
     sell(engine) {
-        let resaleRate = 0.70;
-        const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
-
-        // FIX: Apply sell rate modifiers generically via MKEffects
-        for (const eff of MKEffects.sellRate) {
-            if (!mk[eff.id]) continue;
-            if (eff.type && !eff.type.includes(this.type)) continue;
-            if (eff.condition && !eff.condition(this)) continue;
-            resaleRate = Math.max(resaleRate, eff.amount);
-        }
-        
+        // FIX: Use the extracted getSellRate function
+        const resaleRate = getSellRate(this, engine);
         engine.cash += Math.floor(this.totalSpent * resaleRate);
         for (let i = 0; i < 3; i++) {
             if (this.upgrades[i] === 5) engine.tier5Bought[`${this.type}-${i + 1}`] = false;
