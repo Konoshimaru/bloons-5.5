@@ -38,7 +38,8 @@ export default {
             return; 
         }
 
-        const rect = this.canvas.getBoundingClientRect();
+        // FIX: Re-apply cached rect to prevent layout thrashing
+        const rect = (window.InputManager && window.InputManager.canvasRect) ? window.InputManager.canvasRect : this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
         const rawX = (e.clientX - rect.left) * scaleX;

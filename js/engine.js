@@ -21,14 +21,12 @@ import { Renderer } from './renderer.js';
 import { CutsceneManager } from './cutscene.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
-// FIX: Import the extracted input handler
+// FIX: Import the extracted modules
 import EngineInput from './engineInput.js';
+import GameSession from './gameSession.js';
+import SimulationLoop from './simulationLoop.js';
 
 const MAX_SUBSTEPS = 10;
-const MAX_PROJECTILES = 1500;
-const MAX_PARTICLES = 400;
-const MAX_EXPLOSIONS = 100;
-const MAX_ACID_POOLS = 100;
 const FIXED_TIMESTEP = 0.016;
 const FPS_UPDATE_INTERVAL = 1000;
 const HANG_THRESHOLD_MS = 500; 
@@ -150,7 +148,6 @@ export const GameEngine = {
         if (this.imfDebt > 0) {
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             let taxRate = 0.50;
-            // FIX: Apply economy MK effects generically using stat/amount
             for (const eff of MKEffects.economy) {
                 if (!mk[eff.id]) continue;
                 if (eff.stat === 'imfTaxRate') taxRate = eff.amount;
@@ -184,21 +181,18 @@ export const GameEngine = {
             if (Config.data.unlocks.extraStartingCash) this.cash += 200;
         }
 
-        // --- MONKEY KNOWLEDGE EFFECTS ---
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         if (!isSandbox) {
             this.manaShield = 0;
             this.maxManaShield = 0;
             this.leakedThisRound = false;
             this.globalXpMult = 1.0;
-            // FIX: Apply gameInit MK effects generically
             for (const eff of MKEffects.gameInit) {
                 if (!mk[eff.id]) continue;
                 if (eff.condition && !eff.condition(this, diff)) continue;
                 if (eff.action) eff.action(this, diff, { Tower });
             }
         }
-        // --------------------------------
 
         this.hero = null;
         this.waveManager = new WaveManager();
@@ -212,105 +206,12 @@ export const GameEngine = {
         this.updateUI();
     },
 
-    skipWave(amount) {
-        this.waveManager.clearField();
-        const floorWave = this.difficulty ? this.difficulty.startRound : 1;
-        if (amount > 0) { this.waveManager.startWave(); } 
-        else if (amount < 0) {
-            if (this.waveManager.currentWave <= floorWave) {
-                this.log("Already at the first wave!"); this.waveManager.currentWave = floorWave - 1; this.waveManager.startWave(); return;
-            }
-            this.waveManager.currentWave -= 2;
-            if (this.waveManager.currentWave < floorWave - 1) this.waveManager.currentWave = floorWave - 1;
-            this.waveManager.startWave();
-        }
-        this.updateUI();
-    },
-
-    saveGame() {
-        if (this.gameState !== 'playing' && this.gameState !== 'paused') return;
-        const state = { 
-            mapIndex: this.currentMap, 
-            difficultyKey: Config.data.currentDifficulty, 
-            lives: this.lives, 
-            cash: this.cash, 
-            wave: this.waveManager.currentWave,
-            towers: this.towers.map(t => ({ x: t.x, y: t.y, type: t.type, upgrades: [...t.upgrades], targeting: t.targetingMode, heroLevel: t.level || 0 })) 
-        };
-        Config.data.savedRun = state; 
-        Config.save();
-    },
-
-    loadGame() {
-        if (!Config.data.savedRun) return false;
-        const state = Config.data.savedRun;
-        this.currentMap = state.mapIndex;
-        
-        if (state.difficultyKey) {
-            Config.data.currentDifficulty = state.difficultyKey;
-        } else if (state.difficulty) {
-            Config.data.currentDifficulty = state.difficulty.toLowerCase().replace(/\s+/g, '');
-        } else {
-            Config.data.currentDifficulty = 'medium';
-        }
-        
-        this.startGame(false);
-        this.lives = state.lives; this.cash = state.cash;
-        this.waveManager.currentWave = state.wave - 1;
-        for (const tData of state.towers) {
-            const stats = TowerStats[tData.type] || HeroStats[tData.type];
-            let t;
-            if (stats.isHero) { t = new Hero(tData.x, tData.y, tData.type); this.hero = t; } 
-            else { t = new Tower(tData.x, tData.y, tData.type); }
-            t.upgrades = [...tData.upgrades]; t.targetingMode = tData.targeting; t.applyUpgradesForLoad();
-            if (t.stats.isHero && tData.heroLevel > 1) { while (t.level < tData.heroLevel) t.levelUp(); }
-            this.towers.push(t);
-        }
-        this.updateUI(); 
-        return true;
-    },
-
-    abandonRun() {
-        Config.data.savedRun = null; Config.save(); this.gameState = 'menu'; this.map = null;
-        UI.toggleMenus(null); document.getElementById('main-menu-ui').classList.remove('hidden'); UI.updateMetaStats();
-    },
-
-    giveRewards() {
-        const wavesSurvived = this.waveManager.currentWave;
-        const xpEarned = wavesSurvived * 15;
-        let mmEarned = Math.floor(wavesSurvived / 3) + 5;
-        
-        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
-        let mmMult = 1.0;
-        // FIX: Apply economy MK effects generically using stat/amount
-        for (const eff of MKEffects.economy) {
-            if (!mk[eff.id]) continue;
-            if (eff.stat === 'mmRewardMult') mmMult = eff.amount;
-        }
-        mmEarned = Math.floor(mmEarned * mmMult);
-        
-        Config.data.playerXP += xpEarned; Config.data.monkeyMoney += mmEarned;
-        
-        while (Config.data.playerXP >= Config.data.playerXPToNext) {
-            Config.data.playerXP -= Config.data.playerXPToNext; 
-            Config.data.playerLevel++;
-            Config.data.playerXPToNext = Math.floor(Config.data.playerXPToNext * 1.25);
-            if (Config.data.playerLevel > 25) {
-                Config.data.knowledgePoints = (Config.data.knowledgePoints || 0) + 1;
-            }
-        }
-        
-        Config.data.savedRun = null; Config.save();
-        const rewardsEl = document.getElementById('go-rewards');
-        if (rewardsEl) rewardsEl.innerHTML = `+${xpEarned} XP<br>+${mmEarned} Monkey Money`;
-    },
-
     pauseGame() { if (this.gameState !== 'playing') return; this.gameState = 'paused'; UI.showPause(); },
     resumeGame() { if (this.gameState !== 'paused') return; this.gameState = 'playing'; UI.hidePause(); },
     toggleMenus(menuId) { UI.toggleMenus(menuId); },
 
     spawnPopEffect(x, y, color) {
-        if (this.particlePool.active.length > MAX_PARTICLES) return;
+        if (this.particlePool.active.length > 400) return;
         if (this.enemies.length > 600 && Math.random() > 0.2) return;
         const p = this.particlePool.get(); p.init(x, y, color);
     },
@@ -412,7 +313,6 @@ export const GameEngine = {
             }
             this.leakedThisRound = false;
 
-            // FIX: Healthy Bananas is now fully data-driven. Just check the stat on the towers!
             let livesToAdd = 0;
             for (const t of this.towers) {
                 if (t && t.stats.healthyBananas > 0) {
@@ -429,131 +329,10 @@ export const GameEngine = {
             AudioEngine.pause(); this.deselectAll(); this.gameState = 'gameover'; this.giveRewards();
             UI.toggleMenus('game-over-menu'); document.getElementById('go-wave-stat').innerText = `You survived to Wave ${this.waveManager.currentWave}`;
         }
-    },
-
-    _updateLimitsAndTimers(dt) {
-        if (this.projectilePool.active.length > MAX_PROJECTILES) this.projectilePool.removeAt(0);
-        if (this.particlePool.active.length > MAX_PARTICLES) this.particlePool.removeAt(0);
-        if (this.explosions.length > MAX_EXPLOSIONS) this.explosions.shift();
-        if (this.acidPools.length > MAX_ACID_POOLS) this.acidPools.shift();
-        if (this.flavorTimer > 0) this.flavorTimer -= dt;
-        if (this.leakFlash > 0) this.leakFlash -= dt;
-    },
-
-    _updateAcidPools(dt) {
-        for (let i = this.acidPools.length - 1; i >= 0; i--) {
-            const pool = this.acidPools[i];
-            pool.life -= dt; pool.tick -= dt;
-            if (pool.life <= 0) { this.acidPools.splice(i, 1); continue; }
-            if (pool.tick <= 0) {
-                pool.tick = 1.0;
-                const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
-                for (const e of nearby) {
-                    if (e.alive && Utils.withinRange(pool.x, pool.y, e.x, e.y, pool.radius)) {
-                        e.takeDamage(pool.dmg, { isAcid: true, canHitLead: true });
-                    }
-                }
-            }
-        }
-    },
-
-    _updateEnemies(dt) {
-        for (let i = this.enemies.length - 1; i >= 0; i--) {
-            const e = this.enemies[i];
-            if (!e) continue;
-            e.update(dt);
-            if (!e.alive) {
-                const last = this.enemies.pop();
-                if (i < this.enemies.length) { this.enemies[i] = last; }
-                this.enemyPool.release(e);
-            }
-        }
-    },
-
-    _updateTowers(dt) {
-        for (const t of this.towers) {
-            if (!t) continue;
-            t.buffedRange = 0; t.buffedFireRate = 0; t.buffedCamo = false; t.buffedLead = false;
-            t.discount = 0; t.buffedDmg = 0; t.buffedPierce = 0; t.buffedValueMult = 0;
-            t.buffedProjSpeed = 1.0; 
-            t.abilityCdMult = 1.0;
-        }
-        this.hasIceShardTower = false; this.hasLeakingEnemy = false;
-        if (this.map) {
-            const totalLen = this.map.getTotalLength();
-            if (totalLen > 0) {
-                const leakThreshold = totalLen * 0.75;
-                for (const e of this.enemies) { if (e.alive && e.distanceTraveled > leakThreshold) { this.hasLeakingEnemy = true; break; } }
-            }
-        }
-        this.towerGrid.clear();
-        for (const t of this.towers) { if (t) this.towerGrid.insert(t); }
-        for (const t of this.towers) {
-            if (!t) continue;
-            const behavior = getBehavior(t.type);
-            if (behavior && behavior.updateSupport) { behavior.updateSupport(t, dt); }
-            if (t.type === 'ice' && t.upgrades[0] >= 3) { this.hasIceShardTower = true; }
-        }
-        for (const t of this.towers) { if (t) t.update(dt, this); }
-    },
-
-    _updateEconomy(dt) {
-        if (this.mouse.x === undefined) return;
-        for (const t of this.towers) {
-            if (!t || !t.bananas || t.bananas.length === 0) continue;
-            for (let i = t.bananas.length - 1; i >= 0; i--) {
-                const b = t.bananas[i];
-                if (b.progress < 1) continue;
-                
-                const distSq = Utils.distanceSq(this.mouse.x, b.x, this.mouse.y, b.y);
-                const range = t.stats.collectionRange || 40;
-                
-                if (distSq < range * range) {
-                    const dist = Math.sqrt(distSq) || 1;
-                    const speed = 500 * dt;
-                    b.x += ((this.mouse.x - b.x) / dist) * speed;
-                    b.y += ((this.mouse.y - b.y) / dist) * speed;
-                    if (dist < 15) {
-                        this.addCash(b.value); t.cashGenerated = (t.cashGenerated || 0) + b.value;
-                        AudioEngine.playSfx('cash'); t.bananas.splice(i, 1);
-                    }
-                }
-            }
-        }
-    },
-
-    _updateProjectiles(dt) {
-        const projectiles = this.projectilePool.active;
-        for (let i = projectiles.length - 1; i >= 0; i--) {
-            const p = projectiles[i];
-            if (!p) continue;
-            p.update(dt);
-            if (!p.alive) { this.projectilePool.removeAt(i); }
-        }
-    },
-
-    _updateExplosions(dt) {
-        for (let i = this.explosions.length - 1; i >= 0; i++) {
-            const exp = this.explosions[i];
-            if (!exp) continue;
-            exp.life -= dt;
-            if (exp.maxLife > 0) { exp.radius = (1 - exp.life / exp.maxLife) * (exp.maxRadius || 0); }
-            if (exp.life <= 0) {
-                const last = this.explosions.pop();
-                if (i < this.explosions.length) { this.explosions[i] = last; }
-            }
-        }
-    },
-
-    _updateParticles(dt) {
-        const particles = this.particlePool.active;
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const pt = particles[i];
-            if (!pt) continue;
-            pt.update(dt);
-            if (pt.life <= 0) { this.particlePool.removeAt(i); }
-        }
     }
 };
 
+// FIX: Mix in the extracted modules
 Object.assign(GameEngine, EngineInput);
+Object.assign(GameEngine, GameSession);
+Object.assign(GameEngine, SimulationLoop);

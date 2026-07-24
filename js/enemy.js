@@ -10,6 +10,7 @@ import { GLOBAL_SCALE } from './constants.js';
 import { EnemyRenderer } from './enemyRenderer.js';
 import EnemyDamage from './enemyDamage.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
+import { updateTimedEffects } from './statusEffects.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -17,7 +18,6 @@ const ENEMY_NAMES = [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'w
 const CASH_REWARD_MODIFIER = 0.15;
 const REGEN_INTERVAL = 2.0;
 const STORM_HIT_INTERVAL = 0.05;
-const DOT_TICK_INTERVAL = 1.0;
 const FORTIFIED_LEAD_HP = 3;
 const LIVES_LOST_CERAMIC_BASE = 94;
 const LIVES_LOST_FORTIFIED_LEAD = 26;
@@ -132,7 +132,9 @@ export class Enemy {
             this._maxHp *= 2;
         }
         
-        // FIX: Apply MK enemyInit effects generically
+        // Direction 1: Initialize the _dying flag
+        this._dying = false;
+        
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         for (const eff of MKEffects.enemyInit) {
             if (!mk[eff.id]) continue;
@@ -185,29 +187,7 @@ export class Enemy {
 
     _updateTimers(dt) {
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
-        if (this.brittleTimer > 0) {
-            this.brittleTimer -= dt;
-            if (this.brittleTimer <= 0) {
-                this.brittle = false;
-                this.brittleBonus = 0;
-                this.leadStripped = false;
-            }
-        }
-        if (this.slowTimer > 0) {
-            this.slowTimer -= dt;
-            if (this.slowTimer <= 0) {
-                this.slowFactor = 1.0;
-                this.isFrozen = false;
-            }
-        }
-        if (this.dotTimer > 0) {
-            this.dotTimer -= dt;
-            this.dotTick += dt;
-            if (this.dotTick >= DOT_TICK_INTERVAL) {
-                this.dotTick = 0;
-                this.takeDamage(this.dotDmg, { isAcid: true, canHitLead: true });
-            }
-        }
+        updateTimedEffects(this, dt);
     }
 
     _updateRegen(dt) {
@@ -316,8 +296,11 @@ export class Enemy {
         }
     }
 
-    // FIX 2: Added killerTower parameter to giveCash to apply Monkey Town's buffedCashMult
+    // Direction 1: Hardened entry point. _dying prevents double cash/spawns.
     giveCash(canSpawn = true, killerTower = null) {
+        if (this._dying) return;
+        this._dying = true; 
+
         let childRbeTotal = 0;
         if (this.data.splitsInto) {
             for (const child of this.data.splitsInto) {
@@ -348,7 +331,9 @@ export class Enemy {
     }
 
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {
+        if (this._dying) return; // Already processed cash/death, don't spawn duplicates
         if (!canSpawn || !this.data.splitsInto) return;
+        
         const childCount = this.data.splitsInto.length;
         const dmgPerChild = Math.floor(carryOverDamage / childCount);
         let remainder = carryOverDamage % childCount;

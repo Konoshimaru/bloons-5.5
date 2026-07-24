@@ -10,6 +10,10 @@ const SAFETY_LOOP_LIMIT = 100;
 const EnemyDamage = {
     // FIX 2: Added killerTower parameter to takeDamage and threaded it through to giveCash
     takeDamage(damage, dmgType, effects, killerTower = null) {
+        // FIX: Guard against being called on an already-dead enemy. 
+        // Prevents duplicate cash rewards and duplicate children from spawnChildren().
+        if (!this.alive) return -1;
+        
         if (!dmgType) dmgType = {};
         if (!effects) effects = {};
         if (isNaN(damage)) damage = 0;
