@@ -1,4 +1,4 @@
-﻿// assets.js
+﻿// js/assets.js
 // Loads and tracks game art, sprites, and asset references used by the game.
 
 import { Names } from './names.js';
@@ -14,6 +14,36 @@ const FOLDER_MAP = Object.freeze({
 const CRACK_NAMES = Object.freeze(['ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad']);
 const MAX_CRACK_STAGES = 10;
 const DAMAGE_STAGE_SUFFIXES = Object.freeze(['_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9', '_10']);
+
+// FIX: Bulletproof helper to wait for image load without race conditions
+function awaitImageLoad(img) {
+    return new Promise(resolve => {
+        if (!img) return resolve();
+        
+        if (img.loaded || (img.complete && img.naturalWidth > 0)) {
+            img.loaded = true;
+            return resolve();
+        }
+        if (img.complete && img.naturalWidth === 0) {
+            img.loaded = false;
+            return resolve(); 
+        }
+        
+        let resolved = false;
+        const onL = () => { 
+            if (resolved) return; resolved = true; 
+            img.removeEventListener('load', onL); img.removeEventListener('error', onE); 
+            img.loaded = true; resolve(); 
+        };
+        const onE = () => { 
+            if (resolved) return; resolved = true; 
+            img.removeEventListener('load', onL); img.removeEventListener('error', onE); 
+            img.loaded = false; resolve(); 
+        };
+        img.addEventListener('load', onL);
+        img.addEventListener('error', onE);
+    });
+}
 
 class AssetsManager {
     #images = new Map();
@@ -41,8 +71,6 @@ class AssetsManager {
         
         img.onerror = () => {
             img.loaded = false;
-            // PRO FIX: Suppress 404 warnings to keep the console clean
-            // console.warn(`Asset failed to load: ${path} (Key: ${key})`);
         };
         
         img.src = path;
@@ -57,7 +85,6 @@ class AssetsManager {
         
         const path = this._resolvePath(key);
         if (!path) {
-            // console.warn(`Unknown asset prefix for key: ${key}`);
             return null;
         }
         
@@ -73,20 +100,7 @@ class AssetsManager {
                 const key = `${Names.PREFIXES.ENEMY}${name}${suffix}`;
                 const img = this.get(key);
                 
-                if (img.loaded) {
-                    loadedCount = stage;
-                    continue;
-                }
-
-                await new Promise(resolve => {
-                    img.addEventListener('load', () => { 
-                        img.loaded = true; 
-                        resolve(); 
-                    });
-                    img.addEventListener('error', () => { 
-                        resolve(); 
-                    });
-                });
+                await awaitImageLoad(img);
 
                 if (img.loaded) {
                     loadedCount = stage;
@@ -96,14 +110,56 @@ class AssetsManager {
             }
             
             this.#maxCracks.set(name, loadedCount);
-            // if (loadedCount > 0) {
-            //     console.log(`Preloaded ${loadedCount} damage stages for ${name}`);
-            // }
         }
     }
 
     getMaxCracks(name) {
         return this.#maxCracks.get(name) || 0;
+    }
+
+    async preloadManifest(keys, onProgress) {
+        const total = keys.length;
+        let loaded = 0;
+        
+        const promises = keys.map(async key => {
+            const img = this.get(key);
+            await awaitImageLoad(img);
+            loaded++;
+            if (onProgress) onProgress(loaded / total);
+        });
+        
+        await Promise.all(promises);
+    }
+
+    // FIX: New method to preload exact URLs (bypasses key mapping)
+    // This is perfect for UI assets that live in different folders (like portraits/)
+    async preloadUrls(urls, onProgress) {
+        const total = urls.length;
+        let loaded = 0;
+        
+        const promises = urls.map(url => {
+            // Use the URL as the key so it gets cached in the #images map
+            if (this.#images.has(url)) {
+                const img = this.#images.get(url);
+                if (img.loaded) {
+                    loaded++;
+                    if (onProgress) onProgress(loaded / total);
+                    return Promise.resolve();
+                }
+            }
+            
+            const img = new Image();
+            img.loaded = false;
+            this.#images.set(url, img);
+            
+            return new Promise(resolve => {
+                img.onload = () => { img.loaded = true; loaded++; if (onProgress) onProgress(loaded / total); resolve(); };
+                img.onerror = () => { img.loaded = false; loaded++; if (onProgress) onProgress(loaded / total); resolve(); };
+                img.src = url;
+            });
+        });
+        
+        await Promise.all(promises);
     }
 }
 

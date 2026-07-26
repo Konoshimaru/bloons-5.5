@@ -390,17 +390,21 @@ const uiTowerPanel = {
             placeBtn.style.height = '50px';
             placeBtn.style.top = '5px';
             portrait.parentNode.appendChild(placeBtn);
+            _elCache['beast-place-btn'] = placeBtn;
+            
+            // FIX: Attach listener ONLY ONCE on creation. No more cloneNode.
+            placeBtn.addEventListener('click', () => {
+                if (engine.selectedPlacedTower) {
+                    engine.placingBeastFor = engine.selectedPlacedTower; 
+                    engine.log("Click anywhere in range to place your beast.");
+                }
+            });
         }
         if (portrait.parentNode.classList.contains('sidebar-right')) { placeBtn.style.left = '5px'; placeBtn.style.right = 'auto'; }
         else { placeBtn.style.right = '5px'; placeBtn.style.left = 'auto'; }
         
         if (!t.beast) placeBtn.classList.add('hidden');
         else placeBtn.classList.remove('hidden');
-        
-        const newPlaceBtn = placeBtn.cloneNode(true);
-        placeBtn.parentNode.replaceChild(newPlaceBtn, placeBtn);
-        _elCache['beast-place-btn'] = newPlaceBtn;
-        newPlaceBtn.addEventListener('click', () => { engine.placingBeastFor = t; engine.log("Click anywhere in range to place your beast."); });
 
         // Merge Button
         let mergeBtn = el('beast-merge-btn');
@@ -419,17 +423,22 @@ const uiTowerPanel = {
             mergeBtn.style.height = '50px';
             mergeBtn.style.top = '60px';
             portrait.parentNode.appendChild(mergeBtn);
+            _elCache['beast-merge-btn'] = mergeBtn;
+            
+            // FIX: Attach listener ONLY ONCE on creation. No more cloneNode.
+            mergeBtn.addEventListener('click', () => {
+                if (engine.selectedPlacedTower) {
+                    engine.isMergingBeast = true; 
+                    engine.mergeSourceTower = engine.selectedPlacedTower; 
+                    engine.log("Select another Beast Handler to merge into!");
+                }
+            });
         }
         if (portrait.parentNode.classList.contains('sidebar-right')) { mergeBtn.style.left = '5px'; mergeBtn.style.right = 'auto'; }
         else { mergeBtn.style.right = '5px'; mergeBtn.style.left = 'auto'; }
         
         if (!t.beast) mergeBtn.classList.add('hidden');
         else mergeBtn.classList.remove('hidden');
-        
-        const newMergeBtn = mergeBtn.cloneNode(true);
-        mergeBtn.parentNode.replaceChild(newMergeBtn, mergeBtn);
-        _elCache['beast-merge-btn'] = newMergeBtn;
-        newMergeBtn.addEventListener('click', () => { engine.isMergingBeast = true; engine.mergeSourceTower = t; engine.log("Select another Beast Handler to merge into!"); });
     },
 
     _getTowerCounterText(t) {

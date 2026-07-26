@@ -14,6 +14,7 @@ import { MonkeyKnowledge } from './monkeyKnowledge.js';
 import { setupShopListeners, setupNudgeLogic, updateShopPrices } from './dragManager.js';
 import selectorMenus from './selectorMenus.js';
 import settingsMenu from './settingsMenu.js';
+import Assets from './assets.js';
 
 export const dom = {
     pauseBtn: document.getElementById('pause-btn'),
@@ -89,14 +90,12 @@ export const Main = {};
 Object.assign(Main, selectorMenus);
 Object.assign(Main, settingsMenu);
 
-// FIX: Unified Play Menu State
 Main.playMenuState = {
     selectedMapIndex: 0,
     page: 0,
     mapsPerPage: 6
 };
 
-// FIX: Profile UI Update Logic
 Main.updateProfileUI = function() {
     const stats = Config.data.stats || { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
     const profileStats = document.getElementById('profile-stats');
@@ -128,7 +127,6 @@ Main.updateProfileUI = function() {
     }
 };
 
-// FIX: Monkeys Encyclopedia Menu Logic
 Main.updateMonkeysMenu = function() {
     const list = document.getElementById('mm-tower-list');
     if (!list) return;
@@ -213,7 +211,6 @@ Main.selectMonkey = function(type) {
     info.scrollTop = 0;
 };
 
-// FIX: Unified Play Menu Logic
 Main.refreshPlayMaps = function() {
     const grid = document.getElementById('play-map-grid');
     const pageEl = document.getElementById('play-map-page');
@@ -262,7 +259,7 @@ Main.showPlayDifficulties = function() {
         'Easy': ['easy'],
         'Medium': ['medium'],
         'Hard': ['hard', 'impoppable', 'chimps'],
-        'Post CHIMPS': ['postchimps']
+        't CHIMPS': ['postchimps']
     };
 
     for (const [cat, keys] of Object.entries(categories)) {
@@ -362,7 +359,6 @@ function applyConfigToUI() {
     Main.refreshHeroSelector();
     Main.updateHeroShopCard();
     Main.updateShopUI();
-    showMainMenuUI(true);
 }
 
 async function startGameUI(isSandbox) {
@@ -402,7 +398,6 @@ function _setupMenuListeners() {
     dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
     dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
     
-    // FIX: Unified Play Menu Listeners
     dom.btnPlay?.addEventListener('click', () => { 
         Main.playMenuState.selectedMapIndex = Config.data.currentMap;
         Main.showPlayMaps(); 
@@ -561,7 +556,63 @@ window.addEventListener('load', () => {
     setupEventListeners();
     applyConfigToUI();
     resizeGame();
-    document.getElementById('main-menu-ui').classList.remove('hidden');
-    AudioEngine.init().then(() => AudioEngine.playMenuMusic());
-    MonkeyKnowledge.init(); 
+    
+    const titleScreen = document.getElementById('title-screen');
+    const loadingScreen = document.getElementById('loading-screen');
+    const titlePlayBtn = document.getElementById('title-play-btn');
+    const loadingBar = document.getElementById('loading-bar-fill');
+    
+    titlePlayBtn.addEventListener('click', async () => {
+        try {
+            titleScreen.classList.add('hidden');
+            loadingScreen.classList.remove('hidden');
+            loadingBar.style.width = '0%';
+            
+            // FIX: Build a comprehensive manifest of exact URLs to preload everything
+            const urls = [];
+            
+            // 1. UI Portraits
+            Object.keys(TowerStats).forEach(type => urls.push(`sprites/portraits/${type}_menuportrait.png`));
+            Object.keys(HeroRegistry).forEach(key => urls.push(`sprites/portraits/${key}_menuportrait.png`));
+            
+            // 2. Map Backgrounds
+            Maps.forEach(map => {
+                if (map.bgImage) urls.push(`sprites/maps/${map.bgImage}`);
+            });
+            
+            // 3. Tower Base Sprites
+            Object.keys(TowerStats).forEach(type => {
+                urls.push(`sprites/towers/${type}_base.png`);
+                urls.push(`sprites/towers/${type}_arm.png`); // Try to preload arms too
+            });
+            
+            // 4. Enemy Sprites
+            const enemyNames = ['red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
+            enemyNames.forEach(name => urls.push(`sprites/enemies/${name}.png`));
+
+            // Preload all URLs (0% to 50%)
+            await Assets.preloadUrls(urls, (pct) => {
+                loadingBar.style.width = `${Math.floor(pct * 50)}%`;
+            });
+
+            await AudioEngine.init();
+            loadingBar.style.width = '70%';
+
+            await Assets.preloadCracks();
+            loadingBar.style.width = '90%';
+
+            MonkeyKnowledge.init();
+            loadingBar.style.width = '100%';
+
+            await new Promise(r => setTimeout(r, 300));
+            
+            loadingScreen.classList.add('hidden');
+            showMainMenuUI(true);
+            AudioEngine.playMenuMusic();
+        } catch (err) {
+            console.error("Boot: Loading sequence failed, forcing game load:", err);
+            loadingScreen.classList.add('hidden');
+            showMainMenuUI(true);
+        }
+    });
 });

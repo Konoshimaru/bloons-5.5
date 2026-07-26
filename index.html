@@ -24,6 +24,22 @@
         <div id="upgrade-tooltip"></div>
         <div id="flavor-text"></div>
 
+        <!-- NEW: Title Screen -->
+        <div id="title-screen" class="full-screen-overlay">
+            <img src="sprites/menu/logo.png" alt="Game Logo" class="game-logo" onerror="this.style.display='none'">
+            <button id="title-play-btn" class="large-btn">PLAY</button>
+        </div>
+
+        <!-- NEW: Loading Screen -->
+        <div id="loading-screen" class="full-screen-overlay hidden">
+            <div class="loading-container">
+                <h2>Loading...</h2>
+                <div class="loading-bar-container">
+                    <div id="loading-bar-fill" class="loading-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- In-Game Top UI -->
         <div id="top-ui-left" class="hidden">
             <div id="lives-display">❤️ 100</div>
@@ -140,7 +156,7 @@
         </div>
 
         <!-- Main Menu UI Bars -->
-        <div id="main-menu-ui">
+        <div id="main-menu-ui" class="hidden">
             <div id="mm-top-left">
                 <div id="mm-player-name">Player</div>
                 <div id="mm-level-text">Level 1</div>
@@ -162,12 +178,10 @@
             </div>
         </div>
 
-        <!-- NEW: Unified Play Menu -->
+        <!-- Unified Play Menu -->
         <div id="play-menu" class="overlay hidden">
             <div class="menu-content" style="max-width: 900px; width: 90vw;">
                 <h2 id="play-menu-title">Select a Map</h2>
-                
-                <!-- Map Selection View -->
                 <div id="play-map-view">
                     <div class="play-map-nav">
                         <button id="play-prev-maps">◀ Prev</button>
@@ -176,12 +190,9 @@
                     </div>
                     <div id="play-map-grid" class="play-map-grid"></div>
                 </div>
-
-                <!-- Difficulty Selection View -->
                 <div id="play-difficulty-view" class="hidden">
                     <div id="play-difficulty-grid"></div>
                 </div>
-
                 <div style="display: flex; justify-content: space-between; margin-top: 20px;">
                     <button id="play-back-btn" class="back-btn">Back</button>
                 </div>
@@ -226,7 +237,7 @@
             </div>
         </div>
 
-        <!-- NEW: Monkeys Encyclopedia Menu -->
+        <!-- Monkeys Encyclopedia Menu -->
         <div id="monkeys-menu" class="overlay hidden">
             <div class="mm-container">
                 <div class="mm-top">
@@ -282,13 +293,14 @@
             </div>
         </div>
 
-        <!-- Powers (Monkey Shop) Menu -->
+            <!-- Powers (Monkey Shop) Menu -->
         <div id="powers-menu" class="overlay hidden">
             <div class="menu-content">
                 <h2>Powers</h2>
-                <div class="shop-item" data-unlock="extraStartingCash" data-cost="500"><span>Extra Starting Cash (+$200)</span><span class="cost">$500</span></div>
-                <div class="shop-item" data-unlock="extraStartingLives" data-cost="500"><span>Extra Starting Lives (+10)</span><span class="cost">$500</span></div>
-                <div class="shop-item" data-unlock="freeFirstDartMonkey" data-cost="1000"><span>Free First Dart Monkey</span><span class="cost">$1000</span></div>
+                <div class="shop-item" data-unlock="farmer" data-cost="100">
+                    <span>Banana Farmer</span>
+                    <span class="cost">$100</span>
+                </div>
                 <button class="back-btn" data-target="main-menu-ui">Back</button>
             </div>
         </div>

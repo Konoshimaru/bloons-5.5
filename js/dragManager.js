@@ -41,7 +41,12 @@ export function updateShopPrices() {
         if (stats) {
             let cost = Math.floor(stats.cost * costMod);
             const costEl = card.querySelector('.cost');
-            const isLocked = !Config.data.unlockedTowers.includes(type);
+            
+            // FIX: Check unlockedTowers array OR specific power unlocks like Farmer
+            let isLocked = !Config.data.unlockedTowers.includes(type);
+            if (type === 'farmer') {
+                isLocked = !Config.data.unlocks.farmer;
+            }
 
             if (type === 'dart' && !GameEngine.isSandbox && GameEngine.difficulty && !GameEngine.difficulty.noSelling) {
                 const mkActive = Config.data.mkActive !== false;
@@ -127,6 +132,7 @@ export function setupShopListeners() {
         });
     });
 
+    // --- REWRITTEN DRAG AND DROP LOGIC ---
     dom.towerCards.forEach(card => {
         card.addEventListener('pointerdown', (e) => {
             e.preventDefault(); 
@@ -135,9 +141,9 @@ export function setupShopListeners() {
             const stats = TowerStats[type] || HeroStats[type];
             if (!stats) return;
 
-            // FIX: Check unlockedTowers array instead of playerLevel
-            if (!Config.data.unlockedTowers.includes(type)) {
-                GameEngine.log(`${stats.name} is locked! Level up to unlock it.`);
+            // FIX: Block dragging if the card is locked
+            if (card.classList.contains('locked')) {
+                GameEngine.log(`${stats.name} is locked!`);
                 return;
             }
 
@@ -232,7 +238,7 @@ export function setupShopListeners() {
         card.addEventListener('mouseenter', () => {
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
             if (stats) {
-                if (!Config.data.unlockedTowers.includes(card.dataset.tower)) {
+                if (card.classList.contains('locked')) {
                     updateShopHeader(`🔒 ${stats.name} (Locked)`);
                 } else {
                     updateShopHeader(stats.name);

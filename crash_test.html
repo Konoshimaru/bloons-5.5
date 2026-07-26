@@ -12,6 +12,10 @@
 <body>
     <h1>Crash Test 2.0 Running...</h1>
     <div id="log">Starting test...<br></div>
+    
+    <!-- FIX: Added the hidden canvas so GameEngine.init() can find it and get a context -->
+    <canvas id="gameCanvas" width="1280" height="720" style="display: none;"></canvas>
+
     <script type="module">
         import { GameEngine } from './js/engine.js';
         import { Tower } from './js/tower.js';
@@ -63,12 +67,14 @@
         // 4. Create a Red Bloon
         let enemy;
         try {
-            enemy = new Enemy(1, GameEngine.map, false, false, 1, false, 1.0, 0);
+            // FIX: Use the object pool and call init() to properly set up the enemy
+            enemy = GameEngine.enemyPool.get();
+            enemy.init(1, GameEngine.map, false, false, 1, false, 1.0, 0);
             enemy.x = 110; // Put it right next to the tower
             enemy.y = 100;
             enemy.distanceTraveled = 10; // Ensure it's on the path
             GameEngine.enemies.push(enemy);
-            log("Red Bloon created. Radius: " + enemy.radius);
+            log("Red Bloon created. Radius: " + enemy.radius + " | Alive: " + enemy.alive);
         } catch (e) {
             log("ENEMY CREATION FAILED: " + e.message, true);
         }

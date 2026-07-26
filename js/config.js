@@ -29,6 +29,12 @@ const migrations = {
     14: (data) => {
         if (!data.playerName) data.playerName = "";
         return data;
+    },
+    // FIX: Add farmer unlock flag
+    15: (data) => {
+        if (!data.unlocks) data.unlocks = {};
+        if (data.unlocks.farmer === undefined) data.unlocks.farmer = false;
+        return data;
     }
 };
 
@@ -61,7 +67,8 @@ const DEFAULT_DATA = {
     unlocks: {
         extraStartingCash: false,
         extraStartingLives: false,
-        freeFirstDartMonkey: false
+        freeFirstDartMonkey: false,
+        farmer: false // FIX: Added farmer unlock
     },
     unlockedTowers: ['dart', 'wizard', 'quincy'],
     stats: {
@@ -95,6 +102,7 @@ export const Config = {
             if (!Array.isArray(this.data.unlockedTowers)) this.data.unlockedTowers = ['dart', 'wizard', 'quincy'];
             if (!this.data.stats) this.data.stats = { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
             if (!this.data.playerName) this.data.playerName = "";
+            if (this.data.unlocks.farmer === undefined) this.data.unlocks.farmer = false; // FIX: Ensure farmer flag exists
             
             if (this.data.unlocks.extraStartingCash === undefined) this.data.unlocks.extraStartingCash = false;
             if (this.data.unlocks.extraStartingLives === undefined) this.data.unlocks.extraStartingLives = false;

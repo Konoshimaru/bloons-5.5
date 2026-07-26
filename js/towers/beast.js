@@ -8,16 +8,17 @@ import { Beast } from '../beastEntity.js';
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const LAND_BEASTS = [
+    // FIX: Reverted ranges back to 20 / standard values
     { name: "Microraptor", tier: 1, basePower: 1, maxPower: 1, damage: 1, pierce: 5, range: 20, fireRate: 1.0, dmgType: 'sharp', damageRange: 0, pierceRange: 0, rangeRange: 0 },
     { name: "Adasaurus", tier: 2, basePower: 3, maxPower: 6, damage: 2, pierce: 8, range: 20, fireRate: 1.0, dmgType: 'shatter', ceramicDmg: 1, damageRange: 2, pierceRange: 4, rangeRange: 0 },
-    { name: "Velociraptor", tier: 3, basePower: 8, maxPower: 24, damage: 4, pierce: 12, range: 24, fireRate: 1.0, dmgType: 'normal', ceramicDmg: 4, stunDmg: 3, damageRange: 6, pierceRange: 8, rangeRange: 6 },
-    { name: "Tyrannosaurus Rex", tier: 4, basePower: 16, maxPower: 64, damage: 20, pierce: 22, range: 30, fireRate: 1.0, dmgType: 'normal', ceramicDmg: 5, stunDmg: 8, isAbility: true, abilityName: "T-Rex Stomp", abilityCd: 40, damageRange: 30, pierceRange: 10, rangeRange: 10 },
-    { name: "Giganotosaurus", tier: 5, basePower: 36, maxPower: 132, damage: 750, pierce: 44, range: 50, fireRate: 1.25, dmgType: 'normal', stunDmg: 250, isAbility: true, abilityName: "Giganoto Stomp", abilityCd: 25, damageRange: 500, pierceRange: 20, rangeRange: 20 }
+    { name: "Velociraptor", tier: 3, basePower: 8, maxPower: 24, damage: 4, pierce: 12, range: 24, fireRate: 1.0, dmgType: 'shatter', ceramicDmg: 4, stunDmg: 3, damageRange: 6, pierceRange: 8, rangeRange: 6 },
+    { name: "Tyrannosaurus Rex", tier: 4, basePower: 16, maxPower: 64, damage: 20, pierce: 22, range: 30, fireRate: 1.0, dmgType: 'shatter', ceramicDmg: 5, stunDmg: 8, isAbility: true, abilityName: "T-Rex Stomp", abilityCd: 40, damageRange: 30, pierceRange: 10, rangeRange: 10 },
+    { name: "Giganotosaurus", tier: 5, basePower: 36, maxPower: 132, damage: 750, pierce: 44, range: 50, fireRate: 1.25, dmgType: 'shatter', stunDmg: 250, isAbility: true, abilityName: "Giganoto Stomp", abilityCd: 25, damageRange: 500, pierceRange: 20, rangeRange: 20 }
 ];
 
 export default {
     stats: { 
-        name: "Beast Handler", cost: 250, range: 20, fireRate: 1.4, 
+        name: "Beast Handler", cost: 250, range: 20, fireRate: 1.4, // FIX: Reverted to 20
         damage: 1, pierce: 4, projectileSpeed: 800, 
         lifespan: 0.4, desc: "Trains land, water or air beasts.", 
         dmgType: 'energy', projectileType: 'beast_attack', hitRadius: 14, 
@@ -55,7 +56,6 @@ export default {
                 let spawnX = tower.x + 25;
                 let spawnY = tower.y + 10;
                 
-                // FIX: Terrain validation for initial spawn
                 if (GameEngine.map.isOnPath(spawnX, spawnY) || GameEngine.map.isInWater(spawnX, spawnY)) {
                     let found = false;
                     for(let r=20; r<100 && !found; r+=20) {
@@ -94,7 +94,6 @@ export default {
         p.init(tower.x, tower.y, damage, target, tower.stats.projectileType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType, isCrit);
     },
 
-    // FIX: Removed dead branch. actualTower is always the beast entity when called.
     ability(tower, engine) {
         if (tower.stats.abilityName === "T-Rex Stomp") {
             engine.log("T-Rex Stomp!");

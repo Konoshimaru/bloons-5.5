@@ -4,7 +4,7 @@ import { Utils } from './utils.js';
 import { RANGE_SCALE } from './config.js';
 import { GLOBAL_SCALE } from './constants.js';
 import { LAND_BEASTS } from './towers/beast.js';
-import { createDmgType, resolveDmgType } from './damageTypes.js'; // FIX: Import standard damage pipeline
+import { createDmgType, resolveDmgType } from './damageTypes.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -19,6 +19,7 @@ export class Beast {
         this.cooldown = 0;
         this.angle = 0;
         this.abilityCooldown = 0;
+        this.buffedRange = 0; // FIX: Required for getEffectiveRange
         
         this.data = terrain === 'land' ? LAND_BEASTS[tier - 1] : null;
         this.beastPower = this.data ? this.data.basePower : 1;
@@ -65,14 +66,8 @@ export class Beast {
     }
 
     _findTarget(engine) {
-        // FIX: Use the shared effective range formula (includes Village buffs and Night mode)
-        const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
-        const baseRange = typeof this.stats.range === 'number' ? this.stats.range : 100;
-        const buffMult = typeof this.buffedRange === 'number' ? this.buffedRange : 0; // Village buff
-        const alchRange = 0; // Beasts don't inherit alch range currently
-        const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
-        
-        const effRange = baseRange * scale * (1 + buffMult + alchRange) * nightMod * GS;
+        // FIX: Use the exact same helper as towers so range matches perfectly
+        const effRange = Utils.getEffectiveRange(this, engine);
         const candidates = engine.enemyGrid.query(this.x, this.y, effRange);
         
         let bestTarget = null;
@@ -92,32 +87,43 @@ export class Beast {
     _fire(target, engine) {
         let p = engine.projectilePool.get();
         
-        // FIX: Use standard damage type pipeline so immunities (Lead, Purple, Frozen) work correctly
-        const baseDmgType = resolveDmgType(this.stats.dmgType); // 'sharp', 'normal', 'shatter', etc.
+        const baseDmgType = resolveDmgType(this.stats.dmgType); 
         const dmgType = createDmgType(baseDmgType, {
             ceramicDmg: this.stats.ceramicDmg || 0
         });
         
         let damage = this.stats.damage;
-        
-        // FIX: Apply bonus stun damage dynamically if the target is stunned
         if (this.stats.stunDmg && target.stunTimer > 0) {
             damage += this.stats.stunDmg;
         }
         
-        p.init(this.x, this.y, damage, target, this.stats.projectileType, 600, this.stats.pierce, 0.1, null, {}, 0, this.ownerTower, dmgType);
+        p.init(this.x, this.y, damage, target, this.stats.projectileType, 600, this.stats.pierce, 0.5, null, {}, 0, this.ownerTower, dmgType);
     }
 
     draw(ctx) {
-        ctx.fillStyle = '#8e44ad'; 
+        const colors = ['#2ecc71', '#27ae60', '#f1c40f', '#e67e22', '#c0392b'];
+        const color = colors[(this.tier - 1) % colors.length] || '#8e44ad';
+        
+        if (this.ownerTower && this.ownerTower.alive) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(this.ownerTower.x, this.ownerTower.y);
+            ctx.lineTo(this.x, this.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        ctx.fillStyle = color; 
         ctx.beginPath();
-        ctx.arc(this.x, this.y, 12 * GS, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, (10 + this.tier * 2) * GS, 0, Math.PI * 2);
         ctx.fill();
         
         ctx.fillStyle = '#fff';
         ctx.font = `bold ${10 * GS}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('B', this.x, this.y);
+        ctx.fillText(`L${this.tier}`, this.x, this.y);
     }
 }
