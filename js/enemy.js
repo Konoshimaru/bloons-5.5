@@ -132,9 +132,6 @@ export class Enemy {
             this._maxHp *= 2;
         }
         
-        // Direction 1: Initialize the _dying flag
-        this._dying = false;
-        
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         for (const eff of MKEffects.enemyInit) {
             if (!mk[eff.id]) continue;
@@ -296,11 +293,8 @@ export class Enemy {
         }
     }
 
-    // Direction 1: Hardened entry point. _dying prevents double cash/spawns.
+    // FIX: Removed the _dying flag entirely. The !this.alive guard in takeDamage is sufficient.
     giveCash(canSpawn = true, killerTower = null) {
-        if (this._dying) return;
-        this._dying = true; 
-
         let childRbeTotal = 0;
         if (this.data.splitsInto) {
             for (const child of this.data.splitsInto) {
@@ -330,8 +324,8 @@ export class Enemy {
         }
     }
 
+    // FIX: Removed the _dying flag check. It was blocking spawnChildren because giveCash ran first.
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {
-        if (this._dying) return; // Already processed cash/death, don't spawn duplicates
         if (!canSpawn || !this.data.splitsInto) return;
         
         const childCount = this.data.splitsInto.length;

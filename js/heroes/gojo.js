@@ -52,7 +52,6 @@ export default {
             tower.hollowProjectile.x += Math.cos(tower.hollowProjectile.angle) * 1200 * dt;
             tower.hollowProjectile.y += Math.sin(tower.hollowProjectile.angle) * 1200 * dt;
 
-            // FIX: Use shared AoE helper
             Utils.applyAoeDamage(GameEngine, tower.hollowProjectile.x, tower.hollowProjectile.y, 80, 10000, { isMagic: true, canHitLead: true }, tower, {}, {
                 onHit: (e) => tower.hollowProjectile.hitEnemies.add(e)
             });
@@ -98,7 +97,6 @@ export default {
             const pos = GameEngine.map.getPositionAtDistance(tower.reverseWell.dist, 0);
             tower.reverseWell.x = pos.x; tower.reverseWell.y = pos.y;
 
-            // This loop has custom movement logic, so we keep it manual but use safe backward iteration
             for (let i = GameEngine.enemies.length - 1; i >= 0; i--) {
                 const e = GameEngine.enemies[i];
                 if (!e || !e.alive) continue;
@@ -147,7 +145,6 @@ export default {
                 let rx = tower.reversalRed.x, ry = tower.reversalRed.y;
                 GameEngine.explosions.push({ x: rx, y: ry, radius: 0, maxRadius: 150, life: 0.4, maxLife: 0.4, color: '#ff0000' });
                 
-                // FIX: Use shared AoE helper
                 Utils.applyAoeDamage(GameEngine, rx, ry, 150, tower.stats.damage * 20, { isMagic: true, canHitLead: true }, tower, {}, {
                     onHit: (e) => e.applySlow(0.0, 3.0, false)
                 });
@@ -161,7 +158,6 @@ export default {
             let mx = tower.x + Math.cos(tower.maxBlue.angle) * 150; let my = tower.y + Math.sin(tower.maxBlue.angle) * 150;
             tower.maxBlue.x = mx; tower.maxBlue.y = my;
             
-            // FIX: Use shared AoE helper
             Utils.applyAoeDamage(GameEngine, mx, my, 150, tower.maxBlue.dmg * dt * 5, { isMagic: true, canHitLead: true }, tower, {}, {
                 onHit: (e) => {
                     let dx = mx - e.x; let dy = my - e.y; let dist = Math.hypot(dx, dy);
@@ -171,7 +167,6 @@ export default {
 
             if (tower.maxBlue.life <= 0) {
                 GameEngine.explosions.push({ x: mx, y: my, radius: 0, maxRadius: 200, life: 0.5, maxLife: 0.5, color: '#0000ff' });
-                // FIX: Use shared AoE helper
                 Utils.applyAoeDamage(GameEngine, mx, my, 200, tower.maxBlue.dmg * 50, { isMagic: true, canHitLead: true }, tower);
                 tower.maxBlue = null;
             }
@@ -184,6 +179,19 @@ export default {
                 if (!w) { tower.blueWells.splice(i, 1); continue; }
                 w.life -= dt;
                 w.rot += dt * 10;
+
+                // FIX: The well slowly chases the target bloon (150 px/s)
+                if (w.target && w.target.alive) {
+                    let dx = w.target.x - w.x;
+                    let dy = w.target.y - w.y;
+                    let dist = Math.hypot(dx, dy);
+                    if (dist > 2) {
+                        let speed = 150; // Really really slow follow speed
+                        w.x += (dx / dist) * speed * dt;
+                        w.y += (dy / dist) * speed * dt;
+                    }
+                    w.targetDist = w.target.distanceTraveled;
+                }
 
                 const nearby = GameEngine.enemyGrid.query(w.x, w.y, w.radius);
                 let pullHits = 0;
@@ -198,7 +206,8 @@ export default {
                     let dist = Math.hypot(dx, dy);
 
                     if (!isNaN(dist) && dist < w.radius && dist > 5) {
-                        let pullStrength = 20 * dt * (w.life / w.maxLife);
+                        let strengthMult = 0.5 + 0.5 * (w.life / w.maxLife);
+                        let pullStrength = 40 * dt * strengthMult; 
                         e.offsetX += dx * pullStrength;
                         e.offsetY += dy * pullStrength;
                         pullHits++;
@@ -209,7 +218,6 @@ export default {
                     tower.blueWells.splice(i, 1);
                     GameEngine.explosions.push({ x: w.x, y: w.y, radius: 0, maxRadius: w.radius, life: 0.3, maxLife: 0.3, color: '#0000ff' });
 
-                    // FIX: Use shared AoE helper
                     Utils.applyAoeDamage(GameEngine, w.x, w.y, w.radius, w.dmg * 5, { isMagic: true, canHitLead: true }, tower, {}, { maxHits: 50 });
                 }
             }
@@ -358,7 +366,6 @@ export default {
     },
     ability3(tower, engine) {
         engine.log("Domain Expansion: 0.2 Second Void!");
-        // FIX: Use shared AoE helper (though it's just a slow, it's safer)
         Utils.applyAoeDamage(engine, 450, 300, 900, 0, {}, null, {}, {
             filter: (e) => !e.data.isBAD,
             onHit: (e) => e.applySlow(0.0, 10.0, false)
@@ -372,9 +379,11 @@ export default {
 
         for (let i = 0; i < wellCount; i++) {
             let offsetX = wellCount > 1 ? (i === 0 ? -15 : 15) : 0; let offsetY = wellCount > 1 ? (i === 0 ? -15 : 15) : 0;
+            // FIX: Store the target reference so the well can slowly chase it
             tower.blueWells.push({
-                x: target.x + offsetX, y: target.y + offsetY, targetDist: target.distanceTraveled,
-                life: 1.0, maxLife: 1.0, radius: 50 + (tower.stats.range * 0.5), rot: 0,
+                x: target.x + offsetX, y: target.y + offsetY, target: target,
+                targetDist: target.distanceTraveled,
+                life: 0.8, maxLife: 0.8, radius: 50 + (tower.stats.range * 0.5), rot: 0,
                 maxHits: 50, dmg: damage
             });
         }

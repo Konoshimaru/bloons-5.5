@@ -10,7 +10,7 @@ const MOAB_DESTROY_THROTTLE_MS = 200; // FIX: Prevents explosion sounds from que
 const DEFAULT_GAME_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
 const MENU_PLAYLIST = ['music/mainmenu_1.mp3', 'music/mainmenu_2.mp3'];
 
-// FIX: Added knight_slash_moab to the map
+// FIX 3: Added Sauda SFX to the map so they get preloaded and pooled
 const SFX_ASSET_MAP = {
     pop: ['pop1.mp3', 'pop2.mp3', 'pop3.mp3', 'pop4.mp3'],
     moab_destroy: ['moab_destroy1.mp3', 'moab_destroy2.mp3', 'moab_destroy3.mp3'],
@@ -18,7 +18,7 @@ const SFX_ASSET_MAP = {
     ceramic_hit: ['ceramic_hit.mp3'],
     frozen_hit: ['frozen_hit.mp3'],
     lead_hit: ['lead_hit.mp3'],
-    knight_slash_moab: ['knight_slash_moab.mp3'], // FIX: Added slash sound
+    knight_slash_moab: ['knight_slash_moab.mp3'],
     sauda_attack: ['Sauda_attack_1.mp3', 'Sauda_attack_2.mp3', 'Sauda_attack_3.mp3', 'Sauda_attack_4.mp3', 'Sauda_attack_5.mp3'],
     sauda_leap_activate: ['LeapingSword_activate.mp3'],
     sauda_leap_landing: ['LeapingSword_landing.mp3'],
@@ -36,8 +36,9 @@ let isPlaying = false;
 let lastPopTime = 0;
 let lastShootTime = 0;
 let lastHitTime = 0;
-let lastMoabDestroyTime = 0;
+let lastMoabDestroyTime = 0; // FIX: Track MOAB destroy sounds
 
+// PRO FIX: Cache for preloaded AudioBuffers to avoid per-shot allocations
 const sfxBufferCache = new Map();
 
 async function _loadPlaylistInternal() {
@@ -116,12 +117,14 @@ export const AudioEngine = {
                 musicAudio.addEventListener('ended', () => this.nextTrack());
             }
             
+            // PRO FIX: Preload all SFX files into AudioBuffers
             await this._preloadSfx();
         } catch (e) {
             console.error("Failed to initialize AudioEngine:", e);
         }
     },
 
+    // PRO FIX: Fetch and decode all SFX files once at startup
     async _preloadSfx() {
         if (!ctx) return;
         const uniqueFiles = new Set();
@@ -164,7 +167,7 @@ export const AudioEngine = {
     },
 
     playGameMusic() {
-        if (activePlaylist === gamePlaylist && isPlaying) return;
+        if (activePlaylist === gamePlaylist && isPlaying) return; // Already playing game music
         activePlaylist = gamePlaylist;
         currentTrack = Config.data.musicRandomStart ? Math.floor(Math.random() * activePlaylist.length) : 0;
         _loadTrackInternal(currentTrack);
@@ -172,9 +175,9 @@ export const AudioEngine = {
     },
 
     playMenuMusic() {
-        if (activePlaylist === MENU_PLAYLIST && isPlaying) return;
+        if (activePlaylist === MENU_PLAYLIST && isPlaying) return; // Already playing menu music
         activePlaylist = MENU_PLAYLIST;
-        currentTrack = Math.floor(Math.random() * activePlaylist.length);
+        currentTrack = Math.floor(Math.random() * activePlaylist.length); // Pick a random song
         _loadTrackInternal(currentTrack);
         this.play();
     },
@@ -227,14 +230,14 @@ export const AudioEngine = {
 
         if (type === 'pop' && now - lastPopTime < POP_THROTTLE_MS) return;
         if (type === 'shoot' && now - lastShootTime < SHOOT_THROTTLE_MS) return;
-        if (type === 'moab_destroy' && now - lastMoabDestroyTime < MOAB_DESTROY_THROTTLE_MS) return;
+        if (type === 'moab_destroy' && now - lastMoabDestroyTime < MOAB_DESTROY_THROTTLE_MS) return; // FIX: Throttle MOAB deaths
         
         const isHitSound = ['moab_hit', 'ceramic_hit', 'frozen_hit', 'lead_hit'].includes(type);
         if (isHitSound && now - lastHitTime < HIT_THROTTLE_MS) return;
 
         if (type === 'pop') lastPopTime = now;
         if (type === 'shoot') lastShootTime = now;
-        if (type === 'moab_destroy') lastMoabDestroyTime = now;
+        if (type === 'moab_destroy') lastMoabDestroyTime = now; // FIX: Update MOAB death timer
         if (isHitSound) lastHitTime = now;
 
         const choices = getSfxAssetChoices(type);
@@ -242,6 +245,7 @@ export const AudioEngine = {
             const file = choices[Math.floor(Math.random() * choices.length)];
             const buffer = sfxBufferCache.get(file);
             
+            // PRO FIX: Play via AudioBufferSourceNode if cached
             if (buffer && ctx) {
                 try {
                     if (ctx.state === 'suspended') ctx.resume();
@@ -262,6 +266,7 @@ export const AudioEngine = {
                 }
             }
             
+            // Fallback to new Audio() if buffer not ready or unavailable
             const asset = new URL(`../sfx/${file}`, import.meta.url).href;
             try {
                 const audio = new Audio(asset);
@@ -274,55 +279,6 @@ export const AudioEngine = {
             }
         }
 
-        if (!ctx) return;
-
-        // Synth fallback
-        try {
-            if (ctx.state === 'suspended') ctx.resume();
-
-            const o = ctx.createOscillator();
-            const g = ctx.createGain();
-            o.connect(g);
-            g.connect(ctx.destination);
-
-            const vol = Math.max(MIN_VOLUME, sfxVolume * SFX_VOLUME_MODIFIER);
-            g.gain.setValueAtTime(vol, ctx.currentTime);
-
-            switch (type) {
-                case 'pop':
-                    o.frequency.setValueAtTime(800, ctx.currentTime);
-                    o.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
-                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.1);
-                    o.start(); o.stop(ctx.currentTime + 0.1);
-                    break;
-                case 'shoot':
-                    o.type = 'square';
-                    o.frequency.setValueAtTime(400, ctx.currentTime);
-                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.05);
-                    o.start(); o.stop(ctx.currentTime + 0.05);
-                    break;
-                case 'place':
-                    o.frequency.setValueAtTime(400, ctx.currentTime);
-                    o.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.1);
-                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.15);
-                    o.start(); o.stop(ctx.currentTime + 0.15);
-                    break;
-                case 'cash':
-                    o.frequency.setValueAtTime(1200, ctx.currentTime);
-                    o.frequency.linearRampToValueAtTime(1600, ctx.currentTime + 0.1);
-                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.15);
-                    o.start(); o.stop(ctx.currentTime + 0.15);
-                    break;
-                case 'leak':
-                    o.type = 'sawtooth';
-                    o.frequency.setValueAtTime(150, ctx.currentTime);
-                    o.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.2);
-                    g.gain.exponentialRampToValueAtTime(MIN_VOLUME, ctx.currentTime + 0.2);
-                    o.start(); o.stop(ctx.currentTime + 0.2);
-                    break;
-            }
-
-            o.onended = () => { o.disconnect(); g.disconnect(); };
-        } catch (e) {}
+        // FIX: Synth fallback completely removed to prevent computer-generated beep sounds.
     }
 };

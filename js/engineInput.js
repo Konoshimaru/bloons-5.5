@@ -38,7 +38,6 @@ export default {
             return; 
         }
 
-        // FIX: Re-apply cached rect to prevent layout thrashing
         const rect = (window.InputManager && window.InputManager.canvasRect) ? window.InputManager.canvasRect : this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
@@ -49,13 +48,24 @@ export default {
         const x = adj.x;
         const y = adj.y;
 
+        // FIX: Intercept click to place Mermonkey Totem
+        if (this.selectedPlacedTower && this.selectedPlacedTower.isPlacingTotem) {
+            if (x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
+                this.selectedPlacedTower.totemX = x;
+                this.selectedPlacedTower.totemY = y;
+                this.selectedPlacedTower.isPlacingTotem = false;
+                this.log("Totem placed!");
+            }
+            return; // Prevent placing towers or deselecting
+        }
+
         if (this.gameState === 'menu') {
             for (let i = this.menuClickables.length - 1; i >= 0; i--) {
                 let item = this.menuClickables[i];
                 if (Utils.withinRange(x, y, item.x, item.y, item.r + 10)) {
                     this.menuClickables.splice(i, 1);
                     Config.data.monkeyMoney += 1; Config.save();
-                    UI.updateMetaStats(); UI.log("You caught a banana! +1 Monkey Money"); return;
+                    UI.updateMetaStats(); this.log("You caught a banana! +1 Monkey Money"); return;
                 }
             }
             return;
@@ -84,7 +94,6 @@ export default {
             
             this._monkeyCityFreeDart = false; 
             
-            // FIX: Apply MK placement discounts generically. Support alwaysActive for account unlocks.
             for (const eff of MKEffects.towerPlacement) {
                 if (!mk[eff.id] && !eff.alwaysActive) continue;
                 if (eff.type && !eff.type.includes(this.selectedTowerType)) continue;
@@ -92,7 +101,6 @@ export default {
                 if (eff.action) cost = eff.action(cost);
             }
 
-            // Handle Monkey City free dart (Village upgrade, not MK)
             if (this.selectedTowerType === 'dart' && !this.isSandbox && this.difficulty && !this.difficulty.noSelling) {
                 const hasMonkeyCity = this.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
                 if (hasMonkeyCity && !this.freeDartMonkeyClaimed) {
@@ -188,7 +196,6 @@ export default {
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         let cdMult = 1.0;
         
-        // FIX: Apply ability cooldown MK effects generically using stat/amount
         for (const eff of MKEffects.abilityCooldown) {
             if (!mk[eff.id]) continue;
             if (eff.hero && !t.stats.isHero) continue;

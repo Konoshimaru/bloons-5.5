@@ -18,6 +18,7 @@ import wizard from './wizard.js';
 import engineer from './engineer.js';
 import alchemist from './alchemist.js';
 import farmer from './farmer.js';
+import mermonkey from './mermonkey.js';
 import { createPlaceholderTower } from './placeholder.js';
 
 const placeholderTowers = [
@@ -26,13 +27,12 @@ const placeholderTowers = [
     ['heli', 'Heli Pilot', 1000, 'Placeholder Military tower. Flies to target location.'],
     ['dartling', 'Dartling Gunner', 950, 'Placeholder Military tower. Shoots where you aim.'],
     ['druid', 'Druid', 500, 'Placeholder Magic tower.'],
-    ['mermonkey', 'Mermonkey', 750, 'Placeholder Magic tower. Buffs water towers.'],
     ['beast', 'Beast Handler', 550, 'Placeholder Support tower. Merges with other beasts.']
 ];
 
 export const TowerRegistry = {
     dart, boomerang, tack, ninja, sniper, ice, glue, bomb, spike, farm, village,
-    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer
+    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer, mermonkey
 };
 
 placeholderTowers.forEach(([key, name, cost, desc]) => {

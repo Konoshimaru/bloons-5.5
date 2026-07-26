@@ -119,8 +119,6 @@ const ProjectileHitResolution = {
     _createBombDmgType() {
         const cfg = ProjectileTypeConfig[this.type] || {};
         const bombCanHitLead = this.tower ? (this.tower.stats.canHitLead || this.tower.buffedLead || (this.effects && this.effects.canHitLead)) : true;
-        
-        // FIX: Bulletproof null-safe access to this.dmgType
         const dt = this.dmgType || {};
         return createDmgType(DamageType.EXPLOSION, {
             isFire: dt.isFire || false,
@@ -185,6 +183,16 @@ const ProjectileHitResolution = {
         
         if (this.type === 'ninja' && this.target === enemy) {
             this.target = null;
+        }
+
+        // FIX: Mermonkey Trident Splash Logic
+        if (this.type === 'trident' && this.tower) {
+            const expRadius = this.tower.stats.explosionRadius || 15;
+            const expDmg = this.tower.stats.explosionDamage || 2;
+            const expPierce = this.tower.stats.explosionPierce || 3;
+            GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#3498db' });
+            // FIX: Swapped killerTower and effects to match the helper's signature
+            Utils.applyAoeDamage(GameEngine, this.x, this.y, expRadius, expDmg, this.dmgType, this.tower, this.effects, { maxHits: expPierce });
         }
 
         if (this.effects && this.effects.ricochet > 0) {

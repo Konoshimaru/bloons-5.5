@@ -7,7 +7,7 @@ export default {
     stats: { 
         name: "Monkey Sub", cost: 500, range: 35, 
         baseCooldown: 1.0, fireRate: 1.0, 
-        damage: 1, pierce: 1, projectileSpeed: 600, 
+        damage: 1, pierce: 1, projectileSpeed: 600, projectileCount: 1,
         lifespan: 0.5, desc: "Shoots darts. Must be placed on water.", 
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 18, waterOnly: true 
     },
@@ -38,15 +38,20 @@ export default {
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
         // The submarine uses standard darts, but its upgrades can expand its pierce and special effects.
-        let p = GameEngine.projectilePool.get();
-        p.init(tower.x, tower.y, damage, target, 'dart', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
+        let count = tower.stats.projectileCount || 1;
+        let spreadAngle = count > 1 ? 10 : 0;
+        for (let i = 0; i < count; i++) {
+            let offset = count > 1 ? (spreadAngle * (i - (count - 1) / 2)) : 0;
+            let p = GameEngine.projectilePool.get();
+            p.init(tower.x, tower.y, damage, target, 'dart', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, offset, tower, dmgType);
+        }
     },
     ability(tower, engine) {
         engine.log("First Strike Capability!");
         let target = null;
         let bestVal = -Infinity;
         for (let e of engine.enemies) {
-            if (!e.alive) continue;
+            if (!e || !e.alive) continue;
             if (e.data.isMoab && e.hp > bestVal) { bestVal = e.hp; target = e; }
         }
         if (target) {

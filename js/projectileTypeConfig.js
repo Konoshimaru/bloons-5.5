@@ -17,5 +17,6 @@ export const ProjectileTypeConfig = {
     boomerang:        { survivesZeroPierce: true },
     arrow:            { decrementsPierceOnExplosion: true }
     
-    // blue is intentionally omitted so it uses the default {} (standard hit handler)
+    // blue, trident, wavelet, ice_ball, tentacle intentionally omitted 
+    // so they use the default {} (standard hit handler)
 };

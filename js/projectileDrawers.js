@@ -105,7 +105,22 @@ export const ProjectileDrawers = {
     blue: (ctx) => {
         ctx.fillStyle = '#0000ff'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#00ffff'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
-    }
+    },
+        // Add these to the ProjectileDrawers object
+    trident: (ctx) => {
+        ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5); ctx.fill();
+        ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(-10, 0); ctx.stroke();
+    },
+    wavelet: (ctx) => {
+        ctx.strokeStyle = '#1abc9c'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, 5, -Math.PI/2, Math.PI/2); ctx.stroke();
+    },
+    ice_ball: (ctx) => {
+        ctx.fillStyle = '#ecf0f1'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#bdc3c7'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    },
+    tentacle: (ctx) => {
+        ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(15, 0); ctx.stroke();
+    },
 };
 
 // Aliases for sub-types

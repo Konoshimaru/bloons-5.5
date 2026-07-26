@@ -2,9 +2,8 @@
 // Defines the Super tower and its upgraded combat behavior.
 
 import { GameEngine } from '../engine.js';
-import { AudioEngine } from '../audio.js';
 import { Utils } from '../utils.js';
-import { TowerStats } from './index.js';
+import { TowerStats } from './index.js'; 
 import { GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
@@ -29,7 +28,7 @@ export default {
         2: [
             {name:"Super Range", cost:1500, stat:"range", amount:10, desc:"Super Monkeys need Super Range.", extraMods:{pierce:1}},
             {name:"Epic Range", cost:1900, stat:"range", amount:12, desc:"Why settle for super when you can have EPIC?", extraMods:{pierce:2, projectileSpeed:600}}, // +600 to base 800 = 1400 (+75%)
-            {name:"Robo Monkey", cost:7500, stat:"projectileCount", amount:1, desc:"Half Super Monkey, half killer robot of death. Shoots from 2 guns and can crit!", extraMods:{canCrit:true, critChance:0.06, critDmg:10, pierce:2}},
+            {name:"Robo Monkey", cost:7500, stat:"projectileCount", amount:2, desc:"Half Super Monkey, half killer robot of death. Shoots from 2 guns and can crit!", extraMods:{canCrit:true, critChance:0.06, critDmg:10, pierce:2}},
             {name:"Tech Terror", cost:25000, stat:"dmgType", amount:'plasma', desc:"Annihilation ability: Destroys most Bloons completely within blast radius.", extraMods:{projectileType:'plasma', pierce:3, isAbility:true, abilityName:"Annihilate", abilityCd:40}},
             {name:"The Anti-Bloon", cost:70000, stat:"damage", amount:4, desc:"<Program Directive> <Eradicate Bloons> <INITIATE>", extraMods:{pierce:5, range:10, isAbility:true, abilityName:"Annihilate 2.0", abilityCd:30, critChance:0.07, critDmg:50, dmgType:'normal', canHitLead:true}}
         ],
@@ -298,20 +297,23 @@ export default {
         
         const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
         const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange) * nightMod * GS;
-        const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
+        const effRangeSq = effRange * effRange;
         
         let mode = tower.targetingMode2 || 'First';
         let best = null;
         let bestVal = (mode === 'First' || mode === 'Strong') ? -Infinity : Infinity;
         
-        for (const e of candidates) {
+        for (const e of engine.enemies) {
             if (!e.alive || e === primaryTarget) continue;
             if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
+            
+            const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
+            if (baseRange !== 9999 && distSq > effRangeSq) continue;
             
             let val;
             if (mode === 'First' || mode === 'Last') val = e.distanceTraveled; 
             else if (mode === 'Strong') val = e.data.rbe; 
-            else val = Utils.distanceSq(tower.x, tower.y, e.x, e.y); // Close
+            else val = distSq; // Close
             
             if ((mode === 'First' || mode === 'Strong') ? val > bestVal : val < bestVal) {
                 bestVal = val;
@@ -338,12 +340,16 @@ export default {
         else if (count === 2 && !tower.stats.canCrit) spreadAngle = 7.5; // Tech Terror (shoots same target, spread)
         
         let target2 = target;
-        // FIX: Robo Monkey / Anti-Bloon (canCrit === true) target independently
+        // Robo Monkey / Anti-Bloon (canCrit === true) target independently
         if (count === 2 && tower.stats.canCrit) {
             target2 = this._findSecondTarget(tower, engine, target) || target;
         }
 
         const baseDmg = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0);
+        
+        // FIX: Calculate perpendicular offsets so arms shoot from different spots!
+        const perpX = Math.cos(tower.angle + Math.PI / 2);
+        const perpY = Math.sin(tower.angle + Math.PI / 2);
 
         for(let i=0; i<count; i++) {
             let armDmg = baseDmg;
@@ -362,7 +368,16 @@ export default {
             // Arm 0 shoots primary target, Arm 1 shoots secondary target
             let currentTarget = (i === 0) ? target : target2;
             
-            p.init(tower.x, tower.y, armDmg, currentTarget, tower.stats.projectileType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, offset, tower, dmgType, armCrit);
+            // FIX: Visually offset the spawn position for Robo Monkey's two arms
+            let spawnX = tower.x;
+            let spawnY = tower.y;
+            if (count === 2 && tower.stats.canCrit) {
+                const armOffset = 12; // 12 pixels apart
+                spawnX = tower.x + (i === 0 ? -perpX * armOffset : perpX * armOffset);
+                spawnY = tower.y + (i === 0 ? -perpY * armOffset : perpY * armOffset);
+            }
+            
+            p.init(spawnX, spawnY, armDmg, currentTarget, tower.stats.projectileType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, offset, tower, dmgType, armCrit);
         }
     },
     
@@ -392,7 +407,7 @@ export default {
                     hits++;
                 }
             }
-            AudioEngine.playSfx('moab_destroy');
+            // FIX: Removed AudioEngine.playSfx('moab_destroy') as requested
         } else if (name === "Darkshift") {
             let tx = engine.mouse.x;
             let ty = engine.mouse.y;
@@ -429,6 +444,6 @@ export default {
                 e.takeDamage(99999, { isExplosion: true, canHitLead: true });
             }
         }
-        AudioEngine.playSfx('moab_destroy');
+        // FIX: Removed AudioEngine.playSfx('moab_destroy') as requested
     }
 };
