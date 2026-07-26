@@ -7,7 +7,8 @@ export default {
     stats: { 
         name: "Monkey Ace", cost: 800, range: 22, fireRate: 1.68, 
         damage: 1, pierce: 5, projectileSpeed: 300, 
-        lifespan: 1.4, desc: "Flies above the ground shooting volleys of high-pierce darts.", 
+        lifespan: 4.0, desc: "Flies above the ground shooting volleys of high-pierce darts.", 
+        // ... rest of stats
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 12, 
         projectileCount: 8, category: 'Military' 
     },
@@ -90,7 +91,8 @@ export default {
                 }
                 if (target) {
                     let p = engine.projectilePool.get();
-                    p.init(tower.x, tower.y, tower.stats.missileDmg, target, 'bomb', 600, 5, 2.0, null, {isExplosive: true, explosionRadius: 40, explosionDamage: tower.stats.missileDmg, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
+                    // FIX: Added moabDmg to the dmgType object
+                    p.init(tower.x, tower.y, tower.stats.missileDmg, target, 'bomb', 600, 5, 2.0, null, {isExplosive: true, explosionRadius: 40, explosionDamage: tower.stats.missileDmg, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true, moabDmg: tower.stats.moabDmg || 0});
                 }
             }
         }

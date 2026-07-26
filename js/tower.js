@@ -94,6 +94,15 @@ export class Tower {
 
         this.activeBuffs = [];
 
+        // FIX: Beast Handler Minion System properties
+        this.isMinion = false;
+        this.parentTower = null;
+        this.beastPower = 0;
+        this.maxBeastPower = 0;
+        this.beastTier = 0;
+        this.beastPath = -1;
+        this.activeBeast = null;
+
         // FIX: Apply base MK effects generically
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         this._applyMKEffects(mk, MKEffects.base, GameEngine);
@@ -167,7 +176,9 @@ export class Tower {
                 this.stats[upgradeData.stat] = upgradeData.amount;
             }
         }
-        if (upgradeData.extraMods) {
+        
+        // FIX: Prevent extraMods from buffing the Beast Handler itself. Beast Handler stats are handled in beast.js.
+        if (upgradeData.extraMods && this.type !== 'beast') {
             for (const key in upgradeData.extraMods) {
                 const val = upgradeData.extraMods[key];
                 if (key === 'scale') this.stats.scale = val;
@@ -224,6 +235,43 @@ export class Tower {
             if (upgArm && upgArm.loaded) armAsset = upgArm;
         }
         return { baseAsset, armAsset, targetSize, isCustomBase };
+    }
+    
+    // FIX: Block upgrades and selling for minions
+    canUpgrade(path, engine) {
+        if (this.isMinion) return false;
+        const tier = this.upgrades[path - 1];
+        if (tier >= 5) return false;
+        const pathsStarted = this.upgrades.filter(u => u > 0).length;
+        if (tier === 0 && pathsStarted >= 2) return false;
+        for (let i = 0; i < 3; i++) {
+            if (i !== path - 1 && this.upgrades[i] >= 3 && tier >= 2) return false;
+        }
+        if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) {
+            const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
+            if (this.type === 'dart' && path === 3 && mk['master_double']) {
+                let count = 0;
+                for(let t of engine.towers) { if(t && t.type === 'dart' && t.upgrades[2] === 5) count++; }
+                if (count < 2) return true; 
+            }
+            return false;
+        }
+        
+        if (this.type === 'village' && path === 3 && tier === 4) {
+            const effRange = this.stats.range * RANGE_SCALE;
+            let hasFarm = false;
+            for (let t of engine.towers) {
+                if (t && t !== this && t.type === 'farm' && t.upgrades[0] < 5) {
+                    if (Utils.withinRange(this.x, this.y, t.x, t.y, effRange)) {
+                        hasFarm = true;
+                        break;
+                    }
+                }
+            }
+            if (!hasFarm) return false;
+        }
+        
+        return true;
     }
 }
 

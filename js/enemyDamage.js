@@ -8,10 +8,8 @@ const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 const SAFETY_LOOP_LIMIT = 100;
 
 const EnemyDamage = {
-    // FIX 2: Added killerTower parameter to takeDamage and threaded it through to giveCash
     takeDamage(damage, dmgType, effects, killerTower = null) {
         // FIX: Guard against being called on an already-dead enemy. 
-        // Prevents duplicate cash rewards and duplicate children from spawnChildren().
         if (!this.alive) return -1;
         
         if (!dmgType) dmgType = {};
@@ -50,7 +48,19 @@ const EnemyDamage = {
             }
         }
         
-        if (effects.knockback) this.distanceTraveled = Math.max(0, this.distanceTraveled - effects.knockback);
+        // FIX: Knockback Cooldown and MOAB scaling to prevent permanent stun locks
+        if (effects.knockback) {
+            if (this.knockbackCd === undefined || this.knockbackCd <= 0) {
+                let kbAmount = effects.knockback;
+                if (this.data.isMoab) kbAmount *= 0.2; // MOABs take 20% knockback
+                if (this.data.isBAD) kbAmount = 0; // BADs are immune
+                if (kbAmount > 0) {
+                    this.distanceTraveled = Math.max(0, this.distanceTraveled - kbAmount);
+                    this.knockbackCd = 0.5; // 0.5s internal cooldown per enemy
+                }
+            }
+        }
+        
         if (effects.stun) {
             let stunDur = effects.stun;
             const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
@@ -75,6 +85,8 @@ const EnemyDamage = {
         if (this.data.splitsInto) return this._handleSplitDamage(damage, dmgType, effects, canSpawn, killerTower);
         return this._handleStandardDamage(damage, dmgType, effects, killerTower);
     },
+
+    // ... [Keep the rest of enemyDamage.js exactly the same] ...
 
     _isImmune(dmgType, effects) {
         if (!dmgType) dmgType = {}; 

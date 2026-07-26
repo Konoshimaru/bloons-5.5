@@ -41,7 +41,8 @@ export function updateShopPrices() {
         if (stats) {
             let cost = Math.floor(stats.cost * costMod);
             const costEl = card.querySelector('.cost');
-            
+            const isLocked = !Config.data.unlockedTowers.includes(type);
+
             if (type === 'dart' && !GameEngine.isSandbox && GameEngine.difficulty && !GameEngine.difficulty.noSelling) {
                 const mkActive = Config.data.mkActive !== false;
                 const hasFreeMonkey = Config.data.unlocks.freeFirstDartMonkey || (mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_monkey);
@@ -53,7 +54,13 @@ export function updateShopPrices() {
                 }
             }
 
-            if (costEl) costEl.innerText = cost === 0 ? "Free!" : `$${cost}`;
+            if (isLocked) {
+                card.classList.add('locked');
+                if (costEl) costEl.innerText = '🔒 Locked';
+            } else {
+                card.classList.remove('locked');
+                if (costEl) costEl.innerText = cost === 0 ? "Free!" : `$${cost}`;
+            }
         }
     });
 }
@@ -65,7 +72,14 @@ export function setupShopListeners() {
     
     const updateShopHeader = (name) => {
         if (dom.shopHeader) {
-            dom.shopHeader.innerText = name || "Shop";
+            const text = name || "Shop";
+            dom.shopHeader.innerText = text;
+            dom.shopHeader.style.fontSize = '22px'; 
+            let fontSize = 22;
+            while (dom.shopHeader.scrollWidth > dom.shopHeader.clientWidth && fontSize > 12) {
+                fontSize--;
+                dom.shopHeader.style.fontSize = `${fontSize}px`;
+            }
         }
     };
 
@@ -113,13 +127,20 @@ export function setupShopListeners() {
         });
     });
 
-    // --- REWRITTEN DRAG AND DROP LOGIC ---
     dom.towerCards.forEach(card => {
         card.addEventListener('pointerdown', (e) => {
             e.preventDefault(); 
             
             const type = card.dataset.tower;
             const stats = TowerStats[type] || HeroStats[type];
+            if (!stats) return;
+
+            // FIX: Check unlockedTowers array instead of playerLevel
+            if (!Config.data.unlockedTowers.includes(type)) {
+                GameEngine.log(`${stats.name} is locked! Level up to unlock it.`);
+                return;
+            }
+
             if (GameEngine.cash < GameEngine.getCost(stats.cost)) {
                 GameEngine.log("Not enough cash!");
                 return;
@@ -210,7 +231,13 @@ export function setupShopListeners() {
 
         card.addEventListener('mouseenter', () => {
             const stats = TowerStats[card.dataset.tower] || HeroStats[card.dataset.tower];
-            if (stats) updateShopHeader(stats.name);
+            if (stats) {
+                if (!Config.data.unlockedTowers.includes(card.dataset.tower)) {
+                    updateShopHeader(`🔒 ${stats.name} (Locked)`);
+                } else {
+                    updateShopHeader(stats.name);
+                }
+            }
         });
 
         card.addEventListener('mouseleave', () => {
@@ -306,8 +333,6 @@ export function setupNudgeLogic() {
                 e.stopImmediatePropagation();
                 return;
             } else {
-                // CRITICAL FIX: e.clientX is read-only in modern browsers!
-                // We must stop the event and manually call handleCanvasClick with a fake event.
                 e.stopImmediatePropagation();
                 const fakeClientX = rect.left + (GameEngine.stuckPlacement.x / scaleX);
                 const fakeClientY = rect.top + (GameEngine.stuckPlacement.y / scaleY);

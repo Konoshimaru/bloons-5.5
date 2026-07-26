@@ -87,24 +87,50 @@ const selectorMenus = {
             const btn = document.createElement('button');
             btn.className = 'hm-carousel-item';
             btn.dataset.hero = key;
-            btn.innerText = hero.stats.name.substring(0, 2);
-            btn.title = hero.stats.name;
-            if (Config.data.selectedHero === key) {
+            
+            // FIX: Check unlockedTowers array
+            const isLocked = !Config.data.unlockedTowers.includes(key);
+            
+            if (isLocked) {
+                btn.innerText = '🔒';
+                btn.title = `Locked`;
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            } else {
+                btn.innerText = hero.stats.name.substring(0, 2);
+                btn.title = hero.stats.name;
+                btn.disabled = false;
+                btn.style.opacity = '';
+                btn.style.cursor = '';
+            }
+
+            if (Config.data.selectedHero === key && !isLocked) {
                 btn.classList.add('active');
                 this.updateHeroInfo(key);
-            }
-            btn.addEventListener('click', () => {
-                Config.data.selectedHero = key;
-                GameEngine.selectedHero = key;
+            } else if (Config.data.selectedHero === key && isLocked) {
+                // If the selected hero is somehow locked, fallback to Quincy
+                Config.data.selectedHero = 'quincy';
                 Config.save();
-                this.updateHeroInfo(key);
-                this.updateHeroShopCard();
-            });
+                if (key === 'quincy') {
+                    btn.classList.add('active');
+                    this.updateHeroInfo(key);
+                }
+            }
+            
+            if (!isLocked) {
+                btn.addEventListener('click', () => {
+                    Config.data.selectedHero = key;
+                    GameEngine.selectedHero = key;
+                    Config.save();
+                    this.updateHeroInfo(key);
+                    this.updateHeroShopCard();
+                });
+            }
             heroSelector.appendChild(btn);
         });
     },
 
-    // FIX: Updated to correctly target the cost element and change the background image
     updateHeroShopCard() {
         const card = document.getElementById('hero-shop-card');
         const heroKey = Config.data.selectedHero || 'quincy';

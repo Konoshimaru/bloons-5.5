@@ -10,7 +10,8 @@ export default {
         baseCooldown: 2.0, fireRate: 2.0, 
         damage: 2, pierce: 1, projectileSpeed: 400, 
         explosionRadius: 20, explosionDamage: 2, explosionPierce: 25,
-        lifespan: 1.0, desc: "Launches an exploding mortar shell to a fixed location anywhere on the screen.", 
+        lifespan: 4.0, desc: "Launches an exploding mortar shell to a fixed location anywhere on the screen.", 
+        // ... rest of stats
         dmgType: 'explosion', projectileType: 'mortar_shell', hitRadius: 18, 
         isStaticRotation: true, category: 'Military'
     },

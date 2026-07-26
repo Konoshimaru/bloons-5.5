@@ -333,7 +333,7 @@ export default {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle);
-        ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(75, 0, 130, 0.8)';
+        // FIX: Removed shadowBlur
         const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
         grad.addColorStop(0, '#a020f0');
         grad.addColorStop(0.6, '#4a0080');
@@ -348,7 +348,7 @@ export default {
             ctx.lineTo(Math.cos(a) * 8, Math.sin(a) * 8);
             ctx.stroke();
         }
-        ctx.shadowBlur = 0; ctx.restore();
+        ctx.restore();
     },
     drawWormVFX(ctx, x, y, angle) {
         const wormAsset = Assets.get('proj_worm');
@@ -365,7 +365,7 @@ export default {
         ctx.translate(x, y);
         ctx.rotate(angle);
         ctx.globalCompositeOperation = 'screen';
-        ctx.shadowBlur = 20; ctx.shadowColor = 'rgba(0, 255, 200, 0.8)';
+        // FIX: Removed shadowBlur
         for (let i = 0; i < 6; i++) {
             let offset = Math.sin(t * 6 + i * 0.5) * 3;
             let hue = (i * 60 + t * 100) % 360;
@@ -379,7 +379,7 @@ export default {
             ctx.fill();
         }
         ctx.globalCompositeOperation = 'source-over';
-        ctx.shadowBlur = 0; ctx.restore();
+        ctx.restore();
     },
     drawUzumakiVFX(ctx, tower, u) {
         if (u.phase === 'condensing') {
@@ -387,14 +387,14 @@ export default {
         } else if (u.phase === 'firing') {
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
-            ctx.shadowBlur = 30; ctx.shadowColor = u.isUpgraded ? 'rgba(255, 0, 100, 0.9)' : 'rgba(128, 0, 255, 0.9)';
+            // FIX: Removed shadowBlur
             const grad = ctx.createRadialGradient(tower.x, tower.y, 0, tower.x, tower.y, 22);
             grad.addColorStop(0, 'rgba(255,255,255,0.9)');
             grad.addColorStop(0.5, u.isUpgraded ? 'rgba(255,0,100,0.6)' : 'rgba(128,0,255,0.6)');
             grad.addColorStop(1, 'rgba(0,0,0,0)');
             ctx.fillStyle = grad;
             ctx.beginPath(); ctx.arc(tower.x, tower.y, 22, 0, Math.PI * 2); ctx.fill();
-            ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0;
+            ctx.globalCompositeOperation = 'source-over';
             ctx.restore();
             for (const hand of u.hands) hand.draw(ctx);
         }
@@ -422,7 +422,7 @@ export default {
         let t = performance.now() / 1000;
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
-        ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(200, 0, 255, 0.8)';
+        // FIX: Removed shadowBlur
         ctx.strokeStyle = `rgba(200, 100, 255, ${progress})`; ctx.lineWidth = 3;
         ctx.setLineDash([5, 5]);
         ctx.lineDashOffset = -t * 30;
@@ -440,7 +440,7 @@ export default {
             ctx.fillStyle = `rgba(255, 255, 255, ${1 - p})`;
             ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
         }
-        ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 0; ctx.restore();
+        ctx.globalCompositeOperation = 'source-over'; ctx.restore();
     },
     ability(tower, engine) {
         if (tower.isCapturing) { engine.log("Already capturing."); return; }

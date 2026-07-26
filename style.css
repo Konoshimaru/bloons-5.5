@@ -10,11 +10,10 @@ html, body {
 
 body { 
     color: var(--text); 
-    font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Readable body font */
+    font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     font-weight: 700;
 }
 
-/* Apply Luckiest Guy only to headings, titles, and main menu buttons */
 h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3, #mm-bottom-bar button, #mm-top-left, #mm-top-right, #shop-header {
     font-family: 'Luckiest Guy', cursive;
     font-weight: normal;
@@ -150,7 +149,9 @@ h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3
     color: var(--gold);
     padding: 10px 0;
     border-bottom: 2px solid var(--accent);
-    flex-shrink: 0; /* Prevents header from shrinking */
+    flex-shrink: 0; 
+    white-space: nowrap; 
+    overflow: hidden; 
 }
 
 .sidebar-scroll { 
@@ -160,15 +161,15 @@ h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3
 
 .tower-shop {
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 squares per row */
+    grid-template-columns: repeat(3, 1fr); 
     gap: 6px;
 }
 
 .tower-card { 
     position: relative;
-    aspect-ratio: 1 / 1; /* Makes it a perfect square */
-    background-color: #34495e; /* Default fallback for enemies */
-    background-size: cover; /* Fills the square with the image */
+    aspect-ratio: 1 / 1; 
+    background-color: #34495e; 
+    background-size: cover; 
     background-position: center;
     border: 2px solid #7f8c8d; 
     border-radius: 6px;  
@@ -177,23 +178,21 @@ h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3
     touch-action: none;
     overflow: hidden;
     display: flex; 
-    align-items: flex-end; /* Aligns price to bottom */
+    align-items: flex-end; 
     justify-content: center;
 }
 
-/* Fix sandbox bloon images to fit nicely inside the squares without stretching */
 #enemy-view .tower-card {
     background-size: contain;
     background-repeat: no-repeat;
-    background-color: #34495e; /* Keeps the dark background behind smaller bloons */
+    background-color: #34495e; 
 }
 
-/* Category Background Colors */
-.tower-card.cat-primary { background-color: #3498db; } /* Blue */
-.tower-card.cat-military { background-color: #27ae60; } /* Green */
-.tower-card.cat-magic { background-color: #9b59b6; } /* Purple */
-.tower-card.cat-support { background-color: #f1c40f; } /* Yellow */
-.tower-card.cat-hero { background-color: #e67e22; } /* Orange */
+.tower-card.cat-primary { background-color: #3498db; } 
+.tower-card.cat-military { background-color: #27ae60; } 
+.tower-card.cat-magic { background-color: #9b59b6; } 
+.tower-card.cat-support { background-color: #f1c40f; } 
+.tower-card.cat-hero { background-color: #e67e22; } 
 
 .tower-card:active { cursor: grabbing; }
 .tower-card:hover { border-color: var(--accent); transform: scale(1.05); }
@@ -210,7 +209,6 @@ h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3
     flex-grow: 0;
 }
 
-/* Fix sandbox buttons to span full width in the grid */
 .sb-row {
     grid-column: 1 / -1; 
     display: flex; 
@@ -231,7 +229,8 @@ h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3
 
 /* --- MAIN MENU UI --- */
 #main-menu-ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
-#mm-top-left { position: absolute; top: 20px; left: 20px; pointer-events: auto; background: rgba(44, 62, 80, 0.8); padding: 10px 15px; border-radius: 8px; border: 1px solid #7f8c8d; }
+#mm-top-left { position: absolute; top: 20px; left: 20px; pointer-events: auto; background: rgba(44, 62, 80, 0.8); padding: 10px 15px; border-radius: 8px; border: 1px solid #7f8c8d; cursor: pointer; }
+#mm-player-name { font-size: 18px; color: #fff; margin-bottom: 2px; }
 #mm-level-text { font-size: 18px; color: var(--gold); margin-bottom: 5px; }
 .mm-exp-bar-container { width: 200px; height: 10px; background: #7f8c8d; border-radius: 5px; overflow: hidden; }
 .mm-exp-bar-fill { width: 0%; height: 100%; background: var(--accent); border-radius: 5px; transition: width 0.3s; }
@@ -264,8 +263,6 @@ h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3
     color: white; cursor: pointer; border-radius: 6px; font-weight: 900; transition: all 0.2s;
 }
 .menu-content button:hover, .back-btn:hover { background: #3e5771; border-color: var(--accent); }
-.diff-btn { width: 100%; padding: 15px; background: var(--panel); border: 2px solid #7f8c8d; color: white; cursor: pointer; border-radius: 6px; font-weight: 900; margin-bottom: 5px;}
-.diff-btn:hover { border-color: var(--accent); }
 
 .shop-item {
     background: var(--panel); border: 2px solid #7f8c8d; border-radius: 6px; padding: 15px; margin-bottom: 10px;
@@ -356,7 +353,6 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 
 /* Monkey Knowledge Space Background */
 #mk-viewport {
-    /* Prevents text selection while dragging */
     user-select: none;
     -webkit-user-select: none;
     
@@ -371,7 +367,7 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
         radial-gradient(1px 1px at 350px 250px, #ccc, transparent);
     background-size: 400px 400px;
     background-repeat: repeat;
-    --mk-tint: rgba(52, 152, 219, 0.15); /* Changed to Blue (Primary) default */
+    --mk-tint: rgba(52, 152, 219, 0.15); 
 }
 
 #mk-viewport::after {
@@ -396,7 +392,7 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 
 .mk-tree-container {
     position: absolute;
-    top: 30%; /* Moved up from 50% */
+    top: 30%; 
     left: 50%;
     width: 0;
     height: 0;
@@ -410,15 +406,15 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 
 .mk-lines {
     position: absolute;
-    top: -1500px; /* Updated from -1000px to fix line offset */
-    left: -1500px; /* Updated from -1000px to fix line offset */
+    top: -1500px; 
+    left: -1500px; 
     pointer-events: none;
 }
 
 .mk-node {
     position: absolute;
-    width: 90px; /* Increased from 80px */
-    height: 90px; /* Increased from 80px */
+    width: 90px; 
+    height: 90px; 
     background: #2c3e50;
     border: 4px solid #bdc3c7;
     border-radius: 50%;
@@ -441,13 +437,13 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 .mk-node span {
     font-family: 'Nunito', sans-serif;
     font-weight: 700;
-    font-size: 11px; /* Slightly smaller to fit longer names */
+    font-size: 11px; 
     color: #fff;
     text-align: center;
     pointer-events: none;
     padding: 4px;
-    line-height: 1.1; /* Helps text wrap neatly */
-    word-break: break-word; /* Forces long words to wrap */
+    line-height: 1.1; 
+    word-break: break-word; 
 }
 
 .mk-tab {
@@ -560,7 +556,7 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
     font-weight: 700;
 }
 .mk-detail-stats span:first-child { color: #95a5a6; }
-/* Unlocked MK Node Visual */
+
 .mk-node.unlocked {
     border-color: #f1c40f;
     background: #7d6608;
@@ -571,10 +567,268 @@ label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-s
 .mk-node.unlocked span {
     color: #fff;
 }
-/* Prevent text selection globally */
+
 body, #game-container, #gameCanvas, #sidebar, #upgrade-sidebar, .overlay {
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+}
+
+/* --- MONKEYS ENCYCLOPEDIA MENU --- */
+.mm-container {
+    width: 1100px;
+    max-width: 95vw;
+    height: 80vh;
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.mm-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #7f8c8d;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+.mm-main {
+    flex: 1;
+    display: flex;
+    gap: 20px;
+    overflow: hidden;
+}
+.mm-sidebar {
+    width: 250px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 10px;
+}
+.mm-cat-header {
+    font-family: 'Luckiest Guy', cursive;
+    color: var(--gold);
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-size: 16px;
+    border-bottom: 1px solid #7f8c8d;
+    padding-bottom: 2px;
+}
+.mm-tower-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid #7f8c8d;
+    color: white;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+.mm-tower-btn:hover {
+    background: #3e5771;
+    border-color: var(--accent);
+}
+.mm-tower-btn.active {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px var(--gold);
+}
+.mm-tower-icon {
+    width: 40px;
+    height: 40px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.mm-content {
+    flex: 1;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+.mm-placeholder {
+    text-align: center;
+    color: #bdc3c7;
+    margin-top: 50px;
+    font-size: 18px;
+}
+.mm-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #7f8c8d;
+    padding-bottom: 15px;
+}
+.mm-portrait {
+    width: 80px;
+    height: 80px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+    border: 2px solid #7f8c8d;
+}
+.mm-header-info h3 {
+    margin: 0 0 5px 0;
+    color: var(--accent);
+    font-size: 24px;
+}
+.mm-header-info p {
+    margin: 0;
+    font-size: 14px;
+    color: #bdc3c7;
+}
+.mm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.mm-stat-box {
+    background: var(--bg);
+    padding: 8px;
+    border-radius: 4px;
+    text-align: center;
+}
+.mm-stat-box span {
+    display: block;
+    color: #95a5a6;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+.mm-stat-box strong {
+    color: var(--gold);
+    font-size: 16px;
+}
+.mm-paths-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+.mm-path-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.mm-upg-card {
+    background: var(--bg);
+    border-left: 4px solid var(--accent);
+    padding: 8px;
+    border-radius: 0 4px 4px 0;
+}
+.mm-upg-card h4 {
+    margin: 0 0 4px 0;
+    color: var(--gold);
+    font-size: 14px;
+}
+.mm-upg-card p {
+    margin: 0;
+    font-size: 12px;
+    color: #ecf0f1;
+    line-height: 1.3;
+}
+.mm-upg-cost {
+    font-size: 12px;
+    color: #bdc3c7;
+    margin-bottom: 4px;
+    display: block;
+}
+
+/* --- UNIFIED PLAY MENU --- */
+.play-map-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    color: var(--gold);
+    font-weight: 900;
+}
+.play-map-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    min-height: 300px;
+}
+.play-map-card {
+    background: var(--panel);
+    border: 2px solid #7f8c8d;
+    border-radius: 8px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+.play-map-card:hover {
+    border-color: var(--accent);
+    transform: scale(1.02);
+}
+.play-map-card.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 12px var(--gold);
+}
+.play-map-thumb {
+    width: 100%;
+    height: 120px;
+    background-size: cover;
+    background-position: center;
+    background-color: #2c3e50;
+}
+.play-map-name {
+    padding: 10px;
+    text-align: center;
+    font-weight: 900;
+    color: white;
+}
+
+#play-difficulty-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+.play-diff-category {
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #7f8c8d;
+}
+.play-diff-header {
+    font-family: 'Luckiest Guy', cursive;
+    color: var(--accent);
+    font-size: 20px;
+    margin-bottom: 10px;
+    text-align: center;
+    border-bottom: 1px solid #7f8c8d;
+    padding-bottom: 5px;
+}
+.play-diff-btn {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 5px;
+    background: var(--bg);
+    border: 1px solid #7f8c8d;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s;
+    text-align: left;
+}
+.play-diff-btn:hover {
+    background: #3e5771;
+    border-color: var(--accent);
 }

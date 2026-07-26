@@ -184,9 +184,9 @@ export class Enemy {
 
     _updateTimers(dt) {
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
+        if (this.knockbackCd > 0) this.knockbackCd -= dt; // FIX: Tick knockback cooldown
         updateTimedEffects(this, dt);
     }
-
     _updateRegen(dt) {
         if (!this.isRegen || this.tier >= this.maxTier) return;
         this.regenTimer += dt;

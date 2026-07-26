@@ -1,7 +1,7 @@
 // js/enemyRenderer.js
 import Assets from './assets.js';
 import { Names } from './names.js';
-import { drawShadow } from './utils.js';
+import { drawShadow } from './utils.js'; // Keep import for compatibility, but no longer used
 import { GameEngine } from './engine.js';
 import { GLOBAL_SCALE } from './constants.js';
 
@@ -10,7 +10,7 @@ const ENEMY_NAMES = [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'w
 
 export const EnemyRenderer = {
     draw(ctx) {
-        if (GameEngine.enemies.length < 800) drawShadow(ctx, this.x, this.y, this.radius); 
+        // FIX: Removed drawShadow to significantly improve performance with hundreds of bloons on screen
         
         let asset = this._spriteAsset;
         if (!asset || !asset.loaded) {

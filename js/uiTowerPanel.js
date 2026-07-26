@@ -3,7 +3,7 @@ import { TowerStats, Upgrades } from './towers/index.js';
 import { Config } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 import { HeroRegistry } from './heroes/index.js';
-import { getSellRate } from './towerEconomy.js'; // FIX: Import getSellRate
+import { getSellRate } from './towerEconomy.js';
 
 const _elCache = {};
 function el(id) {
@@ -83,7 +83,7 @@ const uiTowerPanel = {
     _collectAbilities(engine) {
         const abilities = [];
         for (const t of engine.towers) {
-            if (!t) continue;
+            if (!t || t.isMinion) continue; // FIX: Skip minions so abilities aren't duplicated
             if (t.stats.isHero) {
                 this._collectHeroAbilities(t, abilities);
             } else if (t.stats.isAbility) {
@@ -93,7 +93,13 @@ const uiTowerPanel = {
                     towerCd = 35;
                     towerName = t.upgrades[1] === 5 ? "Super Maelstrom" : "Blade Maelstrom";
                 }
-                abilities.push({ tower: t, slot: 1, cd: t.abilityCooldown || 0, maxCd: towerCd, name: towerName });
+                
+                let cd = t.abilityCooldown || 0;
+                // FIX: Beast handler ability cooldown is tracked on the minion
+                if (t.type === 'beast' && t.activeBeast) {
+                    cd = t.activeBeast.abilityCooldown || 0;
+                }
+                abilities.push({ tower: t, slot: 1, cd: cd, maxCd: towerCd, name: towerName });
             }
         }
         return abilities;
@@ -183,8 +189,8 @@ const uiTowerPanel = {
             panel.appendChild(sellBtn);
         }
         if (sellBtn) {
+            if (t.isMinion) { sellBtn.classList.add('hidden'); return; }
             sellBtn.classList.remove('hidden');
-            // FIX: Use the authoritative getSellRate function
             const resaleRate = getSellRate(t, engine);
             const sellValue = Math.floor(t.totalSpent * resaleRate);
             sellBtn.innerText = `Sell ($${sellValue})`;
@@ -344,7 +350,83 @@ const uiTowerPanel = {
         }
         
         this._updateTargetingText(t);
+
+        // Beast Handler Custom UI
+        const mergeBtn = el('beast-merge-btn');
+        if (t.type === 'beast') {
+            if (t.isMinion) {
+                pathsEl.classList.add('hidden');
+                if (mergeBtn) mergeBtn.classList.add('hidden');
+                document.querySelectorAll('.beast-power-display').forEach(el => el.remove());
+            } else {
+                this._setupBeastUI(pathsEl, t, engine);
+            }
+        } else {
+            if (mergeBtn) mergeBtn.classList.add('hidden');
+            document.querySelectorAll('.beast-power-display').forEach(el => el.remove());
+        }
+
         this._updateUpgradeCards(t, engine);
+    },
+
+    _setupBeastUI(pathsEl, t, engine) {
+        // Remove old power displays
+        document.querySelectorAll('.beast-power-display').forEach(el => el.remove());
+        
+        // Add power display above active path
+        if (t.beastPath >= 0) {
+            const pathCard = el(`up-path${t.beastPath + 1}`);
+            if (pathCard) {
+                let powerDisplay = document.createElement('div');
+                powerDisplay.className = 'beast-power-display';
+                powerDisplay.innerText = `Power: ${t.beastPower} / ${t.maxBeastPower}`;
+                powerDisplay.style.color = '#27ae60';
+                powerDisplay.style.fontWeight = 'bold';
+                powerDisplay.style.fontSize = '12px';
+                powerDisplay.style.textAlign = 'center';
+                powerDisplay.style.marginBottom = '4px';
+                pathCard.parentNode.insertBefore(powerDisplay, pathCard);
+            }
+        }
+        
+        // Add Merge Button next to portrait
+        const portrait = el('up-portrait');
+        let mergeBtn = el('beast-merge-btn');
+        if (!mergeBtn) {
+            mergeBtn = document.createElement('button');
+            mergeBtn.id = 'beast-merge-btn';
+            mergeBtn.innerText = 'Merge';
+            mergeBtn.style.position = 'absolute';
+            mergeBtn.style.background = '#2ecc71';
+            mergeBtn.style.color = 'white';
+            mergeBtn.style.border = 'none';
+            mergeBtn.style.borderRadius = '4px';
+            mergeBtn.style.cursor = 'pointer';
+            mergeBtn.style.fontWeight = 'bold';
+            mergeBtn.style.width = '50px';
+            mergeBtn.style.height = '50px';
+            mergeBtn.style.top = '5px';
+            portrait.parentNode.appendChild(mergeBtn);
+        }
+        
+        // Position left/right based on sidebar class
+        if (portrait.parentNode.classList.contains('sidebar-right')) {
+            mergeBtn.style.left = '5px';
+            mergeBtn.style.right = 'auto';
+        } else {
+            mergeBtn.style.right = '5px';
+            mergeBtn.style.left = 'auto';
+        }
+        
+        const newBtn = mergeBtn.cloneNode(true);
+        mergeBtn.parentNode.replaceChild(newBtn, mergeBtn);
+        _elCache['beast-merge-btn'] = newBtn;
+
+        newBtn.addEventListener('click', () => {
+            engine.isMergingBeast = true;
+            engine.mergeSourceTower = t;
+            engine.log("Select a Beast Handler to merge into!");
+        });
     },
 
     _getTowerCounterText(t) {

@@ -291,7 +291,8 @@ export default {
         let pulse = 1 + Math.sin(t * 4) * 0.15;
         let r = Math.max(1, baseR * pulse);
         let points = 16;
-        ctx.save(); ctx.translate(x, y); ctx.shadowBlur = 80 + Math.sin(t * 4) * 30; ctx.shadowColor = 'rgba(0, 85, 255, 0.7)'; ctx.globalCompositeOperation = 'screen';
+        // FIX: Removed shadowBlur
+        ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'screen';
         ctx.save(); ctx.rotate(t * 1.5); let scaleA = 1 + Math.sin(t * 3) * 0.05; ctx.scale(scaleA, scaleA);
         const gradA = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.2); gradA.addColorStop(0, 'rgba(0, 210, 255, 0.6)'); gradA.addColorStop(0.6, 'rgba(0, 85, 255, 0.2)'); gradA.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = gradA; ctx.beginPath();
@@ -304,34 +305,36 @@ export default {
         ctx.closePath(); ctx.fill(); ctx.restore();
         ctx.globalCompositeOperation = 'source-over';
         const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.8); coreGrad.addColorStop(0.1, '#ffffff'); coreGrad.addColorStop(0.4, '#00d2ff'); coreGrad.addColorStop(0.8, '#002266'); coreGrad.addColorStop(1, 'rgba(0, 34, 102, 0)');
-        ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+        ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     },
     drawRedTyphoonVFX(ctx, x, y, rot, baseR) {
         if (isNaN(x) || isNaN(y) || isNaN(baseR) || isNaN(rot)) return;
         let t = performance.now() / 1000;
         let pulse = 1 + Math.sin(t * 5) * 0.15;
         let r = Math.max(1, baseR * pulse);
+        // FIX: Removed shadowBlur
         ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'screen';
         for (let i = 0; i < 3; i++) {
-            ctx.save(); ctx.rotate(rot + (i * Math.PI * 2 / 3)); ctx.shadowBlur = 15; ctx.shadowColor = 'rgba(255, 0, 43, 0.8)'
+            ctx.save(); ctx.rotate(rot + (i * Math.PI * 2 / 3));
             const grad = ctx.createRadialGradient(0, 0, r * 0.3, 0, 0, r); grad.addColorStop(0, 'rgba(255, 255, 255, 0)'); grad.addColorStop(0.5, 'rgba(255, 0, 43, 0.6)'); grad.addColorStop(0.9, 'rgba(255, 255, 255, 0.8)'); grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
             ctx.strokeStyle = grad; ctx.lineWidth = r * 0.4; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 0.6); ctx.stroke(); ctx.restore();
         }
-        ctx.globalCompositeOperation = 'source-over'; ctx.shadowBlur = 40; ctx.shadowColor = '#ffffff';
+        ctx.globalCompositeOperation = 'source-over';
         const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.5); coreGrad.addColorStop(0, '#ffffff'); coreGrad.addColorStop(0.5, '#ff002b'); coreGrad.addColorStop(1, 'rgba(255, 0, 43, 0)');
-        ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; ctx.restore();
+        ctx.fillStyle = coreGrad; ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
     },
     drawHollowPurpleVFX(ctx, x, y, progress) {
         if (isNaN(x) || isNaN(y) || isNaN(progress)) return;
         let t = performance.now() / 1000;
         let trembleX = (Math.random() - 0.5) * 4;
         let trembleY = (Math.random() - 0.5) * 4;
+        // FIX: Removed shadowBlur
         ctx.save(); ctx.translate(x + trembleX, y + trembleY); ctx.globalCompositeOperation = 'screen';
         let shroudR = 100 + Math.sin(t * 2) * 20;
         const shroudGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(1, shroudR * progress)); shroudGrad.addColorStop(0, `rgba(148, 0, 211, 0.9)`); shroudGrad.addColorStop(0.7, `rgba(75, 0, 130, 0.5)`); shroudGrad.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = shroudGrad; ctx.beginPath(); ctx.arc(0, 0, Math.max(1, shroudR * progress), 0, Math.PI * 2); ctx.fill();
-        let ringR = 80 + Math.sin(t * 3) * 10; ctx.shadowBlur = 30; ctx.shadowColor = 'rgba(148, 0, 211, 0.8)'; ctx.strokeStyle = `rgba(255, 255, 255, 0.5)`; ctx.lineWidth = 5;
-        ctx.beginPath(); ctx.arc(0, 0, Math.max(1, ringR * progress), 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+        let ringR = 80 + Math.sin(t * 3) * 10; ctx.strokeStyle = `rgba(255, 255, 255, 0.5)`; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(0, 0, Math.max(1, ringR * progress), 0, Math.PI * 2); ctx.stroke();
         ctx.strokeStyle = `rgba(255, 255, 255, ${Math.random() * 0.8})`; ctx.lineWidth = 2;
         for (let i = 0; i < 3; i++) { let ang = t * 10 + (i * Math.PI * 2 / 3); ctx.beginPath(); ctx.moveTo(0, 0); let len = 60 * progress; let x1 = Math.cos(ang) * len * 0.5; let y1 = Math.sin(ang) * len * 0.5; let x2 = Math.cos(ang + Math.random() * 0.5) * len; let y2 = Math.sin(ang + Math.random() * 0.5) * len; ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
         ctx.globalCompositeOperation = 'source-over'; let eyeR = 40 * progress;

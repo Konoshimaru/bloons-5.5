@@ -7,28 +7,30 @@ export default {
         name: "Bomb Shooter", cost: 375, range: 40, 
         baseCooldown: 1.5, fireRate: 1.5, 
         damage: 1, pierce: 1, projectileSpeed: 180, 
-        explosionRadius: 12, explosionDamage: 1, explosionPierce: 22, 
-        lifespan: 0.6, canHitLead: true, 
-        desc: "Launches a powerful bomb at the Bloons. Affects a radius around the explosion.", 
-        dmgType: 'explosion', hitRadius: 18, category: 'Primary',
+        // FIX: Increased explosionRadius from 12 to 30, and lifespan from 0.6 to 1.5
+        explosionRadius: 30, explosionDamage: 1, explosionPierce: 22, 
+        lifespan: 1.5, canHitLead: true, 
+        desc: "Launches a powerful bomb at the Bloons. Slow rate of fire but affects a radius around the explosion.", 
+        dmgType: 'explosion', projectileType: 'bomb', hitRadius: 18, 
+        isStaticRotation: true, category: 'Military',
         projectileType: 'bomb' 
     },
     upgrades: {
-        1: [ 
-            { name: "Bigger Bombs", cost: 250, desc: "Larger blast area and more popping power.", extraMods:{explosionRadius: 8, explosionPierce: 15} },
+        1: [
+            { name: "Bigger Blast", cost: 300, stat: "explosionRadius", amount: 10, desc: "Bigger shells deliver a bigger blast radius.", extraMods:{explosionPierce: 15} },
             { name: "Heavy Bombs", cost: 650, stat:"explosionDamage", amount: 1, desc: "Smash through 2 layers and pop more Bloons.", extraMods:{explosionPierce: 8} },
             { name: "Really Big Bombs", cost: 1100, stat:"explosionDamage", amount: 1, desc: "Huge bombs deal greater damage and knock Bloons back.", extraMods:{explosionRadius: 12, knockback: 30} },
             { name: "Bloon Impact", cost: 2800, stat:"explosionRadius", amount: 10, desc: "Explosions stun Bloons for a short time.", extraMods:{stun: 0.5} },
             { name: "Bloon Crush", cost: 55000, stat:"explosionDamage", amount: 5, desc: "Massive damage and can stun MOAB-Class Bloons.", extraMods:{stun: 1.0} }
         ],
-        2: [ 
-            { name: "Faster Reload", cost: 250, desc: "Reloads faster.", extraMods:{cooldownMult: 0.75} }, 
+        2: [
+            { name: "Faster Reload", cost: 250, desc: "Reloads faster.", extraMods:{cooldownMult: 0.8} }, 
             { name: "Missile Launcher", cost: 400, desc: "Fires missiles, faster fire rate, flight speed, and range.", extraMods:{cooldownMult: 0.8, projectileSpeed: 200, range: 4, projectileType: 'missile'}},
-            { name: "MOAB Mauler", cost: 1000, stat:"moabDmg", amount: 10, desc: "Much more damage to MOAB-Class Bloons." }, 
+            { name: "MOAB Mauler", cost: 1000, stat:"moabDmg", amount: 10, desc: "MOAB Maulers do much more damage to MOAB-Class Bloons." }, 
             { name: "MOAB Assassin", cost: 3450, stat:"moabDmg", amount: 15, desc: "Assassinate MOAB Ability. Increased MOAB damage.", extraMods:{isAbility: true, abilityName: "Assassinate", abilityCd: 30} }, 
             { name: "MOAB Eliminator", cost: 26000, stat:"moabDmg", amount: 25, desc: "Massive damage to MOABs. Ability deals 6x damage.", extraMods:{isAbility: true, abilityName: "Assassinate 2", abilityCd: 10} }
         ],
-        3: [ 
+        3: [
             { name: "Extra Range", cost: 200, stat:"range", amount: 10, desc: "Increases attack range." }, 
             { name: "Frag Bombs", cost: 300, desc: "Explosions throw out sharp fragments.", extraMods:{fragCount: 6, fragDamage: 1} }, 
             { name: "Cluster Bombs", cost: 700, desc: "Throws out secondary bombs instead of frags.", extraMods:{fragCount: 0, clusterCount: 4, clusterDamage: 1} }, 
@@ -36,9 +38,18 @@ export default {
             { name: "Bomb Blitz", cost: 30000, stat:"explosionDamage", amount: 5, desc: "Much more damage. Gains Bomb Storm Ability.", extraMods:{isAbility: true, abilityName: "Bomb Storm", abilityCd: 20} }
         ]
     },
+    
+    update(tower, dt, engine) {
+        // Bombardment Ability Active Effect
+        if (tower.bombardmentActive > 0) {
+            tower.bombardmentActive -= dt;
+            tower.buffedFireRate = Math.max(tower.buffedFireRate || 0, 8.0); 
+        }
+    },
+
     fire(tower, target, damage, dmgType, isCrit, effects, engine) {
         let pEffects = { ...effects };
-        // Add custom effects from upgrades
+        // Apply custom effects from upgrades
         if (tower.stats.knockback) pEffects.knockback = tower.stats.knockback;
         if (tower.stats.stun) { pEffects.stun = tower.stats.stun; pEffects.stunDuration = tower.stats.stun; }
         if (tower.stats.fragCount) pEffects.fragCount = tower.stats.fragCount;
@@ -70,7 +81,6 @@ export default {
                 if (e.hp > maxHp) { maxHp = e.hp; target = e; }
             }
             if (target) {
-                // T5 deals 6x damage (3000), T4 deals 750
                 let dmg = name === "Assassinate 2" ? 3000 : 750;
                 target.takeDamage(dmg, {isExplosion: true, canHitLead: true}, {}, tower);
                 engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: 80, life: 0.5, maxLife: 0.5, color: '#e67e22' });
@@ -80,7 +90,6 @@ export default {
         // Bomb Blitz (Bomb Storm)
         if (name === "Bomb Storm") {
             engine.log("Bomb Storm!");
-            // Deals 100 damage to all bloons on screen
             Utils.applyAoeDamage(engine, 640, 360, 1500, 100, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 1000});
             engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1500, life: 1.0, maxLife: 1.0, color: '#e67e22' });
         }

@@ -11,7 +11,8 @@ export default {
         name: "Dart Monkey", cost: 200, range: 32,
         baseCooldown: 0.95, fireRate: 0.95,
         damage: 1, pierce: 2, projectileSpeed: 350,
-        lifespan: 0.5, desc: "Shoots a single dart. Low range, but cheap.",
+        lifespan: 1.5, desc: "Shoots a single dart. Low range, but cheap.",
+        // ... rest of stats
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 18,
         projectileCount: 1,
         category: 'Primary' // FIX 1

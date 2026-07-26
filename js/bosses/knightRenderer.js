@@ -42,10 +42,9 @@ const KnightRenderer = {
         for (let s of this.spinningSlashes) {
             ctx.save();
             ctx.globalAlpha = s.alpha;
+            // FIX: Removed shadowBlur, using a thicker red line instead for the glow effect
             ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)';
-            ctx.lineWidth = 8;
-            ctx.shadowColor = '#e74c3c';
-            ctx.shadowBlur = 15;
+            ctx.lineWidth = 10;
             ctx.beginPath();
             let p1x = s.pivotX - Math.cos(s.angle) * s.length;
             let p1y = s.pivotY - Math.sin(s.angle) * s.length;

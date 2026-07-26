@@ -3,6 +3,7 @@ import { Utils } from './utils.js';
 import { GameEngine } from './engine.js';
 import { DamageType, createDmgType } from './damageTypes.js';
 import { ProjectileTypeConfig } from './projectileTypeConfig.js';
+import { GLOBAL_SCALE } from './constants.js'; // FIX: Import GLOBAL_SCALE
 
 const ProjectileHitResolution = {
     _checkCollisions() {
@@ -49,7 +50,7 @@ const ProjectileHitResolution = {
         return !!cfg.isExplosive || (this.effects && this.effects.isExplosive);
     },
 
-     _handleExplosiveHit() {
+    _handleExplosiveHit() {
         const expRadius = this._getExplosionRadius();
         const expColor = this._getExplosionColor();
         GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.3, maxLife: 0.3, color: expColor });
@@ -124,7 +125,9 @@ const ProjectileHitResolution = {
     },
 
     _getExplosionRadius() {
-        return this.effects && this.effects.explosionRadius ? this.effects.explosionRadius : (this.tower ? this.tower.stats.explosionRadius : 60);
+        const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0; // FIX: Apply GLOBAL_SCALE
+        let r = this.effects && this.effects.explosionRadius ? this.effects.explosionRadius : (this.tower ? this.tower.stats.explosionRadius : 60);
+        return r * GS;
     },
 
     _getExplosionColor() {
@@ -207,7 +210,6 @@ const ProjectileHitResolution = {
             const expDmg = this.tower.stats.explosionDamage || 2;
             const expPierce = this.tower.stats.explosionPierce || 3;
             GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#3498db' });
-            // FIX: Swapped killerTower and effects to match the helper's signature
             Utils.applyAoeDamage(GameEngine, this.x, this.y, expRadius, expDmg, this.dmgType, this.tower, this.effects, { maxHits: expPierce });
         }
 

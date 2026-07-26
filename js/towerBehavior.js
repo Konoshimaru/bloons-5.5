@@ -1,4 +1,4 @@
-﻿// towerBehavior.js
+﻿// js/towerBehavior.js
 import { RANGE_SCALE } from './config.js';
 import { GLOBAL_SCALE } from './constants.js';
 import { TowerRegistry, Upgrades } from './towers/index.js';
@@ -26,7 +26,7 @@ export function getEffectiveCooldown(tower) {
     if (tower.ultraboostStacks > 0) finalCooldown *= (1 - 0.066 * tower.ultraboostStacks);
     if (tower.abilityActiveTime > 0) finalCooldown /= (tower.stats.rapidShotMult || 3);
     
-    // FIX: Apply Village/Jungle Drums/Call to Arms attack speed buffs
+    // Apply Village/Jungle Drums/Call to Arms attack speed buffs
     if (tower.buffedFireRate > 0) finalCooldown /= (1 + tower.buffedFireRate);
     
     if (tower.alchBuff) finalCooldown /= (1 + tower.alchBuff.speed);
@@ -137,7 +137,8 @@ function _acquireAndFire(tower, dt, engine) {
         if (engine.waveManager.waveActive && tower.cooldown <= 0 && tower.attackPointTimer <= 0) {
             const effFireRate = getEffectiveCooldown(tower);
             fire(tower, null, engine);
-            tower.cooldown = effFireRate / (1 + tower.buffedFireRate);
+            // FIX: getEffectiveCooldown already factors in buffedFireRate, don't divide twice
+            tower.cooldown = effFireRate;
         }
         return;
     }
@@ -245,7 +246,8 @@ function _triggerAttack(tower, target, effFireRate, engine) {
     
     if (!animAsset || !animAsset.loaded) {
         _executeFire(tower, target, engine);
-        tower.cooldown = effFireRate / (1 + tower.buffedFireRate);
+        // FIX: getEffectiveCooldown already factors in buffedFireRate, don't divide twice
+        tower.cooldown = effFireRate;
         return;
     }
 
@@ -258,7 +260,8 @@ function _triggerAttack(tower, target, effFireRate, engine) {
     
     tower.attackPointTimer = finalWindupTime;
     tower.pendingTarget = target;
-    tower.cooldown = effFireRate / (1 + tower.buffedFireRate); 
+    // FIX: getEffectiveCooldown already factors in buffedFireRate, don't divide twice
+    tower.cooldown = effFireRate; 
 }
 
 function _executeFire(tower, target, engine) {

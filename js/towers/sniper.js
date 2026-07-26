@@ -6,7 +6,7 @@ export default {
         name: "Sniper Monkey", cost: 350, range: 9999,
         baseCooldown: 1.59, fireRate: 1.59,
         damage: 2, pierce: 1, projectileSpeed: 1000,
-        lifespan: 0.2, desc: "Shoots bloons from anywhere on the map.",
+        lifespan: 1.2, desc: "Shoots bloons from anywhere on the map.",
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 18,
         drawSize: 150
     },

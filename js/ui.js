@@ -11,8 +11,8 @@ function el(id) {
     return elements[id];
 }
 
-const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'map-editor-menu', 'custom-maps-menu'];
-const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
+// FIX: Added 'profile-menu' to the array so the game knows how to hide it when the back button is clicked
+const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu'];const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 
 export const UI = {
     _towerCardCache: null,
@@ -60,15 +60,17 @@ export const UI = {
         const xpEl = el('mm-xp-text');
         const expFill = el('mm-exp-fill');
         const mmEl = el('mm-top-right');
-        const continueBtn = el('btn-continue');
-        const abandonBtn = el('btn-abandon');
+        const nameEl = el('mm-player-name'); // FIX: Get name element
         
+        if (nameEl) nameEl.innerText = Config.data.playerName || "Player"; // FIX: Update name display
         if (levelEl) levelEl.innerText = `Level ${Config.data.playerLevel}`;
         if (xpEl) xpEl.innerText = `${Config.data.playerXP} / ${Config.data.playerXPToNext} XP`;
         if (expFill) expFill.style.width = `${(Config.data.playerXP / Config.data.playerXPToNext) * 100}%`;
         if (mmEl) mmEl.innerText = `🐵 $${Config.data.monkeyMoney}`;
         
         const hasSave = !!Config.data.savedRun;
+        const continueBtn = el('btn-continue');
+        const abandonBtn = el('btn-abandon');
         if (continueBtn) continueBtn.style.display = hasSave ? 'block' : 'none';
         if (abandonBtn) abandonBtn.style.display = hasSave ? 'block' : 'none';
     },
@@ -93,6 +95,20 @@ export const UI = {
         cards.forEach(c => c.classList.remove('selected'));
         const panel = el('upgrade-sidebar');
         if (panel) panel.classList.add('hidden');
+        
+        const sidebar = el('sidebar');
+        if (sidebar) sidebar.classList.remove('hidden');
+        
+        const shopHeader = el('shop-header');
+        if (shopHeader) {
+            shopHeader.innerText = 'Shop';
+            shopHeader.style.fontSize = '22px'; 
+        }
+
+        const shopView = el('shop-view');
+        const enemyView = el('enemy-view');
+        if (shopView) shopView.classList.remove('hidden');
+        if (enemyView) enemyView.classList.add('hidden');
     },
 
     log(msg) {

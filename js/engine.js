@@ -93,6 +93,10 @@ export const GameEngine = {
     menuClickables: [],
     updateShopPrices: null,
 
+    // FIX: Beast Handler Merge State
+    isMergingBeast: false,
+    mergeSourceTower: null,
+
     init() {
         Config.load();
         if (!Array.isArray(Config.data.customMaps)) Config.data.customMaps = [];

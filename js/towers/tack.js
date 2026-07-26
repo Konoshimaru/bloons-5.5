@@ -6,11 +6,12 @@ export default {
         name: "Tack Shooter", cost: 260, range: 23, 
         baseCooldown: 1.12, fireRate: 1.12, 
         damage: 1, pierce: 1, projectileSpeed: 250, 
-        lifespan: 0.35, desc: "Shoots a volley of tacks in 8 directions.", 
+        lifespan: 1.0, desc: "Shoots a volley of tacks in 8 directions.", 
         dmgType: 'sharp', projectileType: 'tack', hitRadius: 18, 
         isStaticRotation: true, 
         tackCount: 8,
-        category: 'Primary' // FIX 1
+        category: 'Primary' 
+
     },
     upgrades: {
         1: [

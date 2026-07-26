@@ -1,6 +1,6 @@
 // js/main.js
 import { GameEngine } from './engine.js';
-import { Config, HeroStats, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
+import { Config, HeroStats, CANVAS_WIDTH, CANVAS_HEIGHT, Difficulties } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { Maps } from './data.js';
@@ -51,12 +51,11 @@ export const dom = {
     btnSandbox: document.getElementById('btn-sandbox'),
     btnPowers: document.getElementById('btn-powers'),
     btnKnowledge: document.getElementById('btn-knowledge'),
+    mmTopLeft: document.getElementById('mm-top-left'),
     btnSettings: document.getElementById('btn-settings'),
     btnMapEditor: document.getElementById('btn-map-editor'),
     btnContinue: document.getElementById('btn-continue'),
     btnAbandon: document.getElementById('btn-abandon'),
-    btnMaps: document.getElementById('btn-maps'),
-    btnDifficulty: document.getElementById('btn-difficulty'),
     diffBtns: document.querySelectorAll('.diff-btn[data-diff]'),
     hmPrevBtn: document.getElementById('hm-prev-btn'),
     hmNextBtn: document.getElementById('hm-next-btn'),
@@ -89,6 +88,214 @@ export const dom = {
 export const Main = {};
 Object.assign(Main, selectorMenus);
 Object.assign(Main, settingsMenu);
+
+// FIX: Unified Play Menu State
+Main.playMenuState = {
+    selectedMapIndex: 0,
+    page: 0,
+    mapsPerPage: 6
+};
+
+// FIX: Profile UI Update Logic
+Main.updateProfileUI = function() {
+    const stats = Config.data.stats || { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
+    const profileStats = document.getElementById('profile-stats');
+    const nameInput = document.getElementById('profile-name-input');
+    
+    if (nameInput) nameInput.value = Config.data.playerName || "";
+    
+    if (profileStats) {
+        profileStats.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #7f8c8d; padding-bottom: 5px;">
+                <span>Level:</span> <span style="color: var(--gold);">${Config.data.playerLevel}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Monkey Money:</span> <span style="color: var(--gold);">$${Config.data.monkeyMoney}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Games Played:</span> <span>${stats.gamesPlayed}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Highest Round:</span> <span>${stats.highestRound}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Total Bloons Popped:</span> <span>${stats.totalPops}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span>Towers Unlocked:</span> <span>${Config.data.unlockedTowers.length}</span>
+            </div>
+        `;
+    }
+};
+
+// FIX: Monkeys Encyclopedia Menu Logic
+Main.updateMonkeysMenu = function() {
+    const list = document.getElementById('mm-tower-list');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const categories = {
+        'Primary': ['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue', 'desperado'],
+        'Military': ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'],
+        'Magic': ['wizard', 'super', 'ninja', 'alchemist', 'druid', 'mermonkey'],
+        'Support': ['farm', 'spike', 'village', 'engineer', 'beast', 'farmer']
+    };
+
+    for (const [cat, types] of Object.entries(categories)) {
+        const header = document.createElement('div');
+        header.className = 'mm-cat-header';
+        header.innerText = cat;
+        list.appendChild(header);
+
+        types.forEach(type => {
+            const stats = TowerStats[type];
+            if (!stats) return;
+            
+            const btn = document.createElement('div');
+            btn.className = 'mm-tower-btn';
+            btn.dataset.tower = type;
+            btn.innerHTML = `
+                <div class="mm-tower-icon" style="background-image: url('sprites/portraits/${type}_menuportrait.png');"></div>
+                <span>${stats.name}</span>
+            `;
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.mm-tower-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this.selectMonkey(type);
+            });
+            list.appendChild(btn);
+        });
+    }
+};
+
+Main.selectMonkey = function(type) {
+    const stats = TowerStats[type];
+    const upgrades = Upgrades[type];
+    if (!stats || !upgrades) return;
+
+    const info = document.getElementById('mm-tower-info');
+    let html = `
+        <div class="mm-header">
+            <div class="mm-portrait" style="background-image: url('sprites/portraits/${type}_menuportrait.png');"></div>
+            <div class="mm-header-info">
+                <h3>${stats.name}</h3>
+                <p>${stats.desc || ''}</p>
+            </div>
+        </div>
+        <div class="mm-stats-grid">
+            <div class="mm-stat-box"><span>Cost</span><strong>$${stats.cost}</strong></div>
+            <div class="mm-stat-box"><span>Damage</span><strong>${stats.damage || 0}</strong></div>
+            <div class="mm-stat-box"><span>Range</span><strong>${stats.range || 0}</strong></div>
+            <div class="mm-stat-box"><span>Pierce</span><strong>${stats.pierce || 0}</strong></div>
+        </div>
+        <div class="mm-paths-container">
+    `;
+
+    for (let p = 1; p <= 3; p++) {
+        html += `<div class="mm-path-col">`;
+        for (let t = 0; t < 5; t++) {
+            const upg = upgrades[p][t];
+            if (upg) {
+                html += `
+                    <div class="mm-upg-card">
+                        <h4>${upg.name}</h4>
+                        <span class="mm-upg-cost">$${upg.cost}</span>
+                        <p>${upg.desc || ''}</p>
+                    </div>
+                `;
+            }
+        }
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    info.innerHTML = html;
+    info.scrollTop = 0;
+};
+
+// FIX: Unified Play Menu Logic
+Main.refreshPlayMaps = function() {
+    const grid = document.getElementById('play-map-grid');
+    const pageEl = document.getElementById('play-map-page');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    const totalPages = Math.ceil(Maps.length / this.playMenuState.mapsPerPage);
+    if (this.playMenuState.page >= totalPages) this.playMenuState.page = totalPages - 1;
+    if (this.playMenuState.page < 0) this.playMenuState.page = 0;
+    
+    const start = this.playMenuState.page * this.playMenuState.mapsPerPage;
+    const end = start + this.playMenuState.mapsPerPage;
+    const mapsToShow = Maps.slice(start, end);
+
+    mapsToShow.forEach((map, index) => {
+        const actualIndex = start + index;
+        const card = document.createElement('div');
+        card.className = 'play-map-card';
+        if (actualIndex === this.playMenuState.selectedMapIndex) card.classList.add('selected');
+        
+        let thumbUrl = map.bgImage ? `sprites/maps/${map.bgImage}` : '';
+        card.innerHTML = `
+            <div class="play-map-thumb" style="background-image: url('${thumbUrl}');"></div>
+            <div class="play-map-name">${map.name || `Map ${actualIndex + 1}`}</div>
+        `;
+        
+        card.addEventListener('click', () => {
+            this.playMenuState.selectedMapIndex = actualIndex;
+            this.showPlayDifficulties();
+        });
+        grid.appendChild(card);
+    });
+
+    if (pageEl) pageEl.innerText = `Page ${this.playMenuState.page + 1} / ${totalPages}`;
+};
+
+Main.showPlayDifficulties = function() {
+    document.getElementById('play-menu-title').innerText = Maps[this.playMenuState.selectedMapIndex].name || "Select Difficulty";
+    document.getElementById('play-map-view').classList.add('hidden');
+    document.getElementById('play-difficulty-view').classList.remove('hidden');
+    
+    const grid = document.getElementById('play-difficulty-grid');
+    grid.innerHTML = '';
+
+    const categories = {
+        'Easy': ['easy'],
+        'Medium': ['medium'],
+        'Hard': ['hard', 'impoppable', 'chimps'],
+        'Post CHIMPS': ['postchimps']
+    };
+
+    for (const [cat, keys] of Object.entries(categories)) {
+        const catDiv = document.createElement('div');
+        catDiv.className = 'play-diff-category';
+        catDiv.innerHTML = `<div class="play-diff-header">${cat}</div>`;
+
+        keys.forEach(key => {
+            const diff = Difficulties[key];
+            if (!diff) return;
+            
+            const btn = document.createElement('button');
+            btn.className = 'play-diff-btn';
+            btn.innerHTML = `<b>${diff.name}</b><br><span style="font-size:12px; color:#bdc3c7;">${diff.lives} Lives | $${diff.cash} Cash</span>`;
+            btn.addEventListener('click', () => {
+                Config.data.currentDifficulty = key;
+                GameEngine.currentMap = this.playMenuState.selectedMapIndex;
+                Config.data.currentMap = this.playMenuState.selectedMapIndex;
+                Config.save();
+                startGameUI(false);
+            });
+            catDiv.appendChild(btn);
+        });
+        grid.appendChild(catDiv);
+    }
+};
+
+Main.showPlayMaps = function() {
+    document.getElementById('play-menu-title').innerText = "Select a Map";
+    document.getElementById('play-map-view').classList.remove('hidden');
+    document.getElementById('play-difficulty-view').classList.add('hidden');
+    this.refreshPlayMaps();
+};
 
 window.addEventListener('error', (e) => {
     const errMsg = document.getElementById('error-message');
@@ -190,29 +397,57 @@ async function startGameUI(isSandbox) {
 }
 
 function _setupMenuListeners() {
-    dom.btnPlay?.addEventListener('click', () => UI.toggleMenus('play-menu'));
     dom.btnSandbox?.addEventListener('click', () => startGameUI(true)); 
     dom.btnHeroes?.addEventListener('click', () => UI.toggleMenus('hero-select-menu'));
     dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
     dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
+    
+    // FIX: Unified Play Menu Listeners
+    dom.btnPlay?.addEventListener('click', () => { 
+        Main.playMenuState.selectedMapIndex = Config.data.currentMap;
+        Main.showPlayMaps(); 
+        UI.toggleMenus('play-menu'); 
+    });
+    
+    document.getElementById('play-prev-maps')?.addEventListener('click', () => {
+        Main.playMenuState.page--;
+        Main.refreshPlayMaps();
+    });
+    document.getElementById('play-next-maps')?.addEventListener('click', () => {
+        Main.playMenuState.page++;
+        Main.refreshPlayMaps();
+    });
+    document.getElementById('play-back-btn')?.addEventListener('click', () => {
+        const diffView = document.getElementById('play-difficulty-view');
+        if (!diffView.classList.contains('hidden')) {
+            Main.showPlayMaps();
+        } else {
+            UI.toggleMenus('main-menu-ui');
+        }
+    });
+
+    dom.btnMonkeys?.addEventListener('click', () => { Main.updateMonkeysMenu(); UI.toggleMenus('monkeys-menu'); });
+    dom.mmTopLeft?.addEventListener('click', () => { Main.updateProfileUI(); UI.toggleMenus('profile-menu'); });
+    
+    document.getElementById('profile-save-name')?.addEventListener('click', () => {
+        const nameInput = document.getElementById('profile-name-input');
+        if (nameInput) {
+            Config.data.playerName = nameInput.value.trim().substring(0, 20);
+            Config.save();
+            UI.updateMetaStats();
+            Main.updateProfileUI();
+        }
+    });
+
     dom.btnSettings?.addEventListener('click', () => { GameEngine.lastMenu = 'main-menu-ui'; UI.toggleMenus('settings-menu'); });
     dom.btnMapEditor?.addEventListener('click', () => { MapEditor.init(); UI.toggleMenus('map-editor-menu'); });
-    dom.btnMonkeys?.addEventListener('click', () => alert('Monkeys menu coming soon!'));
     dom.btnContinue?.addEventListener('click', () => {
         if (GameEngine.loadGame()) {
             startGameUI(false);
         }
     });
     dom.btnAbandon?.addEventListener('click', () => GameEngine.abandonRun());
-    dom.btnMaps?.addEventListener('click', () => { Main.refreshMapSelector(); UI.toggleMenus('maps-menu'); });
-    dom.btnDifficulty?.addEventListener('click', () => UI.toggleMenus('difficulty-menu'));
-    dom.diffBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            Config.data.currentDifficulty = btn.dataset.diff;
-            Config.save();
-            startGameUI(false);
-        });
-    });
+    
     dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => UI.toggleMenus(e.target.dataset.target)));
     dom.settingsBackBtn?.addEventListener('click', () => UI.toggleMenus(GameEngine.lastMenu));
     dom.goMenuBtn?.addEventListener('click', () => {
@@ -315,11 +550,9 @@ function setupEventListeners() {
     _setupMenuListeners();
     Main._setupSettingsListeners();
     _setupGameListeners();
-    setupShopListeners(); // From dragManager.js
-    setupNudgeLogic(); // From dragManager.js
+    setupShopListeners(); 
+    setupNudgeLogic(); 
     InputManager.init();
-    
-    // NEW: Attach updateShopPrices to GameEngine to avoid circular imports
     GameEngine.updateShopPrices = updateShopPrices;
 }
 

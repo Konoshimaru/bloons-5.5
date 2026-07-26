@@ -9,7 +9,7 @@ const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 export default {
     stats: {
         name: "Engineer Monkey", scale:1.2, cost: 350, range: 35,
-        baseCooldown: 0.70, fireRate: 0.70,
+        baseCooldown: 0.70, fireRate: 0.70, lifespan: 0.8,
         damage: 1, pierce: 3, projectileSpeed: 600,
         desc: "Wields a nailgun. Upgrades into sentries, foam, and traps.",
         dmgType: 'sharp', projectileType: 'nail', hitRadius: 18, maxSentries: 0

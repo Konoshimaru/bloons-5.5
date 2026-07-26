@@ -84,15 +84,20 @@ export const Renderer = {
             ctx.drawImage(_worldCanvas, 0, 0);
             
             let lineAlpha = 1.0 - (boss.stateTimer / 2.0); 
-            ctx.strokeStyle = `rgba(231, 76, 60, ${lineAlpha * 0.9})`;
-            ctx.lineWidth = 4;
-            ctx.shadowColor = '#e74c3c';
-            ctx.shadowBlur = 15;
+            // FIX: Removed shadowBlur, using a thicker, brighter line instead
+            ctx.strokeStyle = `rgba(255, 50, 50, ${lineAlpha})`;
+            ctx.lineWidth = 6;
             ctx.beginPath();
             ctx.moveTo(0, 360);
             ctx.lineTo(CANVAS_WIDTH, 360);
             ctx.stroke();
-            ctx.shadowBlur = 0;
+            
+            ctx.strokeStyle = `rgba(231, 76, 60, ${lineAlpha * 0.9})`;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 360);
+            ctx.lineTo(CANVAS_WIDTH, 360);
+            ctx.stroke();
         } else if (boss && (boss.screenSplitActive || boss.currentOffset !== 0)) {
             let offset = boss.currentOffset;
             
@@ -200,13 +205,17 @@ export const Renderer = {
         let smY = 150 - Math.sin(progress * Math.PI) * 50;
         
         if (phase === 'day' || phase === 'dawn') {
-            ctx.fillStyle = '#FFD700'; ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 60;
-            ctx.beginPath(); ctx.arc(smX, smY, 45, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+            // FIX: Removed shadowBlur, faked glow with a larger transparent circle
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+            ctx.beginPath(); ctx.arc(smX, smY, 75, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath(); ctx.arc(smX, smY, 45, 0, Math.PI * 2); ctx.fill();
         }
         if (phase === 'night' || phase === 'dusk') {
-            ctx.fillStyle = '#F4F6F0'; ctx.shadowColor = '#F4F6F0'; ctx.shadowBlur = 30;
+            // FIX: Removed shadowBlur
+            ctx.fillStyle = '#F4F6F0';
             ctx.beginPath(); ctx.arc(smX, smY, 35, 0, Math.PI * 2); ctx.fill();
-            ctx.shadowBlur = 0; ctx.fillStyle = '#e0e0e0';
+            ctx.fillStyle = '#e0e0e0';
             ctx.beginPath(); ctx.arc(smX + 10, smY - 5, 8, 0, Math.PI * 2); ctx.fill();
         }
 

@@ -1,4 +1,4 @@
-﻿// config.js
+﻿// js/config.js
 import { Maps } from './data.js';
 import { HeroStats, HeroLevels } from './heroes/index.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
@@ -7,15 +7,27 @@ export { HeroStats, HeroLevels, CANVAS_WIDTH, CANVAS_HEIGHT };
 export const RANGE_SCALE = 3.0;
 
 const STORAGE_KEY = 'td_config';
-const CURRENT_SCHEMA_VERSION = 12;
+const CURRENT_SCHEMA_VERSION = 15; // Incremented for migration
 
-// FIX: Migration runners for old save data
 const migrations = {
     11: (data) => {
-        // Example: Migrating v11 (or older) to v12
         if (!data.monkeyKnowledge) data.monkeyKnowledge = {};
         if (!data.unlocks) data.unlocks = {};
         if (!Array.isArray(data.unlockedPerks)) data.unlockedPerks = [];
+        return data;
+    },
+    12: (data) => {
+        if (!Array.isArray(data.unlockedTowers)) {
+            data.unlockedTowers = ['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue', 'desperado', 'sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling', 'wizard', 'super', 'ninja', 'alchemist', 'druid', 'mermonkey', 'farm', 'spike', 'village', 'engineer', 'beast', 'quincy', 'gwendolin', 'sauda', 'gojo', 'geto'];
+        }
+        return data;
+    },
+    13: (data) => {
+        if (!data.stats) data.stats = { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
+        return data;
+    },
+    14: (data) => {
+        if (!data.playerName) data.playerName = "";
         return data;
     }
 };
@@ -37,31 +49,35 @@ const DEFAULT_DATA = {
     monkeyMoney: 0,
     playerLevel: 1,
     playerXP: 0,
-    playerXPToNext: 1000,
+    playerXPToNext: 480,
+    playerName: "",
     savedRun: null,
     unlockedPerks: [],
     extremeSpeedEnabled: false,
     showTowerStats: false,
     uncapFps: false,
-    knowledgePoints: 1, // Starting KP
-    monkeyKnowledge: {}, // Tracks unlocked nodes
+    knowledgePoints: 1,
+    monkeyKnowledge: {},
     unlocks: {
         extraStartingCash: false,
         extraStartingLives: false,
         freeFirstDartMonkey: false
+    },
+    unlockedTowers: ['dart', 'wizard', 'quincy'],
+    stats: {
+        gamesPlayed: 0,
+        highestRound: 0,
+        totalPops: 0
     }
 };
 
 export const Config = {
-    // FIX: Use structuredClone to deep clone nested objects/arrays
     data: structuredClone(DEFAULT_DATA),
     load() {
         try {
-            // Check both the new key and the old v11 key to smoothly transition existing players
             const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('td_config_v11');
             let parsed = saved ? JSON.parse(saved) : {};
             
-            // --- SAVE MIGRATION ---
             const savedVersion = parsed.schemaVersion || 1;
             for (let v = savedVersion + 1; v <= CURRENT_SCHEMA_VERSION; v++) {
                 if (migrations[v]) {
@@ -70,14 +86,15 @@ export const Config = {
             }
             parsed.schemaVersion = CURRENT_SCHEMA_VERSION;
             
-            // Deep clone defaults, then shallow merge parsed data over it.
             this.data = { ...structuredClone(DEFAULT_DATA), ...parsed };
             
-            // --- Nested Object Backfilling ---
             if (!Array.isArray(this.data.customMaps)) this.data.customMaps = [];
             if (!this.data.unlocks) this.data.unlocks = {};
             if (!this.data.monkeyKnowledge) this.data.monkeyKnowledge = {};
             if (!Array.isArray(this.data.unlockedPerks)) this.data.unlockedPerks = [];
+            if (!Array.isArray(this.data.unlockedTowers)) this.data.unlockedTowers = ['dart', 'wizard', 'quincy'];
+            if (!this.data.stats) this.data.stats = { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
+            if (!this.data.playerName) this.data.playerName = "";
             
             if (this.data.unlocks.extraStartingCash === undefined) this.data.unlocks.extraStartingCash = false;
             if (this.data.unlocks.extraStartingLives === undefined) this.data.unlocks.extraStartingLives = false;
@@ -87,7 +104,6 @@ export const Config = {
                 Maps.push(...this.data.customMaps);
             }
             
-            // Clean up the old v11 key if it existed
             if (localStorage.getItem('td_config_v11')) {
                 localStorage.removeItem('td_config_v11');
             }
@@ -116,5 +132,4 @@ export const Difficulties = Object.freeze({
 
 Object.values(Difficulties).forEach(Object.freeze);
 
-// Update the TargetingModes array to include the new Spike Factory modes
 export const TargetingModes = Object.freeze(['First', 'Last', 'Strong', 'Close', 'Smart']);

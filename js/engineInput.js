@@ -48,7 +48,38 @@ export default {
         const x = adj.x;
         const y = adj.y;
 
-        // FIX: Intercept click to place Mermonkey Totem
+        // Intercept click for Beast Handler Merge
+        if (this.isMergingBeast && this.mergeSourceTower) {
+            let source = this.mergeSourceTower;
+            this.isMergingBeast = false;
+            this.mergeSourceTower = null;
+            
+            let targetTower = null;
+            for (const t of this.towers) {
+                if (t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + 5)) { targetTower = t; break; }
+            }
+            
+            if (targetTower && targetTower !== source && targetTower.type === 'beast' && !targetTower.isMinion) {
+                if (targetTower.beastPath === source.beastPath && targetTower.beastTier >= source.beastTier) {
+                    let powerToTransfer = source.beastPower;
+                    let newPower = Math.min(targetTower.maxBeastPower, targetTower.beastPower + powerToTransfer);
+                    let actualTransferred = newPower - targetTower.beastPower;
+                    targetTower.beastPower = newPower;
+                    
+                    getBehavior('beast')._updateMinionStats(targetTower);
+                    
+                    if (source.activeBeast) { source.activeBeast.alive = false; }
+                    const idx = this.towers.indexOf(source);
+                    if (idx > -1) this.towers.splice(idx, 1);
+                    if (this.selectedPlacedTower === source) this.deselectAll();
+                    
+                    this.log(`Merged ${actualTransferred} Beast Power!`);
+                } else { this.log("Merge failed: Must target same beast type and equal/higher tier."); }
+            } else { this.log("Merge cancelled."); }
+            return; 
+        }
+
+        // Intercept click to place Mermonkey Totem
         if (this.selectedPlacedTower && this.selectedPlacedTower.isPlacingTotem) {
             if (x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
                 this.selectedPlacedTower.totemX = x;
@@ -56,7 +87,7 @@ export default {
                 this.selectedPlacedTower.isPlacingTotem = false;
                 this.log("Totem placed!");
             }
-            return; // Prevent placing towers or deselecting
+            return; 
         }
 
         if (this.gameState === 'menu') {
@@ -171,7 +202,20 @@ export default {
     handleUpgrade(path) {
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
-        if (t.stats.isHero) return; 
+        if (t.stats.isHero || t.isMinion) return;
+        
+        // Beast Handler Water Check
+        if (t.type === 'beast' && path === 1) {
+            let hasWater = false;
+            for (let dx = -150; dx <= 150; dx += 30) {
+                for (let dy = -150; dy <= 150; dy += 30) {
+                    if (this.map.isInWater(t.x + dx, t.y + dy)) { hasWater = true; break; }
+                }
+                if (hasWater) break;
+            }
+            if (!hasWater) { this.log("No water nearby for fish!"); return; }
+        }
+
         const tier = t.upgrades[path - 1];
         const upgradeData = Upgrades[t.type][path][tier];
         if (!upgradeData) { this.log("Max upgrades reached!"); return; }
@@ -193,6 +237,11 @@ export default {
         const behavior = getBehavior(t.type);
         if (!behavior) return;
 
+        let actualTower = t;
+        if (t.type === 'beast' && !t.isMinion && t.activeBeast) {
+            actualTower = t.activeBeast;
+        }
+
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         let cdMult = 1.0;
         
@@ -205,27 +254,36 @@ export default {
 
         if (t.abilityCdMult) cdMult *= t.abilityCdMult;
 
-        if (slot === 1 && t.stats.isAbility && t.abilityCooldown <= 0 && behavior.ability) {
-            behavior.ability(t, this);
-            let cd = t.stats.isHero ? (t.stats.rapidShotMult ? t.stats.rapidShotCd || 60 : 40) : (t.stats.abilityCd || 45);
-            t.abilityCooldown = cd * cdMult; return;
+        if (slot === 1 && actualTower.stats.isAbility && actualTower.abilityCooldown <= 0 && behavior.ability) {
+            behavior.ability(actualTower, this);
+            let cd = actualTower.stats.abilityCd || 45;
+            actualTower.abilityCooldown = cd * cdMult; return;
         }
-        if (slot === 2 && t.stats.isAbility2 && t.ability2Cooldown <= 0 && behavior.ability2) {
-            behavior.ability2(t, this); 
-            let cd = t.stats.isHero ? (t.stats.stormCd || 70) : 60;
-            t.ability2Cooldown = cd * cdMult; return;
+        if (slot === 2 && actualTower.stats.isAbility2 && actualTower.ability2Cooldown <= 0 && behavior.ability2) {
+            behavior.ability2(actualTower, this); 
+            let cd = actualTower.stats.isHero ? (actualTower.stats.stormCd || 70) : 60;
+            actualTower.ability2Cooldown = cd * cdMult; return;
         }
-        if (slot === 3 && t.stats.isAbility3 && t.ability3Cooldown <= 0 && behavior.ability3) {
-            behavior.ability3(t, this); 
-            let cd = t.stats.isHero ? 120 : 60;
-            t.ability3Cooldown = cd * cdMult; return;
+        if (slot === 3 && actualTower.stats.isAbility3 && actualTower.ability3Cooldown <= 0 && behavior.ability3) {
+            behavior.ability3(actualTower, this); 
+            let cd = actualTower.stats.isHero ? 120 : 60;
+            actualTower.ability3Cooldown = cd * cdMult; return;
         }
     },
 
     sellTower() {
         if (!this.selectedPlacedTower) return;
+        if (this.selectedPlacedTower.isMinion) return;
         if (this.difficulty && this.difficulty.noSelling) { this.log("Cannot sell in CHIMPS mode!"); return; }
         if (this.selectedPlacedTower.stats.isHero) this.hero = null;
+        
+        // Remove beast minion when handler is sold
+        if (this.selectedPlacedTower.type === 'beast' && this.selectedPlacedTower.activeBeast) {
+            this.selectedPlacedTower.activeBeast.alive = false;
+            const idx = this.towers.indexOf(this.selectedPlacedTower.activeBeast);
+            if (idx > -1) this.towers.splice(idx, 1);
+        }
+        
         this.selectedPlacedTower.sell(this);
         const idx = this.towers.indexOf(this.selectedPlacedTower);
         if (idx > -1) this.towers.splice(idx, 1);

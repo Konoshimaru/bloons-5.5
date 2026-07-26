@@ -12,7 +12,8 @@ export default {
         name: "Ice Monkey", cost: 400, range: 20,
         baseCooldown: 2.4, fireRate: 2.4,
         damage: 1, pierce: 40, projectileSpeed: 0,
-        lifespan: 0.1, desc: "Claps to release a wave of coldness, freezing and popping nearby bloons. Can be placed on water and land. Cannot pop Lead, White, or Zebra bloons without upgrades.",
+        lifespan: 0.8, desc: "Claps to release a wave of coldness, freezing and popping nearby bloons. Can be placed on water and land. Cannot pop Lead, White, or Zebra bloons without upgrades.",
+        // ... rest of stats  
         dmgType: 'ice', projectileType: 'ice', hitRadius: 18,
         isStaticRotation: true,
         freezeDuration: 1.5,

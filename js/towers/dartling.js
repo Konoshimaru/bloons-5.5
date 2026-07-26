@@ -7,7 +7,8 @@ export default {
         name: "Dartling Gunner", cost: 850, range: 9999, 
         baseCooldown: 0.2, fireRate: 0.2, 
         damage: 1, pierce: 1, projectileSpeed: 700, 
-        lifespan: 1.2, desc: "Aims wherever you point. High rate of fire.", 
+        lifespan: 2.5, desc: "Aims wherever you point. High rate of fire.", 
+        // ... rest of stats
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 12,
         spread: 23, // Degrees of random spread
         category: 'Military' 
@@ -63,7 +64,8 @@ export default {
                 tower.stormTimer = 0.05; // Fire 20 times a second
                 let fakeTarget = { x: engine.mouse.x, y: engine.mouse.y };
                 let p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, 1, fakeTarget, 'bomb', 600, 10, 2.0, null, {isExplosive: true, explosionRadius: 30, explosionDamage: 1, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
+                // FIX: Added moabDmg to the dmgType object
+                p.init(tower.x, tower.y, 1, fakeTarget, 'bomb', 600, 10, 2.0, null, {isExplosive: true, explosionRadius: 30, explosionDamage: 1, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true, moabDmg: tower.stats.moabDmg || 0});
             }
         }
     },

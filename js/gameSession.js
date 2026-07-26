@@ -4,7 +4,8 @@ import { TowerStats } from './towers/index.js';
 import { Hero } from './hero.js';
 import { Tower } from './tower.js';
 import { UI } from './ui.js';
-import { MKEffects } from './monkeyKnowledgeEffects.js'; // FIX: Added missing import
+import { MKEffects } from './monkeyKnowledgeEffects.js'; 
+import { LevelManager } from './levelManager.js'; 
 
 const GameSession = {
     saveGame() {
@@ -62,27 +63,27 @@ const GameSession = {
         
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         let mmMult = 1.0;
-        // FIX: Apply economy MK effects generically using stat/amount
         for (const eff of MKEffects.economy) {
             if (!mk[eff.id]) continue;
             if (eff.stat === 'mmRewardMult') mmMult = eff.amount;
         }
         mmEarned = Math.floor(mmEarned * mmMult);
         
-        Config.data.playerXP += xpEarned; Config.data.monkeyMoney += mmEarned;
+        Config.data.monkeyMoney += mmEarned;
+        LevelManager.addXP(xpEarned);
         
-        while (Config.data.playerXP >= Config.data.playerXPToNext) {
-            Config.data.playerXP -= Config.data.playerXPToNext; 
-            Config.data.playerLevel++;
-            Config.data.playerXPToNext = Math.floor(Config.data.playerXPToNext * 1.25);
-            if (Config.data.playerLevel > 25) {
-                Config.data.knowledgePoints = (Config.data.knowledgePoints || 0) + 1;
-            }
-        }
+        // FIX: Track Player Stats
+        if (!Config.data.stats) Config.data.stats = { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
+        Config.data.stats.gamesPlayed = (Config.data.stats.gamesPlayed || 0) + 1;
+        Config.data.stats.highestRound = Math.max(Config.data.stats.highestRound || 0, wavesSurvived);
         
-        Config.data.savedRun = null; Config.save();
+        Config.data.savedRun = null; 
+        Config.save();
+        
         const rewardsEl = document.getElementById('go-rewards');
         if (rewardsEl) rewardsEl.innerHTML = `+${xpEarned} XP<br>+${mmEarned} Monkey Money`;
+        
+        UI.updateMetaStats();
     },
 
     skipWave(amount) {

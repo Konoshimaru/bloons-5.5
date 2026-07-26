@@ -74,7 +74,6 @@
             <div id="shop-header">Shop</div>
             <div class="sidebar-scroll">
                 <div id="shop-view" class="tower-shop">
-                    <!-- FIX: Added id="hero-shop-card" -->
                     <div class="tower-card cat-hero" id="hero-shop-card" data-tower="quincy" style="background-image: url('sprites/portraits/quincy_menuportrait.png');"><span class="cost">$540</span></div>
                     <div class="tower-card cat-primary" data-tower="dart" style="background-image: url('sprites/portraits/dart_menuportrait.png');"><span class="cost">$200</span></div>
                     <div class="tower-card cat-primary" data-tower="boomerang" style="background-image: url('sprites/portraits/boomerang_menuportrait.png');"><span class="cost">$315</span></div>
@@ -143,6 +142,7 @@
         <!-- Main Menu UI Bars -->
         <div id="main-menu-ui">
             <div id="mm-top-left">
+                <div id="mm-player-name">Player</div>
                 <div id="mm-level-text">Level 1</div>
                 <div class="mm-exp-bar-container"><div id="mm-exp-fill" class="mm-exp-bar-fill"></div></div>
                 <div id="mm-xp-text">0 / 1000 XP</div>
@@ -162,15 +162,29 @@
             </div>
         </div>
 
-        <!-- Play Submenu -->
+        <!-- NEW: Unified Play Menu -->
         <div id="play-menu" class="overlay hidden">
-            <div class="menu-content">
-                <h2>Play</h2>
-                <button id="btn-continue" class="menu-btn" style="background:#27ae60; display:none;">Continue Run</button>
-                <button id="btn-abandon" class="menu-btn secondary" style="display:none;">Abandon Run</button>
-                <button id="btn-maps">Choose Map</button>
-                <button id="btn-difficulty">Select Difficulty</button>
-                <button class="back-btn" data-target="main-menu-ui">Back</button>
+            <div class="menu-content" style="max-width: 900px; width: 90vw;">
+                <h2 id="play-menu-title">Select a Map</h2>
+                
+                <!-- Map Selection View -->
+                <div id="play-map-view">
+                    <div class="play-map-nav">
+                        <button id="play-prev-maps">◀ Prev</button>
+                        <span id="play-map-page">Page 1</span>
+                        <button id="play-next-maps">Next ▶</button>
+                    </div>
+                    <div id="play-map-grid" class="play-map-grid"></div>
+                </div>
+
+                <!-- Difficulty Selection View -->
+                <div id="play-difficulty-view" class="hidden">
+                    <div id="play-difficulty-grid"></div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                    <button id="play-back-btn" class="back-btn">Back</button>
+                </div>
             </div>
         </div>
 
@@ -212,11 +226,25 @@
             </div>
         </div>
 
+        <!-- NEW: Monkeys Encyclopedia Menu -->
+        <div id="monkeys-menu" class="overlay hidden">
+            <div class="mm-container">
+                <div class="mm-top">
+                    <h2>Tower Encyclopedia</h2>
+                    <button class="back-btn" data-target="main-menu-ui">Back</button>
+                </div>
+                <div class="mm-main">
+                    <div class="mm-sidebar" id="mm-tower-list"></div>
+                    <div class="mm-content" id="mm-tower-info">
+                        <div class="mm-placeholder">Select a tower to view its stats and upgrades.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
          <!-- Knowledge Menu -->
         <div id="knowledge-menu" class="overlay hidden" style="padding: 0; overflow: hidden;">
             <div id="mk-viewport" style="width: 100%; height: 100%; overflow: hidden; background-color: #050508; position: relative; cursor: grab;">
-                
-                <!-- Top Tab Navigation -->
                 <div id="mk-tabs" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 100; display: flex; gap: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; border: 1px solid #2c3e50; backdrop-filter: blur(5px);">
                     <button class="mk-tab active" data-screen="primary">Primary</button>
                     <button class="mk-tab" data-screen="military">Military</button>
@@ -224,26 +252,18 @@
                     <button class="mk-tab" data-screen="support">Support</button>
                     <button class="mk-tab" data-screen="heroes">Heroes</button>
                 </div>
-
                 <button class="back-btn" data-target="main-menu-ui" style="position: absolute; top: 20px; left: 20px; z-index: 100;">Back</button>
-                
-                <!-- NEW: Currency Counters -->
                 <div id="mk-currency" style="position: absolute; top: 20px; right: 20px; z-index: 100; display: flex; gap: 20px; background: rgba(0,0,0,0.7); padding: 10px 15px; border-radius: 8px; border: 1px solid #2c3e50; backdrop-filter: blur(5px); font-weight: 900; font-family: 'Nunito', sans-serif;">
                     <div style="color: #3498db;"><span id="mk-kp-count">0</span> KP</div>
                     <div style="color: #f1c40f;">🐵 <span id="mk-mm-count">0</span></div>
                 </div>
-                
-                <!-- Empty Screen Containers (Future nodes go here) -->
                 <div id="mk-screen-primary" class="mk-screen active"></div>
                 <div id="mk-screen-military" class="mk-screen"></div>
                 <div id="mk-screen-magic" class="mk-screen"></div>
                 <div id="mk-screen-support" class="mk-screen"></div>
                 <div id="mk-screen-heroes" class="mk-screen"></div>
-
-                <!-- Focus Mode UI -->
                 <div id="mk-focus-overlay"></div>
                 <div id="mk-focus-node"></div>
-                
                 <div id="mk-detail-panel">
                     <button id="mk-close-focus">✖ Close</button>
                     <h2 id="mk-detail-title">Upgrade Name</h2>
@@ -258,10 +278,7 @@
                     </div>
                 <button id="mk-buy-btn" style="margin-top: 20px; width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">Unlock Upgrade</button>
                 </div>
-
-                <!-- NEW: Toggle All MK Button -->
                 <button id="mk-toggle-btn" style="position: absolute; bottom: 20px; right: 20px; z-index: 100; background: rgba(0,0,0,0.7); color: #f1c40f; border: 1px solid #f1c40f; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: 900; font-family: 'Nunito', sans-serif;">MK: ON</button>
-
             </div>
         </div>
 
@@ -273,31 +290,6 @@
                 <div class="shop-item" data-unlock="extraStartingLives" data-cost="500"><span>Extra Starting Lives (+10)</span><span class="cost">$500</span></div>
                 <div class="shop-item" data-unlock="freeFirstDartMonkey" data-cost="1000"><span>Free First Dart Monkey</span><span class="cost">$1000</span></div>
                 <button class="back-btn" data-target="main-menu-ui">Back</button>
-            </div>
-        </div>
-
-        <!-- Difficulty Menu -->
-        <div id="difficulty-menu" class="overlay hidden">
-            <div class="menu-content">
-                <h2>Select Difficulty</h2>
-                <div class="difficulty-grid">
-                    <button class="diff-btn" data-diff="easy">Easy<br><span class="diff-info">200 Lives<br>-15% Cost</span></button>
-                    <button class="diff-btn" data-diff="medium">Medium<br><span class="diff-info">150 Lives<br>Normal Cost</span></button>
-                    <button class="diff-btn" data-diff="hard">Hard<br><span class="diff-info">100 Lives<br>+8% Cost</span></button>
-                    <button class="diff-btn" data-diff="impoppable">Impoppable<br><span class="diff-info">1 Life<br>+20% Cost</span></button>
-                    <button class="diff-btn" data-diff="chimps">CHIMPS<br><span class="diff-info">1 Life<br>No Selling</span></button>
-                    <button class="diff-btn" data-diff="postchimps" style="background: #1a1a1a; border-color: #e74c3c;">Post CHIMPS<br><span class="diff-info">1 Life<br>+50% Cost / No Selling</span></button>
-                </div>
-                <button class="back-btn" data-target="play-menu">Back</button>
-            </div>
-        </div>
-
-        <!-- Maps Menu -->
-        <div id="maps-menu" class="overlay hidden">
-            <div class="menu-content">
-                <h2>Select a Map</h2>
-                <div id="map-selector" class="map-selector"></div>
-                <button class="back-btn" data-target="play-menu">Back</button>
             </div>
         </div>
 
@@ -324,7 +316,6 @@
                             <button id="editor-reverse-path">Reverse Path</button>
                         </div>
                         <button id="editor-snap-grid">Snap to Grid: Off</button>
-                        <!-- NEW HIDE BUTTONS -->
                         <div class="btn-group">
                             <button id="editor-hide-water">Hide Water</button>
                             <button id="editor-hide-props">Hide Objects</button>
@@ -376,10 +367,8 @@
                         <button id="editor-save">Save Map</button>
                         <button id="editor-load">Load Map</button>
                         <button id="editor-toggle-json">View/Edit JSON</button>
-                        <!-- NEW IMPORT BUTTON -->
                         <button id="editor-import-json-btn">Import JSON</button>
                         <input type="file" id="editor-import-json" accept=".json" style="display: none;">
-                        <!-- END NEW -->
                         <button id="editor-exit">Exit</button>
                     </div>
                     <p class="info-text" style="text-align: center; margin-top: 10px;">Tip: Hold SHIFT while dragging to lock to one axis.</p>
@@ -406,7 +395,6 @@
                 <div class="setting-item"><label><input type="checkbox" id="smoothing-checkbox" checked> Enable Anti-Aliasing (Sprites)</label></div>
                 <div class="setting-item"><label><input type="checkbox" id="fps-checkbox" checked> Show FPS Counter</label></div>
                 <div class="setting-item"><label><input type="checkbox" id="show-stats-checkbox"> Show Tower Stats in Upgrade Menu</label></div>
-                <!-- NEW: Uncap FPS Option -->
                 <div class="setting-item"><label><input type="checkbox" id="uncap-fps-checkbox"> Uncap FPS (EXPERIMENTAL!!!)</label></div>
                 <div class="music-controls"><button id="prev-song-btn">⏮</button><button id="next-song-btn">⏭</button></div>
                 <button class="back-btn" id="settings-back-btn">Back</button>
@@ -432,6 +420,22 @@
                 <button id="go-menu-btn">Return to Main Menu</button>
             </div>
         </div>
+
+        <!-- Profile Menu -->
+        <div id="profile-menu" class="overlay hidden">
+            <div class="menu-content" style="max-width: 500px;">
+                <h2>Player Profile</h2>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="profile-name-input" placeholder="Enter your name" style="flex: 1; margin: 0;">
+                    <button id="profile-save-name" style="width: auto; margin: 0; padding: 10px 20px;">Save</button>
+                </div>
+                <div id="profile-stats" style="text-align: left; width: 100%; margin-bottom: 20px; font-size: 18px;">
+                    <!-- Populated by JS -->
+                </div>
+                <button class="back-btn" data-target="main-menu-ui">Back</button>
+            </div>
+        </div>
+
     </div>
     <script type="module" src="js/main.js"></script>
 </body>
