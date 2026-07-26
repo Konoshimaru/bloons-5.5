@@ -121,6 +121,26 @@ export const ProjectileDrawers = {
     tentacle: (ctx) => {
         ctx.strokeStyle = '#8e44ad'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(15, 0); ctx.stroke();
     },
+        // Add these to the ProjectileDrawers object
+    beast_attack: (ctx) => {
+        ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+    },
+    beast_water: (ctx) => {
+        ctx.fillStyle = '#2980b9'; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5); ctx.fill();
+    },
+    beast_land: (ctx) => {
+        ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5); ctx.fill();
+    },
+    beast_air: (ctx) => {
+        ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-5, -5); ctx.lineTo(-5, 5); ctx.fill();
+    },
+        // Add to ProjectileDrawers
+    thorn: (ctx) => {
+        ctx.strokeStyle = '#8b4513'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(5, 0); ctx.stroke();
+        ctx.strokeStyle = '#27ae60'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(-2, -1); ctx.lineTo(2, -1); ctx.stroke();
+    }
 };
 
 // Aliases for sub-types

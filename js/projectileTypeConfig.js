@@ -15,7 +15,14 @@ export const ProjectileTypeConfig = {
     ultra_juggernaut: { exemptFromHitTracking: true, splitsOnZeroPierce: true },
     
     boomerang:        { survivesZeroPierce: true },
-    arrow:            { decrementsPierceOnExplosion: true }
+    arrow:            { decrementsPierceOnExplosion: true },
+        // Add these to the ProjectileTypeConfig object
+    beast_attack:    { isExplosive: true, explosionColor: '#3498db', decrementsPierceOnExplosion: true },
+    beast_water:     { isExplosive: true, explosionColor: '#2980b9', decrementsPierceOnExplosion: true },
+    beast_land:      { isExplosive: true, explosionColor: '#27ae60', decrementsPierceOnExplosion: true },
+    beast_air:       { isExplosive: true, explosionColor: '#f1c40f', decrementsPierceOnExplosion: true },
+        // Add to ProjectileTypeConfig
+    thorn:            { exemptFromHitTracking: true } // Thorns pass through and hit instantly
     
     // blue, trident, wavelet, ice_ball, tentacle intentionally omitted 
     // so they use the default {} (standard hit handler)

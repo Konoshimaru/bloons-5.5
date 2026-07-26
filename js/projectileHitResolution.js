@@ -49,7 +49,7 @@ const ProjectileHitResolution = {
         return !!cfg.isExplosive || (this.effects && this.effects.isExplosive);
     },
 
-    _handleExplosiveHit() {
+     _handleExplosiveHit() {
         const expRadius = this._getExplosionRadius();
         const expColor = this._getExplosionColor();
         GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.3, maxLife: 0.3, color: expColor });
@@ -95,6 +95,22 @@ const ProjectileHitResolution = {
                 }
                 
                 hits++;
+            }
+        }
+
+        // FIX: Bomb Shooter Frag Bombs & Cluster Bombs Logic
+        if (this.effects && this.effects.fragCount > 0) {
+            for (let i = 0; i < this.effects.fragCount; i++) {
+                let angle = (i / this.effects.fragCount) * Math.PI * 2;
+                let p = GameEngine.projectilePool.get();
+                p.init(this.x, this.y, this.effects.fragDamage || 1, null, 'tack', 400, 2, 0.3, angle, {canHitLead: false}, 0, this.tower, {isSharp: true});
+            }
+        }
+        if (this.effects && this.effects.clusterCount > 0) {
+            for (let i = 0; i < this.effects.clusterCount; i++) {
+                let angle = (i / this.effects.clusterCount) * Math.PI * 2;
+                let p = GameEngine.projectilePool.get();
+                p.init(this.x, this.y, this.effects.clusterDamage || 1, null, 'bomb', 300, 1, 0.5, angle, {isExplosive: true, explosionRadius: 15, explosionDamage: this.effects.clusterDamage || 1, explosionPierce: 10, canHitLead: true}, 0, this.tower, {isExplosion: true, canHitLead: true});
             }
         }
 

@@ -19,20 +19,20 @@ import engineer from './engineer.js';
 import alchemist from './alchemist.js';
 import farmer from './farmer.js';
 import mermonkey from './mermonkey.js';
+import beast from './beast.js';
+import druid from './druid.js';
+import heli from './heli.js';
+import dartling from './dartling.js';
+import ace from './ace.js';
+import desperado from './desperado.js';
 import { createPlaceholderTower } from './placeholder.js';
 
 const placeholderTowers = [
-    ['desperado', 'Desperado', 500, 'Placeholder Primary tower.'],
-    ['ace', 'Monkey Ace', 800, 'Placeholder Military tower. Flies around the map.'],
-    ['heli', 'Heli Pilot', 1000, 'Placeholder Military tower. Flies to target location.'],
-    ['dartling', 'Dartling Gunner', 950, 'Placeholder Military tower. Shoots where you aim.'],
-    ['druid', 'Druid', 500, 'Placeholder Magic tower.'],
-    ['beast', 'Beast Handler', 550, 'Placeholder Support tower. Merges with other beasts.']
 ];
 
 export const TowerRegistry = {
-    dart, boomerang, tack, ninja, sniper, ice, glue, bomb, spike, farm, village,
-    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer, mermonkey
+    dart, boomerang, tack, ninja, sniper, ice, glue, bomb, spike, farm, village, heli, ace, desperado,
+    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer, mermonkey, beast, dartling, druid
 };
 
 placeholderTowers.forEach(([key, name, cost, desc]) => {

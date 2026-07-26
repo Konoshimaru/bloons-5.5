@@ -1,71 +1,156 @@
-﻿import { GameEngine } from '../engine.js';
+﻿// js/towers/wizard.js
+import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
 export default {
     stats: { 
-        name: "Wizard Monkey", cost: 600, range: 35, 
+        name: "Wizard Monkey", cost: 250, range: 40, 
         baseCooldown: 1.1, fireRate: 1.1, 
-        damage: 1, pierce: 1, projectileSpeed: 500, 
-        lifespan: 0.5, desc: "Shoots magic bolts.", 
-        dmgType: 'magic', projectileType: 'wizard_bolt', hitRadius: 18 
+        damage: 1, pierce: 3, projectileSpeed: 600, 
+        lifespan: 0.4, desc: "Hurls magical bolts of energy at the Bloons.", 
+        dmgType: 'energy', projectileType: 'wizard_bolt', hitRadius: 12,
+        category: 'Magic' 
     },
     upgrades: {
         1: [
-            {name:"Arcane Blast", cost:300, stat:"pierce", amount:2, desc:"Magic bolts hit 2 extra bloons."},
-            {name:"Arcane Mastery", cost:500, stat:"damage", amount:1, desc:"Deals 1 extra damage."},
-            {name:"Arcane Spike", cost:1200, stat:"damage", amount:2, desc:"Deals massive damage.", extraMods:{pierce:1}},
-            {name:"Archmage", cost:3000, stat:"damage", amount:3, desc:"Deals colossal damage and pops lead.", extraMods:{pierce:2, canHitLead:true}},
-            {name:"Wizard Lord", cost:30000, stat:"damage", amount:10, desc:"Unleashes ultimate arcane power."}
+            {name:"Guided Magic", cost:175, desc:"Magic shots last longer and seek out the Bloons, even behind cover.", extraMods:{lifespan: 0.2, homing: true}},
+            {name:"Arcane Blast", cost:450, stat:"damage", amount:1, desc:"Bigger, more powerful magic blasts pop through 2 layers of Bloon.", extraMods:{pierce: 2}},
+            {name:"Arcane Mastery", cost:1450, stat:"damage", amount:1, desc:"Faster attacks with increased range, damage, and popping power.", extraMods:{range: 10, pierce: 2, cooldownMult: 0.8}},
+            {name:"Arcane Spike", cost:10000, stat:"damage", amount:4, desc:"Faster firing magic does huge damage to most Bloon types, especially to MOABs.", extraMods:{cooldownMult: 0.8, moabDmg: 5}},
+            {name:"Archmage", cost:32000, stat:"damage", amount:10, desc:"A true master of magical wizardry. Attacks faster and does more damage to MOAB-class Bloons.", extraMods:{cooldownMult: 0.7, moabDmg: 15, pierce: 5}}
         ],
         2: [
-            {name:"Fireball", cost:400, stat:"damage", amount:1, desc:"Shoots explosive fireballs.", extraMods:{isExplosive:true, explosionRadius:40, explosionDamage:1, explosionPierce:20}},
-            {name:"Wall of Fire", cost:1500, stat:"isAbility", amount:true, desc:"Ability: Creates a wall of fire.", extraMods:{unlocksAbility:true, abilityName:"WoF", abilityCd:40}},
-            {name:"Dragon's Breath", cost:2000, desc:"Attacks faster.", cooldownMult: 0.75, extraMods:{dmgType:'fire', projectileType:'fire'}},
-            {name:"Liquid Fire", cost:4000, stat:"damage", amount:2, desc:"Burning fire deals extra damage.", extraMods:{dot: 1, dotTimer: 3.0}},
-            {name:"Inferno Ring", cost:25000, stat:"damage", amount:5, desc:"Massive fire explosions.", extraMods:{explosionRadius: 60, explosionDamage: 3, explosionPierce: 30}}
+            {name:"Fireball", cost:300, desc:"Every few seconds casts an explosive fireball spell.", extraMods:{fireballCd: 2.5, fireballDmg: 1, explosionRadius: 30, explosionPierce: 15}},
+            {name:"Wall of Fire", cost:800, desc:"Creates a super hot wall of fire across the track to roast the Bloons as they pass.", extraMods:{fireWellCd: 4.0, fireWellDmg: 2}},
+            {name:"Dragon's Breath", cost:3300, stat:"dmgType", amount:'fire', desc:"Spews endless flames at nearby Bloons and enhances Fireball and Wall of Fire.", extraMods:{projectileType: 'fire', cooldownMult: 0.5, explosionRadius: 50, fireWellDmg: 4, fireballDmg: 2}},
+            {name:"Summon Phoenix", cost:6000, desc:"Summon Phoenix ability: Powerful phoenix wreaks Bloon havoc for 20 seconds.", extraMods:{isAbility: true, abilityName: "Summon Phoenix", abilityCd: 45}},
+            {name:"Wizard Lord Phoenix", cost:50000, stat:"damage", amount:5, desc:"Wizard Lord becomes a master of the flame, turning into a super powerful Lava Phoenix.", extraMods:{isAbility: true, abilityName: "Summon Phoenix", abilityCd: 45, moabDmg: 10}}
         ],
         3: [
-            {name:"Faster Casting", cost:300, desc:"Attacks faster.", cooldownMult: 0.8},
-            {name:"Monkey Sense", cost:300, stat:"canSeeCamo", amount:true, desc:"Can detect Camo bloons."},
-            {name:"Shimmer", cost:2500, stat:"canSeeCamo", amount:true, desc:"Magic strips Camo from bloons.", extraMods:{stripCamo: true}},
-            {name:"Necromancer", cost:4000, stat:"damage", amount:2, desc:"Spawns undead bloons."},
-            {name:"Prince of Darkness", cost:25000, stat:"damage", amount:5, desc:"Spawns powerful undead MOABs."}
+            {name:"Intense Magic", cost:300, stat:"pierce", amount:2, desc:"More powerful magic shots move faster and can pop more Bloons.", extraMods:{projectileSpeed: 200}},
+            {name:"Monkey Sense", cost:300, stat:"canSeeCamo", amount:true, desc:"Increases range slightly and allows the Wizard to hit Camo Bloons.", extraMods:{range: 5}},
+            {name:"Shimmer", cost:1500, desc:"Gains a dark magic attack that periodically reveals location of all nearby Camo Bloons permanently.", extraMods:{shimmerCd: 1.0, stripCamo: true}},
+            {name:"Necromancer: Unpopped Army", cost:2800, stat:"damage", amount:3, desc:"Reanimate recently popped enemies as servants that can destroy Bloons of any type.", extraMods:{necroCd: 1.5, necroDmg: 5, moabDmg: 5}},
+            {name:"Prince of Darkness", cost:26500, stat:"damage", amount:10, desc:"Reanimate even more powerful Bloon servants to obliterate the enemy.", extraMods:{necroCd: 0.5, necroDmg: 25, moabDmg: 50, pierce: 5}}
         ]
     },
-    update(tower, dt) {
+
+    update(tower, dt, engine) {
+        // 1. Wall of Fire Passive Spawn
+        if (tower.stats.fireWellCd) {
+            tower.fireWellTimer = (tower.fireWellTimer || 0) - dt;
+            if (tower.fireWellTimer <= 0) {
+                tower.fireWellTimer = tower.stats.fireWellCd;
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine));
+                if (nearby.length > 0) {
+                    let target = nearby[Math.floor(Math.random() * nearby.length)];
+                    if (target && target.alive) {
+                        tower.fireWells = tower.fireWells || [];
+                        tower.fireWells.push({ x: target.x, y: target.y, life: 4.0, maxLife: 4.0, radius: 40, dmg: tower.stats.fireWellDmg || 2 });
+                    }
+                }
+            }
+        }
+
+        // Update Fire Wells
         if (tower.fireWells && tower.fireWells.length > 0) {
             for (let i = tower.fireWells.length - 1; i >= 0; i--) {
                 let w = tower.fireWells[i];
                 w.life -= dt;
                 if (w.life <= 0) { tower.fireWells.splice(i, 1); continue; }
-                const nearby = GameEngine.enemyGrid.query(w.x, w.y, w.radius);
-                for (let e of nearby) {
-                    if (!e.alive) continue;
-                    // PRO FIX: Use withinRange for sqrt removal
+                const wNearby = engine.enemyGrid.query(w.x, w.y, w.radius);
+                for (let e of wNearby) {
+                    if (!e || !e.alive) continue;
                     if (Utils.withinRange(w.x, w.y, e.x, e.y, w.radius)) {
-                        e.takeDamage(tower.stats.damage * dt * 5, { isFire: true, canHitLead: true });
+                        e.takeDamage(w.dmg * dt * 5, { isFire: true, canHitLead: true }, {}, tower);
+                    }
+                }
+            }
+        }
+
+        // 2. Fireball Secondary Attack
+        if (tower.stats.fireballCd) {
+            tower.fireballTimer = (tower.fireballTimer || 0) - dt;
+            if (tower.fireballTimer <= 0) {
+                tower.fireballTimer = tower.stats.fireballCd;
+                if (engine.enemies.length > 0) {
+                    let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
+                    if (target && target.alive) {
+                        let p = engine.projectilePool.get();
+                        p.init(tower.x, tower.y - 10, tower.stats.fireballDmg, target, 'bomb', 500, 1, 1.0, null, { isExplosive: true, explosionRadius: tower.stats.explosionRadius, explosionDamage: tower.stats.fireballDmg, explosionPierce: tower.stats.explosionPierce, canHitLead: true }, 0, tower, { isFire: true, isExplosion: true, canHitLead: true });
+                    }
+                }
+            }
+        }
+
+        // 3. Shimmer (Decamo Aura)
+        if (tower.stats.shimmerCd) {
+            tower.shimmerTimer = (tower.shimmerTimer || 0) - dt;
+            if (tower.shimmerTimer <= 0) {
+                tower.shimmerTimer = tower.stats.shimmerCd;
+                const range = Utils.getEffectiveRange(tower, engine);
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, range);
+                for (const e of nearby) {
+                    if (e && e.alive && e.isCamo) {
+                        e.isCamo = false;
+                    }
+                }
+                engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: range, life: 0.3, maxLife: 0.3, color: 'rgba(155, 89, 182, 0.3)' });
+            }
+        }
+
+        // 4. Necromancer (Spawn Undead)
+        if (tower.stats.necroCd) {
+            tower.necroTimer = (tower.necroTimer || 0) - dt;
+            if (tower.necroTimer <= 0) {
+                tower.necroTimer = tower.stats.necroCd;
+                // Spawn 3 homing projectiles
+                for (let i = 0; i < 3; i++) {
+                    if (engine.enemies.length > 0) {
+                        let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
+                        if (target && target.alive) {
+                            let p = engine.projectilePool.get();
+                            p.init(tower.x, tower.y, tower.stats.necroDmg, target, 'wizard_bolt', 800, 5, 2.0, null, { canHitLead: true, canHitMoab: true }, 0, tower, { isMagic: true, canHitLead: true });
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Phoenix Ability Active Effect
+        if (tower.phoenixActive > 0) {
+            tower.phoenixActive -= dt;
+            tower.phoenixTimer = (tower.phoenixTimer || 0) - dt;
+            if (tower.phoenixTimer <= 0) {
+                tower.phoenixTimer = 0.1; // Fire 10 times a second
+                if (engine.enemies.length > 0) {
+                    let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
+                    if (target && target.alive) {
+                        let p = engine.projectilePool.get();
+                        let dmg = tower.upgrades[1] >= 5 ? 20 : 10;
+                        p.init(tower.x, tower.y - 20, dmg, target, 'bomb', 1000, 100, 2.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: dmg, explosionPierce: 50, canHitLead: true }, 0, tower, { isFire: true, isExplosion: true, canHitLead: true });
                     }
                 }
             }
         }
     },
-    fire(tower, target, damage, dmgType, isCrit, effects) {
-        let p = GameEngine.projectilePool.get();
-        p.init(tower.x, tower.y, damage, target, 'wizard_bolt', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
+
+    fire(tower, target, damage, dmgType, isCrit, effects, engine) {
+        let pEffects = { ...effects };
+        if (tower.stats.stripCamo) pEffects.stripCamo = true;
+        
+        let p = engine.projectilePool.get();
+        p.init(tower.x, tower.y, damage, target, tower.stats.projectileType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, pEffects, 0, tower, dmgType, isCrit);
     },
+
     ability(tower, engine) {
-        engine.log("Wall of Fire!");
-        let target = null;
-        let bestVal = -Infinity;
-        for (let e of engine.enemies) {
-            if (!e.alive) continue;
-            if (e.distanceTraveled > bestVal) { bestVal = e.distanceTraveled; target = e; }
-        }
-        if (target) {
-            tower.fireWells = tower.fireWells || [];
-            tower.fireWells.push({ x: target.x, y: target.y, life: 4.0, maxLife: 4.0, radius: 60 });
+        if (tower.stats.abilityName === "Summon Phoenix") {
+            engine.log("Summon Phoenix!");
+            tower.phoenixActive = 20.0; // 20 seconds of chaos
+            tower.phoenixTimer = 0;
         }
     },
+
     draw(ctx, tower, isPreview) {
         if (!isPreview && tower.fireWells) {
             for (let w of tower.fireWells) {

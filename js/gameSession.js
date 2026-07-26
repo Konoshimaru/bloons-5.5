@@ -4,6 +4,7 @@ import { TowerStats } from './towers/index.js';
 import { Hero } from './hero.js';
 import { Tower } from './tower.js';
 import { UI } from './ui.js';
+import { MKEffects } from './monkeyKnowledgeEffects.js'; // FIX: Added missing import
 
 const GameSession = {
     saveGame() {

@@ -1,42 +1,88 @@
 // js/towers/bomb.js
 import { GameEngine } from '../engine.js';
+import { Utils } from '../utils.js';
 
 export default {
     stats: { 
         name: "Bomb Shooter", cost: 375, range: 40, 
         baseCooldown: 1.5, fireRate: 1.5, 
-        damage: 1, pierce: 1, projectileSpeed: 300, 
-        explosionRadius: 36, explosionDamage: 1, explosionPierce: 40, 
-        lifespan: 1.0, canHitLead: true, 
-        desc: "Launches a powerful bomb at the Bloons. Slow rate of fire but affects a radius around the explosion.", 
-        dmgType: 'explosion', hitRadius: 18,
-        category: 'Primary' // FIX 1
+        damage: 1, pierce: 1, projectileSpeed: 180, 
+        explosionRadius: 12, explosionDamage: 1, explosionPierce: 22, 
+        lifespan: 0.6, canHitLead: true, 
+        desc: "Launches a powerful bomb at the Bloons. Affects a radius around the explosion.", 
+        dmgType: 'explosion', hitRadius: 18, category: 'Primary',
+        projectileType: 'bomb' 
     },
     upgrades: {
         1: [ 
-            { name: "Bigger Bombs", cost: 250, stat: "explosionRadius", amount: 6, desc: "Shoots larger bombs, they have a larger blast area and more popping power." },
-            { name: "Frag Bombs", cost: 650, stat: "explosionDamage", amount: 1, desc: "Deals 1 extra explosion damage." },
-            { name: "Bloon Impact", cost: 1100, stat: "explosionRadius", amount: 30, desc: "Huge explosion radius." }, 
-            { name: "Cluster Bombs", cost: 2800, stat: "explosionDamage", amount: 2, desc: "Deals 2 extra explosion damage." },
-            { name: "Bloon Crush", cost: 55000, stat: "explosionDamage", amount: 10, desc: "Colossal explosion damage." }
+            { name: "Bigger Bombs", cost: 250, desc: "Larger blast area and more popping power.", extraMods:{explosionRadius: 8, explosionPierce: 15} },
+            { name: "Heavy Bombs", cost: 650, stat:"explosionDamage", amount: 1, desc: "Smash through 2 layers and pop more Bloons.", extraMods:{explosionPierce: 8} },
+            { name: "Really Big Bombs", cost: 1100, stat:"explosionDamage", amount: 1, desc: "Huge bombs deal greater damage and knock Bloons back.", extraMods:{explosionRadius: 12, knockback: 30} },
+            { name: "Bloon Impact", cost: 2800, stat:"explosionRadius", amount: 10, desc: "Explosions stun Bloons for a short time.", extraMods:{stun: 0.5} },
+            { name: "Bloon Crush", cost: 55000, stat:"explosionDamage", amount: 5, desc: "Massive damage and can stun MOAB-Class Bloons.", extraMods:{stun: 1.0} }
         ],
         2: [ 
-            { name: "Faster Reload", cost: 250, desc: "Reloads faster.", cooldownMult: 0.75 }, 
-            { name: "Missile Launcher", cost: 400, desc: "Exchanges bombs for missiles, which fire faster, fly faster, and increase range.", cooldownMult: 0.8, extraMods: { projectileSpeed: 50, range: 4}},
-            { name: "MOAB Mauler", cost: 1000, stat: "range", amount: 40, desc: "Huge range increase." }, 
-            { name: "MOAB Assassin", cost: 3450, desc: "Reloads even faster.", cooldownMult: 0.75 }, 
-            { name: "MOAB Eliminator", cost: 28000, desc: "Maximum reload speed.", cooldownMult: 0.74 }
+            { name: "Faster Reload", cost: 250, desc: "Reloads faster.", extraMods:{cooldownMult: 0.75} }, 
+            { name: "Missile Launcher", cost: 400, desc: "Fires missiles, faster fire rate, flight speed, and range.", extraMods:{cooldownMult: 0.8, projectileSpeed: 200, range: 4, projectileType: 'missile'}},
+            { name: "MOAB Mauler", cost: 1000, stat:"moabDmg", amount: 10, desc: "Much more damage to MOAB-Class Bloons." }, 
+            { name: "MOAB Assassin", cost: 3450, stat:"moabDmg", amount: 15, desc: "Assassinate MOAB Ability. Increased MOAB damage.", extraMods:{isAbility: true, abilityName: "Assassinate", abilityCd: 30} }, 
+            { name: "MOAB Eliminator", cost: 26000, stat:"moabDmg", amount: 25, desc: "Massive damage to MOABs. Ability deals 6x damage.", extraMods:{isAbility: true, abilityName: "Assassinate 2", abilityCd: 10} }
         ],
         3: [ 
-            { name: "Extra Range", cost: 200, stat: "canSeeCamo", amount: true, desc: "Can detect Camo bloons." }, 
-            { name: "Frag Bombs", cost: 300, stat: "explosionDamage", amount: 2, desc: "Deals 2 extra explosion damage." }, 
-            { name: "Cluster Bombs", cost: 700, stat: "explosionDamage", amount: 5, desc: "Deals colossal explosion damage." }, 
-            { name: "Recursive Cluster", cost: 2500, stat: "explosionRadius", amount: 50, desc: "Massive explosion radius." }, 
-            { name: "Bomb Blitz", cost: 23000, stat: "explosionDamage", amount: 20, desc: "Apocalyptic damage." }
+            { name: "Extra Range", cost: 200, stat:"range", amount: 10, desc: "Increases attack range." }, 
+            { name: "Frag Bombs", cost: 300, desc: "Explosions throw out sharp fragments.", extraMods:{fragCount: 6, fragDamage: 1} }, 
+            { name: "Cluster Bombs", cost: 700, desc: "Throws out secondary bombs instead of frags.", extraMods:{fragCount: 0, clusterCount: 4, clusterDamage: 1} }, 
+            { name: "Recursive Cluster", cost: 2500, desc: "Every second shot sends out more cluster bombs.", extraMods:{clusterCount: 8} }, 
+            { name: "Bomb Blitz", cost: 30000, stat:"explosionDamage", amount: 5, desc: "Much more damage. Gains Bomb Storm Ability.", extraMods:{isAbility: true, abilityName: "Bomb Storm", abilityCd: 20} }
         ]
     },
-    fire(tower, target, damage, dmgType, isCrit, effects) {
-        let p = GameEngine.projectilePool.get();
-        p.init(tower.x, tower.y, damage, target, 'bomb', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType, isCrit);
+    fire(tower, target, damage, dmgType, isCrit, effects, engine) {
+        let pEffects = { ...effects };
+        // Add custom effects from upgrades
+        if (tower.stats.knockback) pEffects.knockback = tower.stats.knockback;
+        if (tower.stats.stun) { pEffects.stun = tower.stats.stun; pEffects.stunDuration = tower.stats.stun; }
+        if (tower.stats.fragCount) pEffects.fragCount = tower.stats.fragCount;
+        if (tower.stats.fragDamage) pEffects.fragDamage = tower.stats.fragDamage;
+        if (tower.stats.clusterCount) pEffects.clusterCount = tower.stats.clusterCount;
+        if (tower.stats.clusterDamage) pEffects.clusterDamage = tower.stats.clusterDamage;
+        
+        // Recursive Cluster logic: Every 2nd shot spawns extra clusters
+        if (tower.upgrades[2] >= 4) {
+            tower.shotCount = (tower.shotCount || 0) + 1;
+            if (tower.shotCount % 2 === 0) {
+                pEffects.clusterCount = (pEffects.clusterCount || 0) + 4;
+            }
+        }
+        
+        let p = engine.projectilePool.get();
+        p.init(tower.x, tower.y, damage, target, tower.stats.projectileType || 'bomb', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, pEffects, 0, tower, dmgType, isCrit);
+    },
+    
+    ability(tower, engine) {
+        const name = tower.stats.abilityName;
+        
+        // MOAB Assassin / Eliminator
+        if (name === "Assassinate" || name === "Assassinate 2") {
+            engine.log("MOAB Assassin!");
+            let target = null; let maxHp = 0;
+            for (const e of engine.enemies) {
+                if (!e || !e.alive || !e.data.isMoab) continue;
+                if (e.hp > maxHp) { maxHp = e.hp; target = e; }
+            }
+            if (target) {
+                // T5 deals 6x damage (3000), T4 deals 750
+                let dmg = name === "Assassinate 2" ? 3000 : 750;
+                target.takeDamage(dmg, {isExplosion: true, canHitLead: true}, {}, tower);
+                engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: 80, life: 0.5, maxLife: 0.5, color: '#e67e22' });
+            }
+        }
+        
+        // Bomb Blitz (Bomb Storm)
+        if (name === "Bomb Storm") {
+            engine.log("Bomb Storm!");
+            // Deals 100 damage to all bloons on screen
+            Utils.applyAoeDamage(engine, 640, 360, 1500, 100, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 1000});
+            engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1500, life: 1.0, maxLife: 1.0, color: '#e67e22' });
+        }
     }
 };

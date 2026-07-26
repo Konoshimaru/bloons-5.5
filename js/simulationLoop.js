@@ -83,7 +83,8 @@ const SimulationLoop = {
                 const b = t.bananas[i];
                 if (b.progress < 1) continue;
                 
-                const distSq = Utils.distanceSq(this.mouse.x, b.x, this.mouse.y, b.y);
+                // FIX: Corrected argument order for distanceSq to properly check mouse proximity
+                const distSq = Utils.distanceSq(this.mouse.x, this.mouse.y, b.x, b.y);
                 const range = t.stats.collectionRange || 40;
                 
                 if (distSq < range * range) {
