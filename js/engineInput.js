@@ -11,6 +11,7 @@ import { Hero } from './hero.js';
 import { GLOBAL_SCALE } from './constants.js';
 import { applyBossEffects } from './input.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
+import { getSellRate } from './towerEconomy.js'; // FIX: Import getSellRate for merge refund
 
 const MAX_SPEED_NORMAL = 3;
 const MAX_SPEED_EXTREME = 6;
@@ -48,6 +49,35 @@ export default {
         const x = adj.x;
         const y = adj.y;
 
+        // FIX: Intercept click to place Beast
+        if (this.placingBeastFor) {
+            const tower = this.placingBeastFor;
+            this.placingBeastFor = null; // Clear state
+            
+            if (tower.beast) {
+                // Check if click is within tower range
+                const dist = Utils.distance(tower.x, tower.y, x, y);
+                const effRange = Utils.getEffectiveRange(tower, this);
+                
+                if (dist <= effRange) {
+                    // Check terrain validity (Land beast must be on land)
+                    const isOnWater = this.map.isInWater(x, y);
+                    const isOnPath = this.map.isOnPath(x, y);
+                    
+                    if (tower.beast.terrain === 'land' && (isOnWater || isOnPath)) {
+                        this.log("Land beasts must be placed on land!");
+                    } else {
+                        tower.beast.x = x;
+                        tower.beast.y = y;
+                        this.log("Beast placed!");
+                    }
+                } else {
+                    this.log("Placement out of range!");
+                }
+            }
+            return; 
+        }
+
         // Intercept click for Beast Handler Merge
         if (this.isMergingBeast && this.mergeSourceTower) {
             let source = this.mergeSourceTower;
@@ -59,21 +89,28 @@ export default {
                 if (t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + 5)) { targetTower = t; break; }
             }
             
-            if (targetTower && targetTower !== source && targetTower.type === 'beast' && !targetTower.isMinion) {
-                if (targetTower.beastPath === source.beastPath && targetTower.beastTier >= source.beastTier) {
-                    let powerToTransfer = source.beastPower;
-                    let newPower = Math.min(targetTower.maxBeastPower, targetTower.beastPower + powerToTransfer);
-                    let actualTransferred = newPower - targetTower.beastPower;
-                    targetTower.beastPower = newPower;
+            if (targetTower && targetTower !== source && targetTower.type === 'beast' && targetTower.beast) {
+                if (targetTower.beast.terrain === source.beast.terrain && targetTower.beast.tier >= source.beast.tier) {
+                    let powerToTransfer = source.beast.beastPower;
+                    let newPower = Math.min(targetTower.beast.data.maxPower, targetTower.beast.beastPower + powerToTransfer);
+                    let actualTransferred = newPower - targetTower.beast.beastPower;
+                    targetTower.beast.beastPower = newPower;
+                    targetTower.beast.recalculateStats();
                     
-                    getBehavior('beast')._updateMinionStats(targetTower);
+                    // Destroy source beast and auto-sell source tower to refund player
+                    source.beast.alive = false;
+                    const bIdx = this.beasts.indexOf(source.beast);
+                    if (bIdx > -1) this.beasts.splice(bIdx, 1);
                     
-                    if (source.activeBeast) { source.activeBeast.alive = false; }
-                    const idx = this.towers.indexOf(source);
-                    if (idx > -1) this.towers.splice(idx, 1);
+                    const resaleRate = getSellRate(source, this);
+                    this.cash += Math.floor(source.totalSpent * resaleRate);
+                    
+                    const tIdx = this.towers.indexOf(source);
+                    if (tIdx > -1) this.towers.splice(tIdx, 1);
                     if (this.selectedPlacedTower === source) this.deselectAll();
                     
                     this.log(`Merged ${actualTransferred} Beast Power!`);
+                    this.updateUI();
                 } else { this.log("Merge failed: Must target same beast type and equal/higher tier."); }
             } else { this.log("Merge cancelled."); }
             return; 
@@ -238,8 +275,8 @@ export default {
         if (!behavior) return;
 
         let actualTower = t;
-        if (t.type === 'beast' && !t.isMinion && t.activeBeast) {
-            actualTower = t.activeBeast;
+        if (t.type === 'beast' && !t.isMinion && t.beast) {
+            actualTower = t.beast;
         }
 
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
@@ -278,10 +315,10 @@ export default {
         if (this.selectedPlacedTower.stats.isHero) this.hero = null;
         
         // Remove beast minion when handler is sold
-        if (this.selectedPlacedTower.type === 'beast' && this.selectedPlacedTower.activeBeast) {
-            this.selectedPlacedTower.activeBeast.alive = false;
-            const idx = this.towers.indexOf(this.selectedPlacedTower.activeBeast);
-            if (idx > -1) this.towers.splice(idx, 1);
+        if (this.selectedPlacedTower.type === 'beast' && this.selectedPlacedTower.beast) {
+            this.selectedPlacedTower.beast.alive = false;
+            const idx = this.beasts.indexOf(this.selectedPlacedTower.beast);
+            if (idx > -1) this.beasts.splice(idx, 1);
         }
         
         this.selectedPlacedTower.sell(this);
@@ -292,6 +329,8 @@ export default {
 
     deselectAll() {
         this.selectedTowerType = null; this.selectedPlacedTower = null;
+        this.placingBeastFor = null; // Clear beast placement state
+        this.isMergingBeast = false; this.mergeSourceTower = null; // Clear merge state
         UI.hideUpgradePanel();
         const cancelBtn = document.getElementById('cancel-btn');
         if (cancelBtn) cancelBtn.classList.add('hidden');

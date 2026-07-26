@@ -83,7 +83,7 @@ const uiTowerPanel = {
     _collectAbilities(engine) {
         const abilities = [];
         for (const t of engine.towers) {
-            if (!t || t.isMinion) continue; // FIX: Skip minions so abilities aren't duplicated
+            if (!t || t.isMinion) continue;
             if (t.stats.isHero) {
                 this._collectHeroAbilities(t, abilities);
             } else if (t.stats.isAbility) {
@@ -95,9 +95,9 @@ const uiTowerPanel = {
                 }
                 
                 let cd = t.abilityCooldown || 0;
-                // FIX: Beast handler ability cooldown is tracked on the minion
-                if (t.type === 'beast' && t.activeBeast) {
-                    cd = t.activeBeast.abilityCooldown || 0;
+                // FIX: Beast handler ability cooldown is tracked on the beast entity
+                if (t.type === 'beast' && t.beast) {
+                    cd = t.beast.abilityCooldown || 0;
                 }
                 abilities.push({ tower: t, slot: 1, cd: cd, maxCd: towerCd, name: towerName });
             }
@@ -351,88 +351,92 @@ const uiTowerPanel = {
         
         this._updateTargetingText(t);
 
-        // Beast Handler Custom UI
-        const mergeBtn = el('beast-merge-btn');
+        // FIX: Beast Handler Custom UI
+        const placeBeastBtn = el('beast-place-btn');
+        const mergeBeastBtn = el('beast-merge-btn');
         if (t.type === 'beast') {
             if (t.isMinion) {
                 pathsEl.classList.add('hidden');
-                if (mergeBtn) mergeBtn.classList.add('hidden');
-                document.querySelectorAll('.beast-power-display').forEach(el => el.remove());
+                if (placeBeastBtn) placeBeastBtn.classList.add('hidden');
+                if (mergeBeastBtn) mergeBeastBtn.classList.add('hidden');
             } else {
                 this._setupBeastUI(pathsEl, t, engine);
             }
         } else {
-            if (mergeBtn) mergeBtn.classList.add('hidden');
-            document.querySelectorAll('.beast-power-display').forEach(el => el.remove());
+            if (placeBeastBtn) placeBeastBtn.classList.add('hidden');
+            if (mergeBeastBtn) mergeBeastBtn.classList.add('hidden');
         }
 
         this._updateUpgradeCards(t, engine);
     },
 
     _setupBeastUI(pathsEl, t, engine) {
-        // Remove old power displays
-        document.querySelectorAll('.beast-power-display').forEach(el => el.remove());
-        
-        // Add power display above active path
-        if (t.beastPath >= 0) {
-            const pathCard = el(`up-path${t.beastPath + 1}`);
-            if (pathCard) {
-                let powerDisplay = document.createElement('div');
-                powerDisplay.className = 'beast-power-display';
-                powerDisplay.innerText = `Power: ${t.beastPower} / ${t.maxBeastPower}`;
-                powerDisplay.style.color = '#27ae60';
-                powerDisplay.style.fontWeight = 'bold';
-                powerDisplay.style.fontSize = '12px';
-                powerDisplay.style.textAlign = 'center';
-                powerDisplay.style.marginBottom = '4px';
-                pathCard.parentNode.insertBefore(powerDisplay, pathCard);
-            }
-        }
-        
-        // Add Merge Button next to portrait
         const portrait = el('up-portrait');
+        
+        // Place Button
+        let placeBtn = el('beast-place-btn');
+        if (!placeBtn) {
+            placeBtn = document.createElement('button');
+            placeBtn.id = 'beast-place-btn';
+            placeBtn.innerText = 'Place';
+            placeBtn.style.position = 'absolute';
+            placeBtn.style.background = '#2ecc71';
+            placeBtn.style.color = 'white';
+            placeBtn.style.border = 'none';
+            placeBtn.style.borderRadius = '4px';
+            placeBtn.style.cursor = 'pointer';
+            placeBtn.style.fontWeight = 'bold';
+            placeBtn.style.width = '50px';
+            placeBtn.style.height = '50px';
+            placeBtn.style.top = '5px';
+            portrait.parentNode.appendChild(placeBtn);
+        }
+        if (portrait.parentNode.classList.contains('sidebar-right')) { placeBtn.style.left = '5px'; placeBtn.style.right = 'auto'; }
+        else { placeBtn.style.right = '5px'; placeBtn.style.left = 'auto'; }
+        
+        if (!t.beast) placeBtn.classList.add('hidden');
+        else placeBtn.classList.remove('hidden');
+        
+        const newPlaceBtn = placeBtn.cloneNode(true);
+        placeBtn.parentNode.replaceChild(newPlaceBtn, placeBtn);
+        _elCache['beast-place-btn'] = newPlaceBtn;
+        newPlaceBtn.addEventListener('click', () => { engine.placingBeastFor = t; engine.log("Click anywhere in range to place your beast."); });
+
+        // Merge Button
         let mergeBtn = el('beast-merge-btn');
         if (!mergeBtn) {
             mergeBtn = document.createElement('button');
             mergeBtn.id = 'beast-merge-btn';
             mergeBtn.innerText = 'Merge';
             mergeBtn.style.position = 'absolute';
-            mergeBtn.style.background = '#2ecc71';
-            mergeBtn.style.color = 'white';
+            mergeBtn.style.background = '#f1c40f';
+            mergeBtn.style.color = 'black';
             mergeBtn.style.border = 'none';
             mergeBtn.style.borderRadius = '4px';
             mergeBtn.style.cursor = 'pointer';
             mergeBtn.style.fontWeight = 'bold';
             mergeBtn.style.width = '50px';
             mergeBtn.style.height = '50px';
-            mergeBtn.style.top = '5px';
+            mergeBtn.style.top = '60px';
             portrait.parentNode.appendChild(mergeBtn);
         }
+        if (portrait.parentNode.classList.contains('sidebar-right')) { mergeBtn.style.left = '5px'; mergeBtn.style.right = 'auto'; }
+        else { mergeBtn.style.right = '5px'; mergeBtn.style.left = 'auto'; }
         
-        // Position left/right based on sidebar class
-        if (portrait.parentNode.classList.contains('sidebar-right')) {
-            mergeBtn.style.left = '5px';
-            mergeBtn.style.right = 'auto';
-        } else {
-            mergeBtn.style.right = '5px';
-            mergeBtn.style.left = 'auto';
-        }
+        if (!t.beast) mergeBtn.classList.add('hidden');
+        else mergeBtn.classList.remove('hidden');
         
-        const newBtn = mergeBtn.cloneNode(true);
-        mergeBtn.parentNode.replaceChild(newBtn, mergeBtn);
-        _elCache['beast-merge-btn'] = newBtn;
-
-        newBtn.addEventListener('click', () => {
-            engine.isMergingBeast = true;
-            engine.mergeSourceTower = t;
-            engine.log("Select a Beast Handler to merge into!");
-        });
+        const newMergeBtn = mergeBtn.cloneNode(true);
+        mergeBtn.parentNode.replaceChild(newMergeBtn, mergeBtn);
+        _elCache['beast-merge-btn'] = newMergeBtn;
+        newMergeBtn.addEventListener('click', () => { engine.isMergingBeast = true; engine.mergeSourceTower = t; engine.log("Select another Beast Handler to merge into!"); });
     },
 
     _getTowerCounterText(t) {
         if (t.type === 'farm' && t.stats.isBank) return `Bank: $${Math.floor(t.bankBalance)}`;
         if (t.type === 'farm') return `Cash Gen: $${t.cashGenerated}`;
         if (t.type === 'engineer' && t.activeTrap) return `Trap: ${t.activeTrap.rbe}/${t.activeTrap.maxRbe}`;
+        if (t.type === 'beast' && t.beast) return `Power: ${t.beast.beastPower} / ${t.beast.data.maxPower}`;
         return `Dmg Dealt: ${t.damageDealt}`;
     },
 

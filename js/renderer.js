@@ -84,7 +84,6 @@ export const Renderer = {
             ctx.drawImage(_worldCanvas, 0, 0);
             
             let lineAlpha = 1.0 - (boss.stateTimer / 2.0); 
-            // FIX: Removed shadowBlur, using a thicker, brighter line instead
             ctx.strokeStyle = `rgba(255, 50, 50, ${lineAlpha})`;
             ctx.lineWidth = 6;
             ctx.beginPath();
@@ -127,7 +126,6 @@ export const Renderer = {
         
         BossHealthBarHandler.draw(ctx);
 
-        // FIX: Draw the cursor on the MAIN canvas AFTER the split.
         this._drawCursor(ctx, engine);
     },
 
@@ -141,14 +139,12 @@ export const Renderer = {
         let cx = engine.mouse.rawX !== undefined ? engine.mouse.rawX : engine.mouse.x;
         let cy = engine.mouse.rawY !== undefined ? engine.mouse.rawY : engine.mouse.y;
 
-        // FIX: Manually apply the visual offset to the cursor so it snaps 
-        // perfectly with the torn screen, without being torn itself!
         let boss = BossHealthBarHandler.activeBosses.length > 0 ? BossHealthBarHandler.activeBosses[0].enemy : null;
         if (boss && (boss.screenSplitActive || boss.currentOffset !== 0)) {
             if (cy < 360) {
-                cx += boss.currentOffset; // Top half is drawn at +offset
+                cx += boss.currentOffset; 
             } else {
-                cx -= boss.currentOffset; // Bottom half is drawn at -offset
+                cx -= boss.currentOffset; 
             }
         }
         
@@ -205,14 +201,12 @@ export const Renderer = {
         let smY = 150 - Math.sin(progress * Math.PI) * 50;
         
         if (phase === 'day' || phase === 'dawn') {
-            // FIX: Removed shadowBlur, faked glow with a larger transparent circle
             ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
             ctx.beginPath(); ctx.arc(smX, smY, 75, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#FFD700';
             ctx.beginPath(); ctx.arc(smX, smY, 45, 0, Math.PI * 2); ctx.fill();
         }
         if (phase === 'night' || phase === 'dusk') {
-            // FIX: Removed shadowBlur
             ctx.fillStyle = '#F4F6F0';
             ctx.beginPath(); ctx.arc(smX, smY, 35, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#e0e0e0';
@@ -298,6 +292,12 @@ export const Renderer = {
 
     _drawEntities(ctx, engine) {
         engine.towers.forEach(t => { if (t) t.draw(ctx, false, engine); });
+        
+        // FIX: Draw Beast entities
+        if (engine.beasts) {
+            engine.beasts.forEach(b => { if (b) b.draw(ctx); });
+        }
+
         const projectiles = engine.projectilePool.active;
         for (let i = 0; i < projectiles.length; i++) {
             const p = projectiles[i];

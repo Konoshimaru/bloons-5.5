@@ -75,6 +75,19 @@ const SimulationLoop = {
         for (const t of this.towers) { if (t) t.update(dt, this); }
     },
 
+    // FIX: New substep to update Beast entities independently
+    _updateBeasts(dt) {
+        for (let i = this.beasts.length - 1; i >= 0; i--) {
+            const b = this.beasts[i];
+            if (!b) continue;
+            b.update(dt, this);
+            if (!b.alive) {
+                const last = this.beasts.pop();
+                if (i < this.beasts.length) { this.beasts[i] = last; }
+            }
+        }
+    },
+
     _updateEconomy(dt) {
         if (this.mouse.x === undefined) return;
         for (const t of this.towers) {
