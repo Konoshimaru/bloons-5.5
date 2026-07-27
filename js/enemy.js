@@ -184,7 +184,7 @@ export class Enemy {
 
     _updateTimers(dt) {
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
-        if (this.knockbackCd > 0) this.knockbackCd -= dt; // FIX: Tick knockback cooldown
+        if (this.knockbackCd > 0) this.knockbackCd -= dt; 
         updateTimedEffects(this, dt);
     }
     _updateRegen(dt) {
@@ -293,7 +293,6 @@ export class Enemy {
         }
     }
 
-    // FIX: Removed the _dying flag entirely. The !this.alive guard in takeDamage is sufficient.
     giveCash(canSpawn = true, killerTower = null) {
         let childRbeTotal = 0;
         if (this.data.splitsInto) {
@@ -324,13 +323,19 @@ export class Enemy {
         }
     }
 
-    // FIX: Removed the _dying flag check. It was blocking spawnChildren because giveCash ran first.
+    // FIX: Correctly divide carry-over damage among ALL spawned children
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {
         if (!canSpawn || !this.data.splitsInto) return;
         
-        const childCount = this.data.splitsInto.length;
-        const dmgPerChild = Math.floor(carryOverDamage / childCount);
-        let remainder = carryOverDamage % childCount;
+        let totalChildren = 0;
+        for (const child of this.data.splitsInto) {
+            totalChildren += child.count;
+        }
+        if (totalChildren === 0) totalChildren = 1; // Prevent divide by zero
+        
+        const dmgPerChild = Math.floor(carryOverDamage / totalChildren);
+        let remainder = carryOverDamage % totalChildren;
+        
         for (const child of this.data.splitsInto) {
             for (let i = 0; i < child.count; i++) {
                 const childCamo = child.forceCamo !== undefined ? child.forceCamo : this.isCamo;

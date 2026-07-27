@@ -60,15 +60,21 @@ export const Renderer = {
             wctx.fillStyle = '#000000';
             wctx.fillRect(0, 0, camOffset, CANVAS_HEIGHT);
             wctx.save();
-            wctx.translate(camOffset, 0);
+            wctx.translate(camOffset,0);
         }
 
         engine.map.draw(wctx);
+        this._drawAcidPools(wctx, engine); 
         this._drawExplosions(wctx, engine.explosions);
         this._drawEntities(wctx, engine);
+        this._drawFloatingTexts(wctx, engine); // FIX: Draw floating texts over entities
         this._drawPlacementPreview(wctx, engine);
         this._drawSelection(wctx, engine);
         this._drawLeakFlash(wctx, engine);
+
+        if (Config.data.showHitboxes) {
+            this._drawHitboxes(wctx, engine);
+        }
 
         if (camOffset !== 0) wctx.restore();
         
@@ -127,6 +133,46 @@ export const Renderer = {
         BossHealthBarHandler.draw(ctx);
 
         this._drawCursor(ctx, engine);
+    },
+
+    // FIX: New method to draw acid pools and foam splats
+    _drawAcidPools(ctx, engine) {
+        if (!engine.acidPools) return;
+        for (const pool of engine.acidPools) {
+            if (!pool) continue;
+            const alpha = Math.min(1, pool.life / 2.0); 
+            ctx.globalAlpha = alpha;
+            
+            if (pool.isFoam) {
+                ctx.fillStyle = '#ecf0f1'; // White/grey for foam
+            } else {
+                ctx.fillStyle = '#2ecc71'; // Green for acid
+            }
+            
+            ctx.beginPath();
+            ctx.arc(pool.x, pool.y, pool.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.globalAlpha = 1;
+        }
+    },
+
+    // FIX: New method to draw floating combat text
+    _drawFloatingTexts(ctx, engine) {
+        if (!engine.floatingTexts) return;
+        for (const ft of engine.floatingTexts) {
+            const alpha = Math.max(0, ft.life / ft.maxLife);
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = ft.color || '#f1c40f';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.font = 'bold 20px Nunito, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.strokeText(ft.text, ft.x, ft.y);
+            ctx.fillText(ft.text, ft.x, ft.y);
+        }
+        ctx.globalAlpha = 1;
     },
 
     _drawCursor(ctx, engine) {
@@ -293,9 +339,12 @@ export const Renderer = {
     _drawEntities(ctx, engine) {
         engine.towers.forEach(t => { if (t) t.draw(ctx, false, engine); });
         
-        // FIX: Draw Beast entities
         if (engine.beasts) {
             engine.beasts.forEach(b => { if (b) b.draw(ctx); });
+        }
+
+        if (engine.sentries) {
+            engine.sentries.forEach(s => { if (s) s.draw(ctx); });
         }
 
         const projectiles = engine.projectilePool.active;
@@ -417,6 +466,47 @@ export const Renderer = {
             ctx.globalAlpha = engine.leakFlash; ctx.strokeStyle = LEAK_FLASH_COLOR; ctx.lineWidth = LEAK_FLASH_LINE_WIDTH;
             ctx.strokeRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT); ctx.globalAlpha = 1;
         }
+    },
+
+    _drawHitboxes(ctx, engine) {
+        ctx.save();
+        ctx.globalAlpha = 0.7;
+        ctx.lineWidth = 2;
+        
+        engine.towers.forEach(t => {
+            if (!t) return;
+            ctx.strokeStyle = 'blue';
+            ctx.beginPath();
+            ctx.arc(t.x, t.y, t.hitRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            if (t.stats && t.stats.range < 9999) {
+                ctx.strokeStyle = 'cyan';
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, Utils.getEffectiveRange(t, engine), 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        });
+
+        engine.enemies.forEach(e => {
+            if (!e || !e.alive) return;
+            ctx.strokeStyle = 'red';
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+
+        const drawMinionHitbox = (m) => {
+            if (!m || !m.alive) return;
+            ctx.strokeStyle = 'lime';
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.hitRadius, 0, Math.PI * 2);
+            ctx.stroke();
+        };
+        if (engine.sentries) engine.sentries.forEach(drawMinionHitbox);
+        if (engine.beasts) engine.beasts.forEach(drawMinionHitbox);
+
+        ctx.restore();
     }
 };
 

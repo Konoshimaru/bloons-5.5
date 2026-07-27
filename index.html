@@ -24,13 +24,13 @@
         <div id="upgrade-tooltip"></div>
         <div id="flavor-text"></div>
 
-        <!-- NEW: Title Screen -->
+        <!-- Title Screen -->
         <div id="title-screen" class="full-screen-overlay">
             <img src="sprites/menu/logo.png" alt="Game Logo" class="game-logo" onerror="this.style.display='none'">
             <button id="title-play-btn" class="large-btn">PLAY</button>
         </div>
 
-        <!-- NEW: Loading Screen -->
+        <!-- Loading Screen -->
         <div id="loading-screen" class="full-screen-overlay hidden">
             <div class="loading-container">
                 <h2>Loading...</h2>
@@ -293,7 +293,7 @@
             </div>
         </div>
 
-            <!-- Powers (Monkey Shop) Menu -->
+        <!-- Powers (Monkey Shop) Menu -->
         <div id="powers-menu" class="overlay hidden">
             <div class="menu-content">
                 <h2>Powers</h2>
@@ -408,6 +408,8 @@
                 <div class="setting-item"><label><input type="checkbox" id="fps-checkbox" checked> Show FPS Counter</label></div>
                 <div class="setting-item"><label><input type="checkbox" id="show-stats-checkbox"> Show Tower Stats in Upgrade Menu</label></div>
                 <div class="setting-item"><label><input type="checkbox" id="uncap-fps-checkbox"> Uncap FPS (EXPERIMENTAL!!!)</label></div>
+                <!-- NEW: Show Hitboxes Toggle -->
+                <div class="setting-item"><label><input type="checkbox" id="show-hitboxes-checkbox"> Show Hitboxes & Ranges (Debug)</label></div>
                 <div class="music-controls"><button id="prev-song-btn">⏮</button><button id="next-song-btn">⏭</button></div>
                 <button class="back-btn" id="settings-back-btn">Back</button>
             </div>

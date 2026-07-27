@@ -3,7 +3,7 @@ import { Utils } from './utils.js';
 import { GameEngine } from './engine.js';
 import { DamageType, createDmgType } from './damageTypes.js';
 import { ProjectileTypeConfig } from './projectileTypeConfig.js';
-import { GLOBAL_SCALE } from './constants.js'; // FIX: Import GLOBAL_SCALE
+import { GLOBAL_SCALE } from './constants.js'; 
 
 const ProjectileHitResolution = {
     _checkCollisions() {
@@ -73,7 +73,25 @@ const ProjectileHitResolution = {
                 const expDmg = this._getExplosionDamage();
                 const dmg = e.takeDamage(expDmg, bombDmgType, this.effects, this.tower);
                 if (dmg === -1) continue;
-                if (this.tower) this.tower.damageDealt += dmg;
+                
+                // FIX: Credit parent tower for minion damage
+                if (this.tower) {
+                    this.tower.damageDealt += dmg;
+                    if (this.tower.parentTower) this.tower.parentTower.damageDealt += dmg;
+                }
+                
+                // FIX: Spawn floating text for critical hits
+                if (this.isCrit && dmg > 0 && GameEngine.floatingTexts) {
+                    GameEngine.floatingTexts.push({
+                        x: e.x, 
+                        y: e.y - 15,
+                        text: `${dmg}!`,
+                        life: 0.6, 
+                        maxLife: 0.6,
+                        color: '#f1c40f', 
+                        vy: -40
+                    });
+                }
                 
                 if (this.effects && this.effects.freeze) {
                     if (e.data.isMoab) {
@@ -99,7 +117,6 @@ const ProjectileHitResolution = {
             }
         }
 
-        // FIX: Bomb Shooter Frag Bombs & Cluster Bombs Logic
         if (this.effects && this.effects.fragCount > 0) {
             for (let i = 0; i < this.effects.fragCount; i++) {
                 let angle = (i / this.effects.fragCount) * Math.PI * 2;
@@ -125,7 +142,7 @@ const ProjectileHitResolution = {
     },
 
     _getExplosionRadius() {
-        const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0; // FIX: Apply GLOBAL_SCALE
+        const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0; 
         let r = this.effects && this.effects.explosionRadius ? this.effects.explosionRadius : (this.tower ? this.tower.stats.explosionRadius : 60);
         return r * GS;
     },
@@ -171,7 +188,24 @@ const ProjectileHitResolution = {
             return;
         }
         
-        if (this.tower) this.tower.damageDealt += actualDmg;
+        // FIX: Credit parent tower for minion damage
+        if (this.tower) {
+            this.tower.damageDealt += actualDmg;
+            if (this.tower.parentTower) this.tower.parentTower.damageDealt += actualDmg;
+            
+            // FIX: Spawn floating text for critical hits
+            if (this.isCrit && actualDmg > 0 && GameEngine.floatingTexts) {
+                GameEngine.floatingTexts.push({
+                    x: enemy.x, 
+                    y: enemy.y - 15,
+                    text: `${actualDmg}!`,
+                    life: 0.6, 
+                    maxLife: 0.6,
+                    color: '#f1c40f', 
+                    vy: -40
+                });
+            }
+        }
         
         if (this.effects && this.effects.freeze) {
             if (enemy.data.isMoab) {
@@ -204,7 +238,6 @@ const ProjectileHitResolution = {
             this.target = null;
         }
 
-        // FIX: Mermonkey Trident Splash Logic
         if (this.type === 'trident' && this.tower) {
             const expRadius = this.tower.stats.explosionRadius || 15;
             const expDmg = this.tower.stats.explosionDamage || 2;

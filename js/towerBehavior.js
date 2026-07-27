@@ -9,7 +9,6 @@ import { AudioEngine } from './audio.js';
 import Assets from './assets.js';
 import { DamageType, createDmgType, resolveDmgType } from './damageTypes.js';
 
-// PRO FIX: Safe fallback to prevent NaN crashes if import fails
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const MIN_FIRE_RATE = 0.01;
@@ -22,11 +21,12 @@ export function getEffectiveCooldown(tower) {
 
     let finalCooldown = tower._baseCooldown * tower._cooldownMult;
 
+    // FIX: Correct Overclock (0.6x) and Ultraboost (0.96x per stack) math
     if (tower.overclockTimer > 0) finalCooldown *= 0.6;
-    if (tower.ultraboostStacks > 0) finalCooldown *= (1 - 0.066 * tower.ultraboostStacks);
+    if (tower.ultraboostStacks > 0) finalCooldown *= Math.pow(0.96, tower.ultraboostStacks);
+    
     if (tower.abilityActiveTime > 0) finalCooldown /= (tower.stats.rapidShotMult || 3);
     
-    // Apply Village/Jungle Drums/Call to Arms attack speed buffs
     if (tower.buffedFireRate > 0) finalCooldown /= (1 + tower.buffedFireRate);
     
     if (tower.alchBuff) finalCooldown /= (1 + tower.alchBuff.speed);
@@ -54,7 +54,7 @@ function _updateTimers(tower, dt, engine) {
     if (tower.abilityActiveTime > 0) tower.abilityActiveTime -= dt;
     if (tower.fanClubBuffTimer > 0) tower.fanClubBuffTimer -= dt;
     if (tower.overclockTimer > 0) tower.overclockTimer -= dt; 
-    if (tower.stunTimer > 0) tower.stunTimer -= dt; // FIX: Decrement stun timer
+    if (tower.stunTimer > 0) tower.stunTimer -= dt; 
     
     if (tower.alchBuff && !tower.alchBuff.isPerm) {
         tower.alchBuff.timer -= dt;
@@ -88,7 +88,6 @@ function _updateTimers(tower, dt, engine) {
         }
     }
 
-    // Tick down active buffs
     if (tower.activeBuffs && tower.activeBuffs.length > 0) {
         for (let i = tower.activeBuffs.length - 1; i >= 0; i--) {
             let buff = tower.activeBuffs[i];
@@ -131,13 +130,12 @@ function _runCustomBehaviors(tower, dt, engine) {
 
 function _acquireAndFire(tower, dt, engine) {
     if (tower.isHollowCharging) return; 
-    if (tower.stunTimer > 0) return; // FIX: Prevent firing while stunned
+    if (tower.stunTimer > 0) return; 
     
     if (tower.type === 'spike') {
         if (engine.waveManager.waveActive && tower.cooldown <= 0 && tower.attackPointTimer <= 0) {
             const effFireRate = getEffectiveCooldown(tower);
             fire(tower, null, engine);
-            // FIX: getEffectiveCooldown already factors in buffedFireRate, don't divide twice
             tower.cooldown = effFireRate;
         }
         return;
@@ -157,14 +155,8 @@ function _acquireAndFire(tower, dt, engine) {
 }
 
 function _findTarget(tower, engine) {
-    const scale = typeof RANGE_SCALE === 'number' ? RANGE_SCALE : 3.0;
-    const baseRange = typeof tower.stats.range === 'number' ? tower.stats.range : 100;
-    const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
-    const alchRange = tower.alchBuff ? tower.alchBuff.range : 0;
-    
-    const nightMod = 1.0 - (0.5 * (engine.nightAlpha || 0));
-    const effRange = baseRange === 9999 ? 9999 : baseRange * scale * (1 + buffMult + alchRange) * nightMod * GS;
-    const candidates = baseRange === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
+    const effRange = Utils.getEffectiveRange(tower, engine);
+    const candidates = tower.stats.range === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
     
     let currentTargeting = tower.targetingMode;
     if (currentTargeting === 'Elite') {
@@ -180,7 +172,7 @@ function _findTarget(tower, engine) {
         return newVal < oldVal;
     };
 
-    const minRange = tower.stats.minRange ? (tower.stats.minRange * scale * GS) : 0;
+    const minRange = tower.stats.minRange ? (tower.stats.minRange * RANGE_SCALE * GS) : 0;
     const minRangeSq = minRange * minRange;
     const effRangeSq = effRange * effRange;
 
@@ -191,7 +183,7 @@ function _findTarget(tower, engine) {
         
         const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
         
-        if (baseRange !== 9999 && distSq > effRangeSq) continue;
+        if (tower.stats.range !== 9999 && distSq > effRangeSq) continue;
         if (minRangeSq > 0 && distSq < minRangeSq) continue; 
 
         const val = _getTargetValue(tower, e, (currentTargeting === 'Close' ? Math.sqrt(distSq) : 0), currentTargeting);
@@ -220,7 +212,7 @@ function _findTarget(tower, engine) {
 function _getTargetValue(tower, enemy, dist, targetingMode) {
     if (targetingMode === 'First' || targetingMode === 'Last') return enemy.distanceTraveled; 
     if (targetingMode === 'Strong') return enemy.data.rbe; 
-    return dist; // Close
+    return dist; 
 }
 
 function _hasLineOfSight(tower, e, engine) {
@@ -246,7 +238,6 @@ function _triggerAttack(tower, target, effFireRate, engine) {
     
     if (!animAsset || !animAsset.loaded) {
         _executeFire(tower, target, engine);
-        // FIX: getEffectiveCooldown already factors in buffedFireRate, don't divide twice
         tower.cooldown = effFireRate;
         return;
     }
@@ -260,7 +251,6 @@ function _triggerAttack(tower, target, effFireRate, engine) {
     
     tower.attackPointTimer = finalWindupTime;
     tower.pendingTarget = target;
-    // FIX: getEffectiveCooldown already factors in buffedFireRate, don't divide twice
     tower.cooldown = effFireRate; 
 }
 
@@ -338,7 +328,6 @@ export function fire(tower, target, engine) {
     if (target && !target.alive) return; 
     AudioEngine.playSfx('shoot'); 
     
-    // FIX: Roll crit and damage together to prevent desyncs
     const { damage, isCrit } = _rollDamage(tower);
     const dmgTypeStr = tower.stats.dmgType;
     const canHitLead = _canHitLead(tower);
@@ -351,7 +340,6 @@ export function fire(tower, target, engine) {
     _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine);
 }
 
-// FIX: Single function to calculate damage and roll crit
 function _rollDamage(tower) {
     const isCrit = !!tower.stats.critChance && Math.random() < tower.stats.critChance;
     let damage = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0);
@@ -368,7 +356,6 @@ function _canHitLead(tower) {
 
 function _calculatePierce(tower) {
     let pierce = tower.stats.pierce + (tower.buffedPierce || 0) + (tower.alchBuff ? tower.alchBuff.pierce : 0);
-    // FIX: Check activeBuffs for pierce bonuses (like Call to Arms)
     if (tower.activeBuffs && tower.activeBuffs.length > 0) {
         for (let buff of tower.activeBuffs) {
             if (buff.data && buff.data.pierce) {
@@ -391,7 +378,6 @@ function _createDamageType(dmgTypeStr, canHitLead, tower) {
 function _gatherEffects(tower) {
     const effects = {};
     if (tower.stats.applyPin) effects.pin = true;
-    if (tower.stats.applyFoam) effects.foam = true;
     if (tower.alchDip) effects.alchDip = true; 
     return effects;
 }
@@ -404,7 +390,6 @@ function _decrementBuffs(tower) {
 function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine) {
     const behavior = getBehavior(tower.type);
     if (behavior && behavior.fire) {
-        // FIX: Temporarily apply Village Primary Training projectile speed buff
         const originalSpeed = tower.stats.projectileSpeed;
         if (tower.buffedProjSpeed && tower.buffedProjSpeed !== 1.0) {
             tower.stats.projectileSpeed = originalSpeed * tower.buffedProjSpeed;
@@ -412,14 +397,12 @@ function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType
         
         behavior.fire(tower, target, damage, dmgType, isCrit, effects, engine);
         
-        // Restore original speed so it doesn't compound exponentially
         if (tower.buffedProjSpeed && tower.buffedProjSpeed !== 1.0) {
             tower.stats.projectileSpeed = originalSpeed;
         }
     } else {
         const p = engine.projectilePool.get();
         const projSpeed = tower.stats.projectileSpeed * (tower.buffedProjSpeed || 1);
-        // FIX: Pass isCrit into init so all towers get crit visuals
         p.init(tower.x, tower.y, damage, target, projType, projSpeed, pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType, isCrit);
     }
 }

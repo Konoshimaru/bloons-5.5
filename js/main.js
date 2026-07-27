@@ -1,7 +1,7 @@
 // js/main.js
 import { GameEngine } from './engine.js';
 import { Config, HeroStats, CANVAS_WIDTH, CANVAS_HEIGHT, Difficulties } from './config.js';
-import { TowerStats, Upgrades } from './towers/index.js';
+import { TowerStats, Upgrades, TOWER_CATEGORIES } from './towers/index.js'; // FIX: Import TOWER_CATEGORIES
 import { HeroRegistry } from './heroes/index.js';
 import { Maps } from './data.js';
 import { AudioEngine } from './audio.js';
@@ -79,7 +79,9 @@ export const dom = {
     shuffleMusicCheckbox: document.getElementById('shuffle-music-checkbox'),
     randomStartCheckbox: document.getElementById('random-start-checkbox'),
     showStatsCheckbox: document.getElementById('show-stats-checkbox'),
+  // In the dom object:
     uncapFpsCheckbox: document.getElementById('uncap-fps-checkbox'),
+    showHitboxesCheckbox: document.getElementById('show-hitboxes-checkbox'), // <-- ADD THIS
     prevSongBtn: document.getElementById('prev-song-btn'),
     nextSongBtn: document.getElementById('next-song-btn'),
     pausePrevSong: document.getElementById('pause-prev-song'),
@@ -127,17 +129,25 @@ Main.updateProfileUI = function() {
     }
 };
 
+// FIX: Build the categories dynamically from TowerStats using the shared TOWER_CATEGORIES map
 Main.updateMonkeysMenu = function() {
     const list = document.getElementById('mm-tower-list');
     if (!list) return;
     list.innerHTML = '';
     
     const categories = {
-        'Primary': ['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue', 'desperado'],
-        'Military': ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'],
-        'Magic': ['wizard', 'super', 'ninja', 'alchemist', 'druid', 'mermonkey'],
-        'Support': ['farm', 'spike', 'village', 'engineer', 'beast', 'farmer']
+        'Primary': [],
+        'Military': [],
+        'Magic': [],
+        'Support': []
     };
+
+    for (const type in TowerStats) {
+        const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
+        if (cat && categories[cat]) {
+            categories[cat].push(type);
+        }
+    }
 
     for (const [cat, types] of Object.entries(categories)) {
         const header = document.createElement('div');
@@ -259,7 +269,7 @@ Main.showPlayDifficulties = function() {
         'Easy': ['easy'],
         'Medium': ['medium'],
         'Hard': ['hard', 'impoppable', 'chimps'],
-        't CHIMPS': ['postchimps']
+        'Post CHIMPS': ['postchimps']
     };
 
     for (const [cat, keys] of Object.entries(categories)) {
@@ -354,7 +364,9 @@ function applyConfigToUI() {
     if (dom.fpsDisplay) dom.fpsDisplay.style.display = Config.data.showFps ? 'block' : 'none';
     if (dom.extremeSpeedCheckbox) dom.extremeSpeedCheckbox.checked = Config.data.extremeSpeedEnabled;
     if (dom.showStatsCheckbox) dom.showStatsCheckbox.checked = Config.data.showTowerStats;
+// In applyConfigToUI():
     if (dom.uncapFpsCheckbox) dom.uncapFpsCheckbox.checked = Config.data.uncapFps;
+    if (dom.showHitboxesCheckbox) dom.showHitboxesCheckbox.checked = Config.data.showHitboxes; // <-- ADD THIS
     Main.refreshMapSelector();
     Main.refreshHeroSelector();
     Main.updateHeroShopCard();
@@ -473,6 +485,7 @@ function _setupMenuListeners() {
                 Config.save();
                 UI.updateMetaStats();
                 Main.updateShopUI();
+                updateShopPrices(); 
             } else {
                 alert("Not enough Monkey Money!");
             }
@@ -568,29 +581,19 @@ window.addEventListener('load', () => {
             loadingScreen.classList.remove('hidden');
             loadingBar.style.width = '0%';
             
-            // FIX: Build a comprehensive manifest of exact URLs to preload everything
             const urls = [];
-            
-            // 1. UI Portraits
             Object.keys(TowerStats).forEach(type => urls.push(`sprites/portraits/${type}_menuportrait.png`));
             Object.keys(HeroRegistry).forEach(key => urls.push(`sprites/portraits/${key}_menuportrait.png`));
-            
-            // 2. Map Backgrounds
             Maps.forEach(map => {
                 if (map.bgImage) urls.push(`sprites/maps/${map.bgImage}`);
             });
-            
-            // 3. Tower Base Sprites
             Object.keys(TowerStats).forEach(type => {
                 urls.push(`sprites/towers/${type}_base.png`);
-                urls.push(`sprites/towers/${type}_arm.png`); // Try to preload arms too
+                urls.push(`sprites/towers/${type}_arm.png`);
             });
-            
-            // 4. Enemy Sprites
             const enemyNames = ['red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
             enemyNames.forEach(name => urls.push(`sprites/enemies/${name}.png`));
 
-            // Preload all URLs (0% to 50%)
             await Assets.preloadUrls(urls, (pct) => {
                 loadingBar.style.width = `${Math.floor(pct * 50)}%`;
             });

@@ -42,7 +42,6 @@ export function updateShopPrices() {
             let cost = Math.floor(stats.cost * costMod);
             const costEl = card.querySelector('.cost');
             
-            // FIX: Check unlockedTowers array OR specific power unlocks like Farmer
             let isLocked = !Config.data.unlockedTowers.includes(type);
             if (type === 'farmer') {
                 isLocked = !Config.data.unlocks.farmer;
@@ -132,7 +131,6 @@ export function setupShopListeners() {
         });
     });
 
-    // --- REWRITTEN DRAG AND DROP LOGIC ---
     dom.towerCards.forEach(card => {
         card.addEventListener('pointerdown', (e) => {
             e.preventDefault(); 
@@ -141,7 +139,6 @@ export function setupShopListeners() {
             const stats = TowerStats[type] || HeroStats[type];
             if (!stats) return;
 
-            // FIX: Block dragging if the card is locked
             if (card.classList.contains('locked')) {
                 GameEngine.log(`${stats.name} is locked!`);
                 return;

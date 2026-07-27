@@ -39,8 +39,8 @@ placeholderTowers.forEach(([key, name, cost, desc]) => {
     TowerRegistry[key] = createPlaceholderTower(name, cost, desc);
 });
 
-// --- CATEGORY INJECTION ---
-const TOWER_CATEGORIES = {
+// FIX: Export TOWER_CATEGORIES so it can be shared across files
+export const TOWER_CATEGORIES = {
     // Primary
     dart: 'Primary', boomerang: 'Primary', bomb: 'Primary', tack: 'Primary', 
     ice: 'Primary', glue: 'Primary', desperado: 'Primary',
@@ -61,7 +61,6 @@ for (const key in TowerRegistry) {
         TowerRegistry[key].stats.category = TOWER_CATEGORIES[key] || 'Primary';
     }
 }
-// -------------------------
 
 export const TowerStats = Object.fromEntries(Object.entries(TowerRegistry).map(([k, v]) => [k, v.stats]));
 export const Upgrades = Object.fromEntries(Object.entries(TowerRegistry).map(([k, v]) => [k, v.upgrades]));

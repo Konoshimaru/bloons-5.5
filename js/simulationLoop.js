@@ -21,16 +21,52 @@ const SimulationLoop = {
     _updateAcidPools(dt) {
         for (let i = this.acidPools.length - 1; i >= 0; i--) {
             const pool = this.acidPools[i];
-            pool.life -= dt; pool.tick -= dt;
+            pool.life -= dt; 
             if (pool.life <= 0) { this.acidPools.splice(i, 1); continue; }
-            if (pool.tick <= 0) {
-                pool.tick = 1.0;
+            
+            // Cleansing Foam Splat Logic
+            if (pool.isFoam) {
                 const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
                 for (const e of nearby) {
-                    if (e.alive && Utils.withinRange(pool.x, pool.y, e.x, e.y, pool.radius)) {
-                        e.takeDamage(pool.dmg, { isAcid: true, canHitLead: true });
+                    if (pool.pierce <= 0) break;
+                    if (!e.alive || pool.hitEnemies.has(e)) continue;
+                    if (Utils.withinRange(pool.x, pool.y, e.x, e.y, pool.radius + e.data.radius)) {
+                        pool.hitEnemies.add(e);
+                        if (e.isCamo) { e.isCamo = false; e._updateSpriteCache(); }
+                        if (e.isRegen) { e.isRegen = false; e._updateSpriteCache(); }
+                        if (e.data.isLead && !e.leadStripped) { 
+                            e.leadStripped = true; 
+                            e.takeDamage(1, { isNormal: true }); // Pop the lead layer
+                            e._updateSpriteCache(); 
+                        }
+                        pool.pierce--;
                     }
                 }
+            } else {
+                // Standard Acid Pool Logic
+                pool.tick -= dt;
+                if (pool.tick <= 0) {
+                    pool.tick = 1.0;
+                    const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
+                    for (const e of nearby) {
+                        if (e.alive && Utils.withinRange(pool.x, pool.y, e.x, e.y, pool.radius)) {
+                            e.takeDamage(pool.dmg, { isAcid: true, canHitLead: true });
+                        }
+                    }
+                }
+            }
+        }
+    },
+
+    // FIX: New method to update floating combat texts
+    _updateFloatingTexts(dt) {
+        if (!this.floatingTexts) return;
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            const ft = this.floatingTexts[i];
+            ft.life -= dt;
+            ft.y += (ft.vy || -20) * dt; // Float upwards
+            if (ft.life <= 0) {
+                this.floatingTexts.splice(i, 1);
             }
         }
     },
@@ -75,7 +111,6 @@ const SimulationLoop = {
         for (const t of this.towers) { if (t) t.update(dt, this); }
     },
 
-    // FIX: New substep to update Beast entities independently
     _updateBeasts(dt) {
         for (let i = this.beasts.length - 1; i >= 0; i--) {
             const b = this.beasts[i];
@@ -88,6 +123,23 @@ const SimulationLoop = {
         }
     },
 
+    _updateSentries(dt) {
+        for (let i = this.sentries.length - 1; i >= 0; i--) {
+            const s = this.sentries[i];
+            if (!s) continue;
+            s.update(dt, this);
+            if (!s.alive) {
+                if (this.selectedPlacedTower === s) this.deselectAll();
+                if (s.parentTower && s.parentTower.sentries) {
+                    const idx = s.parentTower.sentries.indexOf(s);
+                    if (idx > -1) s.parentTower.sentries.splice(idx, 1);
+                }
+                const last = this.sentries.pop();
+                if (i < this.sentries.length) { this.sentries[i] = last; }
+            }
+        }
+    },
+
     _updateEconomy(dt) {
         if (this.mouse.x === undefined) return;
         for (const t of this.towers) {
@@ -96,7 +148,6 @@ const SimulationLoop = {
                 const b = t.bananas[i];
                 if (b.progress < 1) continue;
                 
-                // FIX: Corrected argument order for distanceSq to properly check mouse proximity
                 const distSq = Utils.distanceSq(this.mouse.x, this.mouse.y, b.x, b.y);
                 const range = t.stats.collectionRange || 40;
                 

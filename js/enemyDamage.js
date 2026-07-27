@@ -86,8 +86,6 @@ const EnemyDamage = {
         return this._handleStandardDamage(damage, dmgType, effects, killerTower);
     },
 
-    // ... [Keep the rest of enemyDamage.js exactly the same] ...
-
     _isImmune(dmgType, effects) {
         if (!dmgType) dmgType = {}; 
         
@@ -138,6 +136,7 @@ const EnemyDamage = {
             }
             if (effects && effects.unstableConcoction) this.unstableConcoction = true;
             
+            // FIX: RESTORED carry-over damage. Excess damage IS passed equally to the spawned children!
             const carryOver = damage - previousHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {

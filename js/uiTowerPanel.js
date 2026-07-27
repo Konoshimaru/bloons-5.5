@@ -83,7 +83,7 @@ const uiTowerPanel = {
     _collectAbilities(engine) {
         const abilities = [];
         for (const t of engine.towers) {
-            if (!t || t.isMinion) continue;
+            if (!t || t.isMinion) continue; 
             if (t.stats.isHero) {
                 this._collectHeroAbilities(t, abilities);
             } else if (t.stats.isAbility) {
@@ -95,7 +95,6 @@ const uiTowerPanel = {
                 }
                 
                 let cd = t.abilityCooldown || 0;
-                // FIX: Beast handler ability cooldown is tracked on the beast entity
                 if (t.type === 'beast' && t.beast) {
                     cd = t.beast.abilityCooldown || 0;
                 }
@@ -163,9 +162,27 @@ const uiTowerPanel = {
         const portrait = el('up-portrait');
         if (!portrait) return;
 
+        if (t.isMinion && t.type === 'sentry') {
+            const off = document.createElement('canvas');
+            off.width = 110; off.height = 110;
+            const offCtx = off.getContext('2d');
+            offCtx.translate(55, 65); 
+            offCtx.fillStyle = t.stats.color;
+            offCtx.beginPath();
+            offCtx.arc(0, 0, 30, 0, Math.PI*2); 
+            offCtx.fill();
+            offCtx.fillStyle = '#34495e';
+            offCtx.fillRect(-10, -50, 20, 30); 
+            
+            portrait.style.backgroundImage = `url(${off.toDataURL()})`;
+            portrait.style.backgroundSize = 'cover';
+            portrait.style.backgroundPosition = 'center';
+            return;
+        }
+
         let bestTier = 0, bestPath = 0;
         for (let p = 1; p <= 3; p++) {
-            if (t.upgrades[p - 1] > bestTier) {
+            if (t.upgrades && t.upgrades[p - 1] > bestTier) {
                 bestTier = t.upgrades[p - 1];
                 bestPath = p;
             }
@@ -291,7 +308,7 @@ const uiTowerPanel = {
         if (pathsEl) pathsEl.classList.remove('hidden');
         
         const title = el('up-title');
-        if (title) title.innerText = TowerStats[t.type].name;
+        if (title) title.innerText = t.stats.name; 
         
         const counters = el('up-counters');
         if (counters) counters.innerText = this._getTowerCounterText(t);
@@ -307,18 +324,30 @@ const uiTowerPanel = {
         }
         
         const targetingRow = el('up-targeting-row');
-        if (targetingRow) {
-            if (t.type === 'spike' && !t.stats.smartSpikes) {
-                targetingRow.classList.add('hidden');
-            } else if (t.type === 'village' && t.upgrades[0] < 5) {
-                targetingRow.classList.add('hidden');
+        
+        if (t.isMinion && t.type !== 'sentry' && t.type !== 'beast') {
+            if (pathsEl) pathsEl.classList.add('hidden');
+            if (targetingRow) targetingRow.classList.add('hidden');
+        } else {
+            if (t.isMinion && (t.type === 'sentry' || t.type === 'beast')) {
+                if (pathsEl) pathsEl.classList.add('hidden'); 
+                if (targetingRow) targetingRow.classList.remove('hidden'); 
             } else {
-                targetingRow.classList.remove('hidden');
+                if (pathsEl) pathsEl.classList.remove('hidden');
+                if (targetingRow) {
+                    if (t.type === 'spike' && !t.stats.smartSpikes) {
+                        targetingRow.classList.add('hidden');
+                    } else if (t.type === 'village' && t.upgrades[0] < 5) {
+                        targetingRow.classList.add('hidden');
+                    } else {
+                        targetingRow.classList.remove('hidden');
+                    }
+                }
             }
         }
 
         let targetingRow2 = el('up-targeting-row-2');
-        if (t.type === 'super' && t.upgrades[1] >= 3) {
+        if (!t.isMinion && t.type === 'super' && t.upgrades[1] >= 3) {
             if (!targetingRow2 && targetingRow) {
                 targetingRow2 = targetingRow.cloneNode(true);
                 targetingRow2.id = 'up-targeting-row-2';
@@ -351,29 +380,23 @@ const uiTowerPanel = {
         
         this._updateTargetingText(t);
 
-        // FIX: Beast Handler Custom UI
         const placeBeastBtn = el('beast-place-btn');
         const mergeBeastBtn = el('beast-merge-btn');
-        if (t.type === 'beast') {
-            if (t.isMinion) {
-                pathsEl.classList.add('hidden');
-                if (placeBeastBtn) placeBeastBtn.classList.add('hidden');
-                if (mergeBeastBtn) mergeBeastBtn.classList.add('hidden');
-            } else {
-                this._setupBeastUI(pathsEl, t, engine);
-            }
+        if (t.type === 'beast' && !t.isMinion) {
+            this._setupBeastUI(pathsEl, t, engine);
         } else {
             if (placeBeastBtn) placeBeastBtn.classList.add('hidden');
             if (mergeBeastBtn) mergeBeastBtn.classList.add('hidden');
         }
 
-        this._updateUpgradeCards(t, engine);
+        if (!t.isMinion) {
+            this._updateUpgradeCards(t, engine);
+        }
     },
 
     _setupBeastUI(pathsEl, t, engine) {
-        const portrait = el('up-portrait');
+        const panel = el('upgrade-sidebar');
         
-        // Place Button
         let placeBtn = el('beast-place-btn');
         if (!placeBtn) {
             placeBtn = document.createElement('button');
@@ -386,13 +409,13 @@ const uiTowerPanel = {
             placeBtn.style.borderRadius = '4px';
             placeBtn.style.cursor = 'pointer';
             placeBtn.style.fontWeight = 'bold';
-            placeBtn.style.width = '50px';
-            placeBtn.style.height = '50px';
-            placeBtn.style.top = '5px';
-            portrait.parentNode.appendChild(placeBtn);
+            placeBtn.style.width = '60px';
+            placeBtn.style.height = '30px';
+            placeBtn.style.top = '15px';
+            placeBtn.style.right = '15px'; // FIX: Always top-right of the panel
+            panel.appendChild(placeBtn);
             _elCache['beast-place-btn'] = placeBtn;
             
-            // FIX: Attach listener ONLY ONCE on creation. No more cloneNode.
             placeBtn.addEventListener('click', () => {
                 if (engine.selectedPlacedTower) {
                     engine.placingBeastFor = engine.selectedPlacedTower; 
@@ -400,13 +423,10 @@ const uiTowerPanel = {
                 }
             });
         }
-        if (portrait.parentNode.classList.contains('sidebar-right')) { placeBtn.style.left = '5px'; placeBtn.style.right = 'auto'; }
-        else { placeBtn.style.right = '5px'; placeBtn.style.left = 'auto'; }
         
         if (!t.beast) placeBtn.classList.add('hidden');
         else placeBtn.classList.remove('hidden');
 
-        // Merge Button
         let mergeBtn = el('beast-merge-btn');
         if (!mergeBtn) {
             mergeBtn = document.createElement('button');
@@ -419,13 +439,13 @@ const uiTowerPanel = {
             mergeBtn.style.borderRadius = '4px';
             mergeBtn.style.cursor = 'pointer';
             mergeBtn.style.fontWeight = 'bold';
-            mergeBtn.style.width = '50px';
-            mergeBtn.style.height = '50px';
-            mergeBtn.style.top = '60px';
-            portrait.parentNode.appendChild(mergeBtn);
+            mergeBtn.style.width = '60px';
+            mergeBtn.style.height = '30px';
+            mergeBtn.style.top = '50px'; // FIX: Below the place button
+            mergeBtn.style.right = '15px';
+            panel.appendChild(mergeBtn);
             _elCache['beast-merge-btn'] = mergeBtn;
             
-            // FIX: Attach listener ONLY ONCE on creation. No more cloneNode.
             mergeBtn.addEventListener('click', () => {
                 if (engine.selectedPlacedTower) {
                     engine.isMergingBeast = true; 
@@ -434,27 +454,39 @@ const uiTowerPanel = {
                 }
             });
         }
-        if (portrait.parentNode.classList.contains('sidebar-right')) { mergeBtn.style.left = '5px'; mergeBtn.style.right = 'auto'; }
-        else { mergeBtn.style.right = '5px'; mergeBtn.style.left = 'auto'; }
         
         if (!t.beast) mergeBtn.classList.add('hidden');
         else mergeBtn.classList.remove('hidden');
     },
 
     _getTowerCounterText(t) {
+        // FIX: Prevent NaN by safely parsing damageDealt
+        const dmg = Number(t.damageDealt) || 0;
+        if (t.type === 'sentry') return `Dmg Dealt: ${dmg}`;
+        if (t.type === 'beast' && t.isMinion) return `Dmg Dealt: ${dmg}`; 
         if (t.type === 'farm' && t.stats.isBank) return `Bank: $${Math.floor(t.bankBalance)}`;
         if (t.type === 'farm') return `Cash Gen: $${t.cashGenerated}`;
         if (t.type === 'engineer' && t.activeTrap) return `Trap: ${t.activeTrap.rbe}/${t.activeTrap.maxRbe}`;
         if (t.type === 'beast' && t.beast) return `Power: ${t.beast.beastPower} / ${t.beast.data.maxPower}`;
-        return `Dmg Dealt: ${t.damageDealt}`;
+        return `Dmg Dealt: ${dmg}`;
     },
 
     _updateTowerStats(t) {
         const upStats = el('up-stats');
         if (!upStats) return;
         const effRate = getEffectiveCooldown(t);
-        const effPierce = t.stats.pierce + (t.buffedPierce || 0) + (t.alchBuff ? t.alchBuff.pierce : 0);
-        const effDmg = t.stats.damage + (t.buffedDmg || 0) + (t.alchBuff ? t.alchBuff.dmg : 0);
+        
+        // FIX: Safely parse numbers to prevent NaN for minions
+        const basePierce = Number(t.stats.pierce) || 0;
+        const buffedPierce = Number(t.buffedPierce) || 0;
+        const alchPierce = (t.alchBuff && Number(t.alchBuff.pierce)) || 0;
+        const effPierce = basePierce + buffedPierce + alchPierce;
+        
+        const baseDmg = Number(t.stats.damage) || 0;
+        const buffedDmg = Number(t.buffedDmg) || 0;
+        const alchDmg = (t.alchBuff && Number(t.alchBuff.dmg)) || 0;
+        const effDmg = baseDmg + buffedDmg + alchDmg;
+        
         upStats.innerText = `DMG: ${effDmg} | RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`;
     },
 
@@ -467,6 +499,8 @@ const uiTowerPanel = {
     },
 
     _updateUpgradeCards(t, engine) {
+        if (!t || t.isMinion || t.stats.isHero || !Upgrades[t.type]) return;
+
         for (let i = 1; i <= 3; i++) {
             const card = el(`up-path${i}`);
             if (!card) continue;

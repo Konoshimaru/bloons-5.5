@@ -1,17 +1,11 @@
 // js/levelManager.js
 import { Config } from './config.js';
 import { LevelProgression } from './levelData.js';
-import { TowerStats } from './towers/index.js';
+import { TowerStats, TOWER_CATEGORIES } from './towers/index.js'; // FIX: Import shared categories
 import { HeroStats } from './heroes/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { UI } from './ui.js';
-
-const TOWER_CATEGORIES = {
-    'Primary': ['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue'],
-    'Military': ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar'],
-    'Magic': ['wizard', 'super', 'ninja', 'alchemist', 'druid'],
-    'Support': ['farm', 'spike', 'village', 'engineer']
-};
+import { updateShopPrices } from './dragManager.js'; // FIX: Import updateShopPrices properly
 
 export const LevelManager = {
     addXP(amount) {
@@ -21,7 +15,6 @@ export const LevelManager = {
             Config.data.playerXP -= Config.data.playerXPToNext;
             Config.data.playerLevel++;
             
-            // Calculate next level XP requirement
             const nextLevelData = LevelProgression[Config.data.playerLevel + 1];
             const currentLevelData = LevelProgression[Config.data.playerLevel];
             
@@ -29,10 +22,6 @@ export const LevelManager = {
                 Config.data.playerXPToNext = currentLevelData.xpFromPrev;
             }
             if (nextLevelData) {
-                // If we need to look ahead, do so here. For now, xpFromPrev is the requirement to reach the *next* level.
-                // Wait, the table says "From prev." which means XP needed to go from Lvl X to Lvl X+1.
-                // So to reach Level 3, you need 1100 XP. 
-                // So when we hit Level 3, the *next* requirement is Level 4's xpFromPrev (620).
                 Config.data.playerXPToNext = nextLevelData.xpFromPrev;
             }
 
@@ -64,15 +53,15 @@ export const LevelManager = {
         } else if (unlockText.includes("Monkey Knowledge Point")) {
             Config.data.knowledgePoints += 1;
         } else if (unlockText.includes("Gift Box")) {
-            // Desperado, Dartling Gunner, Mermonkey, Beast Handler
             ['desperado', 'dartling', 'mermonkey', 'beast'].forEach(t => {
                 if (!Config.data.unlockedTowers.includes(t)) {
                     Config.data.unlockedTowers.push(t);
                 }
             });
+            updateShopPrices(); // FIX: Will now run properly
         } else {
-            // Check for specific heroes or towers mentioned by name
             this._unlockSpecificByName(unlockText);
+            updateShopPrices(); // FIX: Will now run properly
         }
     },
 
@@ -107,7 +96,15 @@ export const LevelManager = {
         grid.style.gap = '15px';
         grid.style.marginTop = '20px';
 
-        const options = TOWER_CATEGORIES[category] || [];
+        // FIX: Build the options list dynamically from TowerStats
+        const options = [];
+        for (const type in TowerStats) {
+            const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
+            if (cat === category) {
+                options.push(type);
+            }
+        }
+
         let availableOptions = [];
 
         options.forEach(type => {
@@ -144,9 +141,7 @@ export const LevelManager = {
                     Config.data.unlockedTowers.push(type);
                     Config.save();
                     overlay.remove();
-                    // Refresh UI if game is running
-                    if (UI._towerCardCache) UI._towerCardCache = null; 
-                    if (typeof updateShopPrices === 'function') updateShopPrices();
+                    updateShopPrices(); // FIX: Call directly
                 });
 
                 grid.appendChild(card);
@@ -154,7 +149,6 @@ export const LevelManager = {
         });
 
         if (availableOptions.length === 0) {
-            // All unlocked for this category, give MK point instead
             Config.data.knowledgePoints += 1;
             content.innerHTML += `<p>All ${category} towers already unlocked! +1 Monkey Knowledge Point granted.</p>`;
         } else {

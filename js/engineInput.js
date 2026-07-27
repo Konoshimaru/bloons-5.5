@@ -11,7 +11,7 @@ import { Hero } from './hero.js';
 import { GLOBAL_SCALE } from './constants.js';
 import { applyBossEffects } from './input.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
-import { getSellRate } from './towerEconomy.js'; // FIX: Import getSellRate for merge refund
+import { getSellRate } from './towerEconomy.js'; 
 
 const MAX_SPEED_NORMAL = 3;
 const MAX_SPEED_EXTREME = 6;
@@ -35,50 +35,33 @@ export default {
 
     handleCanvasClick(e) {
         const boss = this.enemies.find(en => en.tier === 99);
-        if (boss && boss.freezeMouse) {
-            return; 
-        }
+        if (boss && boss.freezeMouse) return; 
 
         const rect = (window.InputManager && window.InputManager.canvasRect) ? window.InputManager.canvasRect : this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
         const rawX = (e.clientX - rect.left) * scaleX;
         const rawY = (e.clientY - rect.top) * scaleY;
-
         const adj = applyBossEffects(rawX, rawY);
         const x = adj.x;
         const y = adj.y;
 
-        // FIX: Intercept click to place Beast
         if (this.placingBeastFor) {
             const tower = this.placingBeastFor;
-            this.placingBeastFor = null; // Clear state
-            
+            this.placingBeastFor = null; 
             if (tower.beast) {
-                // Check if click is within tower range
                 const dist = Utils.distance(tower.x, tower.y, x, y);
                 const effRange = Utils.getEffectiveRange(tower, this);
-                
                 if (dist <= effRange) {
-                    // Check terrain validity (Land beast must be on land)
                     const isOnWater = this.map.isInWater(x, y);
                     const isOnPath = this.map.isOnPath(x, y);
-                    
-                    if (tower.beast.terrain === 'land' && (isOnWater || isOnPath)) {
-                        this.log("Land beasts must be placed on land!");
-                    } else {
-                        tower.beast.x = x;
-                        tower.beast.y = y;
-                        this.log("Beast placed!");
-                    }
-                } else {
-                    this.log("Placement out of range!");
-                }
+                    if (tower.beast.terrain === 'land' && (isOnWater || isOnPath)) this.log("Land beasts must be placed on land!");
+                    else { tower.beast.x = x; tower.beast.y = y; this.log("Beast placed!"); }
+                } else this.log("Placement out of range!");
             }
             return; 
         }
 
-        // Intercept click for Beast Handler Merge
         if (this.isMergingBeast && this.mergeSourceTower) {
             let source = this.mergeSourceTower;
             this.isMergingBeast = false;
@@ -91,22 +74,24 @@ export default {
             
             if (targetTower && targetTower !== source && targetTower.type === 'beast' && targetTower.beast) {
                 if (targetTower.beast.terrain === source.beast.terrain && targetTower.beast.tier >= source.beast.tier) {
+                    
+                    if (source.beast.tier === 1) {
+                        this.log("Tier 1 beasts cannot be merged!");
+                        return;
+                    }
+
                     let powerToTransfer = source.beast.beastPower;
                     let newPower = Math.min(targetTower.beast.data.maxPower, targetTower.beast.beastPower + powerToTransfer);
                     let actualTransferred = newPower - targetTower.beast.beastPower;
                     targetTower.beast.beastPower = newPower;
                     targetTower.beast.recalculateStats();
                     
-                    // Destroy source beast and auto-sell source tower to refund player
                     source.beast.alive = false;
                     const bIdx = this.beasts.indexOf(source.beast);
                     if (bIdx > -1) this.beasts.splice(bIdx, 1);
+                    source.beast = null;
+                    source.hasBeast = false;
                     
-                    const resaleRate = getSellRate(source, this);
-                    this.cash += Math.floor(source.totalSpent * resaleRate);
-                    
-                    const tIdx = this.towers.indexOf(source);
-                    if (tIdx > -1) this.towers.splice(tIdx, 1);
                     if (this.selectedPlacedTower === source) this.deselectAll();
                     
                     this.log(`Merged ${actualTransferred} Beast Power!`);
@@ -116,7 +101,6 @@ export default {
             return; 
         }
 
-        // Intercept click to place Mermonkey Totem
         if (this.selectedPlacedTower && this.selectedPlacedTower.isPlacingTotem) {
             if (x < CANVAS_WIDTH && y < CANVAS_HEIGHT) {
                 this.selectedPlacedTower.totemX = x;
@@ -155,34 +139,41 @@ export default {
             }
         }
 
+        for (const s of this.sentries) {
+            if (s && Utils.withinRange(x, y, s.x, s.y, s.hitRadius + 5)) {
+                if (this.selectedPlacedTower === s) { this.deselectAll(); } 
+                else { this.deselectAll(); this.selectedPlacedTower = s; UI.showUpgradeUI(s, this); }
+                return;
+            }
+        }
+
+        for (const b of this.beasts) {
+            if (b && Utils.withinRange(x, y, b.x, b.y, b.hitRadius + 5)) {
+                if (this.selectedPlacedTower === b) { this.deselectAll(); } 
+                else { this.deselectAll(); this.selectedPlacedTower = b; UI.showUpgradeUI(b, this); }
+                return;
+            }
+        }
+
         if (this.selectedTowerType) {
             const stats = TowerStats[this.selectedTowerType] || HeroStats[this.selectedTowerType];
             let cost = this.getCost(stats.cost);
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
-            
             this._monkeyCityFreeDart = false; 
-            
             for (const eff of MKEffects.towerPlacement) {
                 if (!mk[eff.id] && !eff.alwaysActive) continue;
                 if (eff.type && !eff.type.includes(this.selectedTowerType)) continue;
                 if (eff.condition && !eff.condition(this, this.selectedTowerType)) continue;
                 if (eff.action) cost = eff.action(cost);
             }
-
             if (this.selectedTowerType === 'dart' && !this.isSandbox && this.difficulty && !this.difficulty.noSelling) {
                 const hasMonkeyCity = this.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
-                if (hasMonkeyCity && !this.freeDartMonkeyClaimed) {
-                    cost = 0;
-                    this._monkeyCityFreeDart = true;
-                }
+                if (hasMonkeyCity && !this.freeDartMonkeyClaimed) { cost = 0; this._monkeyCityFreeDart = true; }
             }
-
             if (this.cash < cost) { this.log("Not enough cash!"); return; }
-
             const placementRadius = (stats.hitRadius || 18) * GLOBAL_SCALE;
             const isOverlapping = this.towers.some(t => t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + placementRadius));
             if (isOverlapping) { this.log("Cannot place on top of another monkey!"); return; }
-
             let canPlace = false;
             if (stats.waterOnly) { canPlace = this.map.isInWater(x, y); } 
             else if (stats.canPlaceOnWater) { canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300; } 
@@ -191,23 +182,14 @@ export default {
                 canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300 && (!this.map.isInWater(x, y) || isOnFrozenWater);
             }
             if (!canPlace) { this.log(stats.waterOnly ? "Must be placed on water!" : "Cannot place here!"); return; }
-
             if (stats.isHero && this.hero) { this.log("You can only place one Hero per game!"); return; }
-
             const newTower = stats.isHero ? new Hero(x, y, this.selectedTowerType) : new Tower(x, y, this.selectedTowerType);
             if (stats.isHero) this.hero = newTower;
             if (newTower.type === 'spike') newTower.targetingMode = 'Normal';
             if (newTower.type === 'village') newTower.targetingMode = 'First';
             this.towers.push(newTower); this.cash -= cost; AudioEngine.playSfx('place');
-            
-            if (this._monkeyCityFreeDart) {
-                this.freeDartMonkeyClaimed = true;
-                this._monkeyCityFreeDart = false;
-                this.log("Monkey City: Free Dart Monkey placed!");
-            }
-            
+            if (this._monkeyCityFreeDart) { this.freeDartMonkeyClaimed = true; this._monkeyCityFreeDart = false; this.log("Monkey City: Free Dart Monkey placed!"); }
             this.updateUI(); this.log("Tower placed!"); this.deselectAll(); 
-            
             if (this.updateShopPrices) this.updateShopPrices();
             return; 
         }
@@ -217,22 +199,19 @@ export default {
     cycleTargeting(direction = 1, arm = 1) {
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
+        if (t.stats.isHero) return;
+        if (t.isMinion && t.type !== 'sentry' && t.type !== 'beast') return;
+        
         let modes = ['First', 'Last', 'Strong', 'Close'];
         if (t.stats.unlocksElite) { modes.push('Elite'); }
         if (t.type === 'spike') { modes = t.stats.smartSpikes ? ['Normal', 'Close', 'Smart'] : ['Normal']; }
-        if (t.type === 'village') { 
-            if (t.upgrades[0] < 5) return; 
-            modes = ['First', 'Last', 'Strong', 'Close']; 
-        }
-        
+        if (t.type === 'village') { if (t.upgrades[0] < 5) return; modes = ['First', 'Last', 'Strong', 'Close']; }
         const modeKey = arm === 2 ? 'targetingMode2' : 'targetingMode';
         let currentMode = t[modeKey] || 'First';
-        
         let idx = modes.indexOf(currentMode);
         if (idx === -1) idx = 0; 
         idx = (idx + direction + modes.length) % modes.length; 
         t[modeKey] = modes[idx];
-        
         UI.showUpgradeUI(t, this);
     },
 
@@ -241,7 +220,8 @@ export default {
         const t = this.selectedPlacedTower;
         if (t.stats.isHero || t.isMinion) return;
         
-        // Beast Handler Water Check
+        // FIX: Removed the lock that prevented buying Path 1 and Path 3!
+
         if (t.type === 'beast' && path === 1) {
             let hasWater = false;
             for (let dx = -150; dx <= 150; dx += 30) {
@@ -252,7 +232,7 @@ export default {
             }
             if (!hasWater) { this.log("No water nearby for fish!"); return; }
         }
-
+        
         const tier = t.upgrades[path - 1];
         const upgradeData = Upgrades[t.type][path][tier];
         if (!upgradeData) { this.log("Max upgrades reached!"); return; }
@@ -273,24 +253,17 @@ export default {
         if (!t) return;
         const behavior = getBehavior(t.type);
         if (!behavior) return;
-
         let actualTower = t;
-        if (t.type === 'beast' && !t.isMinion && t.beast) {
-            actualTower = t.beast;
-        }
-
+        if (t.type === 'beast' && !t.isMinion && t.beast) actualTower = t.beast;
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         let cdMult = 1.0;
-        
         for (const eff of MKEffects.abilityCooldown) {
             if (!mk[eff.id]) continue;
             if (eff.hero && !t.stats.isHero) continue;
             if (eff.condition && !eff.condition(t, slot)) continue;
             if (eff.stat === 'cdMult') cdMult *= eff.amount;
         }
-
         if (t.abilityCdMult) cdMult *= t.abilityCdMult;
-
         if (slot === 1 && actualTower.stats.isAbility && actualTower.abilityCooldown <= 0 && behavior.ability) {
             behavior.ability(actualTower, this);
             let cd = actualTower.stats.abilityCd || 45;
@@ -314,11 +287,18 @@ export default {
         if (this.difficulty && this.difficulty.noSelling) { this.log("Cannot sell in CHIMPS mode!"); return; }
         if (this.selectedPlacedTower.stats.isHero) this.hero = null;
         
-        // Remove beast minion when handler is sold
         if (this.selectedPlacedTower.type === 'beast' && this.selectedPlacedTower.beast) {
             this.selectedPlacedTower.beast.alive = false;
             const idx = this.beasts.indexOf(this.selectedPlacedTower.beast);
             if (idx > -1) this.beasts.splice(idx, 1);
+        }
+        
+        if (this.selectedPlacedTower.type === 'engineer' && this.selectedPlacedTower.sentries) {
+            for (let s of this.selectedPlacedTower.sentries) {
+                s.alive = false;
+                const idx = this.sentries.indexOf(s);
+                if (idx > -1) this.sentries.splice(idx, 1);
+            }
         }
         
         this.selectedPlacedTower.sell(this);
@@ -329,8 +309,7 @@ export default {
 
     deselectAll() {
         this.selectedTowerType = null; this.selectedPlacedTower = null;
-        this.placingBeastFor = null; // Clear beast placement state
-        this.isMergingBeast = false; this.mergeSourceTower = null; // Clear merge state
+        this.placingBeastFor = null; this.isMergingBeast = false; this.mergeSourceTower = null;
         UI.hideUpgradePanel();
         const cancelBtn = document.getElementById('cancel-btn');
         if (cancelBtn) cancelBtn.classList.add('hidden');

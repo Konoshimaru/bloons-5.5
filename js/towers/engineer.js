@@ -1,115 +1,207 @@
+// js/towers/engineer.js
 import { GameEngine } from '../engine.js';
 import { Utils, drawShadow } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 import { createDmgType, resolveDmgType } from '../damageTypes.js';
 import { GLOBAL_SCALE } from '../constants.js';
+import { Sentry } from '../sentryEntity.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: {
-        name: "Engineer Monkey", scale:1.2, cost: 350, range: 35,
-        baseCooldown: 0.70, fireRate: 0.70, lifespan: 0.8,
-        damage: 1, pierce: 3, projectileSpeed: 600,
-        desc: "Wields a nailgun. Upgrades into sentries, foam, and traps.",
+        name: "Engineer Monkey", scale:1.2, cost: 350, range: 40, 
+        baseCooldown: 0.70, fireRate: 0.70, lifespan: 0.24, 
+        damage: 1, pierce: 3, projectileSpeed: 650, 
+        desc: "Holds a trusty nail-gun to pop the Bloons. Can upgrade to create its own nail-shooting sentry turrets.",
         dmgType: 'sharp', projectileType: 'nail', hitRadius: 18, maxSentries: 0
     },
     upgrades: {
         1: [
-            {name:"Sentry Gun",cost:500,stat:"maxSentries",amount:1,desc:"Creates temporary sentry guns."},
-            {name:"Faster Engineering",cost:400,stat:"sentrySpawnMod",amount:0.6,desc:"Produces sentries 66% faster."},
-            {name:"Sprockets",cost:575,desc:"Nailgun and sentries attack twice as fast.", cooldownMult: 0.5, extraMods: {sentryFireRateMod: 0.5}},
-            {name:"Sentry Expert",cost:2500,stat:"maxSentries",amount:3,desc:"Spawns 4 specialized sentries."},
-            {name:"Sentry Champion",cost:32000,stat:"maxSentries",amount:0,desc:"Super-powerful unstable plasma sentries.", extraMods: {sentryDmg: 3, sentryPierce: 5, sentryFireRate: 0.06, sentryExplode: true}}
+            {name:"Sentry Gun",cost:500,stat:"maxSentries",amount:1,desc:"Creates temporary sentry guns and deploys them close to track anywhere in radius."},
+            {name:"Faster Engineering",cost:400,stat:"sentrySpawnMod",amount:0.5,desc:"Increased efficiency allows the Engineer to produce sentries, foam and bloon traps more often."}, 
+            {name:"Sprockets",cost:575,desc:"Increases sentry gun and Engineer attack speed.", cooldownMult: 0.5, extraMods: {sentryFireRateMod: 0.5}},
+            {name:"Sentry Expert",cost:2500,stat:"maxSentries",amount:3,desc:"Sentries deploy with different damage types based on your need."},
+            {name:"Sentry Champion",cost:32000,stat:"maxSentries",amount:-3,desc:"Creates super-powerful but highly unstable sentries.", extraMods: {sentryDmg: 3, sentryPierce: 5, sentryFireRate: 0.06, sentryExplode: true}, cooldownMult: 0.85}
         ],
         2: [
-            {name:"Larger Service Area",cost:250,stat:"range",amount:62.5,desc:"Shoots further and deploys sentries in a larger area.", extraMods: {sentryRange: 12.5}},
-            {name:"Deconstruction",cost:350,stat:"moabDmg",amount:1,desc:"Nail gun and Sentries do +1 damage to MOABs and Fortified.", extraMods: {fortifiedDmg: 1}},
-            {name:"Cleansing Foam",cost:900,stat:"canHitLead",amount:true,desc:"Sprays foam that removes Camo/Regrow and pops Lead.", extraMods: {canSeeCamo: true, applyFoam: true}},
-            {name:"Overclock",cost:13500,stat:"isAbility",amount:true,desc:"Ability: Overclock a nearby tower."},
-            {name:"Ultraboost",cost:72000,stat:"isAbility",amount:true,desc:"Ability: Permanent attack speed boost."}
+            {name:"Larger Service Area",cost:250,stat:"range",amount:20,desc:"Shoots further and deploys sentries in a much larger area. Sentries have longer range.", extraMods: {sentryRange: 5}}, // FIX: +5 range to sentries
+            {name:"Deconstruction",cost:350,stat:"moabDmg",amount:1,desc:"Nail gun and Sentry shots do extra damage to MOAB-class and Fortified Bloons.", extraMods: {fortifiedDmg: 1}},
+            {name:"Cleansing Foam",cost:900,stat:"canHitLead",amount:true,desc:"Sprays foam that removes Camo and Regrow and pops Lead Bloons.", extraMods: {canSeeCamo: true, applyFoam: true, foamPierce: 10}},
+            {name:"Overclock",cost:13500,stat:"isAbility",amount:true,desc:"Overclock Ability: Target another tower to supercharge its attack speed for a short time.", extraMods: {abilityCd: 45, abilityName: "Overclock"}, statMods: [{stat: "pierce", amount: 12}, {stat: "projectileSpeed", amount: 550}, {stat: "foamPierce", amount: 4}]},
+            {name:"Ultraboost",cost:72000,stat:"isAbility",amount:true,desc:"Ultra-Overclocked Monkeys gain a small but permanent boost every time they are overclocked.", extraMods: {abilityCd: 35, abilityName: "Ultraboost"}, statMods: [{stat: "pierce", amount: 15}, {stat: "foamPierce", amount: 10}]}
         ],
         3: [
-            {name:"Oversize Nails",cost:450,stat:"pierce",amount:5,desc:"Nails pop 8 bloons and can pop frozen."},
-            {name:"Pin",cost:220,stat:"applyPin",amount:true,desc:"Pins non-MOAB bloons in place temporarily."},
-            {name:"Double Gun",cost:450,desc:"Double nailgun attack speed.", cooldownMult: 0.5, extraMods: {sentryProjCount: 1}},
-            {name:"Bloon Trap",cost:3600,stat:"trapRbe",amount:500,desc:"Bloon trap captures Bloons until full."},
-            {name:"XXXL Trap",cost:45000,stat:"trapRbe",amount:9500,desc:"Huge trap can capture MOABs.", extraMods: {trapMoab: true}}
+            {name:"Oversize Nails",cost:450,stat:"pierce",amount:5,desc:"Massivization allows nails to pop 8 Bloons at once, including frozen. Also increases Foam and Sentry effectiveness.", extraMods: {dmgType: 'shatter'}}, 
+            {name:"Pin",cost:220,stat:"applyPin",amount:true,desc:"Pins Bloons in place for a short time when struck."},
+            {name:"Double Gun",cost:450,desc:"Two guns for twice the fun.", cooldownMult: 0.5, extraMods: {sentryProjCount: 1}},
+            {name:"Bloon Trap",cost:3600,stat:"trapRbe",amount:500,desc:"Bloon trap captures Bloons until full. Select to empty full trap for cash.", extraMods: {trapCooldown: 12, trapRadius: 10}},
+            {name:"XXXL Trap",cost:45000,stat:"trapRbe",amount:9500,desc:"Huge Bloon traps can trap some of the largest Bloons in them...", extraMods: {trapMoab: true, trapCooldown: 4.6, trapRadius: 10}}
         ]
     },
     update(tower, dt) {
         let spawnMod = tower.stats.sentrySpawnMod || 1;
-        let sentryFireRate = tower.stats.sentryFireRate || 0.6;
-        if (tower.stats.sentryFireRateMod) sentryFireRate *= tower.stats.sentryFireRateMod;
-        for (let i = tower.sentries.length - 1; i >= 0; i--) {
-            let s = tower.sentries[i];
-            s.life -= dt;
-            if (s.life <= 0) {
-                if (s.explode) {
-                    GameEngine.explosions.push({ x: s.x, y: s.y, radius: 0, maxRadius: 40, life: 0.3, maxLife: 0.3, color: '#9b59b6' });
-                    const nearby = GameEngine.enemyGrid.query(s.x, s.y, 40);
-                    for (let e of nearby) { if (Utils.withinRange(s.x, s.y, e.x, e.y, 40)) e.takeDamage(5, { isPlasma: true, canHitLead: true }); }
-                }
-                tower.sentries.splice(i, 1); continue;
-            }
-            s.cooldown -= dt;
-            if (s.cooldown <= 0) {
-                let sTarget = null; let sBestVal = Infinity;
-                const sCandidates = GameEngine.enemyGrid.query(s.x, s.y, s.range);
-                for (let e of sCandidates) { if (!e.alive) continue; if (Utils.withinRange(s.x, s.y, e.x, e.y, s.range)) { if (e.distanceTraveled < sBestVal) { sBestVal = e.distanceTraveled; sTarget = e; } } }
-                if (sTarget) {
-                    let sDmgType = createDmgType(resolveDmgType(s.dmgType), {
-                        moabDmg: tower.stats.moabDmg || 0,
-                        fortifiedDmg: tower.stats.fortifiedDmg || 0
-                    });
-                    let count = s.projCount || 1;
-                    for(let j=0; j<count; j++) {
-                        let p = GameEngine.projectilePool.get();
-                        p.init(s.x, s.y, s.damage, sTarget, s.dmgType === 'plasma' ? 'super' : 'nail', 600, s.pierce, 0.5, null, null, 5 * (j - (count-1)/2), tower, sDmgType);
-                    }
-                    s.cooldown = s.fireRate;
-                }
-            }
-        }
+        let sentryFireRateMod = tower.stats.sentryFireRateMod || 1;
+        
+        if (!tower.sentryCooldown) tower.sentryCooldown = 10;
+        if (!tower.sentrySpawnIndex) tower.sentrySpawnIndex = 0;
+
+        // --- SENTRY SPAWNING LOGIC ---
         if (tower.stats.maxSentries > 0 && tower.sentries.length < tower.stats.maxSentries) {
             tower.sentryCooldown -= dt * spawnMod;
             if (tower.sentryCooldown <= 0) {
-                tower.sentryCooldown = 5;
-                let ang = Math.random() * Math.PI * 2; let dist = Math.random() * tower.stats.range * RANGE_SCALE * 0.8;
-                let sX = tower.x + Math.cos(ang) * dist; let sY = tower.y + Math.sin(ang) * dist;
-                let type = 'sharp'; let color = '#7f8c8d';
-                if (tower.upgrades[0] >= 4 && tower.upgrades[0] < 5) {
-                    const types = ['sharp', 'explosion', 'ice', 'energy']; type = types[tower.sentries.length % 4];
-                    if (type === 'explosion') color = '#e67e22'; if (type === 'ice') color = '#1abc9c'; if (type === 'energy') color = '#f1c40f';
+                let sX = 0, sY = 0;
+                let validSpawn = false;
+                
+                for (let attempt = 0; attempt < 10; attempt++) {
+                    let ang = Math.random() * Math.PI * 2; 
+                    let dist = Math.random() * tower.stats.range * RANGE_SCALE * 0.8;
+                    sX = tower.x + Math.cos(ang) * dist; 
+                    sY = tower.y + Math.sin(ang) * dist;
+                    
+                    if (GameEngine.map.isOnPath(sX, sY) || GameEngine.map.isInWater(sX, sY) || GameEngine.map.isOnProp(sX, sY)) continue;
+                    
+                    let overlapsTower = false;
+                    for (let t of GameEngine.towers) {
+                        if (t && Utils.distanceSq(sX, sY, t.x, t.y) < Math.pow(t.hitRadius + 15, 2)) {
+                            overlapsTower = true; break;
+                        }
+                    }
+                    if (overlapsTower) continue;
+                    
+                    let overlapsSentry = false;
+                    for (let s of GameEngine.sentries) {
+                        if (Utils.distanceSq(sX, sY, s.x, s.y) < Math.pow(30, 2)) {
+                            overlapsSentry = true; break;
+                        }
+                    }
+                    if (overlapsSentry) continue;
+                    
+                    validSpawn = true; break;
                 }
-                if (tower.upgrades[0] >= 5) { type = 'plasma'; color = '#9b59b6'; }
-                tower.sentries.push({ x: sX, y: sY, range: 100 + (tower.stats.sentryRange || 0), life: 25, cooldown: 0, damage: tower.stats.sentryDmg || 1, pierce: tower.stats.sentryPierce || 2, fireRate: tower.stats.sentryFireRate || 0.6, dmgType: type, color: color, projCount: tower.stats.sentryProjCount ? 2 : 1, explode: tower.stats.sentryExplode || false });
+                
+                if (validSpawn) {
+                    tower.sentryCooldown = 10; 
+                    const idx = tower.sentrySpawnIndex % 4; 
+                    tower.sentrySpawnIndex++;
+                    
+                    // FIX: Dynamically calculate sentry range based on Engineer upgrades
+                    let baseSentryRange = 45;
+                    if (tower.upgrades[0] >= 4) baseSentryRange = 50; // Expert/Champion base range
+                    let sentryRange = baseSentryRange + (tower.stats.sentryRange || 0);
+
+                    let config = {
+                        name: "Sentry Gun",
+                        range: sentryRange,
+                        damage: 1, pierce: 2, fireRate: 0.95 * sentryFireRateMod,
+                        dmgType: 'sharp', projCount: 1, projSpeed: 520, projLifespan: 0.25, color: '#7f8c8d'
+                    };
+
+                    if (tower.upgrades[0] === 4) {
+                        if (idx === 0) config = { name: "Crushing Sentry", range: sentryRange, damage: 2, pierce: 22, fireRate: 1.2 * sentryFireRateMod, dmgType: 'shatter', projCount: 1, projSpeed: 260, projLifespan: 1.0, ceramicDmg: 4, color: '#7f8c8d' };
+                        if (idx === 1) config = { name: "Boom Sentry", range: sentryRange, damage: 1, pierce: 1, fireRate: 1.0 * sentryFireRateMod, dmgType: 'sharp', projCount: 1, projSpeed: 315, projLifespan: 0.6, color: '#e67e22', effects: { isExplosive: true, explosionRadius: 18, explosionDamage: 4, explosionPierce: 30, canHitLead: true } };
+                        if (idx === 2) config = { name: "Cold Sentry", range: sentryRange, damage: 1, pierce: 1, fireRate: 1.5 * sentryFireRateMod, dmgType: 'sharp', projCount: 1, projSpeed: 315, projLifespan: 0.6, color: '#1abc9c', effects: { isExplosive: true, explosionRadius: 18, explosionDamage: 1, explosionPierce: 24, freeze: 1.5, permafrost: true, canHitMoab: false } };
+                        if (idx === 3) config = { name: "Energy Sentry", range: sentryRange, damage: 2, pierce: 8, fireRate: 0.57 * sentryFireRateMod, dmgType: 'energy', projCount: 1, projSpeed: 490, projLifespan: 0.6, moabDmg: 2, color: '#f1c40f' };
+                    }
+                    if (tower.upgrades[0] === 5) { 
+                        config = { name: "Sentry Champion", range: sentryRange, damage: 3, pierce: 5, fireRate: 0.06 * sentryFireRateMod, dmgType: 'plasma', projCount: 1, projSpeed: 490, projLifespan: 0.6, color: '#9b59b6', explode: true, explosionDamage: 100, explosionPierce: 50, explosionRadius: 50 };
+                    }
+
+                    const sentry = new Sentry(sX, sY, config, tower);
+                    tower.sentries.push(sentry);
+                    GameEngine.sentries.push(sentry);
+                } else {
+                    tower.sentryCooldown = 0.1; 
+                }
             }
         }
-        if (tower.stats.trapRbe > 0 && !tower.activeTrap) { let point = GameEngine.map.getNearestPathPoint(tower.x, tower.y); tower.activeTrap = { x: point.x, y: point.y, rbe: 0, maxRbe: tower.stats.trapRbe, moab: tower.stats.trapMoab || false }; }
-        if (tower.activeTrap) {
-            const trap = tower.activeTrap; const nearby = GameEngine.enemyGrid.query(trap.x, trap.y, 25);
-            for (let e of nearby) {
-                if (!e.alive) continue;
-                if (Utils.withinRange(trap.x, trap.y, e.x, e.y, 25 + e.data.radius)) {
-                    if (!e.data.isMoab || trap.moab) { if (trap.rbe + e.data.rbe <= trap.maxRbe) { trap.rbe += e.data.rbe; e.alive = false; GameEngine.spawnPopEffect(e.x, e.y, e.data.color); } else { trap.rbe = trap.maxRbe; } }
+
+        // --- CLEANSING FOAM LOGIC (Spike Style) ---
+        if (tower.stats.applyFoam) {
+            if (!tower.foamCooldown) tower.foamCooldown = 2.0; 
+            tower.foamCooldown -= dt;
+            if (tower.foamCooldown <= 0) {
+                tower.foamCooldown = 2.0;
+                for (let i = 0; i < 4; i++) {
+                    let ang = (i / 4) * Math.PI * 2 + (tower.foamAngleOffset || 0);
+                    let dist = Math.random() * tower.stats.range * RANGE_SCALE * 0.5;
+                    let fx = tower.x + Math.cos(ang) * dist;
+                    let fy = tower.y + Math.sin(ang) * dist;
+                    
+                    let pt = GameEngine.map.getNearestPathPoint(fx, fy);
+                    GameEngine.acidPools.push({
+                        x: pt.x, y: pt.y, radius: 9 * GS, life: 8.5, tick: 0, 
+                        isFoam: true, pierce: tower.stats.foamPierce || 10, hitEnemies: new Set()
+                    });
+                }
+                tower.foamAngleOffset = (tower.foamAngleOffset || 0) + 0.5; 
+            }
+        }
+
+        // --- BLOON TRAP LOGIC ---
+        if (tower.stats.trapRbe > 0) {
+            if (!tower.trapCooldown) tower.trapCooldown = tower.stats.trapCooldown || 12;
+            if (!tower.activeTrap) {
+                tower.trapCooldown -= dt;
+                if (tower.trapCooldown <= 0) {
+                    let point = GameEngine.map.getNearestPathPoint(tower.x, tower.y);
+                    tower.activeTrap = { x: point.x, y: point.y, rbe: 0, maxRbe: tower.stats.trapRbe, moab: tower.stats.trapMoab || false, radius: tower.stats.trapRadius || 10 };
+                    tower.trapCooldown = tower.stats.trapCooldown || 12;
+                }
+            } else {
+                const trap = tower.activeTrap; 
+                const nearby = GameEngine.enemyGrid.query(trap.x, trap.y, trap.radius);
+                for (let e of nearby) {
+                    if (!e.alive || e.isCamo) continue; 
+                    if (Utils.withinRange(trap.x, trap.y, e.x, e.y, trap.radius + e.data.radius)) {
+                        if (!e.data.isMoab || trap.moab) { 
+                            if (trap.rbe + e.data.rbe <= trap.maxRbe) { 
+                                trap.rbe += e.data.rbe; e.alive = false; GameEngine.spawnPopEffect(e.x, e.y, e.data.color); 
+                            } else { 
+                                trap.rbe = trap.maxRbe; 
+                            } 
+                        }
+                    }
+                }
+                if (trap.rbe >= trap.maxRbe) {
+                    GameEngine.addCash(trap.rbe); 
+                    tower.activeTrap = null;
                 }
             }
         }
     },
     draw(ctx, tower, isPreview) {
-        for (let s of tower.sentries) { drawShadow(ctx, s.x, s.y, 15 * GS); ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(s.x, s.y, 8 * GS, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = '#34495e'; ctx.fillRect(s.x-3 * GS, s.y-15 * GS, 6 * GS, 8 * GS); }
-        if (tower.activeTrap) { let trap = tower.activeTrap; ctx.fillStyle = trap.rbe >= trap.maxRbe ? '#e74c3c' : '#e67e22'; ctx.fillRect(trap.x - 12 * GS, trap.y - 12 * GS, 24 * GS, 24 * GS); ctx.fillStyle = '#000'; ctx.font = `${10 * GS}px Arial`; ctx.textAlign = 'center'; ctx.fillText(`${trap.rbe}/${trap.maxRbe}`, trap.x, trap.y + 3 * GS); }
+        if (tower.activeTrap) { 
+            let trap = tower.activeTrap; 
+            ctx.fillStyle = trap.rbe >= trap.maxRbe ? '#e74c3c' : '#e67e22'; 
+            ctx.fillRect(trap.x - 12 * GS, trap.y - 12 * GS, 24 * GS, 24 * GS); 
+            ctx.fillStyle = '#000'; ctx.font = `${10 * GS}px Arial`; ctx.textAlign = 'center'; 
+            ctx.fillText(`${trap.rbe}/${trap.maxRbe}`, trap.x, trap.y + 3 * GS); 
+        }
         tower.drawBaseTower(ctx, isPreview);
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
         let p = GameEngine.projectilePool.get();
-        p.init(tower.x, tower.y, damage, target, 'nail', tower.stats.projectileSpeed, tower.stats.pierce, 0.5, null, effects, 0, tower, dmgType);
+        p.init(tower.x, tower.y, damage, target, 'nail', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType);
     },
     ability(tower, engine) {
-        let target = null; let maxCost = 0; let effRange = Utils.getEffectiveRange(tower, GameEngine) * 3.0;
-        for (let ot of engine.towers) { if (ot === tower || ot.type === 'farm' || ot.type === 'village') continue; if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, effRange)) { if (ot.totalSpent > maxCost) { maxCost = ot.totalSpent; target = ot; } } }
-        if (target) { target.overclockTimer = 10; if (tower.upgrades[1] === 5) { target.ultraboostStacks = Math.min(10, (target.ultraboostStacks || 0) + 1); } engine.log("Overclock Activated on " + target.type + "!"); }
+        let target = null; let maxCost = 0; 
+        let effRange = Utils.getEffectiveRange(tower, engine) * 3.0; 
+        for (let ot of engine.towers) { 
+            if (ot === tower || ot.type === 'farm' || ot.type === 'village' || ot.isMinion) continue; 
+            if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, effRange)) { 
+                if (ot.totalSpent > maxCost) { maxCost = ot.totalSpent; target = ot; } 
+            } 
+        }
+        if (target) {
+            target.overclockTimer = 60; 
+            if (tower.upgrades[1] === 5) {
+                target.ultraboostStacks = Math.min(10, (target.ultraboostStacks || 0) + 1);
+                engine.log("Ultraboost Activated on " + target.stats.name + "!");
+            } else {
+                engine.log("Overclock Activated on " + target.stats.name + "!");
+            }
+        }
         else { engine.log("No valid towers in range for Overclock!"); }
     }
 };

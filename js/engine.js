@@ -25,7 +25,7 @@ import { MKEffects } from './monkeyKnowledgeEffects.js';
 import EngineInput from './engineInput.js';
 import GameSession from './gameSession.js';
 import SimulationLoop from './simulationLoop.js';
-import { Beast } from './beastEntity.js'; // FIX: Import Beast entity
+import { Beast } from './beastEntity.js'; 
 
 const MAX_SUBSTEPS = 10;
 const FIXED_TIMESTEP = 0.016;
@@ -45,11 +45,14 @@ export const GameEngine = {
     
     enemies: [],
     towers: [],
-    beasts: [], // FIX: Array for Beast entities
+    beasts: [], 
+    sentries: [], // FIX: Array for Sentry entities
     explosions: [],
+    floatingTexts: [], // FIX: Array for floating combat text
     enemyGrid: new SpatialGrid(80),
     towerGrid: new SpatialGrid(80), 
-    beastGrid: new SpatialGrid(80), // FIX: Grid for Beast entities
+    beastGrid: new SpatialGrid(80), 
+    sentryGrid: new SpatialGrid(80), // FIX: Grid for Sentry entities
     
     projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
@@ -180,7 +183,9 @@ export const GameEngine = {
         this.cash = isSandbox ? 10000000 : diff.cash;
         this.imfDebt = 0;
         this.towers.length = 0; this.enemies.length = 0; this.explosions.length = 0;
-        this.beasts.length = 0; // FIX: Clear beasts on new game
+        this.floatingTexts.length = 0; // FIX: Clear floating texts
+        this.beasts.length = 0; 
+        this.sentries.length = 0; // FIX: Clear sentries on new game
         this.acidPools.length = 0; this.menuClickables.length = 0;
         this.projectilePool.clear(); this.particlePool.clear();
         if (!isSandbox && !diff.noSelling) {
@@ -313,12 +318,16 @@ export const GameEngine = {
         for (const e of this.enemies) this.enemyGrid.insert(e);
         
         this._updateTowers(dt); 
-        this._updateBeasts(dt); // FIX: Update Beasts
-        this.beastGrid.clear(); // FIX: Clear beast grid
-        for (const b of this.beasts) this.beastGrid.insert(b); // FIX: Insert beasts into grid
+        this._updateBeasts(dt); 
+        this.beastGrid.clear(); 
+        for (const b of this.beasts) this.beastGrid.insert(b); 
+        
+        this._updateSentries(dt); // FIX: Update Sentries
+        this.sentryGrid.clear(); // FIX: Clear sentry grid
+        for (const s of this.sentries) this.sentryGrid.insert(s); // FIX: Insert sentries into grid
         
         this._updateEconomy(dt); this._updateProjectiles(dt);
-        this._updateExplosions(dt); this._updateParticles(dt);
+        this._updateExplosions(dt); this._updateFloatingTexts(dt); this._updateParticles(dt);
         
         if (!this.waveManager.waveActive && prevWaveActive) {
             if (this.maxManaShield > 0 && !this.leakedThisRound) {

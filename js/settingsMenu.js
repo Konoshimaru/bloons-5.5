@@ -16,11 +16,20 @@ const settingsMenu = {
         dom.shuffleMusicCheckbox?.addEventListener('change', (e) => { Config.data.musicShuffle = e.target.checked; Config.save(); });
         dom.randomStartCheckbox?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });
         dom.showStatsCheckbox?.addEventListener('change', (e) => { Config.data.showTowerStats = e.target.checked; Config.save(); });
+        
+        // FIX: Properly closed the uncapFpsCheckbox listener
         dom.uncapFpsCheckbox?.addEventListener('change', (e) => { 
             Config.data.uncapFps = e.target.checked; 
             Config.save(); 
             GameEngine.restartLoop(); 
         });
+        
+        // FIX: Properly wired the showHitboxesCheckbox listener
+        dom.showHitboxesCheckbox?.addEventListener('change', (e) => { 
+            Config.data.showHitboxes = e.target.checked; 
+            Config.save(); 
+        });
+        
         const autoToggle = (e) => {
             GameEngine.waveManager.autoWaveEnabled = e.target.checked;
             Config.data.autoStart = e.target.checked;

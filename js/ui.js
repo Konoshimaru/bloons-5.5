@@ -11,8 +11,9 @@ function el(id) {
     return elements[id];
 }
 
-// FIX: Added 'profile-menu' to the array so the game knows how to hide it when the back button is clicked
-const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu'];const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
+// FIX: Added 'monkeys-menu' to the array so the game knows how to hide it when the back button is clicked
+const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu'];
+const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 
 export const UI = {
     _towerCardCache: null,
@@ -60,9 +61,9 @@ export const UI = {
         const xpEl = el('mm-xp-text');
         const expFill = el('mm-exp-fill');
         const mmEl = el('mm-top-right');
-        const nameEl = el('mm-player-name'); // FIX: Get name element
+        const nameEl = el('mm-player-name'); 
         
-        if (nameEl) nameEl.innerText = Config.data.playerName || "Player"; // FIX: Update name display
+        if (nameEl) nameEl.innerText = Config.data.playerName || "Player"; 
         if (levelEl) levelEl.innerText = `Level ${Config.data.playerLevel}`;
         if (xpEl) xpEl.innerText = `${Config.data.playerXP} / ${Config.data.playerXPToNext} XP`;
         if (expFill) expFill.style.width = `${(Config.data.playerXP / Config.data.playerXPToNext) * 100}%`;
@@ -105,10 +106,11 @@ export const UI = {
             shopHeader.style.fontSize = '22px'; 
         }
 
-        const shopView = el('shop-view');
-        const enemyView = el('enemy-view');
-        if (shopView) shopView.classList.remove('hidden');
-        if (enemyView) enemyView.classList.add('hidden');
+        // FIX: Removed shop view reset so it doesn't switch back to monkey shop when selecting a tower
+        // const shopView = el('shop-view');
+        // const enemyView = el('enemy-view');
+        // if (shopView) shopView.classList.remove('hidden');
+        // if (enemyView) enemyView.classList.add('hidden');
     },
 
     log(msg) {
@@ -145,7 +147,8 @@ export const UI = {
             }
         });
 
-        if (engine.selectedPlacedTower && !engine.selectedPlacedTower.stats.isHero) {
+        // FIX: Added !engine.selectedPlacedTower.isMinion to prevent crashing on Sentries/Beasts
+        if (engine.selectedPlacedTower && !engine.selectedPlacedTower.stats.isHero && !engine.selectedPlacedTower.isMinion) {
             this._updateUpgradeCards(engine.selectedPlacedTower, engine);
         }
     }

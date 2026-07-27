@@ -1,0 +1,140 @@
+// js/sentryEntity.js
+import { GameEngine } from './engine.js';
+import { Utils, drawShadow } from './utils.js';
+import { createDmgType, resolveDmgType } from './damageTypes.js';
+import { GLOBAL_SCALE } from './constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
+
+export class Sentry {
+    constructor(x, y, config, parentTower) {
+        this.x = x;
+        this.y = y;
+        this.type = 'sentry'; 
+        this.isMinion = true;
+        this.parentTower = parentTower; 
+        this.hitRadius = 10 * GS; // FIX: Smaller footprint
+        this.buffedRange = 0; 
+        this.targetingMode = 'First'; // FIX: Standard targeting
+
+        this._baseCooldown = config.fireRate;
+        this._cooldownMult = 1.0;
+
+        this.stats = {
+            name: config.name || "Sentry Gun",
+            range: config.range,
+            damage: config.damage,
+            pierce: config.pierce,
+            fireRate: config.fireRate,
+            dmgType: config.dmgType,
+            projCount: config.projCount || 1,
+            projSpeed: config.projSpeed || 520,
+            projLifespan: config.projLifespan || 0.25,
+            effects: config.effects || {},
+            explode: config.explode || false,
+            explosionDamage: config.explosionDamage || 5,
+            explosionPierce: config.explosionPierce || 100,
+            explosionRadius: config.explosionRadius || 40,
+            ceramicDmg: config.ceramicDmg || 0,
+            moabDmg: config.moabDmg || 0,
+            color: config.color
+        };
+
+        this.maxLife = 25;
+        this.life = this.maxLife;
+        this.cooldown = 0;
+        this.alive = true;
+
+        this.damageDealt = 0;
+    }
+
+    update(dt, engine) {
+        if (!this.alive) return;
+        
+        this.life -= dt;
+        if (this.life <= 0) {
+            if (this.stats.explode) {
+                const expR = this.stats.explosionRadius * GS; 
+                const expDmg = this.stats.explosionDamage;
+                const expPierce = this.stats.explosionPierce;
+                engine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expR, life: 0.3, maxLife: 0.3, color: '#9b59b6' });
+                const nearby = engine.enemyGrid.query(this.x, this.y, expR);
+                let hits = 0;
+                for (let e of nearby) {
+                    if (hits >= expPierce) break;
+                    if (Utils.withinRange(this.x, this.y, e.x, e.y, expR)) {
+                        e.takeDamage(expDmg, { isPlasma: true, canHitLead: true });
+                        hits++;
+                    }
+                }
+            }
+            this.alive = false;
+            return;
+        }
+
+        this.cooldown -= dt;
+        if (this.cooldown <= 0) {
+            const target = this._findTarget(engine);
+            if (target) {
+                // FIX: Add canHitLead to dmgType so the Boom Sentry projectile isn't blocked by Lead bloons before it can explode
+                let sDmgType = createDmgType(resolveDmgType(this.stats.dmgType), {
+                    moabDmg: (this.parentTower.stats.moabDmg || 0) + (this.stats.moabDmg || 0),
+                    fortifiedDmg: this.parentTower.stats.fortifiedDmg || 0,
+                    ceramicDmg: this.stats.ceramicDmg || 0,
+                    canHitLead: this.stats.effects.canHitLead || false
+                });
+                
+                let count = this.stats.projCount || 1;
+                for(let j=0; j<count; j++) {
+                    let p = engine.projectilePool.get();
+                    let projType = this.stats.dmgType === 'plasma' ? 'super' : (this.stats.effects.isExplosive ? 'bomb' : 'nail');
+                    p.init(this.x, this.y, this.stats.damage, target, projType, this.stats.projSpeed, this.stats.pierce, this.stats.projLifespan, null, this.stats.effects, 5 * (j - (count-1)/2), this, sDmgType);
+                }
+                this.cooldown = this.stats.fireRate;
+            }
+        }
+    }
+
+    _findTarget(engine) {
+        const effRange = Utils.getEffectiveRange(this, engine);
+        const candidates = engine.enemyGrid.query(this.x, this.y, effRange);
+        
+        let currentTargeting = this.targetingMode || 'First';
+        let bestTarget = null;
+        let bestVal = (currentTargeting === 'First' || currentTargeting === 'Strong') ? -Infinity : Infinity;
+        
+        const isBetter = (newVal, oldVal) => {
+            if (currentTargeting === 'First' || currentTargeting === 'Strong') return newVal > oldVal;
+            return newVal < oldVal;
+        };
+
+        for (const e of candidates) { 
+            if (!e.alive) continue; 
+            if (this.stats.effects.canHitMoab === false && e.data.isMoab) continue; 
+            
+            const distSq = Utils.distanceSq(this.x, this.y, e.x, e.y);
+            if (distSq > effRange * effRange) continue;
+            
+            let val = 0;
+            if (currentTargeting === 'First' || currentTargeting === 'Last') val = e.distanceTraveled;
+            else if (currentTargeting === 'Strong') val = e.data.rbe;
+            else val = Math.sqrt(distSq); // Close
+            
+            if (isBetter(val, bestVal)) {
+                bestVal = val;
+                bestTarget = e;
+            }
+        }
+        return bestTarget;
+    }
+
+    draw(ctx) {
+        drawShadow(ctx, this.x, this.y, 15 * GS);
+        ctx.fillStyle = this.stats.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 8 * GS, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#34495e';
+        ctx.fillRect(this.x-3 * GS, this.y-15 * GS, 6 * GS, 8 * GS);
+    }
+}
