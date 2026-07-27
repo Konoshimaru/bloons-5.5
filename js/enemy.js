@@ -132,6 +132,10 @@ export class Enemy {
             this._maxHp *= 2;
         }
         
+        // FIX: BFB Blade Animation Timer
+        this.bladeAnimTimer = 0;
+        this.bladeFrame = 0;
+        
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         for (const eff of MKEffects.enemyInit) {
             if (!mk[eff.id]) continue;
@@ -186,6 +190,15 @@ export class Enemy {
         if (this.stormHitTimer > 0) this.stormHitTimer -= dt;
         if (this.knockbackCd > 0) this.knockbackCd -= dt; 
         updateTimedEffects(this, dt);
+        
+        // FIX: Tick BFB blade animation at 10 FPS
+        if (this.tier === 14) {
+            this.bladeAnimTimer += dt;
+            if (this.bladeAnimTimer >= 0.1) { 
+                this.bladeAnimTimer = 0;
+                this.bladeFrame++;
+            }
+        }
     }
     _updateRegen(dt) {
         if (!this.isRegen || this.tier >= this.maxTier) return;
@@ -323,7 +336,6 @@ export class Enemy {
         }
     }
 
-    // FIX: Correctly divide carry-over damage among ALL spawned children
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {
         if (!canSpawn || !this.data.splitsInto) return;
         
@@ -331,7 +343,7 @@ export class Enemy {
         for (const child of this.data.splitsInto) {
             totalChildren += child.count;
         }
-        if (totalChildren === 0) totalChildren = 1; // Prevent divide by zero
+        if (totalChildren === 0) totalChildren = 1; 
         
         const dmgPerChild = Math.floor(carryOverDamage / totalChildren);
         let remainder = carryOverDamage % totalChildren;

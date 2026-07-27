@@ -1,11 +1,11 @@
 // js/levelManager.js
 import { Config } from './config.js';
 import { LevelProgression } from './levelData.js';
-import { TowerStats, TOWER_CATEGORIES } from './towers/index.js'; // FIX: Import shared categories
+import { TowerStats, TOWER_CATEGORIES } from './towers/index.js';
 import { HeroStats } from './heroes/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { UI } from './ui.js';
-import { updateShopPrices } from './dragManager.js'; // FIX: Import updateShopPrices properly
+import { updateShopPrices } from './dragManager.js';
 
 export const LevelManager = {
     addXP(amount) {
@@ -38,6 +38,8 @@ export const LevelManager = {
 
         const unlockText = data.unlocks;
         
+        // FIX: Check for all possible rewards instead of using else-if so we don't skip heroes!
+        
         if (unlockText.includes("Primary tower")) {
             this._showSelectionScreen('Primary', level);
         } else if (unlockText.includes("Military tower")) {
@@ -46,23 +48,29 @@ export const LevelManager = {
             this._showSelectionScreen('Magic', level);
         } else if (unlockText.includes("Support tower")) {
             this._showSelectionScreen('Support', level);
-        } else if (unlockText.includes("Monkey Money 50")) {
+        }
+        
+        if (unlockText.includes("Monkey Money 50")) {
             Config.data.monkeyMoney += 50;
-        } else if (unlockText.includes("Monkey Money 200")) {
+        }
+        if (unlockText.includes("Monkey Money 200")) {
             Config.data.monkeyMoney += 200;
-        } else if (unlockText.includes("Monkey Knowledge Point")) {
+        }
+        if (unlockText.includes("Monkey Knowledge Point")) {
             Config.data.knowledgePoints += 1;
-        } else if (unlockText.includes("Gift Box")) {
+        }
+        if (unlockText.includes("Gift Box")) {
             ['desperado', 'dartling', 'mermonkey', 'beast'].forEach(t => {
                 if (!Config.data.unlockedTowers.includes(t)) {
                     Config.data.unlockedTowers.push(t);
                 }
             });
-            updateShopPrices(); // FIX: Will now run properly
-        } else {
-            this._unlockSpecificByName(unlockText);
-            updateShopPrices(); // FIX: Will now run properly
+            updateShopPrices();
         }
+        
+        // Always attempt to unlock specific heroes/towers by name
+        this._unlockSpecificByName(unlockText);
+        updateShopPrices();
     },
 
     _unlockSpecificByName(text) {
@@ -96,7 +104,6 @@ export const LevelManager = {
         grid.style.gap = '15px';
         grid.style.marginTop = '20px';
 
-        // FIX: Build the options list dynamically from TowerStats
         const options = [];
         for (const type in TowerStats) {
             const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
@@ -141,7 +148,7 @@ export const LevelManager = {
                     Config.data.unlockedTowers.push(type);
                     Config.save();
                     overlay.remove();
-                    updateShopPrices(); // FIX: Call directly
+                    updateShopPrices();
                 });
 
                 grid.appendChild(card);

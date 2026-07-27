@@ -97,6 +97,13 @@ export const UI = {
         const panel = el('upgrade-sidebar');
         if (panel) panel.classList.add('hidden');
         
+        // FIX: Hide ability bar and cancel button when leaving the game/deselecting
+        const abilityBar = el('ability-bar');
+        if (abilityBar) abilityBar.classList.add('hidden');
+        
+        const cancelBtn = el('cancel-btn');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
+        
         const sidebar = el('sidebar');
         if (sidebar) sidebar.classList.remove('hidden');
         
@@ -105,12 +112,6 @@ export const UI = {
             shopHeader.innerText = 'Shop';
             shopHeader.style.fontSize = '22px'; 
         }
-
-        // FIX: Removed shop view reset so it doesn't switch back to monkey shop when selecting a tower
-        // const shopView = el('shop-view');
-        // const enemyView = el('enemy-view');
-        // if (shopView) shopView.classList.remove('hidden');
-        // if (enemyView) enemyView.classList.add('hidden');
     },
 
     log(msg) {

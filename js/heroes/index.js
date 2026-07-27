@@ -1,21 +1,19 @@
-﻿// index.js
-// Exports the available game definitions for this module.
-
+﻿// js/heroes/index.js
 import Quincy from './quincy.js';
 import Gwendolin from './gwendolin.js';
 import Gojo from './gojo.js'; 
 import Geto from './geto.js';
 import Sauda from './sauda.js';
+import StrikerJones from './striker_jones.js';
+import Obyn from './obyn.js';
+import Churchill from './churchill.js';
+import Benjamin from './benjamin.js';
+import Ezili from './ezili.js';
+import PatFusty from './pat_fusty.js';
+import Adora from './adora.js';
 import { createPlaceholderHero } from './placeholder.js';
 
 const placeholderHeroes = [
-    ['striker_jones', 'Striker Jones', 750, 'Artillery Commander'],
-    ['obyn', 'Obyn Greenfoot', 750, 'Forest Guardian'],
-    ['churchill', 'Captain Churchill', 2000, 'Tank'],
-    ['benjamin', 'Benjamin', 1200, 'Code Monkey'],
-    ['ezili', 'Ezili', 750, 'Voodoo Monkey'],
-    ['pat_fusty', 'Pat Fusty', 500, 'Giant Monkey'],
-    ['adora', 'Adora', 1000, 'High Priestess'],
     ['brickell', 'Admiral Brickell', 750, 'Naval Commander'],
     ['etienne', 'Etienne', 850, 'Drone Operator'],
     ['psi', 'Psi', 1000, 'Psionic Monkey'],
@@ -31,7 +29,14 @@ export const HeroRegistry = {
     gwendolin: Gwendolin,
     gojo: Gojo,
     geto: Geto,
-    sauda: Sauda
+    sauda: Sauda,
+    striker_jones: StrikerJones,
+    obyn: Obyn,
+    churchill: Churchill,
+    benjamin: Benjamin,
+    ezili: Ezili,
+    pat_fusty: PatFusty,
+    adora: Adora
 };
 
 // Inject all placeholders into the registry
