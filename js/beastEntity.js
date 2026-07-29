@@ -1,9 +1,23 @@
+/**
+ * SUB-ENTITY PATTERN: FULLY SEPARATE ENTITY
+ * =========================================
+ * The Beast Handler uses a "Fully Separate Entity" pattern for its minions.
+ * Unlike Engineer Sentries or Mermonkey Tentacles which are simple objects 
+ * stored in an array on the tower itself, the Beast is a full class instance.
+ * 
+ * - Lifecycle: Tracked in `GameEngine.beasts[]`, not inside the tower.
+ * - Updates: Runs its own `update(dt, engine)` loop via `simulationLoop._updateBeasts()`.
+ * - Targeting: Has its own `_findTarget()` and standard targeting modes.
+ * - Rendering: Draws itself via `renderer._drawEntities()`.
+ * - Data: Imports its stat tables (LAND_BEASTS, etc.) from `beastData.js` 
+ *   to avoid circular imports with `towers/beast.js`.
+ */
 // js/beastEntity.js
 import { GameEngine } from './engine.js';
 import { Utils } from './utils.js';
 import { RANGE_SCALE } from './config.js';
 import { GLOBAL_SCALE } from './constants.js';
-import { LAND_BEASTS, WATER_BEASTS, AIR_BEASTS } from './towers/beast.js';
+import { LAND_BEASTS, WATER_BEASTS, AIR_BEASTS } from './beastData.js'; 
 import { createDmgType, resolveDmgType } from './damageTypes.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
@@ -24,6 +38,7 @@ export class Beast {
         this.hitRadius = 14 * GS; 
         this.buffedRange = 0; 
         this.targetingMode = 'First'; 
+        this.canChangeTargeting = true;
 
         this._baseCooldown = 1.0;
         this._cooldownMult = 1.0;
@@ -91,6 +106,27 @@ export class Beast {
 
         this._baseCooldown = this.stats.fireRate;
     }
+    
+    drawPortrait(portraitEl) {
+        const off = document.createElement('canvas');
+        off.width = 110; off.height = 110;
+        const offCtx = off.getContext('2d');
+        offCtx.translate(55, 65); 
+        offCtx.fillStyle = this.stats.color;
+        offCtx.beginPath();
+        offCtx.arc(0, 0, 30, 0, Math.PI*2); 
+        offCtx.fill();
+        offCtx.fillStyle = '#34495e';
+        offCtx.fillRect(-10, -50, 20, 30); 
+        
+        portraitEl.style.backgroundImage = `url(${off.toDataURL()})`;
+        portraitEl.style.backgroundSize = 'cover';
+        portraitEl.style.backgroundPosition = 'center';
+    }
+    
+    getCounterText() {
+        return `Dmg Dealt: ${Number(this.damageDealt) || 0}`;
+    }
 
     update(dt, engine) {
         if (!this.alive) return;
@@ -130,10 +166,14 @@ export class Beast {
 
         for (const e of candidates) { 
             if (!e.alive) continue; 
-            if (e.isCamo && !this.stats.canSeeCamo && !this.buffedCamo) continue; // FIX: Air beasts can see camo if upgraded
+            if (e.isCamo && !this.stats.canSeeCamo && !this.buffedCamo) continue; 
             
             const distSq = Utils.distanceSq(this.x, this.y, e.x, e.y);
-            if (distSq > effRange * effRange) continue;
+            const eRad = e.radius || 10;
+            
+            // FIX: Target the edge of the bloon, not the center
+            const effRangeWithRad = effRange + eRad;
+            if (distSq > effRangeWithRad * effRangeWithRad) continue;
             
             let val = 0;
             if (currentTargeting === 'First' || currentTargeting === 'Last') val = e.distanceTraveled;
@@ -169,7 +209,6 @@ export class Beast {
             const expR = (isThrash ? this.stats.thrashRadius : this.stats.explosionRadius) * GS;
             const expPierce = isThrash ? this.stats.thrashPierce : this.stats.pierce;
             
-            // FIX: White/grey explosion for Air, Blue for Water, Orange for Land
             const expColor = this.terrain === 'water' ? '#3498db' : (this.terrain === 'air' ? '#ecf0f1' : '#e67e22');
             engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: expR, life: 0.1, maxLife: 0.1, color: expColor });
             Utils.applyAoeDamage(engine, target.x, target.y, expR, damage, dmgType, this, effects, { maxHits: expPierce });

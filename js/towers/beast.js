@@ -1,35 +1,28 @@
+/**
+ * SUB-ENTITY PATTERN: FULLY SEPARATE ENTITY
+ * =========================================
+ * The Beast Handler uses a "Fully Separate Entity" pattern for its minions.
+ * Unlike Engineer Sentries or Mermonkey Tentacles which are simple objects 
+ * stored in an array on the tower itself, the Beast is a full class instance.
+ * 
+ * - Lifecycle: Tracked in `GameEngine.beasts[]`, not inside the tower.
+ * - Updates: Runs its own `update(dt, engine)` loop via `simulationLoop._updateBeasts()`.
+ * - Targeting: Has its own `_findTarget()` and standard targeting modes.
+ * - Rendering: Draws itself via `renderer._drawEntities()`.
+ * - Data: Imports its stat tables (LAND_BEASTS, etc.) from `beastData.js` 
+ *   to avoid circular imports with `towers/beast.js`.
+ */
+
 // js/towers/beast.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { Tower } from '../tower.js';
 import { GLOBAL_SCALE } from '../constants.js';
 import { Beast } from '../beastEntity.js';
+import { LAND_BEASTS, WATER_BEASTS, AIR_BEASTS } from '../beastData.js';
+import uiTowerPanel from '../uiTowerPanel.js'; // FIX: Import for custom UI
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
-
-const LAND_BEASTS = [
-    { name: "Microraptor", tier: 1, basePower: 1, maxPower: 1, damage: 1, pierce: 5, range: 20, fireRate: 1.0, dmgType: 'sharp', explosionRadius: 10, damageRange: 0, pierceRange: 0, rangeRange: 0, cooldownRange: 0 },
-    { name: "Adasaurus", tier: 2, basePower: 3, maxPower: 6, damage: 2, pierce: 8, range: 20, fireRate: 1.0, dmgType: 'normal', explosionRadius: 15, ceramicDmg: 1, damageRange: 2, pierceRange: 4, rangeRange: 0, cooldownRange: 0 },
-    { name: "Velociraptor", tier: 3, basePower: 8, maxPower: 24, damage: 4, pierce: 12, range: 24, fireRate: 1.0, dmgType: 'normal', explosionRadius: 18, ceramicDmg: 4, stunDmg: 3, damageRange: 6, pierceRange: 8, rangeRange: 6, cooldownRange: 0.2 },
-    { name: "Tyrannosaurus Rex", tier: 4, basePower: 16, maxPower: 64, damage: 20, pierce: 22, range: 30, fireRate: 1.0, dmgType: 'normal', explosionRadius: 18, ceramicDmg: 5, stunDmg: 8, isAbility: true, abilityName: "T-Rex Stomp", abilityCd: 40, damageRange: 30, pierceRange: 10, rangeRange: 10, cooldownRange: 0.25 },
-    { name: "Giganotosaurus", tier: 5, basePower: 36, maxPower: 132, damage: 750, pierce: 44, range: 50, fireRate: 1.25, dmgType: 'normal', explosionRadius: 24, stunDmg: 250, isAbility: true, abilityName: "Giganoto Stomp", abilityCd: 25, damageRange: 500, pierceRange: 20, rangeRange: 20, cooldownRange: 0.25 }
-];
-
-const WATER_BEASTS = [
-    { name: "Piranha", tier: 1, basePower: 1, maxPower: 1, damage: 1, pierce: 1, range: 30, fireRate: 0.6, dmgType: 'shatter', explosionRadius: 4, damageRange: 0, pierceRange: 0, rangeRange: 0, cooldownRange: 0 },
-    { name: "Barracuda", tier: 2, basePower: 3, maxPower: 6, damage: 2, pierce: 4, range: 35, fireRate: 0.6, dmgType: 'shatter', explosionRadius: 8, knockback: 20, damageRange: 2, pierceRange: 4, rangeRange: 0, cooldownRange: 0 },
-    { name: "Great White", tier: 3, basePower: 8, maxPower: 24, damage: 0, pierce: 10, range: 40, fireRate: 1.1, dmgType: 'normal', explosionRadius: 15, knockback: 40, canHitLead: true, thrashDamage: 12, thrashFireRate: 0.6, thrashPierce: 10, thrashRadius: 15, damageRange: 6, pierceRange: 8, rangeRange: 6, cooldownRange: 0.2 },
-    { name: "Orca", tier: 4, basePower: 16, maxPower: 64, damage: 0, pierce: 20, range: 50, fireRate: 1.1, dmgType: 'normal', explosionRadius: 24, knockback: 80, thrashDamage: 30, thrashFireRate: 0.6, thrashPierce: 20, thrashRadius: 24, moabDmg: 5, damageRange: 30, pierceRange: 10, rangeRange: 10, cooldownRange: 0.25 },
-    { name: "Megalodon", tier: 5, basePower: 36, maxPower: 132, damage: 0, pierce: 50, range: 60, fireRate: 1.1, dmgType: 'normal', explosionRadius: 48, knockback: 150, thrashDamage: 600, thrashFireRate: 0.6, thrashPierce: 50, thrashRadius: 48, moabDmg: 50, damageRange: 500, pierceRange: 20, rangeRange: 20, cooldownRange: 0.25 }
-];
-
-const AIR_BEASTS = [
-    { name: "Gyrfalcon", tier: 1, basePower: 1, maxPower: 1, damage: 1, pierce: 3, range: 60, fireRate: 1.0, dmgType: 'sharp', explosionRadius: 10, damageRange: 0, pierceRange: 0, rangeRange: 0, cooldownRange: 0 },
-    { name: "Horned Owl", tier: 2, basePower: 3, maxPower: 6, damage: 1, pierce: 6, range: 60, fireRate: 1.0, dmgType: 'sharp', explosionRadius: 20, canSeeCamo: true, damageRange: 2, pierceRange: 4, rangeRange: 0, cooldownRange: 0 },
-    { name: "Golden Eagle", tier: 3, basePower: 8, maxPower: 24, damage: 1, pierce: 30, range: 60, fireRate: 1.0, dmgType: 'sharp', explosionRadius: 25, damageRange: 6, pierceRange: 8, rangeRange: 6, cooldownRange: 0.2 },
-    { name: "Giant Condor", tier: 4, basePower: 16, maxPower: 64, damage: 2, pierce: 30, range: 60, fireRate: 1.0, dmgType: 'sharp', explosionRadius: 25, moabDmg: 11, damageRange: 30, pierceRange: 10, rangeRange: 10, cooldownRange: 0.25 },
-    { name: "Pouākai", tier: 5, basePower: 36, maxPower: 132, damage: 10, pierce: 150, range: 60, fireRate: 0.8, dmgType: 'normal', explosionRadius: 45, moabDmg: 80, damageRange: 500, pierceRange: 20, rangeRange: 20, cooldownRange: 0.25 }
-];
 
 export default {
     stats: { 
@@ -63,6 +56,47 @@ export default {
             {name:"Giant Condor", cost:9000, desc:"The huge talons of the fearsome Giant Condor can pick up smaller MOAB-Class Bloons."},
             {name:"Pouākai", cost:30000, desc:"The legendary Pouākai: a bird so large that it can pick up, carry off and destroy almost any number of Bloons of almost any size. Requires 3 additional Condor Handlers to control."}
         ]
+    },
+
+    // FIX: Hook for pre-upgrade checks (e.g. water requirement)
+    preUpgrade(tower, path, engine) {
+        if (path === 1) {
+            let hasWater = false;
+            for (let dx = -150; dx <= 150; dx += 30) {
+                for (let dy = -150; dy <= 150; dy += 30) {
+                    if (engine.map.isInWater(tower.x + dx, tower.y + dy)) { hasWater = true; break; }
+                }
+                if (hasWater) break;
+            }
+            if (!hasWater) { engine.log("No water nearby for fish!"); return false; }
+        }
+        return true;
+    },
+
+    // FIX: Hook to clean up beast entity when sold
+    onSell(tower, engine) {
+        if (tower.beast) {
+            tower.beast.alive = false;
+            const idx = engine.beasts.indexOf(tower.beast);
+            if (idx > -1) engine.beasts.splice(idx, 1);
+        }
+    },
+
+    // FIX: Hook to let the Beast module decide which entity the ability targets
+    getAbilityTarget(tower, slot) {
+        if (!tower.isMinion && tower.beast) return tower.beast;
+        return tower;
+    },
+    
+    // FIX: Hook to setup custom UI (Beast Place/Merge buttons)
+    setupCustomUI(panel, t, engine) {
+        uiTowerPanel._setupBeastUI(panel, t, engine);
+    },
+
+    // FIX: Hook to provide counter text
+    getCounterText(t) {
+        if (t.beast) return `Power: ${t.beast.beastPower} / ${t.beast.data.maxPower}`;
+        return `Dmg Dealt: ${Number(t.damageDealt) || 0}`;
     },
 
     postUpgrade(tower, path) {
@@ -144,10 +178,9 @@ export default {
         // Handled by GameEngine.beasts
     },
 
-    // FIX: Base handler now uses an AoE splash attack exactly like the wiki
     fire(tower, target, damage, dmgType, isCrit, effects, engine) {
         if (tower.hasBeast) return;
-        const expR = 25; // 12 units radius
+        const expR = 25; 
         engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: expR, life: 0.4, maxLife: 0.4, color: '#f1c40f' });
         Utils.applyAoeDamage(engine, target.x, target.y, expR, damage, dmgType, tower, effects, { maxHits: tower.stats.pierce });
     },
@@ -166,5 +199,3 @@ export default {
         }
     }
 };
-
-export { LAND_BEASTS, WATER_BEASTS, AIR_BEASTS };

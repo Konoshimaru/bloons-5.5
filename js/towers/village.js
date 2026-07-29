@@ -1,3 +1,16 @@
+/**
+ * SUB-ENTITY PATTERN: PASSIVE AURA / UPDATE SUPPORT
+ * =================================================
+ * The Village (and Farm, Ninja, Sniper) uses the `updateSupport(tower, dt, engine)` hook.
+ * 
+ * - Lifecycle: Has no sub-entities. The tower itself is the aura.
+ * - Updates: `updateSupport()` is called every frame by `simulationLoop._updateTowers()`
+ *   *before* the standard `update()` method.
+ * - Purpose: Used for logic that must run continuously regardless of attack state, 
+ *   such as scanning for nearby towers to buff (Village), generating cash (Farm), 
+ *   or applying global modifiers (Ninja/Sniper).
+ */
+
 // js/towers/village.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
@@ -10,7 +23,7 @@ export default {
         name: "Monkey Village", cost: 1200, range: 40, fireRate: 0, 
         desc: "Buff towers in range. Grants range, attack speed, camo, and lead.", 
         dmgType: 'none', hitRadius: 18,
-        rangeBuff: 0.1, // Base: +10% range increase
+        rangeBuff: 0.1,
         isStaticRotation: true 
     },
     upgrades: {
@@ -35,6 +48,49 @@ export default {
             {name:"Monkey City",cost:3000,stat:"range",amount:10,desc:"Increases influence radius, cash generation in radius, and gives you a free Dart Monkey every round."},
             {name:"Monkeyopolis",cost:5000,stat:"income",amount:1000,desc:"Absorbs all nearby Banana Farms and their income, freeing up space for new Monkeys."}
         ]
+    },
+    
+    // FIX: Hook for pre-upgrade checks (requires farm for Monkeyopolis)
+    canUpgrade(tower, path, engine) {
+        if (path === 3 && tower.upgrades[2] === 4) { 
+            const effRange = tower.stats.range * RANGE_SCALE;
+            let hasFarm = false;
+            for (let t of engine.towers) {
+                if (t && t !== tower && t.type === 'farm' && t.upgrades[0] < 5) {
+                    if (Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
+                        hasFarm = true;
+                        break;
+                    }
+                }
+            }
+            if (!hasFarm) return false;
+        }
+        return true;
+    },
+
+    // FIX: Hook to modify the cost (adds $5000 per farm for Monkeyopolis)
+    getUpgradeCostModifier(tower, baseCost, path, tier, engine) {
+        if (path === 3 && tier === 4) { 
+            const effRange = tower.stats.range * RANGE_SCALE;
+            for (let t of engine.towers) {
+                if (t && t !== tower && t.type === 'farm' && t.upgrades[0] < 5) {
+                    if (Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
+                        baseCost += 5000;
+                    }
+                }
+            }
+        }
+        return baseCost;
+    },
+
+    // FIX: Hook to determine if targeting row should be visible
+    canChangeTargeting(tower) {
+        return tower.upgrades[0] >= 5; // Can only target with Primary Expertise
+    },
+
+    // FIX: Hook to provide counter text
+    getCounterText(t) {
+        return `Dmg Dealt: ${Number(t.damageDealt) || 0}`;
     },
     
     updateSupport(tower, dt) {
@@ -77,16 +133,12 @@ export default {
                 if (tower.stats.grantsCamo) t.buffedCamo = true;
                 if (tower.stats.grantsLead) t.buffedLead = true;
                 
-                // Discount (Monkey Business / Commerce + Insider Trades MK)
-                // FIX: MK discount is already added to tower.stats.discount by tower.js! Just pass it directly.
                 if (tower.stats.discount) {
                     t.discount = Math.max(t.discount, tower.stats.discount);
                 }
                 
-                // Monkey Town Cash Boost (+ Inland Revenue MK)
                 if (tower.upgrades[2] >= 3) {
                     let cashMult = 0.5;
-                    // FIX: Apply MK village buffs generically
                     for (const eff of MKEffects.villageBuff) {
                         if (!mk[eff.id]) continue;
                         if (eff.condition && !eff.condition(tower)) continue;
@@ -95,7 +147,6 @@ export default {
                     t.buffedCashMult = Math.max(t.buffedCashMult || 0, cashMult);
                 }
 
-                // Buff Icons
                 if (tower.stats.rangeBuff > 0 || tower.stats.discount > 0) {
                     t.addBuff('village', 'Village Buff', 0.5, 1, { type: 'village' }, false);
                 }
@@ -238,8 +289,6 @@ export default {
 
     ability(tower, engine) {
         let isHomeland = tower.upgrades[1] === 5;
-        
-        // FIX: Use abilityDuration stat which is populated by MKEffects.to_arms (+3s)
         let duration = (isHomeland ? 20 : 15) + (tower.stats.abilityDuration || 0);
         
         for (let t of engine.towers) {

@@ -37,6 +37,49 @@ function getEffectiveRange(tower, engine, scale = 3.0) {
     return effRange;
 }
 
+// FIX: Footprint system helpers
+const GS = 1.3; // Assuming GS is 1.3 based on constants.js
+
+function getFootprint(entity) {
+    const fp = entity.stats?.footprint || entity.footprint;
+    if (fp) {
+        if (fp.shape === 'rect') {
+            return { shape: 'rect', width: (fp.width || 0) * GS, height: (fp.height || 0) * GS };
+        }
+        return { shape: 'circle', radius: (fp.radius || 0) * GS };
+    }
+    // Fallback to hitRadius (which is already scaled by GS in constructors)
+    return { shape: 'circle', radius: entity.hitRadius || 18 };
+}
+
+function circleRectIntersect(cx, cy, r, rx, ry, rw, rh) {
+    const dx = cx - Math.max(rx - rw / 2, Math.min(cx, rx + rw / 2));
+    const dy = cy - Math.max(ry - rh / 2, Math.min(cy, ry + rh / 2));
+    return (dx * dx + dy * dy) < (r * r);
+}
+
+function intersectsFootprint(x1, y1, fp1, x2, y2, fp2) {
+    if (fp1.shape === 'circle' && fp2.shape === 'circle') {
+        return distanceSq(x1, y1, x2, y2) <= Math.pow(fp1.radius + fp2.radius, 2);
+    }
+    if (fp1.shape === 'rect' && fp2.shape === 'circle') {
+        return circleRectIntersect(x2, y2, fp2.radius, x1, y1, fp1.width, fp1.height);
+    }
+    if (fp1.shape === 'circle' && fp2.shape === 'rect') {
+        return circleRectIntersect(x1, y1, fp1.radius, x2, y2, fp2.width, fp2.height);
+    }
+    // Rect-Rect
+    return Math.abs(x1 - x2) * 2 < (fp1.width + fp2.width) && Math.abs(y1 - y2) * 2 < (fp1.height + fp2.height);
+}
+
+function pointInFootprint(px, py, cx, cy, fp) {
+    if (fp.shape === 'circle') {
+        return distanceSq(px, py, cx, cy) <= fp.radius * fp.radius;
+    }
+    // Add small padding for easier selection of rectangles
+    return Math.abs(px - cx) <= (fp.width / 2) + 5 && Math.abs(py - cy) <= (fp.height / 2) + 5;
+}
+
 function drawShadow(ctx, x, y, r) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.beginPath();
@@ -63,8 +106,6 @@ function drawImageCentered(ctx, asset, targetSize, offsetX = 0, offsetY = 0) {
 }
 
 // Direction 2: Shared AoE Damage Helper
-// Replaces 15+ copy-pasted loops with a safe, circular, damage-tracking helper.
-// FIX: Swapped killerTower and effects in the signature so calls like (engine, x, y, r, dmg, dmgType, tower, {}, {onHit}) align perfectly.
 function applyAoeDamage(engine, x, y, radius, damage, dmgType, killerTower = null, effects = {}, options = {}) {
     let totalDmgDealt = 0;
     const nearby = engine.enemyGrid.query(x, y, radius);
@@ -76,25 +117,19 @@ function applyAoeDamage(engine, x, y, radius, damage, dmgType, killerTower = nul
         const e = nearby[i];
         if (!e || !e.alive) continue;
 
-        // Camo check
         const canSeeCamo = options.canSeeCamo || (killerTower && (killerTower.stats.canSeeCamo || killerTower.buffedCamo));
         if (e.isCamo && !canSeeCamo) continue;
 
-        // Custom filter (e.g., only MOABs)
         if (options.filter && !options.filter(e)) continue;
 
-        // Circular distance check (spatial grid returns a square bounding box)
         const distSq = distanceSq(x, y, e.x, e.y);
         if (distSq > radius * radius) continue;
 
-        // Apply damage
         const dmg = e.takeDamage(damage, dmgType, effects, killerTower);
         if (!isNaN(dmg) && dmg !== -1) {
             totalDmgDealt += dmg;
             if (killerTower) killerTower.damageDealt += dmg;
             hits++;
-            
-            // Optional callback for custom effects (slows, knockbacks)
             if (options.onHit) options.onHit(e, dmg);
         }
     }
@@ -110,11 +145,13 @@ export const Utils = {
     angle,
     distToSegment,
     getEffectiveRange,
+    getFootprint,
+    intersectsFootprint,
+    pointInFootprint,
     drawShadow,
     deepFreeze,
     drawImageCentered,
     applyAoeDamage
 };
 
-// Also export individual functions for cleaner imports where preferred
-export { distance, distanceSq, withinRange, lerp, angle, distToSegment, getEffectiveRange, drawShadow, deepFreeze, drawImageCentered, applyAoeDamage };
+export { distance, distanceSq, withinRange, lerp, angle, distToSegment, getEffectiveRange, getFootprint, intersectsFootprint, pointInFootprint, drawShadow, deepFreeze, drawImageCentered, applyAoeDamage };

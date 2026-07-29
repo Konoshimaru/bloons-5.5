@@ -1,3 +1,18 @@
+/**
+ * SUB-ENTITY PATTERN: LIGHTWEIGHT INLINE ARRAY
+ * ============================================
+ * The Engineer (and Mermonkey) use a "Lightweight Inline Array" pattern for 
+ * their sub-entities (Sentries / Tentacles).
+ * 
+ * - Lifecycle: Stored as plain objects inside `tower.sentries[]` (or `tower.tentacles[]`).
+ * - Updates: Updated manually inside the tower's own `update(dt, engine)` method.
+ * - Targeting: Target acquisition is handled inline within the tower's update loop.
+ * - Rendering: Drawn manually by the tower's `draw(ctx, tower)` method.
+ * 
+ * This pattern is best for high-count, short-lived, or highly coupled sub-entities
+ * that don't need the full overhead of a standalone class or spatial grid insertion.
+ */
+
 // js/towers/engineer.js
 import { GameEngine } from '../engine.js';
 import { Utils, drawShadow } from '../utils.js';
@@ -25,7 +40,7 @@ export default {
             {name:"Sentry Champion",cost:32000,stat:"maxSentries",amount:-3,desc:"Creates super-powerful but highly unstable sentries.", extraMods: {sentryDmg: 3, sentryPierce: 5, sentryFireRate: 0.06, sentryExplode: true}, cooldownMult: 0.85}
         ],
         2: [
-            {name:"Larger Service Area",cost:250,stat:"range",amount:20,desc:"Shoots further and deploys sentries in a much larger area. Sentries have longer range.", extraMods: {sentryRange: 5}}, // FIX: +5 range to sentries
+            {name:"Larger Service Area",cost:250,stat:"range",amount:20,desc:"Shoots further and deploys sentries in a much larger area. Sentries have longer range.", extraMods: {sentryRange: 5}},
             {name:"Deconstruction",cost:350,stat:"moabDmg",amount:1,desc:"Nail gun and Sentry shots do extra damage to MOAB-class and Fortified Bloons.", extraMods: {fortifiedDmg: 1}},
             {name:"Cleansing Foam",cost:900,stat:"canHitLead",amount:true,desc:"Sprays foam that removes Camo and Regrow and pops Lead Bloons.", extraMods: {canSeeCamo: true, applyFoam: true, foamPierce: 10}},
             {name:"Overclock",cost:13500,stat:"isAbility",amount:true,desc:"Overclock Ability: Target another tower to supercharge its attack speed for a short time.", extraMods: {abilityCd: 45, abilityName: "Overclock"}, statMods: [{stat: "pierce", amount: 12}, {stat: "projectileSpeed", amount: 550}, {stat: "foamPierce", amount: 4}]},
@@ -39,6 +54,18 @@ export default {
             {name:"XXXL Trap",cost:45000,stat:"trapRbe",amount:9500,desc:"Huge Bloon traps can trap some of the largest Bloons in them...", extraMods: {trapMoab: true, trapCooldown: 4.6, trapRadius: 10}}
         ]
     },
+    
+    // FIX: Hook to clean up sentries when sold
+    onSell(tower, engine) {
+        if (tower.sentries) {
+            for (let s of tower.sentries) {
+                s.alive = false;
+                const idx = engine.sentries.indexOf(s);
+                if (idx > -1) engine.sentries.splice(idx, 1);
+            }
+        }
+    },
+
     update(tower, dt) {
         let spawnMod = tower.stats.sentrySpawnMod || 1;
         let sentryFireRateMod = tower.stats.sentryFireRateMod || 1;
@@ -85,9 +112,8 @@ export default {
                     const idx = tower.sentrySpawnIndex % 4; 
                     tower.sentrySpawnIndex++;
                     
-                    // FIX: Dynamically calculate sentry range based on Engineer upgrades
                     let baseSentryRange = 45;
-                    if (tower.upgrades[0] >= 4) baseSentryRange = 50; // Expert/Champion base range
+                    if (tower.upgrades[0] >= 4) baseSentryRange = 50; 
                     let sentryRange = baseSentryRange + (tower.stats.sentryRange || 0);
 
                     let config = {
@@ -116,7 +142,7 @@ export default {
             }
         }
 
-        // --- CLEANSING FOAM LOGIC (Spike Style) ---
+        // --- CLEANSING FOAM LOGIC ---
         if (tower.stats.applyFoam) {
             if (!tower.foamCooldown) tower.foamCooldown = 2.0; 
             tower.foamCooldown -= dt;

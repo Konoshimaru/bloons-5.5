@@ -13,9 +13,10 @@ export class Sentry {
         this.type = 'sentry'; 
         this.isMinion = true;
         this.parentTower = parentTower; 
-        this.hitRadius = 10 * GS; // FIX: Smaller footprint
+        this.hitRadius = 10 * GS; 
         this.buffedRange = 0; 
-        this.targetingMode = 'First'; // FIX: Standard targeting
+        this.targetingMode = 'First'; 
+        this.canChangeTargeting = true;
 
         this._baseCooldown = config.fireRate;
         this._cooldownMult = 1.0;
@@ -47,6 +48,27 @@ export class Sentry {
 
         this.damageDealt = 0;
     }
+    
+    drawPortrait(portraitEl) {
+        const off = document.createElement('canvas');
+        off.width = 110; off.height = 110;
+        const offCtx = off.getContext('2d');
+        offCtx.translate(55, 65); 
+        offCtx.fillStyle = this.stats.color;
+        offCtx.beginPath();
+        offCtx.arc(0, 0, 30, 0, Math.PI*2); 
+        offCtx.fill();
+        offCtx.fillStyle = '#34495e';
+        offCtx.fillRect(-10, -50, 20, 30); 
+        
+        portraitEl.style.backgroundImage = `url(${off.toDataURL()})`;
+        portraitEl.style.backgroundSize = 'cover';
+        portraitEl.style.backgroundPosition = 'center';
+    }
+    
+    getCounterText() {
+        return `Dmg Dealt: ${Number(this.damageDealt) || 0}`;
+    }
 
     update(dt, engine) {
         if (!this.alive) return;
@@ -76,7 +98,6 @@ export class Sentry {
         if (this.cooldown <= 0) {
             const target = this._findTarget(engine);
             if (target) {
-                // FIX: Add canHitLead to dmgType so the Boom Sentry projectile isn't blocked by Lead bloons before it can explode
                 let sDmgType = createDmgType(resolveDmgType(this.stats.dmgType), {
                     moabDmg: (this.parentTower.stats.moabDmg || 0) + (this.stats.moabDmg || 0),
                     fortifiedDmg: this.parentTower.stats.fortifiedDmg || 0,
@@ -113,7 +134,11 @@ export class Sentry {
             if (this.stats.effects.canHitMoab === false && e.data.isMoab) continue; 
             
             const distSq = Utils.distanceSq(this.x, this.y, e.x, e.y);
-            if (distSq > effRange * effRange) continue;
+            const eRad = e.radius || 10;
+            
+            // FIX: Target the edge of the bloon, not the center
+            const effRangeWithRad = effRange + eRad;
+            if (distSq > effRangeWithRad * effRangeWithRad) continue;
             
             let val = 0;
             if (currentTargeting === 'First' || currentTargeting === 'Last') val = e.distanceTraveled;

@@ -5,6 +5,7 @@ import { TowerStats, Upgrades } from './towers/index.js';
 import { UI } from './ui.js';
 import { AudioEngine } from './audio.js';
 import { applyBossEffects } from './input.js';
+import { getBehavior } from './registry.js'; // FIX: Import getBehavior
 
 const dom = {
     towerCards: document.querySelectorAll('.tower-card[data-tower]'),
@@ -42,20 +43,16 @@ export function updateShopPrices() {
             let cost = Math.floor(stats.cost * costMod);
             const costEl = card.querySelector('.cost');
             
+            // FIX: Generic unlock key check instead of hardcoding 'farmer'
             let isLocked = !Config.data.unlockedTowers.includes(type);
-            if (type === 'farmer') {
-                isLocked = !Config.data.unlocks.farmer;
+            if (stats.unlockKey) {
+                isLocked = !Config.data.unlocks[stats.unlockKey];
             }
 
-            if (type === 'dart' && !GameEngine.isSandbox && GameEngine.difficulty && !GameEngine.difficulty.noSelling) {
-                const mkActive = Config.data.mkActive !== false;
-                const hasFreeMonkey = Config.data.unlocks.freeFirstDartMonkey || (mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_monkey);
-                const hasNoDarts = !GameEngine.towers.some(t => t.type === 'dart');
-                const hasMonkeyCity = GameEngine.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
-
-                if ((hasFreeMonkey && hasNoDarts) || (hasMonkeyCity && !GameEngine.freeDartMonkeyClaimed)) {
-                    cost = 0;
-                }
+            // FIX: Let the tower module modify the placement cost (e.g. Dart Monkey freebie)
+            const behavior = getBehavior(type);
+            if (behavior?.getPlacementCostModifier) {
+                cost = behavior.getPlacementCostModifier(stats, cost, GameEngine);
             }
 
             if (isLocked) {

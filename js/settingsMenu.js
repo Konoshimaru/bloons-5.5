@@ -2,7 +2,7 @@
 import { Config } from './config.js';
 import { GameEngine } from './engine.js';
 import { AudioEngine } from './audio.js';
-import { dom } from './main.js';
+import { dom } from './dom.js'; // FIX: Import dom from new file
 
 const settingsMenu = {
     _setupSettingsListeners() {
@@ -17,14 +17,12 @@ const settingsMenu = {
         dom.randomStartCheckbox?.addEventListener('change', (e) => { Config.data.musicRandomStart = e.target.checked; Config.save(); });
         dom.showStatsCheckbox?.addEventListener('change', (e) => { Config.data.showTowerStats = e.target.checked; Config.save(); });
         
-        // FIX: Properly closed the uncapFpsCheckbox listener
         dom.uncapFpsCheckbox?.addEventListener('change', (e) => { 
             Config.data.uncapFps = e.target.checked; 
             Config.save(); 
             GameEngine.restartLoop(); 
         });
         
-        // FIX: Properly wired the showHitboxesCheckbox listener
         dom.showHitboxesCheckbox?.addEventListener('change', (e) => { 
             Config.data.showHitboxes = e.target.checked; 
             Config.save(); 

@@ -67,6 +67,9 @@ export class Tower {
         this.hitRadius = (this.stats.hitRadius || DEFAULT_HIT_RADIUS) * GS;
         this._losBlockers = null;
         
+        // FIX: Footprint system initialization
+        this.blocksPlacement = this.stats.blocksPlacement !== false;
+        
         this.attackAnimActive = false;
         this.attackAnimFrame = 0;
         this.attackAnimTimer = 0;
@@ -191,6 +194,10 @@ export class Tower {
             if (upgradeData.extraMods.scale) {
                 this.hitRadius = (TowerStats[this.type].hitRadius || DEFAULT_HIT_RADIUS) * upgradeData.extraMods.scale * GS;
             }
+            // FIX: Allow dynamic footprint changes (e.g. Sun Temple)
+            if (upgradeData.extraMods.footprint) {
+                this.stats.footprint = upgradeData.extraMods.footprint;
+            }
         }
     }
 
@@ -235,43 +242,6 @@ export class Tower {
             if (upgArm && upgArm.loaded) armAsset = upgArm;
         }
         return { baseAsset, armAsset, targetSize, isCustomBase };
-    }
-    
-    // FIX: Block upgrades and selling for minions
-    canUpgrade(path, engine) {
-        if (this.isMinion) return false;
-        const tier = this.upgrades[path - 1];
-        if (tier >= 5) return false;
-        const pathsStarted = this.upgrades.filter(u => u > 0).length;
-        if (tier === 0 && pathsStarted >= 2) return false;
-        for (let i = 0; i < 3; i++) {
-            if (i !== path - 1 && this.upgrades[i] >= 3 && tier >= 2) return false;
-        }
-        if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) {
-            const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
-            if (this.type === 'dart' && path === 3 && mk['master_double']) {
-                let count = 0;
-                for(let t of engine.towers) { if(t && t.type === 'dart' && t.upgrades[2] === 5) count++; }
-                if (count < 2) return true; 
-            }
-            return false;
-        }
-        
-        if (this.type === 'village' && path === 3 && tier === 4) {
-            const effRange = this.stats.range * RANGE_SCALE;
-            let hasFarm = false;
-            for (let t of engine.towers) {
-                if (t && t !== this && t.type === 'farm' && t.upgrades[0] < 5) {
-                    if (Utils.withinRange(this.x, this.y, t.x, t.y, effRange)) {
-                        hasFarm = true;
-                        break;
-                    }
-                }
-            }
-            if (!hasFarm) return false;
-        }
-        
-        return true;
     }
 }
 

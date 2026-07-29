@@ -1,8 +1,9 @@
-// towerEconomy.js
+// js/towerEconomy.js
 import { Upgrades } from './towers/index.js';
 import { Utils } from './utils.js';
 import { RANGE_SCALE } from './config.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
+import { getBehavior } from './registry.js'; // FIX: Import getBehavior to access module hooks
 
 // FIX: Extracted reusable sell rate calculation
 export function getSellRate(tower, engine) {
@@ -22,6 +23,12 @@ export function getSellRate(tower, engine) {
 
 const TowerEconomy = {
     canUpgrade(path, engine) {
+        if (this.isMinion) return false; 
+        
+        const behavior = getBehavior(this.type);
+        // FIX: Let the specific tower module decide if it can be upgraded
+        if (behavior?.canUpgrade && !behavior.canUpgrade(this, path, engine)) return false;
+        
         const tier = this.upgrades[path - 1];
         if (tier >= 5) return false;
         const pathsStarted = this.upgrades.filter(u => u > 0).length;
@@ -29,28 +36,12 @@ const TowerEconomy = {
         for (let i = 0; i < 3; i++) {
             if (i !== path - 1 && this.upgrades[i] >= 3 && tier >= 2) return false;
         }
-        if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) {
-            const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
-            if (this.type === 'dart' && path === 3 && mk['master_double']) {
-                let count = 0;
-                for(let t of engine.towers) { if(t && t.type === 'dart' && t.upgrades[2] === 5) count++; }
-                if (count < 2) return true; 
-            }
-            return false;
-        }
         
-        if (this.type === 'village' && path === 3 && tier === 4) {
-            const effRange = this.stats.range * RANGE_SCALE;
-            let hasFarm = false;
-            for (let t of engine.towers) {
-                if (t && t !== this && t.type === 'farm' && t.upgrades[0] < 5) {
-                    if (Utils.withinRange(this.x, this.y, t.x, t.y, effRange)) {
-                        hasFarm = true;
-                        break;
-                    }
-                }
-            }
-            if (!hasFarm) return false;
+        if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) {
+            // FIX: Let the specific tower module decide if it can bypass the tier 5 limit
+            let allow = false;
+            if (behavior?.canBuyTier5) allow = behavior.canBuyTier5(this, path, engine);
+            if (!allow) return false;
         }
         
         return true;
@@ -62,16 +53,11 @@ const TowerEconomy = {
         if (!upgradeData) return false;
 
         let baseCost = upgradeData.cost;
+        const behavior = getBehavior(this.type);
         
-        if (this.type === 'village' && path === 3 && tier === 4) {
-            const effRange = this.stats.range * RANGE_SCALE;
-            for (let t of engine.towers) {
-                if (t && t !== this && t.type === 'farm' && t.upgrades[0] < 5) {
-                    if (Utils.withinRange(this.x, this.y, t.x, t.y, effRange)) {
-                        baseCost += 5000;
-                    }
-                }
-            }
+        // FIX: Let the tower module modify the base cost (e.g. Village adds $5000 per farm)
+        if (behavior?.getUpgradeCostModifier) {
+            baseCost = behavior.getUpgradeCostModifier(this, baseCost, path, tier, engine);
         }
 
         const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
@@ -104,7 +90,6 @@ const TowerEconomy = {
     },
 
     sell(engine) {
-        // FIX: Use the extracted getSellRate function
         const resaleRate = getSellRate(this, engine);
         engine.cash += Math.floor(this.totalSpent * resaleRate);
         for (let i = 0; i < 3; i++) {

@@ -1,3 +1,16 @@
+/**
+ * SUB-ENTITY PATTERN: PASSIVE AURA / UPDATE SUPPORT
+ * =================================================
+ * The Village (and Farm, Ninja, Sniper) uses the `updateSupport(tower, dt, engine)` hook.
+ * 
+ * - Lifecycle: Has no sub-entities. The tower itself is the aura.
+ * - Updates: `updateSupport()` is called every frame by `simulationLoop._updateTowers()`
+ *   *before* the standard `update()` method.
+ * - Purpose: Used for logic that must run continuously regardless of attack state, 
+ *   such as scanning for nearby towers to buff (Village), generating cash (Farm), 
+ *   or applying global modifiers (Ninja/Sniper).
+ */
+
 // js/towers/ninja.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';

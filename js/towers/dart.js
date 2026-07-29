@@ -39,6 +39,35 @@ export default {
             {name:"Crossbow Master", cost:21500, desc:"Devastates most Bloon types with ease.", cooldownMult: 0.5, extraMods: { damage: 2, pierce: 4, range: 20, critChance: 0.2, critDmg: 80, dmgType: 'normal', projectileSpeed: 2000, lifespan: 0.2109 }}
         ]
     },
+    
+    // FIX: Hook to let the Dart module decide if it can bypass the tier 5 limit
+    canBuyTier5(tower, path, engine) {
+        if (path === 3) { // Master Double crosspath limit
+            const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
+            if (mk['master_double']) {
+                let count = 0;
+                for(let t of engine.towers) { if(t && t.type === 'dart' && t.upgrades[2] === 5) count++; }
+                if (count < 2) return true; 
+            }
+        }
+        return false;
+    },
+
+    // FIX: Hook to let the Dart module modify the placement cost
+    getPlacementCostModifier(stats, cost, engine) {
+        if (!engine.isSandbox && engine.difficulty && !engine.difficulty.noSelling) {
+            const mkActive = engine.config.data.mkActive !== false;
+            const hasFreeMonkey = engine.config.data.unlocks.freeFirstDartMonkey || (mkActive && engine.config.data.monkeyKnowledge && engine.config.data.monkeyKnowledge.bonus_monkey);
+            const hasNoDarts = !engine.towers.some(t => t.type === 'dart');
+            const hasMonkeyCity = engine.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
+
+            if ((hasFreeMonkey && hasNoDarts) || (hasMonkeyCity && !engine.freeDartMonkeyClaimed)) {
+                return 0;
+            }
+        }
+        return cost;
+    },
+
     ability(tower, engine) {
         let isPlasma = (tower.upgrades[1] === 5);
         let count = 0; let maxCount = isPlasma ? 21 : 10;

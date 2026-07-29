@@ -9,7 +9,8 @@ export default {
         baseCooldown: 0, fireRate: 0, 
         damage: 0, pierce: 0, projectileSpeed: 0, 
         lifespan: 0, desc: "Automatically collects bananas in range.", dmgType: 'none', hitRadius: 18, 
-        isStaticRotation: true
+        isStaticRotation: true,
+        unlockKey: 'farmer' // FIX: Added generic unlock key
     },
     upgrades: {
         1: [

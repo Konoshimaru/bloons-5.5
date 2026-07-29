@@ -7,8 +7,7 @@ import { RANGE_SCALE } from './config.js';
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const GRID_SIZE = 40;
-const PATH_WIDTH = 45;
-const PATH_HALF_WIDTH = PATH_WIDTH / 2;
+const DEFAULT_PATH_WIDTH = 45;
 const PLACEMENT_PADDING = 18;
 const PROP_RADIUS_SMALL = 15;
 
@@ -35,7 +34,7 @@ export class GameMap {
         if (!this.data.imageMaintainRatio) this.data.imageMaintainRatio = false;
 
         this._initPathfinding();
-        this._initPathSamples(); // PRO FIX: Pre-calculate path points for O(1) lookups
+        this._initPathSamples(); 
         this._initBackground();
         this._initCache();
     }
@@ -44,6 +43,7 @@ export class GameMap {
         this.paths = [];
         for (let p = 0; p < this.data.paths.length; p++) {
             const pathData = this.data.paths[p];
+            if (!pathData.width) pathData.width = DEFAULT_PATH_WIDTH; // FIX: Default width for old maps
             const waypoints = pathData.waypoints;
             const segments = [];
             const cumulativeDistances = [0];
@@ -76,14 +76,13 @@ export class GameMap {
                     cumulativeDistances.push(totalLength);
                 }
             }
-            this.paths.push({ segments, cumulativeDistances, totalLength });
+            this.paths.push({ segments, cumulativeDistances, totalLength, width: pathData.width });
         }
     }
 
-    // PRO FIX: Pre-compute a flat array of path samples for fast spatial queries
     _initPathSamples() {
         this._pathSamples = [];
-        const step = 5; // Sample every 5 pixels
+        const step = 5; 
         for (let p = 0; p < this.paths.length; p++) {
             const path = this.paths[p];
             for (let i = 0; i < path.segments.length; i++) {
@@ -184,8 +183,10 @@ export class GameMap {
             const waypoints = this.data.paths[p].waypoints;
             if (waypoints.length < 2) continue;
             
+            const pathWidth = this.data.paths[p].width || DEFAULT_PATH_WIDTH; // FIX: Dynamic width
+            
             ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-            ctx.lineWidth = PATH_WIDTH + 8;
+            ctx.lineWidth = pathWidth + 8;
             ctx.lineJoin = 'round'; ctx.lineCap = 'round';
             ctx.beginPath();
             ctx.moveTo(waypoints[0].x, waypoints[0].y + 4);
@@ -197,7 +198,7 @@ export class GameMap {
             ctx.stroke();
             
             ctx.strokeStyle = '#a8825a';
-            ctx.lineWidth = PATH_WIDTH;
+            ctx.lineWidth = pathWidth; // FIX: Dynamic width
             ctx.beginPath();
             ctx.moveTo(waypoints[0].x, waypoints[0].y);
             for (let i = 1; i < waypoints.length; i++) {
@@ -263,10 +264,12 @@ export class GameMap {
 
     isOnPath(x, y) {
         for (let p = 0; p < this.paths.length; p++) {
+            const pathWidth = (this.data.paths[p] && this.data.paths[p].width) ? this.data.paths[p].width : DEFAULT_PATH_WIDTH;
+            const halfWidth = pathWidth / 2;
             for (let i = 0; i < this.paths[p].segments.length; i++) {
                 const seg = this.paths[p].segments[i];
                 const dist = Utils.distToSegment(x, y, seg.p1.x, seg.p1.y, seg.p2.x, seg.p2.y);
-                if (dist < PATH_HALF_WIDTH + PLACEMENT_PADDING) return true;
+                if (dist < halfWidth + PLACEMENT_PADDING) return true;
             }
         }
         return false;
@@ -274,7 +277,6 @@ export class GameMap {
 
     getNearestPathPoint(x, y) {
         let bestPoint = { x: 0, y: 0 }, bestDistSq = Infinity;
-        // PRO FIX: Iterate flat cached samples instead of performing vector projection math per segment
         for (let i = 0; i < this._pathSamples.length; i++) {
             const s = this._pathSamples[i];
             const distSq = Utils.distanceSq(x, y, s.x, s.y);
@@ -289,7 +291,6 @@ export class GameMap {
     getTrackPointsInRange(x, y, radius) {
         const points = [];
         const radiusSq = radius * radius;
-        // PRO FIX: Iterate flat cached samples instead of re-lerping segments per call
         for (let i = 0; i < this._pathSamples.length; i++) {
             const s = this._pathSamples[i];
             const distSq = Utils.distanceSq(x, y, s.x, s.y);
@@ -299,7 +300,7 @@ export class GameMap {
                     y: s.y, 
                     pathIndex: s.pathIndex, 
                     distAlong: s.distAlong, 
-                    distToTower: Math.sqrt(distSq) // Real distance kept for sorting
+                    distToTower: Math.sqrt(distSq) 
                 });
             }
         }

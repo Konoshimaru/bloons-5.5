@@ -4,6 +4,7 @@ import { Config } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 import { HeroRegistry } from './heroes/index.js';
 import { getSellRate } from './towerEconomy.js';
+import { getBehavior } from './registry.js'; // FIX: Import getBehavior
 
 const _elCache = {};
 function el(id) {
@@ -95,8 +96,11 @@ const uiTowerPanel = {
                 }
                 
                 let cd = t.abilityCooldown || 0;
-                if (t.type === 'beast' && t.beast) {
-                    cd = t.beast.abilityCooldown || 0;
+                const behavior = getBehavior(t.type);
+                // FIX: Let the tower module decide which entity's cooldown to check
+                if (behavior?.getAbilityTarget) {
+                    let target = behavior.getAbilityTarget(t, 1);
+                    if (target) cd = target.abilityCooldown || 0;
                 }
                 abilities.push({ tower: t, slot: 1, cd: cd, maxCd: towerCd, name: towerName });
             }
@@ -162,21 +166,9 @@ const uiTowerPanel = {
         const portrait = el('up-portrait');
         if (!portrait) return;
 
-        if (t.isMinion && t.type === 'sentry') {
-            const off = document.createElement('canvas');
-            off.width = 110; off.height = 110;
-            const offCtx = off.getContext('2d');
-            offCtx.translate(55, 65); 
-            offCtx.fillStyle = t.stats.color;
-            offCtx.beginPath();
-            offCtx.arc(0, 0, 30, 0, Math.PI*2); 
-            offCtx.fill();
-            offCtx.fillStyle = '#34495e';
-            offCtx.fillRect(-10, -50, 20, 30); 
-            
-            portrait.style.backgroundImage = `url(${off.toDataURL()})`;
-            portrait.style.backgroundSize = 'cover';
-            portrait.style.backgroundPosition = 'center';
+        // FIX: Use duck-typing for minion portraits instead of checking type strings
+        if (t.isMinion && typeof t.drawPortrait === 'function') {
+            t.drawPortrait(portrait);
             return;
         }
 
@@ -218,7 +210,8 @@ const uiTowerPanel = {
             panel.appendChild(bankBtn);
         }
         if (bankBtn) {
-            const showBank = t.type === 'farm' && t.stats.isBank && t.bankBalance > 0;
+            // FIX: Use stats.isBank instead of type === 'farm'
+            const showBank = t.stats.isBank && t.bankBalance > 0;
             if (showBank) {
                 bankBtn.classList.remove('hidden');
                 bankBtn.innerText = `Collect Bank ($${Math.floor(t.bankBalance)})`;
@@ -305,49 +298,25 @@ const uiTowerPanel = {
         if (heroUI) heroUI.classList.add('hidden');
         
         const pathsEl = el('up-paths');
-        if (pathsEl) pathsEl.classList.remove('hidden');
-        
-        const title = el('up-title');
-        if (title) title.innerText = t.stats.name; 
-        
-        const counters = el('up-counters');
-        if (counters) counters.innerText = this._getTowerCounterText(t);
-        
-        const statsEl = el('up-stats');
-        if (Config.data.showTowerStats) {
-            if (statsEl) {
-                statsEl.classList.remove('hidden');
-                this._updateTowerStats(t);
-            }
-        } else {
-            if (statsEl) statsEl.classList.add('hidden');
-        }
-        
         const targetingRow = el('up-targeting-row');
         
-        if (t.isMinion && t.type !== 'sentry' && t.type !== 'beast') {
-            if (pathsEl) pathsEl.classList.add('hidden');
-            if (targetingRow) targetingRow.classList.add('hidden');
-        } else {
-            if (t.isMinion && (t.type === 'sentry' || t.type === 'beast')) {
-                if (pathsEl) pathsEl.classList.add('hidden'); 
-                if (targetingRow) targetingRow.classList.remove('hidden'); 
-            } else {
-                if (pathsEl) pathsEl.classList.remove('hidden');
-                if (targetingRow) {
-                    if (t.type === 'spike' && !t.stats.smartSpikes) {
-                        targetingRow.classList.add('hidden');
-                    } else if (t.type === 'village' && t.upgrades[0] < 5) {
-                        targetingRow.classList.add('hidden');
-                    } else {
-                        targetingRow.classList.remove('hidden');
-                    }
-                }
-            }
-        }
+        // Minions never show upgrade paths
+        if (pathsEl) pathsEl.classList.toggle('hidden', t.isMinion);
+        
+        const behavior = getBehavior(t.type);
 
+        // FIX: Generic targeting row visibility check
+        let canTarget = !t.isMinion; // Default: non-minions can target
+        if (t.canChangeTargeting !== undefined) canTarget = t.canChangeTargeting; // For Sentry/Beast instances
+        if (behavior?.canChangeTargeting) canTarget = behavior.canChangeTargeting(t); // For Village/Spike
+        
+        if (targetingRow) targetingRow.classList.toggle('hidden', !canTarget);
+
+        // FIX: Generic secondary targeting row (Super Monkey)
         let targetingRow2 = el('up-targeting-row-2');
-        if (!t.isMinion && t.type === 'super' && t.upgrades[1] >= 3) {
+        let hasSecondary = !t.isMinion && behavior?.hasSecondaryTargeting && behavior.hasSecondaryTargeting(t);
+        
+        if (hasSecondary) {
             if (!targetingRow2 && targetingRow) {
                 targetingRow2 = targetingRow.cloneNode(true);
                 targetingRow2.id = 'up-targeting-row-2';
@@ -380,13 +349,12 @@ const uiTowerPanel = {
         
         this._updateTargetingText(t);
 
-        const placeBeastBtn = el('beast-place-btn');
-        const mergeBeastBtn = el('beast-merge-btn');
-        if (t.type === 'beast' && !t.isMinion) {
-            this._setupBeastUI(pathsEl, t, engine);
+        // FIX: Let the tower module setup its own custom UI (e.g. Beast buttons)
+        if (behavior?.setupCustomUI) {
+            behavior.setupCustomUI(el('upgrade-sidebar'), t, engine);
         } else {
-            if (placeBeastBtn) placeBeastBtn.classList.add('hidden');
-            if (mergeBeastBtn) mergeBeastBtn.classList.add('hidden');
+            el('beast-place-btn')?.classList.add('hidden');
+            el('beast-merge-btn')?.classList.add('hidden');
         }
 
         if (!t.isMinion) {
@@ -395,6 +363,7 @@ const uiTowerPanel = {
     },
 
     _setupBeastUI(pathsEl, t, engine) {
+        // This method is now only called internally by beast.js via setupCustomUI
         const panel = el('upgrade-sidebar');
         
         let placeBtn = el('beast-place-btn');
@@ -412,7 +381,7 @@ const uiTowerPanel = {
             placeBtn.style.width = '60px';
             placeBtn.style.height = '30px';
             placeBtn.style.top = '15px';
-            placeBtn.style.right = '15px'; // FIX: Always top-right of the panel
+            placeBtn.style.right = '15px';
             panel.appendChild(placeBtn);
             _elCache['beast-place-btn'] = placeBtn;
             
@@ -441,7 +410,7 @@ const uiTowerPanel = {
             mergeBtn.style.fontWeight = 'bold';
             mergeBtn.style.width = '60px';
             mergeBtn.style.height = '30px';
-            mergeBtn.style.top = '50px'; // FIX: Below the place button
+            mergeBtn.style.top = '50px';
             mergeBtn.style.right = '15px';
             panel.appendChild(mergeBtn);
             _elCache['beast-merge-btn'] = mergeBtn;
@@ -460,15 +429,12 @@ const uiTowerPanel = {
     },
 
     _getTowerCounterText(t) {
-        // FIX: Prevent NaN by safely parsing damageDealt
-        const dmg = Number(t.damageDealt) || 0;
-        if (t.type === 'sentry') return `Dmg Dealt: ${dmg}`;
-        if (t.type === 'beast' && t.isMinion) return `Dmg Dealt: ${dmg}`; 
-        if (t.type === 'farm' && t.stats.isBank) return `Bank: $${Math.floor(t.bankBalance)}`;
-        if (t.type === 'farm') return `Cash Gen: $${t.cashGenerated}`;
-        if (t.type === 'engineer' && t.activeTrap) return `Trap: ${t.activeTrap.rbe}/${t.activeTrap.maxRbe}`;
-        if (t.type === 'beast' && t.beast) return `Power: ${t.beast.beastPower} / ${t.beast.data.maxPower}`;
-        return `Dmg Dealt: ${dmg}`;
+        // FIX: Let the tower module or instance provide its own counter text
+        if (typeof t.getCounterText === 'function') return t.getCounterText();
+        const behavior = getBehavior(t.type);
+        if (behavior?.getCounterText) return behavior.getCounterText(t);
+        
+        return `Dmg Dealt: ${Number(t.damageDealt) || 0}`;
     },
 
     _updateTowerStats(t) {
@@ -476,7 +442,6 @@ const uiTowerPanel = {
         if (!upStats) return;
         const effRate = getEffectiveCooldown(t);
         
-        // FIX: Safely parse numbers to prevent NaN for minions
         const basePierce = Number(t.stats.pierce) || 0;
         const buffedPierce = Number(t.buffedPierce) || 0;
         const alchPierce = (t.alchBuff && Number(t.alchBuff.pierce)) || 0;

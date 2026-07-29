@@ -41,6 +41,11 @@ export default {
         ]
     },
 
+    // FIX: Hook to determine if secondary targeting row should be visible
+    hasSecondaryTargeting(tower) {
+        return tower.upgrades[1] >= 3; // Robo Monkey gets a second targeting arm
+    },
+
     postUpgrade(tower, path) {
         if (path === 1 && tower.upgrades[0] === 4) {
             this._performSacrifice(tower, false);

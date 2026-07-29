@@ -69,7 +69,7 @@ export default {
             
             let targetTower = null;
             for (const t of this.towers) {
-                if (t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + 5)) { targetTower = t; break; }
+                if (t && Utils.pointInFootprint(x, y, t.x, t.y, Utils.getFootprint(t))) { targetTower = t; break; }
             }
             
             if (targetTower && targetTower !== source && targetTower.type === 'beast' && targetTower.beast) {
@@ -131,8 +131,9 @@ export default {
             return;
         }
 
+        // FIX: Use generic pointInFootprint for selection
         for (const t of this.towers) {
-            if (t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + 5)) {
+            if (t && Utils.pointInFootprint(x, y, t.x, t.y, Utils.getFootprint(t))) {
                 if (this.selectedPlacedTower === t) { this.deselectAll(); } 
                 else { this.deselectAll(); this.selectedPlacedTower = t; UI.showUpgradeUI(t, this); }
                 return;
@@ -140,7 +141,7 @@ export default {
         }
 
         for (const s of this.sentries) {
-            if (s && Utils.withinRange(x, y, s.x, s.y, s.hitRadius + 5)) {
+            if (s && Utils.pointInFootprint(x, y, s.x, s.y, Utils.getFootprint(s))) {
                 if (this.selectedPlacedTower === s) { this.deselectAll(); } 
                 else { this.deselectAll(); this.selectedPlacedTower = s; UI.showUpgradeUI(s, this); }
                 return;
@@ -148,7 +149,7 @@ export default {
         }
 
         for (const b of this.beasts) {
-            if (b && Utils.withinRange(x, y, b.x, b.y, b.hitRadius + 5)) {
+            if (b && Utils.pointInFootprint(x, y, b.x, b.y, Utils.getFootprint(b))) {
                 if (this.selectedPlacedTower === b) { this.deselectAll(); } 
                 else { this.deselectAll(); this.selectedPlacedTower = b; UI.showUpgradeUI(b, this); }
                 return;
@@ -171,9 +172,15 @@ export default {
                 if (hasMonkeyCity && !this.freeDartMonkeyClaimed) { cost = 0; this._monkeyCityFreeDart = true; }
             }
             if (this.cash < cost) { this.log("Not enough cash!"); return; }
-            const placementRadius = (stats.hitRadius || 18) * GLOBAL_SCALE;
-            const isOverlapping = this.towers.some(t => t && Utils.withinRange(x, y, t.x, t.y, t.hitRadius + placementRadius));
+            
+            // FIX: Use generic intersectsFootprint for placement overlap
+            const newFp = Utils.getFootprint({ stats });
+            const isOverlapping = this.towers.some(t => {
+                if (!t || t.blocksPlacement === false) return false;
+                return Utils.intersectsFootprint(x, y, newFp, t.x, t.y, Utils.getFootprint(t));
+            });
             if (isOverlapping) { this.log("Cannot place on top of another monkey!"); return; }
+            
             let canPlace = false;
             if (stats.waterOnly) { canPlace = this.map.isInWater(x, y); } 
             else if (stats.canPlaceOnWater) { canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300; } 
@@ -220,18 +227,9 @@ export default {
         const t = this.selectedPlacedTower;
         if (t.stats.isHero || t.isMinion) return;
         
-        // FIX: Removed the lock that prevented buying Path 1 and Path 3!
-
-        if (t.type === 'beast' && path === 1) {
-            let hasWater = false;
-            for (let dx = -150; dx <= 150; dx += 30) {
-                for (let dy = -150; dy <= 150; dy += 30) {
-                    if (this.map.isInWater(t.x + dx, t.y + dy)) { hasWater = true; break; }
-                }
-                if (hasWater) break;
-            }
-            if (!hasWater) { this.log("No water nearby for fish!"); return; }
-        }
+        const behavior = getBehavior(t.type);
+        // FIX: Let the tower module run pre-upgrade checks (e.g. Beast Handler water check)
+        if (behavior?.preUpgrade && !behavior.preUpgrade(t, path, this)) return;
         
         const tier = t.upgrades[path - 1];
         const upgradeData = Upgrades[t.type][path][tier];
@@ -253,8 +251,13 @@ export default {
         if (!t) return;
         const behavior = getBehavior(t.type);
         if (!behavior) return;
+        
         let actualTower = t;
-        if (t.type === 'beast' && !t.isMinion && t.beast) actualTower = t.beast;
+        // FIX: Let the tower module decide which entity the ability targets (e.g. Beast Handler targets its Beast)
+        if (behavior.getAbilityTarget) {
+            actualTower = behavior.getAbilityTarget(t, slot) || t;
+        }
+
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         let cdMult = 1.0;
         for (const eff of MKEffects.abilityCooldown) {
@@ -264,6 +267,7 @@ export default {
             if (eff.stat === 'cdMult') cdMult *= eff.amount;
         }
         if (t.abilityCdMult) cdMult *= t.abilityCdMult;
+
         if (slot === 1 && actualTower.stats.isAbility && actualTower.abilityCooldown <= 0 && behavior.ability) {
             behavior.ability(actualTower, this);
             let cd = actualTower.stats.abilityCd || 45;
@@ -287,19 +291,9 @@ export default {
         if (this.difficulty && this.difficulty.noSelling) { this.log("Cannot sell in CHIMPS mode!"); return; }
         if (this.selectedPlacedTower.stats.isHero) this.hero = null;
         
-        if (this.selectedPlacedTower.type === 'beast' && this.selectedPlacedTower.beast) {
-            this.selectedPlacedTower.beast.alive = false;
-            const idx = this.beasts.indexOf(this.selectedPlacedTower.beast);
-            if (idx > -1) this.beasts.splice(idx, 1);
-        }
-        
-        if (this.selectedPlacedTower.type === 'engineer' && this.selectedPlacedTower.sentries) {
-            for (let s of this.selectedPlacedTower.sentries) {
-                s.alive = false;
-                const idx = this.sentries.indexOf(s);
-                if (idx > -1) this.sentries.splice(idx, 1);
-            }
-        }
+        const behavior = getBehavior(this.selectedPlacedTower.type);
+        // FIX: Let the tower module clean up its sub-entities (e.g. Sentries, Beasts)
+        if (behavior?.onSell) behavior.onSell(this.selectedPlacedTower, this);
         
         this.selectedPlacedTower.sell(this);
         const idx = this.towers.indexOf(this.selectedPlacedTower);

@@ -21,7 +21,6 @@ export function getEffectiveCooldown(tower) {
 
     let finalCooldown = tower._baseCooldown * tower._cooldownMult;
 
-    // FIX: Correct Overclock (0.6x) and Ultraboost (0.96x per stack) math
     if (tower.overclockTimer > 0) finalCooldown *= 0.6;
     if (tower.ultraboostStacks > 0) finalCooldown *= Math.pow(0.96, tower.ultraboostStacks);
     
@@ -173,18 +172,25 @@ function _findTarget(tower, engine) {
     };
 
     const minRange = tower.stats.minRange ? (tower.stats.minRange * RANGE_SCALE * GS) : 0;
-    const minRangeSq = minRange * minRange;
-    const effRangeSq = effRange * effRange;
-
+    
     for (const e of candidates) {
         if (!e.alive) continue;
         if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
         if (tower.type === 'glue' && e.data.isMoab) continue; 
         
         const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
+        const eRad = e.radius || 10;
         
-        if (tower.stats.range !== 9999 && distSq > effRangeSq) continue;
-        if (minRangeSq > 0 && distSq < minRangeSq) continue; 
+        // FIX: Target the edge of the bloon, not the center
+        const effRangeWithRad = effRange + eRad;
+        const effRangeWithRadSq = effRangeWithRad * effRangeWithRad;
+        
+        if (tower.stats.range !== 9999 && distSq > effRangeWithRadSq) continue;
+        
+        if (minRange > 0) {
+            const minRangeWithRad = Math.max(0, minRange - eRad);
+            if (distSq < minRangeWithRad * minRangeWithRad) continue; 
+        }
 
         const val = _getTargetValue(tower, e, (currentTargeting === 'Close' ? Math.sqrt(distSq) : 0), currentTargeting);
         

@@ -67,7 +67,7 @@ export const Renderer = {
         this._drawAcidPools(wctx, engine); 
         this._drawExplosions(wctx, engine.explosions);
         this._drawEntities(wctx, engine);
-        this._drawFloatingTexts(wctx, engine); // FIX: Draw floating texts over entities
+        this._drawFloatingTexts(wctx, engine); 
         this._drawPlacementPreview(wctx, engine);
         this._drawSelection(wctx, engine);
         this._drawLeakFlash(wctx, engine);
@@ -135,7 +135,6 @@ export const Renderer = {
         this._drawCursor(ctx, engine);
     },
 
-    // FIX: New method to draw acid pools and foam splats
     _drawAcidPools(ctx, engine) {
         if (!engine.acidPools) return;
         for (const pool of engine.acidPools) {
@@ -144,9 +143,9 @@ export const Renderer = {
             ctx.globalAlpha = alpha;
             
             if (pool.isFoam) {
-                ctx.fillStyle = '#ecf0f1'; // White/grey for foam
+                ctx.fillStyle = '#ecf0f1'; 
             } else {
-                ctx.fillStyle = '#2ecc71'; // Green for acid
+                ctx.fillStyle = '#2ecc71'; 
             }
             
             ctx.beginPath();
@@ -157,7 +156,6 @@ export const Renderer = {
         }
     },
 
-    // FIX: New method to draw floating combat text
     _drawFloatingTexts(ctx, engine) {
         if (!engine.floatingTexts) return;
         for (const ft of engine.floatingTexts) {
@@ -473,6 +471,7 @@ export const Renderer = {
         ctx.globalAlpha = 0.7;
         ctx.lineWidth = 2;
         
+        // Draw Tower Ranges and Footprints
         engine.towers.forEach(t => {
             if (!t) return;
             ctx.strokeStyle = 'blue';
@@ -488,6 +487,7 @@ export const Renderer = {
             }
         });
 
+        // Draw Enemy Hitboxes (Collision Radius)
         engine.enemies.forEach(e => {
             if (!e || !e.alive) return;
             ctx.strokeStyle = 'red';
@@ -496,6 +496,7 @@ export const Renderer = {
             ctx.stroke();
         });
 
+        // Draw Minion Footprints
         const drawMinionHitbox = (m) => {
             if (!m || !m.alive) return;
             ctx.strokeStyle = 'lime';
@@ -505,6 +506,32 @@ export const Renderer = {
         };
         if (engine.sentries) engine.sentries.forEach(drawMinionHitbox);
         if (engine.beasts) engine.beasts.forEach(drawMinionHitbox);
+
+        // FIX: Draw Projectile Hitboxes
+        const projectiles = engine.projectilePool.active;
+        for (let i = 0; i < projectiles.length; i++) {
+            const p = projectiles[i];
+            if (p && p.alive) {
+                ctx.strokeStyle = 'yellow';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius || 2, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        // FIX: Draw Explosion Radii
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = 'orange';
+        for (const exp of engine.explosions) {
+            if (!exp || !exp.maxLife || exp.maxLife <= 0) continue;
+            const r = Math.max(0, exp.radius || 0);
+            if (r > 0) {
+                ctx.beginPath();
+                ctx.arc(exp.x, exp.y, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+        ctx.setLineDash([]);
 
         ctx.restore();
     }

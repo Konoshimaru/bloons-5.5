@@ -36,6 +36,12 @@ export default {
             {name:"Perma-Spike", cost:30000, stat:"projectileType", amount:"ultra_juggernaut", desc:"Replaces regular spikes with permanent spikes.", extraMods:{damage: 8, pierce: 40, lifespan: 250.0, baseCooldown: 5.0}}
         ]
     },
+    
+    // FIX: Hook to determine if targeting row should be visible
+    canChangeTargeting(tower) {
+        return !!tower.stats.smartSpikes;
+    },
+
     update(tower, dt) {
         if (tower.stats.smartSpikes && tower.smartSpikeTimer > 0) {
             tower.smartSpikeTimer -= dt;

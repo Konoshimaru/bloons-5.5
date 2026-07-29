@@ -1,4 +1,3 @@
-// js/mapEditor.js
 import { Config, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { UI } from './ui.js';
 
@@ -37,6 +36,7 @@ export const MapEditor = {
     bgImage: null,
     bgNightImage: null,
     previewNight: false,
+    currentPathWidth: 45, // FIX: Controllable path width
 
     init() {
         if (this._initialized) {
@@ -126,6 +126,16 @@ export const MapEditor = {
                 this.snapToGrid = !this.snapToGrid;
                 snapGridBtn.innerText = `Snap to Grid: ${this.snapToGrid ? 'On' : 'Off'}`;
                 snapGridBtn.classList.toggle('active', this.snapToGrid);
+            });
+        }
+
+        // FIX: Add Path Width slider listener
+        const pathWidthSlider = document.getElementById('editor-path-width');
+        if (pathWidthSlider) {
+            pathWidthSlider.addEventListener('input', (e) => {
+                this.currentPathWidth = parseInt(e.target.value);
+                const widthVal = document.getElementById('path-width-val');
+                if (widthVal) widthVal.innerText = this.currentPathWidth;
             });
         }
         
@@ -380,7 +390,8 @@ export const MapEditor = {
     
     newPath() {
         if (!this.mapData.paths) this.mapData.paths = [];
-        this.mapData.paths.push({ waypoints: [], visible: true });
+        // FIX: Initialize path with the currently selected width
+        this.mapData.paths.push({ waypoints: [], visible: true, width: this.currentPathWidth });
         this.selectedPath = this.mapData.paths.length - 1;
         this.selectedPoint = null;
         this.updatePathDropdown();
