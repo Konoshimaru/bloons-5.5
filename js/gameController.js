@@ -53,7 +53,7 @@ export const gameController = {
             document.getElementById('top-ui-left').classList.add('hidden');
             document.getElementById('top-ui-right').classList.add('hidden');
             AudioEngine.playMenuMusic();
-            menuController.updateShopUI();
+            updateShopPrices(); // FIX: Replaced menuController.updateShopUI()
         });
         dom.sbPrev?.addEventListener('click', () => GameEngine.skipWave(-1));
         dom.sbNext?.addEventListener('click', () => GameEngine.skipWave(1));

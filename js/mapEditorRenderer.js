@@ -1,4 +1,3 @@
-// js/mapEditorRenderer.js
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 
 export default {
@@ -18,11 +17,17 @@ export default {
     draw() {
         if (!this.mapData) return;
         const ctx = this.ctx;
+        const EDITOR_W = CANVAS_WIDTH; // 1280
+        const EDITOR_H = CANVAS_HEIGHT; // 720
+        
+        // FIX: CLEAR THE CANVAS FIRST to prevent cloning/ghosting when scaling!
+        ctx.clearRect(0, 0, EDITOR_W, EDITOR_H);
+        
         const scale = this.mapData.imageScale || 1;
         const offX = this.mapData.imageOffsetX || 0;
         const offY = this.mapData.imageOffsetY || 0;
-        let w = CANVAS_WIDTH * scale;
-        let h = CANVAS_HEIGHT * scale;
+        let w = EDITOR_W * scale;
+        let h = EDITOR_H * scale;
         
         if (this.mapData.imageMaintainRatio && this.bgImage && this.bgImage.width > 0) {
             const ratio = this.bgImage.height / this.bgImage.width;
@@ -38,7 +43,7 @@ export default {
             ctx.drawImage(this.bgNightImage, offX, offY, w, h);
         } else {
             ctx.fillStyle = '#8acc4d';
-            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.fillRect(0, 0, EDITOR_W, EDITOR_H);
         }
         
         if (this.refImage) {
@@ -51,21 +56,29 @@ export default {
         
         ctx.strokeStyle = 'rgba(0,0,0,0.1)';
         ctx.lineWidth = 1;
-        for (let x = 0; x < CANVAS_WIDTH; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke(); }
-        for (let y = 0; y < CANVAS_HEIGHT; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_WIDTH, y); ctx.stroke(); }
+        for (let x = 0; x < EDITOR_W; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, EDITOR_H); ctx.stroke(); }
+        for (let y = 0; y < EDITOR_H; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(EDITOR_W, y); ctx.stroke(); }
         
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-        ctx.fillRect(CANVAS_WIDTH - 220, 0, 220, CANVAS_HEIGHT);
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
-        ctx.lineWidth = 2;
+        // --- DRAW IN-GAME SIDEBAR OVERLAY ---
+        const SIDEBAR_WIDTH = 300; // The exact width of the in-game shop
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(EDITOR_W - SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, EDITOR_H);
+        
+        ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)';
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(CANVAS_WIDTH - 220, 0);
-        ctx.lineTo(CANVAS_WIDTH - 220, CANVAS_HEIGHT);
+        ctx.moveTo(EDITOR_W - SIDEBAR_WIDTH, 0);
+        ctx.lineTo(EDITOR_W - SIDEBAR_WIDTH, EDITOR_H);
         ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.font = '12px Arial';
-        ctx.fillText('In-Game Sidebar', CANVAS_WIDTH - 210, 20);
         
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('In-Game UI Sidebar', EDITOR_W - (SIDEBAR_WIDTH / 2), 30);
+        ctx.fillText('(Do not place track here)', EDITOR_W - (SIDEBAR_WIDTH / 2), 50);
+        ctx.textAlign = 'left';
+        // ------------------------------------
+
         if (this.mapData.waterVisible !== false) {
             if (Array.isArray(this.mapData.waterBrushes)) {
                 for (let brush of this.mapData.waterBrushes) this.drawWaterStroke(ctx, brush);
@@ -91,7 +104,7 @@ export default {
                 if (path.visible === false) ctx.globalAlpha = 0.3;
                 
                 ctx.strokeStyle = '#a8825a';
-                ctx.lineWidth = 45;
+                ctx.lineWidth = path.width || 45; // FIX: Use path's specific width!
                 ctx.lineJoin = 'round'; ctx.lineCap = 'round';
                 
                 if (path.waypoints.length > 0) {

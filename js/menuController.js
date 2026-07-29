@@ -48,7 +48,7 @@ export const menuController = {
         this.refreshMapSelector();
         this.refreshHeroSelector();
         this.updateHeroShopCard();
-        this.updateShopUI();
+        updateShopPrices(); // FIX: Replaced updateShopUI()
     },
 
     updateProfileUI() {
@@ -319,7 +319,7 @@ export const menuController = {
             document.getElementById('top-ui-left').classList.add('hidden');
             document.getElementById('top-ui-right').classList.add('hidden');
             AudioEngine.playMenuMusic();
-            this.updateShopUI();
+            updateShopPrices(); // FIX: Replaced updateShopUI()
         });
         dom.hmPrevBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: -300, behavior: 'smooth' }));
         dom.hmNextBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: 300, behavior: 'smooth' }));

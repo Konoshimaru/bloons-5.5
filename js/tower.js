@@ -1,4 +1,29 @@
-﻿// js/tower.js
+﻿/**
+ * @typedef {Object} TowerStats
+ * @property {string} name
+ * @property {number} cost
+ * @property {number} range
+ * @property {number} fireRate
+ * @property {number} damage
+ * @property {number} pierce
+ * @property {string} dmgType
+ * @property {string} projectileType
+ * @property {number} hitRadius
+ * @property {'Primary'|'Military'|'Magic'|'Support'} category
+ * @property {boolean} [canSeeCamo]
+ * @property {number} [moabDmg]
+ * @property {number} [explosionRadius]
+ * @property {number} [projectileSpeed]
+ * @property {number} [lifespan]
+ */
+
+/**
+ * @typedef {Object} TowerUpgrades
+ * @property {Array<Object>} 1
+ * @property {Array<Object>} 2
+ * @property {Array<Object>} 3
+ */
+// js/tower.js
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
 import { GameEngine } from './engine.js'; 

@@ -6,6 +6,50 @@ import { UI } from './ui.js';
 import { AudioEngine } from './audio.js';
 import { applyBossEffects } from './input.js';
 import { getBehavior } from './registry.js'; // FIX: Import getBehavior
+import { TowerRegistry, TOWER_CATEGORIES } from './towers/index.js';
+import { HeroRegistry } from './heroes/index.js';
+
+export function generateShopUI() {
+    const shopView = document.getElementById('shop-view');
+    if (!shopView) return;
+    shopView.innerHTML = ''; // Clear out any old HTML
+
+    // 1. Add Hero Card first
+    const selectedHero = Config.data.selectedHero || 'quincy';
+    if (HeroRegistry[selectedHero]) {
+        const heroCard = document.createElement('div');
+        heroCard.className = 'tower-card cat-hero';
+        heroCard.id = 'hero-shop-card';
+        heroCard.dataset.tower = selectedHero;
+        heroCard.style.backgroundImage = `url('sprites/portraits/${selectedHero}_menuportrait.png')`;
+        heroCard.innerHTML = `<span class="cost">$${HeroRegistry[selectedHero].stats.cost}</span>`;
+        shopView.appendChild(heroCard);
+    }
+
+    // 2. Get all towers and sort them by category so they stay grouped nicely
+    const categoryOrder = ['Primary', 'Military', 'Magic', 'Support'];
+    const sortedTowers = Object.keys(TowerRegistry).sort((a, b) => {
+        const catA = TOWER_CATEGORIES[a] || 'Support';
+        const catB = TOWER_CATEGORIES[b] || 'Support';
+        return categoryOrder.indexOf(catA) - categoryOrder.indexOf(catB);
+    });
+
+    // 3. Add Tower Cards in the correct sorted order
+    for (const type of sortedTowers) {
+        const stats = TowerRegistry[type].stats;
+        if (!stats) continue;
+
+        const card = document.createElement('div');
+        const category = TOWER_CATEGORIES[type] || 'Support'; 
+        card.className = `tower-card cat-${category.toLowerCase()}`;
+        card.dataset.tower = type;
+        
+        card.style.backgroundImage = `url('sprites/portraits/${type}_menuportrait.png')`;
+        card.innerHTML = `<span class="cost">$${stats.cost}</span>`;
+        
+        shopView.appendChild(card);
+    }
+}
 
 const dom = {
     towerCards: document.querySelectorAll('.tower-card[data-tower]'),
@@ -35,6 +79,9 @@ function getSidebarRect() {
 window.addEventListener('resize', () => { cachedSidebarRect = null; });
 
 export function updateShopPrices() {
+    // FIX: Re-query the cards here, just in case it's called before setupShopListeners finishes
+    dom.towerCards = document.querySelectorAll('.tower-card[data-tower]');
+    
     const costMod = GameEngine.difficulty ? GameEngine.difficulty.costMod : 1.0;
     dom.towerCards.forEach(card => {
         const type = card.dataset.tower;
@@ -67,6 +114,11 @@ export function updateShopPrices() {
 }
 
 export function setupShopListeners() {
+    generateShopUI(); 
+    
+    // FIX: Re-query the DOM elements AFTER they are generated!
+    dom.towerCards = document.querySelectorAll('.tower-card[data-tower]');
+    
     let sandboxCamoOn = false, sandboxRegenOn = false, sandboxFortifiedOn = false;
     const shopView = document.getElementById('shop-view');
     const enemyView = document.getElementById('enemy-view');

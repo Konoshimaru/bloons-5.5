@@ -33,6 +33,12 @@ const FPS_UPDATE_INTERVAL = 1000;
 const HANG_THRESHOLD_MS = 500; 
 
 export const GameEngine = {
+    /** @type {import('./tower.js').Tower[]} */
+    towers: [],
+    /** @type {import('./enemy.js').Enemy[]} */
+    enemies: [],
+    /** @type {import('./projectile.js').Projectile[]} */
+    // ... add it to the rest of your arrays!
     canvas: null,
     ctx: null,
     lastTime: 0,

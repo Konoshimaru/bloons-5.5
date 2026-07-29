@@ -1,4 +1,3 @@
-// js/mapEditorInput.js
 import { UI } from './ui.js';
 import { Utils } from './utils.js';
 
@@ -49,61 +48,52 @@ export default {
     handleTrackMouseDown(pos, button) {
         if (!this.mapData || !Array.isArray(this.mapData.paths)) return;
         
-        for (let p = 0; p < this.mapData.paths.length; p++) {
-            if (!this.mapData.paths[p] || !Array.isArray(this.mapData.paths[p].waypoints)) continue;
-            for (let i = 0; i < this.mapData.paths[p].waypoints.length; i++) {
-                const wp = this.mapData.paths[p].waypoints[i];
-                if (!wp) continue;
-                if (wp.curve) {
-                    if (Math.hypot(pos.x - wp.curve.cx, pos.y - wp.curve.cy) < 12) {
-                        this.selectedPath = p;
-                        this.selectedPoint = wp;
-                        this.isDragging = 'curve';
-                        this.dragStartPos = { x: pos.x, y: pos.y };
-                        this.updatePathDropdown();
-                        return;
-                    }
-                }
-            }
+        // FIX: Lock editing to ONLY the selected path
+        if (this.selectedPath === -1 || !this.mapData.paths[this.selectedPath]) {
+            UI.log("Select a path from the dropdown first, or click 'New Path'.");
+            return;
         }
         
-        for (let p = 0; p < this.mapData.paths.length; p++) {
-            if (!this.mapData.paths[p] || !Array.isArray(this.mapData.paths[p].waypoints)) continue;
-            for (let i = 0; i < this.mapData.paths[p].waypoints.length; i++) {
-                const wp = this.mapData.paths[p].waypoints[i];
-                if (!wp) continue;
-                if (Math.hypot(pos.x - wp.x, pos.y - wp.y) < 12) {
-                    this.selectedPath = p;
+        const path = this.mapData.paths[this.selectedPath];
+        if (!path || !Array.isArray(path.waypoints)) return;
+        
+        // 1. Check for curve point clicks
+        for (let i = 0; i < path.waypoints.length; i++) {
+            const wp = path.waypoints[i];
+            if (!wp) continue;
+            if (wp.curve) {
+                if (Math.hypot(pos.x - wp.curve.cx, pos.y - wp.curve.cy) < 12) {
                     this.selectedPoint = wp;
-                    this.selectedProp = null;
-                    if (button === 2) { this.pushUndo(); this.insertPoint(wp); } 
-                    else { 
-                        this.pushUndo(); 
-                        this.isDragging = 'point'; 
-                        this.dragStartPos = { x: pos.x, y: pos.y }; 
-                    }
-                    this.updatePathDropdown();
+                    this.isDragging = 'curve';
+                    this.dragStartPos = { x: pos.x, y: pos.y };
                     return;
                 }
             }
         }
         
-        if (this.selectedPath !== -1 && this.mapData.paths[this.selectedPath]) {
-            this.pushUndo();
-            this.selectedPoint = null;
-            if (!this.mapData.paths[this.selectedPath].waypoints) this.mapData.paths[this.selectedPath].waypoints = [];
-            this.mapData.paths[this.selectedPath].waypoints.push({ x: pos.x, y: pos.y });
-            this.selectedPoint = this.mapData.paths[this.selectedPath].waypoints[this.mapData.paths[this.selectedPath].waypoints.length - 1];
-        } else if (this.mapData.paths.length === 0) {
-            this.newPath();
-            this.pushUndo();
-            this.selectedPoint = null;
-            this.mapData.paths[this.selectedPath].waypoints.push({ x: pos.x, y: pos.y });
-            this.selectedPoint = this.mapData.paths[this.selectedPath].waypoints[this.mapData.paths[this.selectedPath].waypoints.length - 1];
-            this.updatePathDropdown();
-        } else {
-            UI.log("Select a path from the dropdown first, or click 'New Path'.");
+        // 2. Check for waypoint clicks
+        for (let i = 0; i < path.waypoints.length; i++) {
+            const wp = path.waypoints[i];
+            if (!wp) continue;
+            if (Math.hypot(pos.x - wp.x, pos.y - wp.y) < 12) {
+                this.selectedPoint = wp;
+                this.selectedProp = null;
+                if (button === 2) { this.pushUndo(); this.insertPoint(wp); } 
+                else { 
+                    this.pushUndo(); 
+                    this.isDragging = 'point'; 
+                    this.dragStartPos = { x: pos.x, y: pos.y }; 
+                }
+                return;
+            }
         }
+        
+        // 3. Add a new point
+        this.pushUndo();
+        this.selectedPoint = null;
+        if (!path.waypoints) path.waypoints = [];
+        path.waypoints.push({ x: pos.x, y: pos.y });
+        this.selectedPoint = path.waypoints[path.waypoints.length - 1];
     },
     
     handleObjectsMouseDown(pos) {

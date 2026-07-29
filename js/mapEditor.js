@@ -36,9 +36,9 @@ export const MapEditor = {
     bgImage: null,
     bgNightImage: null,
     previewNight: false,
-    currentPathWidth: 45, // FIX: Controllable path width
+    currentPathWidth: 45,
 
-    init() {
+       init() {
         if (this._initialized) {
             this.resetMapData();
             this.startLoop();
@@ -48,13 +48,17 @@ export const MapEditor = {
         this.canvas = document.getElementById('editor-canvas');
         this.ctx = this.canvas.getContext('2d');
         
+        // FIX: Revert to 1280x720 internal resolution so maps match the game perfectly!
+        this.canvas.width = 1280;
+        this.canvas.height = 720;
+        
+        // FIX: Use auto width/height with max constraints so it fits the screen perfectly!
         this.canvas.style.maxWidth = '100%';
         this.canvas.style.maxHeight = '100%';
-        this.canvas.style.width = '100%';
+        this.canvas.style.width = 'auto';
         this.canvas.style.height = 'auto';
         this.canvas.style.aspectRatio = '16 / 9';
-        this.canvas.style.objectFit = 'contain';
-        
+        this.canvas.style.margin = '0 auto';
         this.resetMapData();
         
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
@@ -92,8 +96,8 @@ export const MapEditor = {
                 reader.onload = (ev) => {
                     this.refImage = new Image();
                     this.refImage.src = ev.target.result;
-                    this.refX = CANVAS_WIDTH / 2;
-                    this.refY = CANVAS_HEIGHT / 2;
+                    this.refX = 1280 / 2; // FIX: Updated for 1280 width
+                    this.refY = 720 / 2;
                     this.refScale = 1;
                 };
                 reader.readAsDataURL(file);
@@ -129,13 +133,17 @@ export const MapEditor = {
             });
         }
 
-        // FIX: Add Path Width slider listener
         const pathWidthSlider = document.getElementById('editor-path-width');
         if (pathWidthSlider) {
             pathWidthSlider.addEventListener('input', (e) => {
                 this.currentPathWidth = parseInt(e.target.value);
                 const widthVal = document.getElementById('path-width-val');
                 if (widthVal) widthVal.innerText = this.currentPathWidth;
+                
+                // FIX: Dynamically update the selected path's width!
+                if (this.selectedPath !== -1 && this.mapData.paths[this.selectedPath]) {
+                    this.mapData.paths[this.selectedPath].width = this.currentPathWidth;
+                }
             });
         }
         
@@ -390,7 +398,6 @@ export const MapEditor = {
     
     newPath() {
         if (!this.mapData.paths) this.mapData.paths = [];
-        // FIX: Initialize path with the currently selected width
         this.mapData.paths.push({ waypoints: [], visible: true, width: this.currentPathWidth });
         this.selectedPath = this.mapData.paths.length - 1;
         this.selectedPoint = null;
@@ -473,7 +480,6 @@ export const MapEditor = {
         if (deleted) UI.log("Selected item deleted.");
     },
 
-    // FIX: Merge extracted modules into the MapEditor object
     ...Renderer,
     ...Input,
     ...IO,

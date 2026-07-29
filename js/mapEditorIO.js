@@ -1,9 +1,27 @@
-// js/mapEditorIO.js
 import { Config } from './config.js';
 import { Maps } from './data.js';
 import { UI } from './ui.js';
 
 export default {
+    // FIX: New helper to clean up massive water brush arrays
+    simplifyWaterBrushes(brushes) {
+        if (!brushes) return [];
+        return brushes.map(brush => {
+            if (!brush.points || brush.points.length < 3) return brush;
+            const simplified = [brush.points[0]];
+            for (let i = 1; i < brush.points.length - 1; i++) {
+                const p1 = simplified[simplified.length - 1];
+                const p2 = brush.points[i];
+                // Only keep points if they are at least 10px apart from the last kept point
+                if (Math.hypot(p1.x - p2.x, p1.y - p2.y) > 10) {
+                    simplified.push(p2);
+                }
+            }
+            simplified.push(brush.points[brush.points.length - 1]);
+            return { thickness: brush.thickness, points: simplified };
+        });
+    },
+
     loadBackgroundPreview() {
         const nameInput = document.getElementById('bg-image-name');
         if (!nameInput) return;
@@ -72,6 +90,10 @@ export default {
         
         const existingIdx = Config.data.customMaps.findIndex(m => m.id === this.mapData.id);
         const mapCopy = JSON.parse(JSON.stringify(this.mapData));
+        
+        // FIX: Clean up water brushes before saving!
+        mapCopy.waterBrushes = this.simplifyWaterBrushes(mapCopy.waterBrushes);
+        
         if (existingIdx > -1) {
             Config.data.customMaps[existingIdx] = mapCopy;
             if (Maps[existingIdx + 6]) Maps[existingIdx + 6] = mapCopy;
@@ -189,7 +211,10 @@ export default {
         const textArea = document.getElementById('editor-json-text');
         if (!viewer || !textArea) return;
         if (viewer.classList.contains('hidden')) {
-            textArea.value = JSON.stringify(this.mapData, null, 2);
+            // FIX: Clean up water brushes before exporting to JSON!
+            const exportData = JSON.parse(JSON.stringify(this.mapData));
+            exportData.waterBrushes = this.simplifyWaterBrushes(exportData.waterBrushes);
+            textArea.value = JSON.stringify(exportData, null, 2);
             viewer.classList.remove('hidden');
         } else {
             viewer.classList.add('hidden');
