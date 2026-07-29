@@ -17,7 +17,7 @@ export default {
     draw() {
         if (!this.mapData) return;
         const ctx = this.ctx;
-        const EDITOR_W = CANVAS_WIDTH; // 1280
+        const EDITOR_W = 1060; // FIX: Match playable area
         const EDITOR_H = CANVAS_HEIGHT; // 720
         
         // FIX: CLEAR THE CANVAS FIRST to prevent cloning/ghosting when scaling!

@@ -8,10 +8,10 @@ import { AudioEngine } from './audio.js';
 import { UI } from './ui.js';
 import { Tower } from './tower.js';
 import { Hero } from './hero.js';
-import { GLOBAL_SCALE } from './constants.js';
 import { applyBossEffects } from './input.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 import { getSellRate } from './towerEconomy.js'; 
+import { GLOBAL_SCALE, GAME_AREA_WIDTH } from './constants.js';
 
 const MAX_SPEED_NORMAL = 3;
 const MAX_SPEED_EXTREME = 6;
@@ -183,10 +183,10 @@ export default {
             
             let canPlace = false;
             if (stats.waterOnly) { canPlace = this.map.isInWater(x, y); } 
-            else if (stats.canPlaceOnWater) { canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300; } 
+            else if (stats.canPlaceOnWater) { canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < GAME_AREA_WIDTH; } 
             else {
                 const isOnFrozenWater = this.map.isOnFrozenWater(x, y, this.towers);
-                canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < CANVAS_WIDTH - 300 && (!this.map.isInWater(x, y) || isOnFrozenWater);
+                canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < GAME_AREA_WIDTH && (!this.map.isInWater(x, y) || isOnFrozenWater);
             }
             if (!canPlace) { this.log(stats.waterOnly ? "Must be placed on water!" : "Cannot place here!"); return; }
             if (stats.isHero && this.hero) { this.log("You can only place one Hero per game!"); return; }

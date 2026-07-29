@@ -16,82 +16,68 @@
     </div>
 
     <div id="game-container">
-        <canvas id="gameCanvas" width="1280" height="720"></canvas>
-        <audio id="bg-music"></audio>
-        
-        <div id="error-message" class="hidden"></div>
-        <div id="shop-tooltip"></div>
-        <div id="upgrade-tooltip"></div>
-        <div id="flavor-text"></div>
+        <!-- Playable Area Wrapper (Canvas + In-Game UI ONLY) -->
+        <div id="game-area">
+<canvas id="gameCanvas" width="1280" height="720"></canvas>
+            <audio id="bg-music"></audio>
+            
+            <div id="error-message" class="hidden"></div>
+            <div id="shop-tooltip"></div>
+            <div id="upgrade-tooltip"></div>
+            <div id="flavor-text"></div>
 
-        <!-- Title Screen -->
-        <div id="title-screen" class="full-screen-overlay">
-            <img src="sprites/menu/logo.png" alt="Game Logo" class="game-logo" onerror="this.style.display='none'">
-            <button id="title-play-btn" class="large-btn">PLAY</button>
-        </div>
+            <!-- In-Game Top UI -->
+            <div id="top-ui-left" class="hidden">
+                <div id="lives-display">❤️ 100</div>
+                <div id="cash-display">💰 650</div>
+                <div id="wave-display">🌊 Wave 0</div>
+            </div>
+            <div id="top-ui-right" class="hidden">
+                <div id="fps-display">60 FPS</div>
+                <button id="pause-btn">⏸️ Pause</button>
+            </div>
 
-        <!-- Loading Screen -->
-        <div id="loading-screen" class="full-screen-overlay hidden">
-            <div class="loading-container">
-                <h2>Loading...</h2>
-                <div class="loading-bar-container">
-                    <div id="loading-bar-fill" class="loading-bar-fill"></div>
+            <div id="ability-bar" class="hidden"></div>
+            <button id="cancel-btn" class="hidden">✖</button>
+
+            <!-- Upgrade Sidebar -->
+            <div id="upgrade-sidebar" class="hidden">
+                <div class="up-header">
+                    <h3 id="up-title">Tower</h3>
+                    <div id="up-counters">Pops: 0</div>
+                    <div id="up-portrait"></div>
+                </div>
+                <div id="hero-ui" class="hidden" style="flex-direction: column; gap: 8px; margin-bottom: 5px;">
+                    <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
+                    <div id="hero-level-text">Level 1</div>
+                    <div id="hero-current-desc" class="hero-desc-box"></div>
+                    <button id="up-buy-level" class="hidden">Buy Level: $0</button>
+                    <div id="hero-next-desc" class="hero-desc-box"></div>
+                </div>
+                <div id="up-stats" class="hero-desc-box hidden"></div>
+                <div class="up-targeting-row" id="up-targeting-row">
+                    <button id="up-target-prev">◀</button>
+                    <span id="up-target-text">First</span>
+                    <button id="up-target-next">▶</button>
+                </div>
+                <div id="up-paths" class="up-paths">
+                    <div class="up-card" id="up-path1"><div class="up-card-info"><span class="up-name">Path 1</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-1"></div></div>
+                    <div class="up-card" id="up-path2"><div class="up-card-info"><span class="up-name">Path 2</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-2"></div></div>
+                    <div class="up-card" id="up-path3"><div class="up-card-info"><span class="up-name">Path 3</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-3"></div></div>
+                </div>
+                <div class="up-bottom">
+                    <button id="up-sell">Sell ($0)</button>
+                    <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
                 </div>
             </div>
         </div>
-
-        <!-- In-Game Top UI -->
-        <div id="top-ui-left" class="hidden">
-            <div id="lives-display">❤️ 100</div>
-            <div id="cash-display">💰 650</div>
-            <div id="wave-display">🌊 Wave 0</div>
-        </div>
-        <div id="top-ui-right" class="hidden">
-            <div id="fps-display">60 FPS</div>
-            <button id="pause-btn">⏸️ Pause</button>
-        </div>
-
-        <div id="ability-bar" class="hidden"></div>
-        <button id="cancel-btn" class="hidden">✖</button>
-
-        <!-- Upgrade Sidebar -->
-        <div id="upgrade-sidebar" class="hidden">
-            <div class="up-header">
-                <h3 id="up-title">Tower</h3>
-                <div id="up-counters">Pops: 0</div>
-                <div id="up-portrait"></div>
-            </div>
-            <div id="hero-ui" class="hidden" style="flex-direction: column; gap: 8px; margin-bottom: 5px;">
-                <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
-                <div id="hero-level-text">Level 1</div>
-                <div id="hero-current-desc" class="hero-desc-box"></div>
-                <button id="up-buy-level" class="hidden">Buy Level: $0</button>
-                <div id="hero-next-desc" class="hero-desc-box"></div>
-            </div>
-            <div id="up-stats" class="hero-desc-box hidden"></div>
-            <div class="up-targeting-row" id="up-targeting-row">
-                <button id="up-target-prev">◀</button>
-                <span id="up-target-text">First</span>
-                <button id="up-target-next">▶</button>
-            </div>
-            <div id="up-paths" class="up-paths">
-                <div class="up-card" id="up-path1"><div class="up-card-info"><span class="up-name">Path 1</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-1"></div></div>
-                <div class="up-card" id="up-path2"><div class="up-card-info"><span class="up-name">Path 2</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-2"></div></div>
-                <div class="up-card" id="up-path3"><div class="up-card-info"><span class="up-name">Path 3</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-3"></div></div>
-            </div>
-            <div class="up-bottom">
-                <button id="up-sell">Sell ($0)</button>
-                <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
-            </div>
-        </div>
+        <!-- END Playable Area Wrapper -->
 
         <!-- Sidebar (Right Side Shop) -->
         <div id="sidebar" class="hidden">
             <div id="shop-header">Shop</div>
             <div class="sidebar-scroll">
-                <div id="shop-view" class="tower-shop">
-                    <!-- Towers will be auto-generated by JS in the next step! -->
-                </div>
+                <div id="shop-view" class="tower-shop"></div>
                 <div id="enemy-view" class="tower-shop hidden">
                     <div class="sb-row" style="grid-column: 1 / -1;">
                         <button id="sb-toggle-camo" class="sb-toggle">Camo: Off</button>
@@ -126,6 +112,24 @@
                     <button id="sb-reset-cooldowns" style="background: #9b59b6; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 5px;">Reset Cooldowns</button>
                 </div>
                 <div id="message-log">Select a tower to begin.</div>
+            </div>
+        </div>
+
+        <!-- ALL MENUS AND OVERLAYS GO HERE (Outside the game-area so they cover the full 1280px screen) -->
+        
+        <!-- Title Screen -->
+        <div id="title-screen" class="full-screen-overlay">
+            <img src="sprites/menu/logo.png" alt="Game Logo" class="game-logo" onerror="this.style.display='none'">
+            <button id="title-play-btn" class="large-btn">PLAY</button>
+        </div>
+
+        <!-- Loading Screen -->
+        <div id="loading-screen" class="full-screen-overlay hidden">
+            <div class="loading-container">
+                <h2>Loading...</h2>
+                <div class="loading-bar-container">
+                    <div id="loading-bar-fill" class="loading-bar-fill"></div>
+                </div>
             </div>
         </div>
 
@@ -347,7 +351,7 @@
                     </div>
                 </div>
                 <div class="editor-main">
-                    <canvas id="editor-canvas" width="1280" height="720"></canvas>
+                    <canvas id="editor-canvas" width="1060" height="720"></canvas>
                     <div class="editor-bottom-bar">
                         <button id="editor-undo">↩ Undo</button>
                         <button id="editor-redo">↪ Redo</button>
@@ -427,6 +431,7 @@
         </div>
 
     </div>
+
     <script type="module" src="/js/main.js"></script>
 </body>
 </html>

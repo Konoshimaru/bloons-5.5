@@ -3,7 +3,7 @@ import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
 import { GameEngine } from './engine.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE, GAME_AREA_WIDTH } from './constants.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
 import { ProjectileDrawers } from './projectileDrawers.js';
@@ -306,7 +306,7 @@ export class Projectile {
     }
 
     _isOffscreen() {
-        return this.x < -OFFSCREEN_PADDING || this.x > CANVAS_WIDTH + OFFSCREEN_PADDING || this.y < -OFFSCREEN_PADDING || this.y > CANVAS_HEIGHT + OFFSCREEN_PADDING;
+        return this.x < -OFFSCREEN_PADDING || this.x > GAME_AREA_WIDTH + OFFSCREEN_PADDING || this.y < -OFFSCREEN_PADDING || this.y > CANVAS_HEIGHT + OFFSCREEN_PADDING;
     }
 
     draw(ctx) {

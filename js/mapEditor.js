@@ -48,8 +48,8 @@ export const MapEditor = {
         this.canvas = document.getElementById('editor-canvas');
         this.ctx = this.canvas.getContext('2d');
         
-        // FIX: Revert to 1280x720 internal resolution so maps match the game perfectly!
-        this.canvas.width = 1280;
+        // FIX: Set to 1060x720 to match the actual playable game area!
+        this.canvas.width = 1060;
         this.canvas.height = 720;
         
         // FIX: Use auto width/height with max constraints so it fits the screen perfectly!
@@ -96,7 +96,7 @@ export const MapEditor = {
                 reader.onload = (ev) => {
                     this.refImage = new Image();
                     this.refImage.src = ev.target.result;
-                    this.refX = 1280 / 2; // FIX: Updated for 1280 width
+                    this.refX = 1060 / 2; // FIX: Updated for 1060 width
                     this.refY = 720 / 2;
                     this.refScale = 1;
                 };

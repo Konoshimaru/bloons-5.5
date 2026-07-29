@@ -1,4 +1,4 @@
-import { CANVAS_WIDTH } from './constants.js';
+import { CANVAS_WIDTH, GAME_AREA_WIDTH } from './constants.js';
 
 export const BossHealthBarHandler = {
     activeBosses: [],
@@ -28,9 +28,8 @@ export const BossHealthBarHandler = {
         const barHeight = 24;
         const spacing = 36;
         
-        // Center within the playable game area (1280 - 300px sidebar = 980px)
-        const gameAreaWidth = CANVAS_WIDTH - 300; 
-        const startX = (gameAreaWidth - barWidth) / 2; 
+        // FIX: Use GAME_AREA_WIDTH instead of CANVAS_WIDTH - 300
+        const startX = (GAME_AREA_WIDTH - barWidth) / 2; 
         const startY = 55; 
 
         ctx.save();
