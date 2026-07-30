@@ -6,12 +6,16 @@ export const isMobile = {
     iOS: function() { return navigator.userAgent.match(/iPhone|iPad|iPod/i); },
     Opera: function() { return navigator.userAgent.match(/Opera Mini/i); },
     Windows: function() { return navigator.userAgent.match(/IEMobile/i); },
-    any: function() { return (this.Android() || this.iOS() || this.Opera() || this.Windows()); }
+    any: function() {
+        // FIX: Modern iPads (iPadOS 13+) pretend to be desktop Macs.
+        const isMacTouch = navigator.userAgent.match(/Macintosh/i) && (navigator.maxTouchPoints > 1);
+        return (this.Android() || this.iOS() || this.Opera() || this.Windows() || isMacTouch);
+    }
 };
 
 export const MobileManager = {
     isActive: false,
-    spriteScale: 1.0, // Scales touch hitboxes and sprites for towers
+    spriteScale: 1.0,
     
     init() {
         if (!isMobile.any()) return;
@@ -43,120 +47,81 @@ export const MobileManager = {
         mobileCSS.innerHTML = `
             /* --- TOP UI SCALING --- */
             .mobile-mode #top-ui-left, .mobile-mode #top-ui-right {
-                top: 15px;
-                gap: 15px;
+                top: 15px; gap: 15px;
             }
             .mobile-mode #lives-display, .mobile-mode #cash-display, .mobile-mode #wave-display, .mobile-mode #pause-btn {
-                padding: 12px 20px;
-                font-size: 24px;
-                border-radius: 10px;
-                border-width: 2px;
+                padding: 12px 20px; font-size: 24px; border-radius: 10px; border-width: 2px;
             }
             .mobile-mode #fps-display {
-                padding: 8px 15px;
-                font-size: 18px;
+                padding: 8px 15px; font-size: 18px;
             }
 
             /* --- ABILITY BAR SCALING --- */
             .mobile-mode #ability-bar {
-                bottom: 20px;
-                left: 20px;
-                gap: 15px;
+                bottom: 20px; left: 20px; gap: 15px;
             }
             .mobile-mode .ability-icon {
-                width: 70px;
-                height: 70px;
-                border-radius: 12px;
-                border-width: 3px;
-                font-size: 14px;
+                width: 70px; height: 70px; border-radius: 12px; border-width: 3px; font-size: 14px;
             }
             .mobile-mode .cooldown-overlay {
                 font-size: 24px;
             }
 
             /* --- SHOP SIDEBAR SCALING --- */
-            /* FIX: Removed width override! Sidebar stays 220px to save screen space. */
             .mobile-mode #shop-header {
-                font-size: 28px;
-                padding: 15px 0;
+                font-size: 28px; padding: 15px 0;
             }
             .mobile-mode .sidebar-scroll {
                 padding: 10px;
             }
             .mobile-mode .tower-shop {
-                grid-template-columns: repeat(2, 1fr); /* 2 large columns instead of 3 */
-                gap: 10px;
+                grid-template-columns: repeat(2, 1fr); gap: 10px;
             }
             .mobile-mode .tower-card {
-                border-radius: 10px;
-                border-width: 3px;
+                border-radius: 10px; border-width: 3px;
             }
             .mobile-mode .tower-card .cost {
-                font-size: 16px;
-                padding: 4px 0;
-                font-weight: 900;
+                font-size: 16px; padding: 4px 0; font-weight: 900;
             }
             .mobile-mode .sidebar-bottom button {
-                padding: 12px;
-                font-size: 20px;
-                border-radius: 8px;
-                margin-bottom: 8px;
+                padding: 12px; font-size: 20px; border-radius: 8px; margin-bottom: 8px;
             }
             .mobile-mode #message-log {
-                font-size: 16px;
-                padding: 8px;
+                font-size: 16px; padding: 8px;
             }
 
             /* --- UPGRADE PANEL SCALING --- */
             .mobile-mode #upgrade-sidebar {
-                width: 280px; /* Slightly wider for touch, but not huge */
-                padding: 15px;
-                border-radius: 10px;
-                gap: 12px;
+                width: 280px; padding: 15px; border-radius: 10px; gap: 12px;
             }
-            .mobile-mode #up-title {
-                font-size: 28px;
-            }
-            .mobile-mode #up-counters {
-                font-size: 18px;
-            }
-            .mobile-mode #up-portrait {
-                width: 130px;
-                height: 130px;
-            }
-            .mobile-mode .up-card {
-                padding: 12px;
-                border-radius: 8px;
-            }
-            .mobile-mode .up-card-info .up-name {
-                font-size: 18px;
-            }
-            .mobile-mode .up-card-info .cost {
-                font-size: 16px;
-            }
-            .mobile-mode .tier-box {
-                width: 18px;
-                height: 18px;
-            }
+            .mobile-mode #up-title { font-size: 28px; }
+            .mobile-mode #up-counters { font-size: 18px; }
+            .mobile-mode #up-portrait { width: 130px; height: 130px; }
+            .mobile-mode .up-card { padding: 12px; border-radius: 8px; }
+            .mobile-mode .up-card-info .up-name { font-size: 18px; }
+            .mobile-mode .up-card-info .cost { font-size: 16px; }
+            .mobile-mode .tier-box { width: 18px; height: 18px; }
             .mobile-mode #up-sell, .mobile-mode #up-collect-bank, .mobile-mode #up-buy-level {
-                padding: 12px;
-                font-size: 18px;
-                border-radius: 8px;
+                padding: 12px; font-size: 18px; border-radius: 8px;
             }
-            .mobile-mode .up-targeting-row button {
-                font-size: 22px;
-                padding: 8px;
-            }
-            .mobile-mode #up-target-text {
-                font-size: 18px;
-            }
+            .mobile-mode .up-targeting-row button { font-size: 22px; padding: 8px; }
+            .mobile-mode #up-target-text { font-size: 18px; }
 
             /* --- CANCEL BUTTON --- */
             .mobile-mode #cancel-btn {
-                width: 70px;
-                height: 70px;
-                font-size: 28px;
-                bottom: 30px;
+                width: 70px; height: 70px; font-size: 28px; bottom: 30px;
+            }
+
+            /* --- TOUCH SCROLLING FIXES --- */
+            /* FIX: Prevent browser scrolling/zooming ONLY on the canvas so aiming works */
+            .mobile-mode #gameCanvas {
+                touch-action: none !important;
+            }
+            /* FIX: Allow native vertical scrolling in the shop and menus */
+            .mobile-mode #sidebar, .mobile-mode .sidebar-scroll,
+            .mobile-mode .menu-content, .mobile-mode .editor-sidebar {
+                touch-action: pan-y !important;
+                -webkit-overflow-scrolling: touch;
             }
         `;
         document.head.appendChild(mobileCSS);
@@ -168,13 +133,9 @@ export const MobileManager = {
     },
 
     _setupTouch() {
-        document.body.style.overflow = 'hidden';
-        document.body.style.touchAction = 'none';
-        
         const canvas = GameEngine.canvas;
         if (!canvas) return;
 
-        // Store bound functions so we can remove them later
         this._touchStart = (e) => {
             e.preventDefault();
             if (e.touches.length > 0) {
@@ -227,7 +188,6 @@ export const MobileManager = {
     }
 };
 
-// Expose toggle command to PC console for testing
 window.toggleMobile = function() {
     MobileManager.toggle();
     console.log(`Mobile Mode is now ${MobileManager.isActive ? 'ON' : 'OFF'}`);

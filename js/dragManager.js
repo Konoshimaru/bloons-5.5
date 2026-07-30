@@ -5,18 +5,16 @@ import { TowerStats, Upgrades } from './towers/index.js';
 import { UI } from './ui.js';
 import { AudioEngine } from './audio.js';
 import { applyBossEffects } from './input.js';
-import { getBehavior } from './registry.js'; // FIX: Import getBehavior
+import { getBehavior } from './registry.js';
 import { TowerRegistry, TOWER_CATEGORIES } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
-import { CutsceneManager } from './cutscene.js'; // FIX: Import Cutscene Manager
-import { isMobile } from './mobile.js'; // FIX: Import isMobile
+import { CutsceneManager } from './cutscene.js';
 
 export function generateShopUI() {
     const shopView = document.getElementById('shop-view');
     if (!shopView) return;
-    shopView.innerHTML = ''; // Clear out any old HTML
+    shopView.innerHTML = '';
 
-    // 1. Add Hero Card first
     const selectedHero = Config.data.selectedHero || 'quincy';
     if (HeroRegistry[selectedHero]) {
         const heroCard = document.createElement('div');
@@ -28,7 +26,6 @@ export function generateShopUI() {
         shopView.appendChild(heroCard);
     }
 
-    // 2. Get all towers and sort them by category so they stay grouped nicely
     const categoryOrder = ['Primary', 'Military', 'Magic', 'Support'];
     const sortedTowers = Object.keys(TowerRegistry).sort((a, b) => {
         const catA = TOWER_CATEGORIES[a] || 'Support';
@@ -36,7 +33,6 @@ export function generateShopUI() {
         return categoryOrder.indexOf(catA) - categoryOrder.indexOf(catB);
     });
 
-    // 3. Add Tower Cards in the correct sorted order
     for (const type of sortedTowers) {
         const stats = TowerRegistry[type].stats;
         if (!stats) continue;
@@ -81,7 +77,6 @@ function getSidebarRect() {
 window.addEventListener('resize', () => { cachedSidebarRect = null; });
 
 export function updateShopPrices() {
-    // FIX: Re-query the cards here, just in case it's called before setupShopListeners finishes
     dom.towerCards = document.querySelectorAll('.tower-card[data-tower]');
     
     const costMod = GameEngine.difficulty ? GameEngine.difficulty.costMod : 1.0;
@@ -92,13 +87,11 @@ export function updateShopPrices() {
             let cost = Math.floor(stats.cost * costMod);
             const costEl = card.querySelector('.cost');
             
-            // FIX: Generic unlock key check instead of hardcoding 'farmer'
             let isLocked = !Config.data.unlockedTowers.includes(type);
             if (stats.unlockKey) {
                 isLocked = !Config.data.unlocks[stats.unlockKey];
             }
 
-            // FIX: Let the tower module modify the placement cost (e.g. Dart Monkey freebie)
             const behavior = getBehavior(type);
             if (behavior?.getPlacementCostModifier) {
                 cost = behavior.getPlacementCostModifier(stats, cost, GameEngine);
@@ -118,9 +111,7 @@ export function updateShopPrices() {
 export function setupShopListeners() {
     generateShopUI(); 
     
-    // FIX: Re-query the DOM elements AFTER they are generated!
     dom.towerCards = document.querySelectorAll('.tower-card[data-tower]');
-    // FIX: Re-query enemy cards to include the newly added Knight card
     dom.enemyCards = document.querySelectorAll('#enemy-view .tower-card[data-enemy]');
     
     let sandboxCamoOn = false, sandboxRegenOn = false, sandboxFortifiedOn = false;
@@ -178,11 +169,9 @@ export function setupShopListeners() {
             if (!GameEngine.isSandbox || !GameEngine.map) return;
             const enemyType = card.dataset.enemy;
             
-            // FIX: Handle Knight Boss cutscene trigger
             if (enemyType === 'knight') {
                 let boss = null;
                 let bestRbe = 0;
-                // Find the strongest MOAB-class bloon currently on screen
                 for (let e of GameEngine.enemies) {
                     if (e && e.alive && e.data.isMoab && e.data.rbe > bestRbe) {
                         bestRbe = e.data.rbe;
@@ -190,14 +179,12 @@ export function setupShopListeners() {
                     }
                 }
                 
-                // If none exists, spawn a MOAB (Tier 13) so the cutscene has something to play on
                 if (!boss) {
                     boss = GameEngine.enemyPool.get();
                     boss.init(13, GameEngine.map, false, false, 13, false, null, 0, false);
                     GameEngine.enemies.push(boss);
                 }
                 
-                // Trigger the cutscene!
                 CutsceneManager.trigger(boss);
                 return;
             }
@@ -340,7 +327,7 @@ export function setupShopListeners() {
     const upHover = (el, path) => {
         if (!el) return;
         el.addEventListener('mouseenter', () => {
-            window._hoveredUpgradePath = path; // FIX: Track hovered path
+            window._hoveredUpgradePath = path;
             
             if (!GameEngine.selectedPlacedTower) return;
             const t = GameEngine.selectedPlacedTower;
@@ -351,7 +338,6 @@ export function setupShopListeners() {
             if (data && tip) {
                 tip.innerHTML = `<b>${data.name} (${tier + 1}/5)</b><br>${data.desc}`;
                 
-                // FIX: Calculate local coordinates accounting for the game container's CSS scale
                 const rect = el.getBoundingClientRect();
                 const container = document.getElementById('game-container');
                 const containerRect = container.getBoundingClientRect();
@@ -375,21 +361,19 @@ export function setupShopListeners() {
                     tip.style.left = (localRight + 5) + 'px';
                 }
                 
-                // Keep tooltip on screen vertically
                 let finalTop = localTop;
                 if (finalTop + tipHeight > 720) {
                     finalTop = 720 - tipHeight - 5;
                 }
                 tip.style.top = finalTop + 'px';
                 
-                // Trigger transition
                 requestAnimationFrame(() => {
                     tip.classList.add('show');
                 });
             }
         });
         el.addEventListener('mouseleave', () => {
-            window._hoveredUpgradePath = null; // FIX: Clear tracked path
+            window._hoveredUpgradePath = null;
             const tip = document.getElementById('upgrade-tooltip');
             if (tip) tip.classList.remove('show');
         });
@@ -558,13 +542,6 @@ export function setupNudgeLogic() {
 
         if (isNudging) {
             isNudging = false;
-            
-            // FIX: On mobile, do not place the tower when lifting finger if we were just nudging!
-            if (isMobile.any()) {
-                GameEngine._ignoreNextClick = true;
-                return; 
-            }
-
             GameEngine._ignoreNextClick = true; 
             
             const fakeClientX = rect.left + (GameEngine.stuckPlacement.x / scaleX);
