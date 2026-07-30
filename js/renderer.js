@@ -8,6 +8,7 @@ import { KnightEnemy } from './bosses/knight.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
 import { BossHealthBarHandler } from './BossHealthBarHandler.js';
 import { applyBossEffects } from './input.js';
+import { isMobile } from './mobile.js'; // FIX: Import isMobile
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -233,6 +234,8 @@ export const Renderer = {
 
     _drawCursor(ctx, engine) {
         if (engine.gameState !== 'playing') return;
+        if (isMobile.any()) return; // FIX: Hide cursor on mobile
+        
         ctx.save();
         ctx.fillStyle = '#fff';
         ctx.strokeStyle = '#000';

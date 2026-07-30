@@ -4,6 +4,7 @@ import { Names } from './names.js';
 import { drawShadow } from './utils.js';
 import { GameEngine } from './engine.js';
 import { GLOBAL_SCALE } from './constants.js';
+import { MobileManager } from './mobile.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 const ENEMY_NAMES = [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
@@ -27,6 +28,7 @@ export const EnemyRenderer = {
     },
 
     _drawBlades(ctx) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         const maxHp = this._maxHp;
         if (maxHp <= 0) return;
         
@@ -48,7 +50,7 @@ export const EnemyRenderer = {
         }
         if (!bladeAsset || !bladeAsset.loaded) return;
         
-        const targetSize = (this.data.size || (this.data.radius * 2)) * GS;
+        const targetSize = (this.data.size || (this.data.radius * 2)) * GS * mobileScale;
         const maxDim = Math.max(bladeAsset.width, bladeAsset.height);
         const scale = targetSize / maxDim;
         const w = bladeAsset.width * scale;
@@ -65,18 +67,15 @@ export const EnemyRenderer = {
     },
 
     _drawSprite(ctx, asset) {
-        if (asset.width !== this._cachedSpriteW || asset.height !== this._cachedSpriteH) {
-            const targetSize = (this.data.size || (this.data.radius * 2)) * GS;
-            const maxDim = Math.max(asset.width, asset.height);
-            const scale = targetSize / maxDim;
-            this._spriteW = asset.width * scale;
-            this._spriteH = asset.height * scale;
-            this._cachedSpriteW = asset.width;
-            this._cachedSpriteH = asset.height;
-        }
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         
-        const w = this._spriteW;
-        const h = this._spriteH;
+        // FIX: Removed caching so it recalculates size when mobileScale changes!
+        const targetSize = (this.data.size || (this.data.radius * 2)) * GS * mobileScale;
+        const maxDim = Math.max(asset.width, asset.height);
+        const scale = targetSize / maxDim;
+        const w = asset.width * scale;
+        const h = asset.height * scale;
+        
         const drawX = this.x + (this.data.spriteOffsetX || 0);
         const drawY = this.y + (this.data.spriteOffsetY || 0);
         
@@ -171,26 +170,28 @@ export const EnemyRenderer = {
     },
 
     _drawMoabFallback(ctx) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle + Math.PI / 2);
         ctx.fillStyle = this.data.color;
-        ctx.fillRect(-this.radius, -this.radius * 0.6, this.radius * 2, this.radius * 1.2);
+        ctx.fillRect(-this.radius * mobileScale, -this.radius * 0.6 * mobileScale, this.radius * 2 * mobileScale, this.radius * 1.2 * mobileScale);
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.fillRect(-this.radius, -this.radius * 0.6, this.radius * 2, this.radius * 0.3);
+        ctx.fillRect(-this.radius * mobileScale, -this.radius * 0.6 * mobileScale, this.radius * 2 * mobileScale, this.radius * 0.3 * mobileScale);
         ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(-5, -this.radius * 0.6 - 5, 10, 5);
+        ctx.fillRect(-5 * mobileScale, -this.radius * 0.6 * mobileScale - 5 * mobileScale, 10 * mobileScale, 5 * mobileScale);
         ctx.restore();
         if (this.isFortified) {
             ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 4;
-            ctx.strokeRect(this.x - this.radius, this.y - this.radius * 0.6, this.radius * 2, this.radius * 1.2);
+            ctx.strokeRect(this.x - this.radius * mobileScale, this.y - this.radius * 0.6 * mobileScale, this.radius * 2 * mobileScale, this.radius * 1.2 * mobileScale);
         }
     },
 
     _drawStandardFallback(ctx) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         ctx.fillStyle = this.data.color;
         if (this.isRegen) {
-            const r = this.radius;
+            const r = this.radius * mobileScale;
             ctx.beginPath();
             ctx.moveTo(this.x, this.y + r * 0.8);
             ctx.bezierCurveTo(this.x, this.y, this.x - r, this.y, this.x - r, this.y - r * 0.4);
@@ -200,42 +201,43 @@ export const EnemyRenderer = {
             ctx.fill();
         } else {
             ctx.beginPath();
-            ctx.ellipse(this.x, this.y, this.radius * 0.9, this.radius, 0, 0, Math.PI * 2);
+            ctx.ellipse(this.x, this.y, this.radius * 0.9 * mobileScale, this.radius * mobileScale, 0, 0, Math.PI * 2);
             ctx.fill();
         }
         if (this.data.isLead) {
             ctx.fillStyle = '#7f8c8d';
-            ctx.beginPath(); ctx.ellipse(this.x, this.y, this.radius * 0.9, this.radius, 0, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(this.x, this.y, this.radius * 0.9 * mobileScale, this.radius * mobileScale, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.beginPath(); ctx.ellipse(this.x - this.radius / 3, this.y - this.radius / 3, this.radius / 4, this.radius / 2, -0.5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(this.x - (this.radius / 3) * mobileScale, this.y - (this.radius / 3) * mobileScale, (this.radius / 4) * mobileScale, (this.radius / 2) * mobileScale, -0.5, 0, Math.PI * 2); ctx.fill();
             if (this.isFortified) {
                 ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * mobileScale, 0, Math.PI * 2); ctx.stroke();
             } else {
                 ctx.strokeStyle = '#bdc3c7'; ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * mobileScale, 0, Math.PI * 2); ctx.stroke();
             }
         } else if (this.isCamo) {
             ctx.fillStyle = '#5d4037';
-            ctx.beginPath(); ctx.arc(this.x - 4, this.y - 2, 4, 0, Math.PI * 2); ctx.arc(this.x + 5, this.y + 3, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(this.x - 4 * mobileScale, this.y - 2 * mobileScale, 4 * mobileScale, 0, Math.PI * 2); ctx.arc(this.x + 5 * mobileScale, this.y + 3 * mobileScale, 5 * mobileScale, 0, Math.PI * 2); ctx.fill();
         } else if (this.data.isCeramic) {
             ctx.strokeStyle = '#7f8c8d'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * mobileScale, 0, Math.PI * 2); ctx.stroke();
             if (this.isFortified) {
                 ctx.strokeStyle = '#2c3e50'; ctx.lineWidth = 5;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius * mobileScale, 0, Math.PI * 2); ctx.stroke();
             }
         }
         if (this.isFrozen) {
             ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(this.x, this.y, (this.radius + 3) * mobileScale, 0, Math.PI * 2); ctx.stroke();
         } else if (this.slowFactor < 1.0) {
             ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.arc(this.x, this.y, (this.radius + 3) * mobileScale, 0, Math.PI * 2); ctx.stroke();
         }
     },
 
     _drawStunOverlay(ctx) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         const t = performance.now() / 1000;
         const fps = 15;
         const frame = Math.floor(t * fps) % fps;
@@ -243,9 +245,9 @@ export const EnemyRenderer = {
         if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get(Names.getStunFX(0));
         if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get('effect_stun');
         if (stunAsset && stunAsset.loaded) {
-            const s = (this.data.size || 40) * GS * 0.8;
+            const s = (this.data.size || 40) * GS * 0.8 * mobileScale;
             ctx.save();
-            ctx.translate(this.x, this.y - this.radius * 0.6 - s / 2);
+            ctx.translate(this.x, this.y - this.radius * 0.6 * mobileScale - s / 2);
             ctx.rotate(t * 5);
             ctx.drawImage(stunAsset, -s / 2, -s / 2, s, s);
             ctx.restore();

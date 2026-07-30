@@ -8,6 +8,7 @@ import Assets from './assets.js';
 import { Names } from './names.js';
 import { ProjectileDrawers } from './projectileDrawers.js';
 import ProjectileHitResolution from './projectileHitResolution.js';
+import { MobileManager } from './mobile.js'; // FIX: Import MobileManager
 
 const MORTAR_ARC_HEIGHT = 150;
 const SEEKING_TURN_SPEED = 12;
@@ -310,10 +311,14 @@ export class Projectile {
     }
 
     draw(ctx) {
+        // FIX: Apply 1.2x mobile scale to all projectiles automatically!
+        const mScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
+
         if (this.type === 'mortar_shell') {
             const yOffset = -4 * MORTAR_ARC_HEIGHT * this.t * (1 - this.t);
             ctx.save();
             ctx.translate(this.x, this.y + yOffset);
+            ctx.scale(mScale, mScale); // Scale mortar shell
             ctx.fillStyle = '#2c3e50';
             ctx.beginPath();
             ctx.arc(0, 0, 6, 0, Math.PI * 2);
@@ -325,21 +330,18 @@ export class Projectile {
         const assetKey = Names.getProjectile(this.type);
         const asset = Assets.get(assetKey);
         
-        if (asset && asset.loaded) {
-            const targetSize = this._getDrawSize();
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.angle);
-            drawImageCentered(ctx, asset, targetSize);
-            ctx.restore();
-            return;
-        }
-        
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
-        const drawer = ProjectileDrawers[this.type] || ProjectileDrawers.dart;
-        drawer(ctx, this);
+        ctx.scale(mScale, mScale); // FIX: Scale the projectile sprite/shape!
+        
+        if (asset && asset.loaded) {
+            const targetSize = this._getDrawSize();
+            drawImageCentered(ctx, asset, targetSize);
+        } else {
+            const drawer = ProjectileDrawers[this.type] || ProjectileDrawers.dart;
+            drawer(ctx, this);
+        }
         ctx.restore();
     }
 

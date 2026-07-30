@@ -9,6 +9,7 @@ import { getBehavior } from './registry.js'; // FIX: Import getBehavior
 import { TowerRegistry, TOWER_CATEGORIES } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { CutsceneManager } from './cutscene.js'; // FIX: Import Cutscene Manager
+import { isMobile } from './mobile.js'; // FIX: Import isMobile
 
 export function generateShopUI() {
     const shopView = document.getElementById('shop-view');
@@ -339,6 +340,8 @@ export function setupShopListeners() {
     const upHover = (el, path) => {
         if (!el) return;
         el.addEventListener('mouseenter', () => {
+            window._hoveredUpgradePath = path; // FIX: Track hovered path
+            
             if (!GameEngine.selectedPlacedTower) return;
             const t = GameEngine.selectedPlacedTower;
             if (t.stats.isHero) return; 
@@ -347,16 +350,48 @@ export function setupShopListeners() {
             const tip = document.getElementById('upgrade-tooltip');
             if (data && tip) {
                 tip.innerHTML = `<b>${data.name} (${tier + 1}/5)</b><br>${data.desc}`;
+                
+                // FIX: Calculate local coordinates accounting for the game container's CSS scale
                 const rect = el.getBoundingClientRect();
-                const containerRect = document.getElementById('game-container').getBoundingClientRect();
-                tip.style.left = (rect.right - containerRect.left + 5) + 'px';
-                tip.style.top = (rect.top - containerRect.top) + 'px';
-                tip.style.opacity = 1;
+                const container = document.getElementById('game-container');
+                const containerRect = container.getBoundingClientRect();
+                const scale = containerRect.width / 1280; 
+                
+                const localTop = (rect.top - containerRect.top) / scale;
+                const localRight = (rect.right - containerRect.left) / scale;
+                const localLeft = (rect.left - containerRect.left) / scale;
+                
+                const sidebar = document.getElementById('upgrade-sidebar');
+                const isRight = sidebar.classList.contains('sidebar-right');
+                
+                const tipWidth = tip.offsetWidth;
+                const tipHeight = tip.offsetHeight;
+                
+                if (isRight) {
+                    tip.classList.add('right-side');
+                    tip.style.left = (localLeft - tipWidth - 5) + 'px';
+                } else {
+                    tip.classList.remove('right-side');
+                    tip.style.left = (localRight + 5) + 'px';
+                }
+                
+                // Keep tooltip on screen vertically
+                let finalTop = localTop;
+                if (finalTop + tipHeight > 720) {
+                    finalTop = 720 - tipHeight - 5;
+                }
+                tip.style.top = finalTop + 'px';
+                
+                // Trigger transition
+                requestAnimationFrame(() => {
+                    tip.classList.add('show');
+                });
             }
         });
         el.addEventListener('mouseleave', () => {
+            window._hoveredUpgradePath = null; // FIX: Clear tracked path
             const tip = document.getElementById('upgrade-tooltip');
-            if (tip) tip.style.opacity = 0;
+            if (tip) tip.classList.remove('show');
         });
     };
     
@@ -523,6 +558,13 @@ export function setupNudgeLogic() {
 
         if (isNudging) {
             isNudging = false;
+            
+            // FIX: On mobile, do not place the tower when lifting finger if we were just nudging!
+            if (isMobile.any()) {
+                GameEngine._ignoreNextClick = true;
+                return; 
+            }
+
             GameEngine._ignoreNextClick = true; 
             
             const fakeClientX = rect.left + (GameEngine.stuckPlacement.x / scaleX);

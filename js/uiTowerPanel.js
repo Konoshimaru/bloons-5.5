@@ -4,7 +4,8 @@ import { Config } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 import { HeroRegistry } from './heroes/index.js';
 import { getSellRate } from './towerEconomy.js';
-import { getBehavior } from './registry.js'; // FIX: Import getBehavior
+import { getBehavior } from './registry.js';
+import { GAME_AREA_WIDTH } from './constants.js'; // FIX: Import for side-rule
 
 const _elCache = {};
 function el(id) {
@@ -97,7 +98,6 @@ const uiTowerPanel = {
                 
                 let cd = t.abilityCooldown || 0;
                 const behavior = getBehavior(t.type);
-                // FIX: Let the tower module decide which entity's cooldown to check
                 if (behavior?.getAbilityTarget) {
                     let target = behavior.getAbilityTarget(t, 1);
                     if (target) cd = target.abilityCooldown || 0;
@@ -144,12 +144,31 @@ const uiTowerPanel = {
     showUpgradeUI(t, engine) {
         const panel = el('upgrade-sidebar');
         if (!panel) return;
-        panel.classList.remove('hidden');
-        
-        if (t.x > 640) {
-            panel.classList.remove('sidebar-right'); 
-        } else {
-            panel.classList.add('sidebar-right'); 
+
+        const shouldBeOnRight = t.x <= GAME_AREA_WIDTH / 2;
+        const isCurrentlyOnRight = panel.classList.contains('sidebar-right');
+        const isCurrentlyHidden = panel.classList.contains('hidden');
+
+        // FIX: If we are changing sides while visible, or showing from hidden, 
+        // we must snap it to the off-screen position FIRST to restart the CSS transition.
+        if (isCurrentlyHidden || shouldBeOnRight !== isCurrentlyOnRight) {
+            // 1. Disable transition
+            panel.style.transition = 'none';
+            
+            // 2. Move to new side and set to hidden (off-screen)
+            panel.classList.toggle('sidebar-right', shouldBeOnRight);
+            panel.classList.add('hidden');
+            
+            // 3. Force browser to redraw (reflow) so the off-screen position is applied
+            void panel.offsetWidth; 
+            
+            // 4. Re-enable transition
+            panel.style.transition = '';
+            
+            // 5. Use requestAnimationFrame to slide it in on the next frame
+            requestAnimationFrame(() => {
+                panel.classList.remove('hidden');
+            });
         }
         
         this._setupSellAndBankButtons(panel, t, engine);
@@ -166,7 +185,6 @@ const uiTowerPanel = {
         const portrait = el('up-portrait');
         if (!portrait) return;
 
-        // FIX: Use duck-typing for minion portraits instead of checking type strings
         if (t.isMinion && typeof t.drawPortrait === 'function') {
             t.drawPortrait(portrait);
             return;
@@ -210,7 +228,6 @@ const uiTowerPanel = {
             panel.appendChild(bankBtn);
         }
         if (bankBtn) {
-            // FIX: Use stats.isBank instead of type === 'farm'
             const showBank = t.stats.isBank && t.bankBalance > 0;
             if (showBank) {
                 bankBtn.classList.remove('hidden');
@@ -297,40 +314,19 @@ const uiTowerPanel = {
         const heroUI = el('hero-ui');
         if (heroUI) heroUI.classList.add('hidden');
         
-        // FIX: ACTUALLY UPDATE THE TITLE AND COUNTERS FOR TOWERS!
-        const title = el('up-title');
-        if (title) title.innerText = t.stats.name || 'Tower';
-        
-        const counters = el('up-counters');
-        if (counters) counters.innerText = this._getTowerCounterText(t);
-
-        // FIX: Handle the optional stats box visibility
-        const statsEl = el('up-stats');
-        if (statsEl) {
-            if (Config.data.showTowerStats) {
-                statsEl.classList.remove('hidden');
-                this._updateTowerStats(t);
-            } else {
-                statsEl.classList.add('hidden');
-            }
-        }
-
         const pathsEl = el('up-paths');
         const targetingRow = el('up-targeting-row');
         
-        // Minions never show upgrade paths
         if (pathsEl) pathsEl.classList.toggle('hidden', t.isMinion);
         
         const behavior = getBehavior(t.type);
 
-        // FIX: Generic targeting row visibility check
-        let canTarget = !t.isMinion; // Default: non-minions can target
-        if (t.canChangeTargeting !== undefined) canTarget = t.canChangeTargeting; // For Sentry/Beast instances
-        if (behavior?.canChangeTargeting) canTarget = behavior.canChangeTargeting(t); // For Village/Spike
+        let canTarget = !t.isMinion;
+        if (t.canChangeTargeting !== undefined) canTarget = t.canChangeTargeting;
+        if (behavior?.canChangeTargeting) canTarget = behavior.canChangeTargeting(t);
         
         if (targetingRow) targetingRow.classList.toggle('hidden', !canTarget);
 
-        // FIX: Generic secondary targeting row (Super Monkey)
         let targetingRow2 = el('up-targeting-row-2');
         let hasSecondary = !t.isMinion && behavior?.hasSecondaryTargeting && behavior.hasSecondaryTargeting(t);
         
@@ -367,7 +363,6 @@ const uiTowerPanel = {
         
         this._updateTargetingText(t);
 
-        // FIX: Let the tower module setup its own custom UI (e.g. Beast buttons)
         if (behavior?.setupCustomUI) {
             behavior.setupCustomUI(el('upgrade-sidebar'), t, engine);
         } else {
@@ -381,7 +376,6 @@ const uiTowerPanel = {
     },
 
     _setupBeastUI(pathsEl, t, engine) {
-        // This method is now only called internally by beast.js via setupCustomUI
         const panel = el('upgrade-sidebar');
         
         let placeBtn = el('beast-place-btn');
@@ -447,7 +441,6 @@ const uiTowerPanel = {
     },
 
     _getTowerCounterText(t) {
-        // FIX: Let the tower module or instance provide its own counter text
         if (typeof t.getCounterText === 'function') return t.getCounterText();
         const behavior = getBehavior(t.type);
         if (behavior?.getCounterText) return behavior.getCounterText(t);
@@ -458,10 +451,8 @@ const uiTowerPanel = {
     _updateTowerStats(t) {
         const upStats = el('up-stats');
         if (!upStats) return;
-        
         const effRate = getEffectiveCooldown(t);
         
-        // Calculate Math Breakdown
         const basePierce = Number(t.stats.pierce) || 0;
         const buffedPierce = Number(t.buffedPierce) || 0;
         const alchPierce = (t.alchBuff && Number(t.alchBuff.pierce)) || 0;
@@ -472,25 +463,7 @@ const uiTowerPanel = {
         const alchDmg = (t.alchBuff && Number(t.alchBuff.dmg)) || 0;
         const effDmg = baseDmg + buffedDmg + alchDmg;
         
-        const baseRate = Number(t._baseCooldown) || 0;
-        const rateMult = Number(t._cooldownMult) || 1;
-        
-        // Format the string to show the math!
-        let dmgStr = `DMG: ${baseDmg}`;
-        if (buffedDmg > 0) dmgStr += ` + ${buffedDmg}`;
-        if (alchDmg > 0) dmgStr += ` + ${alchDmg}`;
-        dmgStr += ` = ${effDmg}`;
-        
-        let prcStr = `PRC: ${basePierce}`;
-        if (buffedPierce > 0) prcStr += ` + ${buffedPierce}`;
-        if (alchPierce > 0) prcStr += ` + ${alchPierce}`;
-        prcStr += ` = ${effPierce}`;
-        
-        let rateStr = `RATE: ${baseRate.toFixed(2)}s * ${rateMult.toFixed(2)} = ${effRate.toFixed(2)}s`;
-        let rngStr = `RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range}`;
-        
-        upStats.innerText = `${dmgStr}\n${rngStr}\n${rateStr}\n${prcStr}`;
-        upStats.style.whiteSpace = 'pre-line'; // Ensure line breaks render
+        upStats.innerText = `DMG: ${effDmg} | RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`;
     },
 
     _updateTargetingText(t) {
@@ -503,6 +476,22 @@ const uiTowerPanel = {
 
     _updateUpgradeCards(t, engine) {
         if (!t || t.isMinion || t.stats.isHero || !Upgrades[t.type]) return;
+
+        const title = el('up-title');
+        if (title) title.innerText = t.stats.name || 'Tower';
+        
+        const counters = el('up-counters');
+        if (counters) counters.innerText = this._getTowerCounterText(t);
+
+        const statsEl = el('up-stats');
+        if (statsEl) {
+            if (Config.data.showTowerStats) {
+                statsEl.classList.remove('hidden');
+                this._updateTowerStats(t);
+            } else {
+                statsEl.classList.add('hidden');
+            }
+        }
 
         for (let i = 1; i <= 3; i++) {
             const card = el(`up-path${i}`);
@@ -559,6 +548,21 @@ const uiTowerPanel = {
         }
         
         this._updatePortrait(t);
+
+        // FIX: Auto-update tooltip if mouse is currently hovering over an upgrade
+        if (window._hoveredUpgradePath) {
+            const path = window._hoveredUpgradePath;
+            const tier = t.upgrades[path - 1];
+            const data = Upgrades[t.type][path][tier];
+            const tip = document.getElementById('upgrade-tooltip');
+            if (tip && tip.classList.contains('show')) {
+                if (data) {
+                    tip.innerHTML = `<b>${data.name} (${tier + 1}/5)</b><br>${data.desc}`;
+                } else {
+                    tip.innerHTML = `<b>MAXED</b>`;
+                }
+            }
+        }
     }
 };
 

@@ -135,7 +135,7 @@ export default {
         for (const t of this.towers) {
             if (t && Utils.pointInFootprint(x, y, t.x, t.y, Utils.getFootprint(t))) {
                 if (this.selectedPlacedTower === t) { this.deselectAll(); } 
-                else { this.deselectAll(); this.selectedPlacedTower = t; UI.showUpgradeUI(t, this); }
+                else { this.deselectAll(false); this.selectedPlacedTower = t; UI.showUpgradeUI(t, this); }
                 return;
             }
         }
@@ -143,7 +143,7 @@ export default {
         for (const s of this.sentries) {
             if (s && Utils.pointInFootprint(x, y, s.x, s.y, Utils.getFootprint(s))) {
                 if (this.selectedPlacedTower === s) { this.deselectAll(); } 
-                else { this.deselectAll(); this.selectedPlacedTower = s; UI.showUpgradeUI(s, this); }
+                else { this.deselectAll(false); this.selectedPlacedTower = s; UI.showUpgradeUI(s, this); }
                 return;
             }
         }
@@ -151,7 +151,7 @@ export default {
         for (const b of this.beasts) {
             if (b && Utils.pointInFootprint(x, y, b.x, b.y, Utils.getFootprint(b))) {
                 if (this.selectedPlacedTower === b) { this.deselectAll(); } 
-                else { this.deselectAll(); this.selectedPlacedTower = b; UI.showUpgradeUI(b, this); }
+                else { this.deselectAll(false); this.selectedPlacedTower = b; UI.showUpgradeUI(b, this); }
                 return;
             }
         }
@@ -231,6 +231,11 @@ export default {
     },
 
     handleUpgrade(path) {
+        // FIX: 100ms buffer to prevent spam clicking
+        const now = performance.now();
+        if (this._lastUpgradeTime && now - this._lastUpgradeTime < 100) return;
+        this._lastUpgradeTime = now;
+
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
         if (t.stats.isHero || t.isMinion) return;
@@ -309,10 +314,11 @@ export default {
         this.deselectAll();
     },
 
-    deselectAll() {
+    // FIX: Added hideUI parameter to prevent instant hiding when switching towers
+    deselectAll(hideUI = true) {
         this.selectedTowerType = null; this.selectedPlacedTower = null;
         this.placingBeastFor = null; this.isMergingBeast = false; this.mergeSourceTower = null;
-        UI.hideUpgradePanel();
+        if (hideUI) UI.hideUpgradePanel();
         const cancelBtn = document.getElementById('cancel-btn');
         if (cancelBtn) cancelBtn.classList.add('hidden');
     }

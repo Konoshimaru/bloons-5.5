@@ -62,72 +62,57 @@
 }
 #cancel-btn:hover { background: #c0392b; }
 
-/* --- UPGRADE SIDEBAR --- */
-#upgrade-sidebar { 
-    position: absolute; top: 50%; left: 10px; transform: translateY(-50%); 
-    width: 240px; background: rgba(44, 62, 80, 0.95); padding: 15px; border-radius: 8px; border: 2px solid var(--accent); 
-    z-index: 6; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-    transition: left 0.1s ease, right 0.1s ease;
-}
-#upgrade-sidebar.sidebar-right { left: auto; right: 10px; }
-.up-header { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 5px; text-align: center; }
-#up-title { margin: 0; color: var(--accent); font-size: 22px; text-align: center; }
-#up-counters { font-size: 14px; color: #bdc3c7; margin-bottom: 5px; }
-#up-portrait { width: 110px; height: 110px; background: var(--panel); border: 3px solid #7f8c8d; border-radius: 8px; flex-shrink: 0; }
-.hero-desc-box { background: var(--panel); padding: 8px; border-radius: 4px; font-size: 12px; color: #bdc3c7; min-height: 30px; line-height: 1.4; }
-#up-buy-level { background: var(--accent); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: 900; text-align: center; width: 100%; font-size: 14px; }
-#up-buy-level.disabled { background: #7f8c8d; cursor: not-allowed; }
-.up-targeting-row { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 5px 10px; border-radius: 4px; }
-.up-targeting-row button { background: none; border: none; color: white; cursor: pointer; font-size: 14px; padding: 0; }
-.up-targeting-row button:hover { color: var(--accent); }
-#up-target-text { font-weight: 900; font-size: 14px; color: var(--accent); }
-.up-paths { display: flex; flex-direction: column; gap: 8px; }
-.up-card { background: var(--panel); border: 1px solid #7f8c8d; border-radius: 6px; padding: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
-.up-card:hover { background: #3e5771; }
-.up-card.locked { opacity: 0.5; cursor: not-allowed; }
-.up-card-info { display: flex; flex-direction: column; }
-.up-card-info .up-name { font-size: 13px; font-weight: 900; }
-.up-card-info .cost { font-size: 12px; color: var(--gold); margin-top: 2px; }
-.tier-boxes { display: flex; gap: 3px; }
-.tier-box { width: 12px; height: 12px; border: 1px solid #7f8c8d; border-radius: 2px; background: var(--bg); }
-.tier-box.filled { background: var(--accent); border-color: #d35400; }
-.up-bottom { margin-top: 5px; display: flex; flex-direction: column; gap: 5px; }
-#up-sell { background: var(--danger); color: white; border: 1px solid #c0392b; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: 900; text-align: center; width: 100%; }
-#up-sell:hover { background: #c0392b; }
-#up-collect-bank { background: #27ae60; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: 900; text-align: center; font-size: 13px; width: 100%; }
-#up-collect-bank:hover { background: #2ecc71; }
-
 /* --- SHOP SIDEBAR --- */
 #sidebar { 
     position: relative; width: 220px; height: 100%; background: var(--bg); 
     display: flex; flex-direction: column; z-index: 5; border-left: 3px solid var(--accent); 
     box-shadow: -4px 0 10px rgba(0,0,0,0.3); flex-shrink: 0; 
 }
-#shop-header { text-align: center; font-size: 22px; color: var(--gold); padding: 10px 0; border-bottom: 2px solid var(--accent); flex-shrink: 0; white-space: nowrap; overflow: hidden; }
-.sidebar-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; padding: 10px; }
+
+#shop-header {
+    text-align: center; font-size: 22px; color: var(--gold); padding: 10px 0;
+    border-bottom: 2px solid var(--accent); flex-shrink: 0; white-space: nowrap; overflow: hidden; 
+}
+
+.sidebar-scroll { 
+    flex: 1; overflow-y: auto; overflow-x: hidden; scrollbar-width: none; -ms-overflow-style: none; padding: 10px; 
+}
 .sidebar-scroll::-webkit-scrollbar { display: none; }
-.tower-shop { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+
+.tower-shop {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+}
+
 .tower-card { 
     position: relative; aspect-ratio: 1 / 1; background-color: #34495e; background-size: cover; background-position: center;
     border: 2px solid #7f8c8d; border-radius: 6px; cursor: grab; transition: all 0.1s; touch-action: none;
     overflow: hidden; display: flex; align-items: flex-end; justify-content: center;
 }
+
 #enemy-view .tower-card { background-size: contain; background-repeat: no-repeat; background-color: #34495e; }
+
 .tower-card.cat-primary { background-color: #3498db; } 
 .tower-card.cat-military { background-color: #27ae60; } 
 .tower-card.cat-magic { background-color: #9b59b6; } 
 .tower-card.cat-support { background-color: #f1c40f; } 
 .tower-card.cat-hero { background-color: #e67e22; } 
+
 .tower-card:active { cursor: grabbing; }
 .tower-card:hover { border-color: var(--accent); transform: scale(1.05); }
 .tower-card.selected { border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
 .tower-card.disabled { opacity: 0.4; cursor: not-allowed; }
-.tower-card .cost { background: rgba(0,0,0,0.7); width: 100%; text-align: center; font-size: 11px; font-weight: 900; color: var(--gold); padding: 2px 0; flex-grow: 0; }
+.tower-card .cost { 
+    background: rgba(0,0,0,0.7); width: 100%; text-align: center; font-size: 11px; font-weight: 900; 
+    color: var(--gold); padding: 2px 0; flex-grow: 0;
+}
+
 .sb-row { grid-column: 1 / -1; display: flex; gap: 5px; margin-bottom: 5px; }
 .sb-row button { flex: 1; }
 .sb-toggle { background: var(--panel) !important; }
 .sb-toggle.active { background: var(--accent) !important; }
+
 .sidebar-bottom { flex-shrink: 0; padding: 10px; border-top: 1px solid #7f8c8d; }
+
 #wave-speed-btn, #sb-speed-btn, #sb-prev, #sb-next, #sb-view-toggle { 
     width: 100%; padding: 8px; margin-bottom: 5px; background: var(--accent); border: none; color: white; 
     cursor: pointer; border-radius: 4px; font-weight: 900; transition: background 0.2s;

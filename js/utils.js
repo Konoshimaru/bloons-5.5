@@ -72,12 +72,16 @@ function intersectsFootprint(x1, y1, fp1, x2, y2, fp2) {
     return Math.abs(x1 - x2) * 2 < (fp1.width + fp2.width) && Math.abs(y1 - y2) * 2 < (fp1.height + fp2.height);
 }
 
-function pointInFootprint(px, py, cx, cy, fp) {
+// FIX: Added scale parameter for mobile touch hitboxes
+function pointInFootprint(px, py, cx, cy, fp, scale = 1.0) {
     if (fp.shape === 'circle') {
-        return distanceSq(px, py, cx, cy) <= fp.radius * fp.radius;
+        const r = fp.radius * scale;
+        return distanceSq(px, py, cx, cy) <= r * r;
     }
-    // Add small padding for easier selection of rectangles
-    return Math.abs(px - cx) <= (fp.width / 2) + 5 && Math.abs(py - cy) <= (fp.height / 2) + 5;
+    // Add small padding for easier selection of rectangles, apply scale
+    const halfW = (fp.width / 2) * scale + 5;
+    const halfH = (fp.height / 2) * scale + 5;
+    return Math.abs(px - cx) <= halfW && Math.abs(py - cy) <= halfH;
 }
 
 function drawShadow(ctx, x, y, r) {

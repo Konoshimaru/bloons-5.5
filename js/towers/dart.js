@@ -3,6 +3,7 @@ import Assets from '../assets.js';
 import { drawImageCentered, Utils } from '../utils.js';
 import { SpriteConfig } from '../spriteConfig.js';
 import { GLOBAL_SCALE } from '../constants.js';
+import { MobileManager } from '../mobile.js'; // FIX: Import MobileManager
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -93,7 +94,11 @@ export default {
         }
     },
     draw(ctx, tower, isPreview) {
+        // FIX: Apply 1.2x mobile scale to all Dart Monkey drawings!
+        const mScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
+        
         ctx.save(); ctx.translate(tower.x, tower.y);
+        ctx.scale(mScale, mScale); // Scale the local coordinate system
         
         if (tower.fanClubBuffTimer > 0) {
             const s = (tower.stats.scale || 1.0) * GS;
@@ -130,6 +135,7 @@ export default {
                 
                 if (!isCustomBase) { 
                     ctx.save(); ctx.translate(tower.x, tower.y); 
+                    ctx.scale(mScale, mScale); // FIX: Apply mobile scale to overlays too
                     if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2); 
                     for (let i=1; i<=3; i++) { 
                         let t = tower.upgrades[i-1]; 

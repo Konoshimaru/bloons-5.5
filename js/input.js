@@ -1,5 +1,6 @@
 ﻿// js/input.js
 import { GameEngine } from './engine.js';
+import { MobileManager, isMobile } from './mobile.js';
 
 export const InputManager = {
     canvas: null,
@@ -16,6 +17,11 @@ export const InputManager = {
         this._setupMouseEvents(canvas);
         this._setupTouchEvents(canvas);
         this._setupKeyboardEvents();
+
+        // FIX: Initialize MobileManager for UI scaling and touch enhancements
+        if (isMobile.any()) {
+            MobileManager.init();
+        }
     },
 
     _updateCanvasRect() {

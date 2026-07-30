@@ -8,6 +8,7 @@ import Assets from './assets.js';
 import { Names } from './names.js';
 import { SpriteConfig } from './spriteConfig.js';
 import { GLOBAL_SCALE } from './constants.js';
+import { MobileManager } from './mobile.js'; // FIX: Import MobileManager
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -19,10 +20,13 @@ const _buffIconCache = {};
 
 export default {
     draw(ctx, isPreview = false, engine = null) {
+        // FIX: Apply 1.2x scale on mobile
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
+        
         if (!isPreview && engine && engine.nightAlpha > 0) {
             ctx.save();
             ctx.globalAlpha = engine.nightAlpha * 0.5;
-            const glowR = 35 * GS;
+            const glowR = 35 * GS * mobileScale;
             if (!this._nightGlowGradient || this._nightGlowRadius !== glowR || this._nightGlowX !== this.x || this._nightGlowY !== this.y) {
                 this._nightGlowGradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, glowR);
                 this._nightGlowGradient.addColorStop(0, 'rgba(255, 240, 150, 0.6)');
@@ -33,7 +37,7 @@ export default {
             ctx.beginPath(); ctx.arc(this.x, this.y, glowR, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
         }
-        if (!isPreview) drawShadow(ctx, this.x, this.y, SHADOW_SCALE * (this.stats.scale || 1.0) * GS);
+        if (!isPreview) drawShadow(ctx, this.x, this.y, SHADOW_SCALE * (this.stats.scale || 1.0) * GS * mobileScale);
         this._drawHitscans(ctx);
         
         const behavior = getBehavior(this.type);
@@ -58,8 +62,9 @@ export default {
     },
 
     drawPreview(ctx, x, y, type) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         const stats = TowerStats[type] || HeroStats[type];
-        const scaleVal = (stats?.scale || 1.0) * GS;
+        const scaleVal = (stats?.scale || 1.0) * GS * mobileScale;
         const asset = Assets.get(`tower_${type}_base`);
         if (asset && asset.loaded) {
             ctx.save();
@@ -67,7 +72,7 @@ export default {
             
             // Use SpriteConfig for scale AND offset to match placed tower exactly
             const off = SpriteConfig[type]?.["base"] || { x: 0, y: 0, scale: 1 };
-            const size = SpriteConfig[type]?.["base"] ? (45 * (off.scale || 1) * GS) : (stats?.drawSize ? stats.drawSize * GS : 45 * scaleVal);
+            const size = SpriteConfig[type]?.["base"] ? (45 * (off.scale || 1) * GS * mobileScale) : (stats?.drawSize ? stats.drawSize * GS * mobileScale : 45 * scaleVal);
             
             const maxDim = Math.max(asset.width, asset.height);
             if (maxDim > 0 && !isNaN(size)) {
@@ -116,15 +121,16 @@ export default {
     },
 
     _drawBananas(ctx) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         const bananaAsset = Assets.get(Names.getBanana());
         for (const b of this.bananas) {
             ctx.globalAlpha = Math.min(1, b.life / 2);
             if (bananaAsset && bananaAsset.loaded) {
-                const s = (b.isCrate ? 40 : 25) * GS;
+                const s = (b.isCrate ? 40 : 25) * GS * mobileScale;
                 ctx.drawImage(bananaAsset, b.x - s / 2, (b.y - b.arc) - s / 2, s, s);
             } else {
                 ctx.fillStyle = '#f1c40f';
-                ctx.beginPath(); ctx.arc(b.x, b.y - b.arc, 4 * GS, Math.PI * 0.2, Math.PI * 1.2); ctx.fill();
+                ctx.beginPath(); ctx.arc(b.x, b.y - b.arc, 4 * GS * mobileScale, Math.PI * 0.2, Math.PI * 1.2); ctx.fill();
             }
             ctx.globalAlpha = 1;
         }
@@ -132,8 +138,9 @@ export default {
 
     _drawAsset(ctx, asset, type, key, defaultSize) {
         if (!asset || !asset.loaded) return;
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         const off = SpriteConfig[type]?.[key] || { x: 0, y: 0, scale: 1 };
-        const size = SpriteConfig[type]?.[key] ? (45 * (off.scale || 1) * GS) : defaultSize;
+        const size = (SpriteConfig[type]?.[key] ? (45 * (off.scale || 1) * GS) : defaultSize) * mobileScale;
         const maxDim = Math.max(asset.width, asset.height);
         if (maxDim === 0 || isNaN(size)) return; 
         const scale = size / maxDim;
@@ -194,35 +201,37 @@ export default {
     },
 
     _drawFarmOrVillage(ctx) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         const asset = Assets.get(`tower_${this.type}_base`);
         if (asset && asset.loaded) {
-            ctx.save(); ctx.translate(this.x, this.y); drawImageCentered(ctx, asset, 45 * GS);
+            ctx.save(); ctx.translate(this.x, this.y); drawImageCentered(ctx, asset, 45 * GS * mobileScale);
             for (let p = 1; p <= 3; p++) {
                 const t = this.upgrades[p - 1];
                 if (t > 0) {
                     const ovAsset = Assets.get(`tower_${this.type}_p${p}_t${t}`);
-                    if (ovAsset && ovAsset.loaded) drawImageCentered(ctx, ovAsset, 45 * GS);
+                    if (ovAsset && ovAsset.loaded) drawImageCentered(ctx, ovAsset, 45 * GS * mobileScale);
                 }
             }
             ctx.restore();
         } else {
             if (this.type === 'farm') {
-                ctx.fillStyle = '#8b6b3f'; ctx.fillRect(this.x - 12 * GS, this.y - 2 * GS, 24 * GS, 16 * GS);
-                ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.moveTo(this.x - 14 * GS, this.y - 2 * GS); ctx.lineTo(this.x, this.y - 14 * GS); ctx.lineTo(this.x + 14 * GS, this.y - 2 * GS); ctx.fill();
-                ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(this.x + 15 * GS, this.y - 10 * GS, 12 * GS, 0, Math.PI * 2); ctx.fill();
-                if (this.stats.isBank) { ctx.fillStyle = '#f1c40f'; ctx.font = `${10 * GS}px Arial`; ctx.textAlign = 'center'; ctx.fillText('$', this.x, this.y + 10 * GS); }
+                ctx.fillStyle = '#8b6b3f'; ctx.fillRect(this.x - 12 * GS * mobileScale, this.y - 2 * GS * mobileScale, 24 * GS * mobileScale, 16 * GS * mobileScale);
+                ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.moveTo(this.x - 14 * GS * mobileScale, this.y - 2 * GS * mobileScale); ctx.lineTo(this.x, this.y - 14 * GS * mobileScale); ctx.lineTo(this.x + 14 * GS * mobileScale, this.y - 2 * GS * mobileScale); ctx.fill();
+                ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(this.x + 15 * GS * mobileScale, this.y - 10 * GS * mobileScale, 12 * GS * mobileScale, 0, Math.PI * 2); ctx.fill();
+                if (this.stats.isBank) { ctx.fillStyle = '#f1c40f'; ctx.font = `${10 * GS * mobileScale}px Arial`; ctx.textAlign = 'center'; ctx.fillText('$', this.x, this.y + 10 * GS * mobileScale); }
             }
             if (this.type === 'village') {
-                ctx.fillStyle = '#8e44ad'; ctx.beginPath(); ctx.moveTo(this.x, this.y - 15 * GS); ctx.lineTo(this.x + 15 * GS, this.y + 10 * GS); ctx.lineTo(this.x - 15 * GS, this.y + 10 * GS); ctx.fill();
-                ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(this.x, this.y, 5 * GS, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#8e44ad'; ctx.beginPath(); ctx.moveTo(this.x, this.y - 15 * GS * mobileScale); ctx.lineTo(this.x + 15 * GS * mobileScale, this.y + 10 * GS * mobileScale); ctx.lineTo(this.x - 15 * GS * mobileScale, this.y + 10 * GS * mobileScale); ctx.fill();
+                ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(this.x, this.y, 5 * GS * mobileScale, 0, Math.PI * 2); ctx.fill();
             }
         }
     },
 
     _drawFallbackSprite(ctx, isStatic) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         ctx.save(); ctx.translate(this.x, this.y);
         if (!isStatic) ctx.rotate(this.angle);
-        const scale = (this.stats.scale || 1.0) * GS;
+        const scale = (this.stats.scale || 1.0) * GS * mobileScale;
         ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.arc(0, 0, 15 * scale, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#D7BCA3'; ctx.beginPath(); ctx.arc(0, 0, 10 * scale, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#795548'; ctx.beginPath(); ctx.arc(-12 * scale, -8 * scale, 5 * scale, 0, Math.PI * 2); ctx.arc(12 * scale, -8 * scale, 5 * scale, 0, Math.PI * 2); ctx.fill();
@@ -431,6 +440,7 @@ export default {
 
     // FIX: Draw stun stars overlay (same as bloons)
     _drawStunOverlay(ctx) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         const t = performance.now() / 1000;
         const fps = 15;
         const frame = Math.floor(t * fps) % fps;
@@ -438,7 +448,7 @@ export default {
         if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get(Names.getStunFX(0));
         if (!stunAsset || !stunAsset.loaded) stunAsset = Assets.get('effect_stun');
         if (stunAsset && stunAsset.loaded) {
-            const s = 30 * GS; // Fixed size for towers
+            const s = 30 * GS * mobileScale; // Scaled size for towers
             ctx.save();
             ctx.translate(this.x, this.y - this.hitRadius - s / 2);
             ctx.rotate(t * 5);

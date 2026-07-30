@@ -4,6 +4,7 @@ import '../css/game-ui.css';
 import '../css/menus.css';
 import '../css/mapEditor.css';
 import '../css/monkeyKnowledge.css';
+import '../css/upgradePanel.css';
 
 import { GameEngine } from './engine.js';
 import { TowerStats } from './towers/index.js';

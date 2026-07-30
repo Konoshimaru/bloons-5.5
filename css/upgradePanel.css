@@ -1,0 +1,166 @@
+/* --- UPGRADE SIDEBAR (FULL HEIGHT & SLIDING) --- */
+#upgrade-sidebar { 
+    position: absolute; 
+    top: 0; bottom: 0; left: 0; 
+    width: 240px; 
+    background: rgba(44, 62, 80, 0.98); 
+    padding: 45px 15px 20px 15px; 
+    border-radius: 0; 
+    border: none;
+    border-right: 4px solid var(--accent); 
+    z-index: 6; 
+    display: flex; flex-direction: column; gap: 10px; 
+    box-shadow: 4px 0 15px rgba(0,0,0,0.6);
+    overflow-y: auto;
+    
+    /* Animation Properties */
+    transform: translate(0, 0);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* FIX: Override global .hidden so transitions work! */
+#upgrade-sidebar.hidden {
+    display: flex !important; 
+    pointer-events: none;
+    transform: translate(-110%, 0) !important; 
+}
+
+/* Right side positioning */
+#upgrade-sidebar.sidebar-right { 
+    left: auto; right: 0; 
+    border-right: none;
+    border-left: 4px solid var(--accent);
+    box-shadow: -4px 0 15px rgba(0,0,0,0.6);
+}
+#upgrade-sidebar.sidebar-right.hidden {
+    transform: translate(110%, 0) !important; 
+}
+
+/* --- Inner Elements --- */
+.up-header { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; margin-bottom: 5px; text-align: center; }
+#up-title { margin: 0; color: var(--accent); font-size: 22px; text-align: center; }
+#up-counters { font-size: 14px; color: #bdc3c7; margin-bottom: 5px; }
+#up-portrait { 
+    width: 200px; 
+    height: 200px; 
+    background: var(--panel); border: 3px solid #7f8c8d; border-radius: 8px; flex-shrink: 0; 
+    background-size: cover;
+    background-position: center;
+}
+
+.hero-desc-box { background: var(--panel); padding: 8px; border-radius: 4px; font-size: 12px; color: #bdc3c7; min-height: 30px; line-height: 1.4; }
+#up-buy-level { background: var(--accent); color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: 900; text-align: center; width: 100%; font-size: 14px; }
+#up-buy-level.disabled { background: #7f8c8d; cursor: not-allowed; }
+
+.up-targeting-row { display: flex; justify-content: space-between; align-items: center; background: var(--panel); padding: 5px 10px; border-radius: 4px; }
+.up-targeting-row button { background: none; border: none; color: white; cursor: pointer; font-size: 14px; padding: 0; }
+.up-targeting-row button:hover { color: var(--accent); }
+#up-target-text { font-weight: 900; font-size: 14px; color: var(--accent); }
+
+.up-paths { display: flex; flex-direction: column; gap: 8px; }
+.up-card { background: var(--panel); border: 1px solid #7f8c8d; border-radius: 6px; padding: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s; }
+.up-card:hover { background: #3e5771; }
+.up-card.locked { opacity: 0.5; cursor: not-allowed; }
+.up-card-info { display: flex; flex-direction: column; }
+.up-card-info .up-name { font-size: 13px; font-weight: 900; }
+.up-card-info .cost { font-size: 12px; color: var(--gold); margin-top: 2px; }
+
+.tier-boxes { display: flex; gap: 3px; }
+.tier-box { width: 12px; height: 12px; border: 1px solid #7f8c8d; border-radius: 2px; background: var(--bg); }
+.tier-box.filled { background: var(--accent); border-color: #d35400; }
+
+.up-bottom { margin-top: auto; padding-bottom: 10px; }
+#up-sell { background: var(--danger); color: white; border: 1px solid #c0392b; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: 900; text-align: center; width: 100%; }
+#up-sell:hover { background: #c0392b; }
+#up-collect-bank { background: #27ae60; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer; font-weight: 900; text-align: center; font-size: 13px; width: 100%; margin-bottom: 5px; }
+#up-collect-bank:hover { background: #2ecc71; }
+
+/* --- UPGRADE TOOLTIP (SLIDING) --- */
+#upgrade-tooltip {
+    position: absolute;
+    background: rgba(0,0,0,0.95);
+    padding: 8px 12px;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 30;
+    max-width: 220px;
+    font-size: 12px;
+    color: white;
+    border: 1px solid var(--accent);
+    
+    opacity: 0;
+    transform: translateX(-15px); 
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+#upgrade-tooltip.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+#upgrade-tooltip.right-side {
+    transform: translateX(15px); 
+}
+#upgrade-tooltip.right-side.show {
+    transform: translateX(0);
+}
+
+/* --- MOBILE TWEAKS (Standard Layout) --- */
+.mobile-mode #upgrade-sidebar {
+    padding-top: 80px !important; 
+    gap: 4px !important; /* FIX: Crush overall gap */
+}
+.mobile-mode .up-header {
+    margin-bottom: 4px !important;
+}
+.mobile-mode #up-portrait {
+    width: 120px !important; 
+    height: 120px !important;
+}
+.mobile-mode #up-title {
+    font-size: 24px !important;
+}
+.mobile-mode #up-counters {
+    font-size: 18px !important;
+    margin-bottom: 0 !important;
+}
+
+/* FIX: Tighten targeting row */
+.mobile-mode .up-targeting-row {
+    padding: 3px 8px !important;
+    gap: 5px !important;
+}
+.mobile-mode .up-targeting-row button {
+    font-size: 12px !important;
+}
+.mobile-mode #up-target-text {
+    font-size: 12px !important;
+}
+
+/* FIX: Stack upgrades tightly */
+.mobile-mode .up-paths {
+    gap: 2px !important; /* FIX: Almost zero gap between cards */
+}
+.mobile-mode .up-card {
+    padding: 6px 8px !important;
+}
+.mobile-mode .up-card-info .up-name {
+    font-size: 18px !important;
+}
+.mobile-mode .up-card-info .cost {
+    font-size: 16px !important;
+}
+.mobile-mode .tier-box {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* FIX: Remove space between upgrades and sell */
+.mobile-mode .up-bottom {
+    margin-top: 5px !important; /* FIX: Override auto margin */
+    padding-bottom: 0 !important;
+    gap: 5px !important;
+}
+.mobile-mode #up-sell, .mobile-mode #up-collect-bank {
+    padding: 10px !important;
+    font-size: 18px !important;
+    margin-bottom: 0 !important;
+}

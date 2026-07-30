@@ -5,6 +5,7 @@ import Assets from '../assets.js';
 import { Config, RANGE_SCALE } from '../config.js';
 import { GLOBAL_SCALE } from '../constants.js';
 import { AudioEngine } from '../audio.js'; // FIX 3: Import AudioEngine
+import { MobileManager } from '../mobile.js'; // FIX: Import MobileManager
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -198,13 +199,15 @@ export default {
         }
     },
     draw(ctx, tower, isPreview) {
+        const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
+
         if (!isPreview && tower.aftersword) {
             ctx.globalAlpha = Math.min(1, tower.aftersword.life / 2) * 0.7;
-            const grad = ctx.createRadialGradient(tower.aftersword.x, tower.aftersword.y, 0, tower.aftersword.x, tower.aftersword.y, 15);
+            const grad = ctx.createRadialGradient(tower.aftersword.x, tower.aftersword.y, 0, tower.aftersword.x, tower.aftersword.y, 15 * mobileScale);
             grad.addColorStop(0, '#e74c3c');
             grad.addColorStop(1, 'rgba(231, 76, 60, 0)');
             ctx.fillStyle = grad;
-            ctx.beginPath(); ctx.arc(tower.aftersword.x, tower.aftersword.y, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(tower.aftersword.x, tower.aftersword.y, 15 * mobileScale, 0, Math.PI * 2); ctx.fill();
             ctx.globalAlpha = 1;
         }
 
@@ -217,13 +220,13 @@ export default {
                 ctx.translate(shadow.x, shadow.y);
                 ctx.rotate(shadow.angle + Math.PI / 2); 
                 
-                let targetSize = 45 * (tower.stats.scale || 1.0) * GS;
+                let targetSize = 45 * (tower.stats.scale || 1.0) * GS * mobileScale; // FIX: Scale shadow
                 
                 if (asset && asset.loaded) {
                     drawImageCentered(ctx, asset, targetSize);
                 } else {
-                    ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(0, 0, 15 * GS, 0, Math.PI * 2); ctx.fill();
-                    ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 10 * GS, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(0, 0, 15 * GS * mobileScale, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 10 * GS * mobileScale, 0, Math.PI * 2); ctx.fill();
                 }
                 ctx.restore();
             }
@@ -235,8 +238,8 @@ export default {
                 let asset = Assets.get('proj_slash');
                 if (asset && asset.loaded) {
                     let alpha = s.life / s.maxLife;
-                    let w = asset.width * SlashConfig.sizeScale;
-                    let h = asset.height * SlashConfig.sizeScale;
+                    let w = asset.width * SlashConfig.sizeScale * mobileScale; // FIX: Scale slash
+                    let h = asset.height * SlashConfig.sizeScale * mobileScale;
                     
                     ctx.save();
                     ctx.globalAlpha = alpha;
@@ -255,12 +258,12 @@ export default {
                 ctx.save();
                 ctx.translate(tower.x, tower.y);
                 if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2);
-                drawImageCentered(ctx, baseAsset, targetSize);
+                drawImageCentered(ctx, baseAsset, targetSize * mobileScale); // FIX: Scale main body
                 ctx.restore();
             } else {
                 ctx.save();
                 ctx.translate(tower.x, tower.y);
-                const s = (tower.stats.scale || 1.0) * GS;
+                const s = (tower.stats.scale || 1.0) * GS * mobileScale; // FIX: Scale fallback
                 ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(0, 0, 15 * s, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 10 * s, 0, Math.PI * 2); ctx.fill();
                 ctx.restore();
