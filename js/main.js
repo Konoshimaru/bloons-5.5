@@ -1,4 +1,10 @@
 // js/main.js
+import '../css/base.css';
+import '../css/game-ui.css';
+import '../css/menus.css';
+import '../css/mapEditor.css';
+import '../css/monkeyKnowledge.css';
+
 import { GameEngine } from './engine.js';
 import { TowerStats } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
@@ -39,6 +45,15 @@ function setupEventListeners() {
     setupNudgeLogic(); 
     InputManager.init();
     GameEngine.updateShopPrices = updateShopPrices;
+
+    // FIX: Add F2 Dev Overlay Toggle
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'F2') {
+            e.preventDefault();
+            GameEngine.showDevOverlay = !GameEngine.showDevOverlay;
+            console.log("Dev Overlay:", GameEngine.showDevOverlay ? "ON" : "OFF");
+        }
+    });
 }
 
 window.addEventListener('load', () => {
@@ -71,10 +86,16 @@ window.addEventListener('load', () => {
             const enemyNames = ['red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
             enemyNames.forEach(name => urls.push(`sprites/enemies/${name}.png`));
 
-            await Assets.preloadUrls(urls, (pct) => {
-                loadingBar.style.width = `${Math.floor(pct * 50)}%`;
+            const effectKeys = [
+                'effect_banana', 'effect_banana_crate', 
+                'effect_camo_effect', 'effect_camo_regen_effect', 'effect_regen_effect', 
+                'effect_frozen_effect', 'effect_frozen_effect_lead', 'effect_frozen_effect_regen'
+            ];
+            
+            // FIX: Use preloadManifest so it resolves the 'sprites/effects/' paths automatically!
+            await Assets.preloadManifest(effectKeys, (pct) => {
+                loadingBar.style.width = `${50 + Math.floor(pct * 20)}%`;
             });
-
             await AudioEngine.init();
             loadingBar.style.width = '70%';
 

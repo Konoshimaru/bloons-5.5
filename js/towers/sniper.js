@@ -1,5 +1,10 @@
+// js/towers/sniper.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
+import Assets from '../assets.js';
+import { GLOBAL_SCALE } from '../constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: {
@@ -60,12 +65,11 @@ export default {
             tower.eliteDefenderSpeedMod = 1;
         }
 
-        // PRO FIX: Animate the Supply Drop banana crate falling
         if (tower.bananas && tower.bananas.length > 0) {
             for (let i = tower.bananas.length - 1; i >= 0; i--) {
                 let b = tower.bananas[i];
                 if (b.progress < 1) {
-                    b.progress += dt / 0.8; // Takes 0.8 seconds to fall
+                    b.progress += dt / 0.8;
                     if (b.progress >= 1) {
                         b.progress = 1;
                         b.x = b.targetX;
@@ -74,7 +78,7 @@ export default {
                     } else {
                         b.x = b.targetX;
                         b.y = b.startY + (b.targetY - b.startY) * b.progress;
-                        b.arc = Math.sin(b.progress * Math.PI) * 20; // Slight curve
+                        b.arc = Math.sin(b.progress * Math.PI) * 20;
                     }
                 }
             }
@@ -118,7 +122,6 @@ export default {
             if (i >= bounces) break;
             const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40);
             let nextTarget = null;
-            // PRO FIX: Rank by distanceSq instead of distance
             let bestDistSq = Infinity;
             for (let e of nearby) {
                 if (!e.alive || hitSet.has(e)) continue;
@@ -182,7 +185,6 @@ export default {
         }
         let cash = tower.stats.supplyCash || 1100;
         
-        // PRO FIX: Physically drop a huge banana crate onto the middle of the map!
         tower.bananas = tower.bananas || [];
         let targetX = 640 + (Math.random() - 0.5) * 400;
         let targetY = 360 + (Math.random() - 0.5) * 200;
@@ -199,7 +201,22 @@ export default {
         engine.log("Supply Drop Incoming!");
     },
     draw(ctx, tower, isPreview) {
-        // Fully sprited, no canvas fallback needed
         tower.drawBaseTower(ctx, isPreview);
+        
+        if (tower.bananas) {
+            const crateAsset = Assets.get('effect_banana_crate');
+            for (let b of tower.bananas) {
+                let alpha = Math.min(1, b.life / 2);
+                ctx.globalAlpha = alpha;
+                if (crateAsset && crateAsset.loaded) {
+                    let size = 60 * GS;
+                    ctx.drawImage(crateAsset, b.x - size/2, b.y - size/2 + (b.arc || 0), size, size);
+                } else {
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fillRect(b.x - 20, b.y - 20, 40, 40);
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
     }
 };

@@ -40,36 +40,36 @@
             <div id="ability-bar" class="hidden"></div>
             <button id="cancel-btn" class="hidden">✖</button>
 
-            <!-- Upgrade Sidebar -->
-            <div id="upgrade-sidebar" class="hidden">
-                <div class="up-header">
-                    <h3 id="up-title">Tower</h3>
-                    <div id="up-counters">Pops: 0</div>
-                    <div id="up-portrait"></div>
-                </div>
-                <div id="hero-ui" class="hidden" style="flex-direction: column; gap: 8px; margin-bottom: 5px;">
-                    <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
-                    <div id="hero-level-text">Level 1</div>
-                    <div id="hero-current-desc" class="hero-desc-box"></div>
-                    <button id="up-buy-level" class="hidden">Buy Level: $0</button>
-                    <div id="hero-next-desc" class="hero-desc-box"></div>
-                </div>
-                <div id="up-stats" class="hero-desc-box hidden"></div>
-                <div class="up-targeting-row" id="up-targeting-row">
-                    <button id="up-target-prev">◀</button>
-                    <span id="up-target-text">First</span>
-                    <button id="up-target-next">▶</button>
-                </div>
-                <div id="up-paths" class="up-paths">
-                    <div class="up-card" id="up-path1"><div class="up-card-info"><span class="up-name">Path 1</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-1"></div></div>
-                    <div class="up-card" id="up-path2"><div class="up-card-info"><span class="up-name">Path 2</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-2"></div></div>
-                    <div class="up-card" id="up-path3"><div class="up-card-info"><span class="up-name">Path 3</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-3"></div></div>
-                </div>
-                <div class="up-bottom">
-                    <button id="up-sell">Sell ($0)</button>
-                    <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
-                </div>
+        <!-- Upgrade Sidebar -->
+        <div id="upgrade-sidebar" class="hidden">
+            <div class="up-header">
+                <h3 id="up-title">Tower</h3>
+                <div id="up-counters">Pops: 0</div>
+                <div id="up-portrait"></div>
             </div>
+            <div id="hero-ui" class="hidden" style="flex-direction: column; gap: 8px; margin-bottom: 5px;">
+                <div class="exp-bar-container"><div id="hero-exp-fill" class="exp-bar-fill"></div></div>
+                <div id="hero-level-text">Level 1</div>
+                <div id="hero-current-desc" class="hero-desc-box"></div>
+                <button id="up-buy-level" class="hidden">Buy Level: $0</button>
+                <div id="hero-next-desc" class="hero-desc-box"></div>
+            </div>
+            <div id="up-stats" class="hero-desc-box hidden"></div>
+            <div class="up-targeting-row" id="up-targeting-row">
+                <button id="up-target-prev">◀</button>
+                <span id="up-target-text">First</span>
+                <button id="up-target-next">▶</button>
+            </div>
+            <div id="up-paths" class="up-paths">
+                <div class="up-card" id="up-path1"><div class="up-card-info"><span class="up-name">Path 1</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-1"></div></div>
+                <div class="up-card" id="up-path2"><div class="up-card-info"><span class="up-name">Path 2</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-2"></div></div>
+                <div class="up-card" id="up-path3"><div class="up-card-info"><span class="up-name">Path 3</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-3"></div></div>
+            </div>
+            <div class="up-bottom">
+                <button id="up-sell">Sell ($0)</button>
+                <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
+            </div>
+        </div>
         </div>
         <!-- END Playable Area Wrapper -->
 
@@ -283,7 +283,7 @@
             </div>
         </div>
 
-        <!-- Map Editor Menu -->
+          <!-- Map Editor Menu -->
         <div id="map-editor-menu" class="overlay hidden">
             <div class="editor-container">
                 <div class="editor-sidebar">
@@ -295,6 +295,7 @@
                         <button class="tool-btn" data-tool="reference">Reference</button>
                         <button class="tool-btn" data-tool="bg">Background</button>
                     </div>
+                    
                     <div class="tool-options" id="track-options" style="display: flex; flex-direction: column; gap: 5px;">
                         <select id="editor-active-path" style="width: 100%; padding: 5px; background: var(--bg); color: white; border: 1px solid #7f8c8d; border-radius: 4px;"></select>
                         <div class="btn-group">
@@ -305,29 +306,34 @@
                             <button id="editor-toggle-curve">Toggle Curve</button>
                             <button id="editor-reverse-path">Reverse Path</button>
                         </div>
-                            <label>Path Width: <span id="path-width-val">45</span></label>
-    <input type="range" id="editor-path-width" min="20" max="100" value="45">
+                        <label>Path Width: <span id="path-width-val">45</span></label>
+                        <input type="range" id="editor-path-width" min="20" max="100" value="45">
                         <button id="editor-snap-grid">Snap to Grid: Off</button>
                         <div class="btn-group">
                             <button id="editor-hide-water">Hide Water</button>
                             <button id="editor-hide-props">Hide Objects</button>
                         </div>
                     </div>
+
                     <div class="tool-options hidden" id="water-options">
                         <label>Size: <input type="range" id="water-brush-size" min="20" max="120" value="60"></label>
                         <button id="water-erase-toggle">Erase Mode</button>
                     </div>
-                    <div class="tool-options hidden" id="objects-options">
+
+                    <div class="tool-options hidden" id="objects-options" style="flex-direction: column; gap: 8px;">
+                        <label>Hitbox Shape:</label>
                         <div class="btn-group">
-                            <button id="editor-shape-circle" class="active">Circle</button>
-                            <button id="editor-shape-box">Box</button>
+                            <button class="shape-btn active" data-shape="circle">Circle</button>
+                            <button class="shape-btn" data-shape="box">Box</button>
                         </div>
-                        <p class="info-text">Scroll over an object to resize it.</p>
+                        <p class="info-text">Scroll over a hitbox to resize it.</p>
                     </div>
+
                     <div class="tool-options hidden" id="reference-options">
                         <label>Reference Image: <input type="file" id="editor-ref-input" accept="image/*"></label>
-                        <p class="info-text">Mouse wheel to scale. Drag to move.</p>
+                        <p class="info-text">Mouse wheel to scale. Space+Drag to pan.</p>
                     </div>
+
                     <div class="tool-options hidden" id="bg-options">
                         <label>Image Name (in sprites/maps/):</label>
                         <input type="text" id="bg-image-name" placeholder="e.g., monkey_meadow">
@@ -350,6 +356,7 @@
                         </div>
                     </div>
                 </div>
+
                 <div class="editor-main">
                     <canvas id="editor-canvas" width="1060" height="720"></canvas>
                     <div class="editor-bottom-bar">
@@ -363,7 +370,6 @@
                         <input type="file" id="editor-import-json" accept=".json" style="display: none;">
                         <button id="editor-exit">Exit</button>
                     </div>
-                    <p class="info-text" style="text-align: center; margin-top: 10px;">Tip: Hold SHIFT while dragging to lock to one axis.</p>
                     <div id="editor-json-viewer" class="hidden">
                         <textarea id="editor-json-text"></textarea>
                         <button id="editor-apply-json">Apply JSON</button>
@@ -371,7 +377,6 @@
                 </div>
             </div>
         </div>
-
         <!-- Settings Menu -->
         <div id="settings-menu" class="overlay hidden">
             <div class="menu-content">

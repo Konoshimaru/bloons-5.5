@@ -1,0 +1,33 @@
+:root {
+    --bg: #2c3e50; --panel: #34495e; --text: #ecf0f1;
+    --accent: #e67e22; --danger: #e74c3c; --gold: #f1c40f;
+}
+
+html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    overflow: hidden; background: #000;
+}
+
+body { 
+    color: var(--text); 
+    font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    font-weight: 700;
+}
+
+h1, h2, h3, h4, .hm-top-text h2, .menu-content h1, .menu-content h2, .up-info h3, #mm-bottom-bar button, #mm-top-left, #mm-top-right, #shop-header {
+    font-family: 'Luckiest Guy', cursive;
+    font-weight: normal;
+    letter-spacing: 1px;
+}
+
+#error-message { position: absolute; top: 0; left: 0; width: 100%; background: var(--danger); color: white; padding: 10px; text-align: center; z-index: 100; font-weight: 900; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="text"], textarea { width: 100%; padding: 8px; margin-bottom: 10px; background: var(--bg); border: 1px solid #7f8c8d; color: white; border-radius: 4px; }
+label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+
+#screen-too-small-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; color: #fff;
+    display: flex; justify-content: center; align-items: center; text-align: center; z-index: 9999;
+    flex-direction: column; padding: 20px; box-sizing: border-box;
+}
+#screen-too-small-overlay.hidden { display: none !important; }

@@ -297,6 +297,24 @@ const uiTowerPanel = {
         const heroUI = el('hero-ui');
         if (heroUI) heroUI.classList.add('hidden');
         
+        // FIX: ACTUALLY UPDATE THE TITLE AND COUNTERS FOR TOWERS!
+        const title = el('up-title');
+        if (title) title.innerText = t.stats.name || 'Tower';
+        
+        const counters = el('up-counters');
+        if (counters) counters.innerText = this._getTowerCounterText(t);
+
+        // FIX: Handle the optional stats box visibility
+        const statsEl = el('up-stats');
+        if (statsEl) {
+            if (Config.data.showTowerStats) {
+                statsEl.classList.remove('hidden');
+                this._updateTowerStats(t);
+            } else {
+                statsEl.classList.add('hidden');
+            }
+        }
+
         const pathsEl = el('up-paths');
         const targetingRow = el('up-targeting-row');
         
@@ -440,8 +458,10 @@ const uiTowerPanel = {
     _updateTowerStats(t) {
         const upStats = el('up-stats');
         if (!upStats) return;
+        
         const effRate = getEffectiveCooldown(t);
         
+        // Calculate Math Breakdown
         const basePierce = Number(t.stats.pierce) || 0;
         const buffedPierce = Number(t.buffedPierce) || 0;
         const alchPierce = (t.alchBuff && Number(t.alchBuff.pierce)) || 0;
@@ -452,7 +472,25 @@ const uiTowerPanel = {
         const alchDmg = (t.alchBuff && Number(t.alchBuff.dmg)) || 0;
         const effDmg = baseDmg + buffedDmg + alchDmg;
         
-        upStats.innerText = `DMG: ${effDmg} | RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`;
+        const baseRate = Number(t._baseCooldown) || 0;
+        const rateMult = Number(t._cooldownMult) || 1;
+        
+        // Format the string to show the math!
+        let dmgStr = `DMG: ${baseDmg}`;
+        if (buffedDmg > 0) dmgStr += ` + ${buffedDmg}`;
+        if (alchDmg > 0) dmgStr += ` + ${alchDmg}`;
+        dmgStr += ` = ${effDmg}`;
+        
+        let prcStr = `PRC: ${basePierce}`;
+        if (buffedPierce > 0) prcStr += ` + ${buffedPierce}`;
+        if (alchPierce > 0) prcStr += ` + ${alchPierce}`;
+        prcStr += ` = ${effPierce}`;
+        
+        let rateStr = `RATE: ${baseRate.toFixed(2)}s * ${rateMult.toFixed(2)} = ${effRate.toFixed(2)}s`;
+        let rngStr = `RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range}`;
+        
+        upStats.innerText = `${dmgStr}\n${rngStr}\n${rateStr}\n${prcStr}`;
+        upStats.style.whiteSpace = 'pre-line'; // Ensure line breaks render
     },
 
     _updateTargetingText(t) {

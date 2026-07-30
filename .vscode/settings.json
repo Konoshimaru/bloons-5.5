@@ -1,0 +1,5 @@
+{
+    "vite.https": false,
+    "vite.port": 5500,
+    "vite.host": "127.0.0.1"
+}

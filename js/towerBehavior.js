@@ -140,6 +140,21 @@ function _acquireAndFire(tower, dt, engine) {
         return;
     }
 
+    // FIX: Towers that fire without a target (like Monkey Ace) fire constantly during a wave
+    if (tower.stats.fireWithoutTarget) {
+        let target = null;
+        // Spectre/Flying Fortress still need to find a target for their machine guns
+        if (tower.stats.isSpectre || tower.stats.isFortress) {
+            target = _findTarget(tower, engine);
+        }
+        
+        if (engine.waveManager.waveActive && tower.cooldown <= 0 && tower.attackPointTimer <= 0) {
+            const effFireRate = getEffectiveCooldown(tower);
+            _triggerAttack(tower, target, effFireRate, engine); 
+        }
+        return; // Skip standard targeting and angle snapping
+    }
+
     const target = _findTarget(tower, engine);
     if (!target) return;
     
@@ -261,10 +276,18 @@ function _triggerAttack(tower, target, effFireRate, engine) {
 }
 
 function _executeFire(tower, target, engine) {
+    // FIX: If there is no target (like Monkey Ace firing blindly), skip aim prediction and just fire
+    if (!target) {
+        fire(tower, null, engine);
+        return;
+    }
+    if (!target.alive) return; 
+
     const projSpeed = tower.stats.projectileSpeed || 0;
     let aimX = target.x, aimY = target.y;
     
     if (projSpeed > 0 && projSpeed < 1500 && target.data.speed > 0) {
+        // ... rest of the existing aim prediction code ...
         const dist = Utils.distance(tower.x, tower.y, target.x, target.y);
         
         const effSpeed = target.data.speed * (target.slowFactor || 1) * (target.gojoSlow || 1) * (target.permafrostSlow || 1);
@@ -408,7 +431,8 @@ function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType
         }
     } else {
         const p = engine.projectilePool.get();
-        const projSpeed = tower.stats.projectileSpeed * (tower.buffedProjSpeed || 1);
+        // FIX: Multiply base projectile speed by GLOBAL_SCALE (GS) here!
+        const projSpeed = (tower.stats.projectileSpeed * GS) * (tower.buffedProjSpeed || 1);
         p.init(tower.x, tower.y, damage, target, projType, projSpeed, pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType, isCrit);
     }
 }

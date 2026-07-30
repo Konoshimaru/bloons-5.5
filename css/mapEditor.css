@@ -1,0 +1,60 @@
+.editor-container { 
+    display: flex; 
+    background: var(--bg); width: 100%; height: 100%; 
+    max-width: none; max-height: none; border-radius: 0; padding: 0; 
+    box-sizing: border-box; overflow: hidden;
+}
+.editor-sidebar { 
+    width: 220px; flex-shrink: 0; height: 100%; display: flex; flex-direction: column; gap: 10px; padding: 15px; 
+    background: var(--panel); border-radius: 0; border-right: 2px solid var(--accent); margin-right: 0; overflow-y: auto; box-sizing: border-box;
+}
+.editor-sidebar input { margin-bottom: 5px; }
+.tool-group { display: flex; flex-direction: column; gap: 5px; background: var(--bg); padding: 4px; border-radius: 6px; }
+.tool-btn { padding: 8px 12px; background: transparent; border: none; color: var(--text); cursor: pointer; border-radius: 4px; text-align: left; font-weight: 700; }
+.tool-btn.active { background: var(--accent); color: white; }
+.tool-options { display: flex; flex-direction: column; gap: 5px; background: var(--bg); padding: 8px; border-radius: 6px; }
+.tool-options.hidden { display: none; }
+.tool-options button { padding: 6px; background: var(--panel); border: 1px solid #7f8c8d; color: white; border-radius: 4px; cursor: pointer; font-weight: 700; }
+.tool-options button:hover { background: #3e5771; }
+.tool-options label { font-size: 12px; }
+
+.editor-main { 
+    flex: 1; display: flex; flex-direction: column; min-width: 0; 
+    justify-content: center; align-items: center; overflow: hidden; padding: 20px; box-sizing: border-box;
+    position: relative; /* Needed for JSON overlay */
+}
+#editor-canvas { 
+    background: #8acc4d; border: 2px solid var(--accent); border-radius: 4px; cursor: crosshair; 
+    max-width: 100%; max-height: calc(100% - 80px); /* FIX: Leave room for bottom bar */
+    width: auto; height: auto; aspect-ratio: 1280 / 720; object-fit: contain; box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+.editor-bottom-bar { 
+    display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center; flex-shrink: 0; 
+}
+.editor-bottom-bar button { padding: 8px 16px; background: var(--panel); border: 1px solid #7f8c8d; color: white; cursor: pointer; border-radius: 6px; font-weight: 900; }
+.editor-bottom-bar button:hover { background: #3e5771; border-color: var(--accent); }
+#editor-undo { background: #e67e22 !important; border-color: #d35400 !important; }
+#editor-redo { background: #2980b9 !important; border-color: #206080 !important; }
+#editor-exit { background: var(--danger) !important; border-color: #c0392b !important; }
+
+/* FIX: JSON Viewer is now an overlay so it doesn't push buttons off-screen */
+#editor-json-viewer { 
+    position: absolute; 
+    bottom: 80px; left: 20px; right: 20px; 
+    background: var(--bg); border: 2px solid var(--accent); border-radius: 8px; 
+    padding: 15px; z-index: 50; box-shadow: 0 10px 30px rgba(0,0,0,0.8); 
+    max-height: 60vh; display: flex; flex-direction: column; gap: 10px; 
+}
+#editor-json-viewer.hidden { display: none; }
+#editor-json-text { 
+    width: 100%; flex: 1; min-height: 150px; 
+    background: #1a1a1a; color: #0f0; border: 1px solid var(--accent); border-radius: 4px; 
+    padding: 10px; font-family: monospace; box-sizing: border-box; 
+}
+
+.prop-btn, .collision-btn, .shape-btn { 
+    padding: 6px; background: var(--panel); border: 1px solid #7f8c8d; color: white; 
+    border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 12px; flex: 1; 
+}
+.prop-btn:hover, .collision-btn:hover, .shape-btn:hover { background: #3e5771; border-color: var(--accent); }
+.prop-btn.active, .collision-btn.active, .shape-btn.active { background: var(--accent); border-color: #d35400; }

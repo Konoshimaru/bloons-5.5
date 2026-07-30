@@ -44,6 +44,8 @@ export const Renderer = {
 
         if (engine.gameState === 'menu' || !engine.map) {
             this._drawMainMenuScenery(ctx, engine, dt);
+            // FIX: Draw dev overlay on main menu too!
+            this._drawDevOverlay(ctx, engine, dt);
             return;
         }
 
@@ -131,8 +133,64 @@ export const Renderer = {
         if (camOffset !== 0) ctx.restore();
         
         BossHealthBarHandler.draw(ctx);
-
         this._drawCursor(ctx, engine);
+        
+        // FIX: Draw Dev Overlay last so it sits on top of everything during gameplay!
+        this._drawDevOverlay(ctx, engine, dt);
+    },
+
+    _drawDevOverlay(ctx, engine, rawDt) {
+        if (!engine.showDevOverlay) return;
+
+        // Calculate FPS (smoothened slightly)
+        const fps = Math.round(1 / (rawDt || 0.016));
+        
+        // FIX: Safely gather stats with fallbacks so it doesn't crash on the main menu!
+        const activeProjectiles = (engine.projectilePool && engine.projectilePool.active) ? engine.projectilePool.active.length : 0;
+        const maxProjectiles = (engine.projectilePool) ? engine.projectilePool.size : 0;
+        const activeEnemies = engine.enemies ? engine.enemies.length : 0;
+        const activeTowers = engine.towers ? engine.towers.length : 0;
+        const activeParticles = (engine.particlePool && engine.particlePool.active) ? engine.particlePool.active.length : 0;
+        const activeExplosions = engine.explosions ? engine.explosions.length : 0;
+        const activeTexts = engine.floatingTexts ? engine.floatingTexts.length : 0;
+        const currentWave = engine.waveManager ? engine.waveManager.currentWave : 0;
+
+        const textX = 10;
+        const textY = 20;
+        const lineHeight = 18;
+        
+        ctx.save();
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        
+        // Background box
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(textX - 5, textY - 5, 220, (lineHeight * 9) + 10);
+        
+        // Helper to draw text lines
+        const drawLine = (label, value, color, y) => {
+            ctx.fillStyle = '#bdc3c7';
+            ctx.fillText(label, textX, y);
+            ctx.fillStyle = color;
+            ctx.fillText(value, textX + 90, y);
+        };
+
+        drawLine('FPS:', `${fps}`, fps >= 50 ? '#2ecc71' : (fps >= 30 ? '#f1c40f' : '#e74c3c'), textY);
+        drawLine('Wave:', `${currentWave}`, '#f1c40f', textY + lineHeight);
+        drawLine('Towers:', `${activeTowers}`, '#3498db', textY + lineHeight * 2);
+        drawLine('Enemies:', `${activeEnemies}`, '#e74c3c', textY + lineHeight * 3);
+        
+        // Turn orange if pool is near limit
+        const projColor = activeProjectiles > maxProjectiles * 0.8 ? '#e67e22' : '#2ecc71';
+        drawLine('Projectiles:', `${activeProjectiles} / ${maxProjectiles}`, projColor, textY + lineHeight * 4);
+        
+        drawLine('Particles:', `${activeParticles}`, '#9b59b6', textY + lineHeight * 5);
+        drawLine('Explosions:', `${activeExplosions}`, '#e67e22', textY + lineHeight * 6);
+        drawLine('Float Texts:', `${activeTexts}`, '#1abc9c', textY + lineHeight * 7);
+        drawLine('Cash/Lives:', `$${Math.floor(engine.cash || 0)} / ${engine.lives || 0}`, '#ecf0f1', textY + lineHeight * 8);
+
+        ctx.restore();
     },
 
     _drawAcidPools(ctx, engine) {

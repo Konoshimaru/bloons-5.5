@@ -1,19 +1,10 @@
-/**
- * SUB-ENTITY PATTERN: PASSIVE AURA / UPDATE SUPPORT
- * =================================================
- * The Village (and Farm, Ninja, Sniper) uses the `updateSupport(tower, dt, engine)` hook.
- * 
- * - Lifecycle: Has no sub-entities. The tower itself is the aura.
- * - Updates: `updateSupport()` is called every frame by `simulationLoop._updateTowers()`
- *   *before* the standard `update()` method.
- * - Purpose: Used for logic that must run continuously regardless of attack state, 
- *   such as scanning for nearby towers to buff (Village), generating cash (Farm), 
- *   or applying global modifiers (Ninja/Sniper).
- */
-
 // js/towers/farm.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
+import Assets from '../assets.js';
+import { GLOBAL_SCALE } from '../constants.js';
+
+const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: {
@@ -198,6 +189,26 @@ export default {
     },
     draw(ctx, tower, isPreview) {
         tower.drawBaseTower(ctx, isPreview);
+        
+        if (tower.bananas) {
+            const bananaAsset = Assets.get('effect_banana');
+            const crateAsset = Assets.get('effect_banana_crate');
+            for (let b of tower.bananas) {
+                let alpha = Math.min(1, b.life / 2);
+                ctx.globalAlpha = alpha;
+                
+                let asset = b.isCrate ? crateAsset : bananaAsset;
+                if (asset && asset.loaded) {
+                    let size = b.isCrate ? 50 * GS : 25 * GS;
+                    ctx.drawImage(asset, b.x - size/2, b.y - size/2 + (b.arc || 0), size, size);
+                } else {
+                    ctx.fillStyle = b.isCrate ? '#8B4513' : '#f1c40f';
+                    ctx.fillRect(b.x - 10, b.y - 10, 20, 20);
+                }
+            }
+            ctx.globalAlpha = 1;
+        }
+
         if (tower.stats.isBank && !isPreview) {
             ctx.fillStyle = tower.bankBalance >= (tower.stats.bankCap || 7000) ? '#f1c40f' : '#ffffff';
             ctx.font = 'bold 14px Arial'; ctx.textAlign = 'center';

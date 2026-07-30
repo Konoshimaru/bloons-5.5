@@ -3,6 +3,7 @@ import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
 import { RANGE_SCALE } from './config.js'; 
+import { MapRenderCore } from './mapRenderCore.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -43,7 +44,7 @@ export class GameMap {
         this.paths = [];
         for (let p = 0; p < this.data.paths.length; p++) {
             const pathData = this.data.paths[p];
-            if (!pathData.width) pathData.width = DEFAULT_PATH_WIDTH; // FIX: Default width for old maps
+            if (!pathData.width) pathData.width = DEFAULT_PATH_WIDTH;
             const waypoints = pathData.waypoints;
             const segments = [];
             const cumulativeDistances = [0];
@@ -150,84 +151,19 @@ export class GameMap {
     }
 
     drawToCache(ctx) {
-        ctx.clearRect(0,0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
         if (this.data.waterVisible !== false) {
-            for (let brush of this.waterBrushes) {
-                if (brush.points.length === 0) continue;
-                ctx.strokeStyle = '#3498db';
-                ctx.lineWidth = brush.thickness;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.beginPath();
-                ctx.moveTo(brush.points[0].x, brush.points[0].y);
-                for (let i = 1; i < brush.points.length; i++) {
-                    ctx.lineTo(brush.points[i].x, brush.points[i].y);
-                }
-                if (brush.points.length === 1) {
-                    ctx.arc(brush.points[0].x, brush.points[0].y, brush.thickness / 2, 0, Math.PI * 2);
-                }
-                ctx.stroke();
-            }
+            MapRenderCore.drawWater(ctx, this.waterBrushes);
         }
 
-        if (this.data.propsVisible !== false) {
-            this.props.forEach(p => {
-                if (p && p.type !== 'hitbox') this._drawProp(ctx, p);
-            });
-        }
+        // Hitboxes are purely for placement logic. We DO NOT draw them during actual gameplay!
+        // if (this.data.propsVisible !== false) {
+        //     MapRenderCore.drawProps(ctx, this.props);
+        // }
 
-        for (let p = 0; p < this.data.paths.length; p++) {
-            if (this.data.paths[p].visible === false) continue;
-            
-            const waypoints = this.data.paths[p].waypoints;
-            if (waypoints.length < 2) continue;
-            
-            const pathWidth = this.data.paths[p].width || DEFAULT_PATH_WIDTH; // FIX: Dynamic width
-            
-            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-            ctx.lineWidth = pathWidth + 8;
-            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(waypoints[0].x, waypoints[0].y + 4);
-            for (let i = 1; i < waypoints.length; i++) {
-                const wp = waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y + 4);
-                else ctx.lineTo(wp.x, wp.y + 4);
-            }
-            ctx.stroke();
-            
-            ctx.strokeStyle = '#a8825a';
-            ctx.lineWidth = pathWidth; // FIX: Dynamic width
-            ctx.beginPath();
-            ctx.moveTo(waypoints[0].x, waypoints[0].y);
-            for (let i = 1; i < waypoints.length; i++) {
-                const wp = waypoints[i];
-                if (wp.curve) ctx.quadraticCurveTo(wp.curve.cx, wp.curve.cy, wp.x, wp.y);
-                else ctx.lineTo(wp.x, wp.y);
-            }
-            ctx.stroke();
-        }
-    }
-
-    _drawProp(ctx, p) {
-        const px = p.x;
-        const py = p.y;
-        if (p.type === 'tree') {
-            ctx.fillStyle = '#6e552f'; ctx.fillRect(px - 3, py - 5, 6, 15);
-            ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(px, py - 10, 15, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#2ecc71'; ctx.beginPath(); ctx.arc(px - 5, py - 15, 10, 0, Math.PI * 2); ctx.fill();
-        } else if (p.type === 'bush') {
-            ctx.fillStyle = '#27ae60'; ctx.beginPath(); ctx.arc(px, py, 12, 0, Math.PI * 2); ctx.arc(px + 10, py + 2, 10, 0, Math.PI * 2); ctx.fill();
-        } else if (p.type === 'rock') {
-            ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.moveTo(px - 15, py); ctx.lineTo(px - 5, py - 15); ctx.lineTo(px + 10, py - 10); ctx.lineTo(px + 15, py); ctx.fill();
-        } else if (p.type === 'pond') {
-            const r = p.r || 30; 
-            ctx.fillStyle = '#3498db';
-            ctx.beginPath(); ctx.ellipse(px, py, r, r * 0.66, 0, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            ctx.beginPath(); ctx.ellipse(px - r/3, py - r/4, r/3, r/5, 0, 0, Math.PI * 2); ctx.fill();
-        }
+        // Hidden paths stay hidden! Removed the 'true' flag.
+        MapRenderCore.drawPaths(ctx, this.data.paths);
     }
 
     _findSegmentIndex(distance, cumulativeDistances) {
@@ -309,7 +245,9 @@ export class GameMap {
 
     isInWater(x, y) {
         for (let p of this.props) {
-            if (p.type === 'pond') {
+            if (!p) continue;
+            const isWater = p.type === 'pond' || p.collision === 'water';
+            if (isWater) {
                 const r = p.r || 30;
                 if (Utils.withinRange(x, y, p.x, p.y, r)) return true;
             }
@@ -332,7 +270,7 @@ export class GameMap {
     isOnProp(x, y) {
         if (!this.props) return false;
         for (let p of this.props) {
-            if (!p || p.type === 'pond') continue; 
+            if (!p) continue;
             
             if (p.shape === 'box') {
                 const w = p.w || 30;

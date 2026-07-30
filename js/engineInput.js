@@ -213,8 +213,16 @@ export default {
         if (t.stats.unlocksElite) { modes.push('Elite'); }
         if (t.type === 'spike') { modes = t.stats.smartSpikes ? ['Normal', 'Close', 'Smart'] : ['Normal']; }
         if (t.type === 'village') { if (t.upgrades[0] < 5) return; modes = ['First', 'Last', 'Strong', 'Close']; }
+        
+        // FIX: Ace ONLY has flight path targeting options!
+        if (t.type === 'ace') { 
+            modes = ['Circle', 'Figure Infinite', 'Figure Eight']; 
+            if (t.upgrades[2] >= 2) modes.push('Centered Path'); 
+            if (!modes.includes(t.targetingMode)) t.targetingMode = 'Circle'; // Force valid mode
+        }
+
         const modeKey = arm === 2 ? 'targetingMode2' : 'targetingMode';
-        let currentMode = t[modeKey] || 'First';
+        let currentMode = t[modeKey] || modes[0];
         let idx = modes.indexOf(currentMode);
         if (idx === -1) idx = 0; 
         idx = (idx + direction + modes.length) % modes.length; 

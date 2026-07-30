@@ -60,9 +60,9 @@ export const GameEngine = {
     beastGrid: new SpatialGrid(80), 
     sentryGrid: new SpatialGrid(80), // FIX: Grid for Sentry entities
     
-    projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 200),
+    projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 2000),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
-    enemyPool: new ObjectPool(() => new Enemy(), (e) => { e.alive = false; }, 200), 
+    enemyPool: new ObjectPool(() => new Enemy(), (e) => { e.alive = false; }, 500), 
     
     lives: 100,
     cash: 650,

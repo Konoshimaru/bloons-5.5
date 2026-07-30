@@ -1,7 +1,7 @@
 // js/enemyRenderer.js
 import Assets from './assets.js';
 import { Names } from './names.js';
-import { drawShadow } from './utils.js'; // Keep import for compatibility, but no longer used
+import { drawShadow } from './utils.js';
 import { GameEngine } from './engine.js';
 import { GLOBAL_SCALE } from './constants.js';
 
@@ -16,7 +16,6 @@ export const EnemyRenderer = {
             asset = this._spriteAsset;
         }
 
-        // FIX: Draw animated blades for BFB BEFORE the main sprite so they render underneath
         const baseName = ENEMY_NAMES[this.tier];
         if (baseName === 'bfb') this._drawBlades(ctx);
 
@@ -27,50 +26,34 @@ export const EnemyRenderer = {
         if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) this._drawStunOverlay(ctx);
     },
 
-    // FIX: Strict 25% intervals and proper 10 FPS animation loop
     _drawBlades(ctx) {
         const maxHp = this._maxHp;
         if (maxHp <= 0) return;
         
         const damagePercent = 1 - (this.hp / maxHp);
-        
-        // STRICT 25% INTERVALS AS REQUESTED
         let stage = 0;
         if (damagePercent > 0.75) stage = 3;
         else if (damagePercent > 0.50) stage = 2;
         else if (damagePercent > 0.25) stage = 1;
-        else stage = 0;
         
         let frame = this.bladeFrame;
-        
-        // Try stage_frame format first (e.g. bfb_blades_1_0)
         let bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_${stage}_${frame}`);
         if (!bladeAsset || !bladeAsset.loaded) {
-            // Fallback to frame only for stage 0 (e.g. bfb_blades_0)
-            if (stage === 0) {
-                bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_${frame}`);
-            }
+            if (stage === 0) bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_${frame}`);
         }
-        
-        // FIX: If the current frame doesn't exist or isn't loaded, loop back to frame 0
         if (!bladeAsset || !bladeAsset.loaded) {
-            this.bladeFrame = 0; // Reset animation loop
+            this.bladeFrame = 0;
             bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_${stage}_0`);
-            if (!bladeAsset || !bladeAsset.loaded) {
-                if (stage === 0) bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_0`);
-            }
+            if (!bladeAsset || !bladeAsset.loaded && stage === 0) bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_0`);
         }
-        
         if (!bladeAsset || !bladeAsset.loaded) return;
         
-        // Calculate dimensions based on the blade asset's own aspect ratio to prevent stretching
         const targetSize = (this.data.size || (this.data.radius * 2)) * GS;
         const maxDim = Math.max(bladeAsset.width, bladeAsset.height);
         const scale = targetSize / maxDim;
         const w = bladeAsset.width * scale;
         const h = bladeAsset.height * scale;
         
-        // FIX: Perfectly centered, no displacement
         const drawX = this.x + (this.data.spriteOffsetX || 0);
         const drawY = this.y + (this.data.spriteOffsetY || 0);
         
@@ -105,12 +88,48 @@ export const EnemyRenderer = {
         
         if (this.tier >= 12 && this.hp < this._maxHp) this._drawCracks(ctx, w, h, drawX, drawY);
 
-        if (this.isFrozen) {
-            ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke(); 
-        } else if (this.slowFactor < 1.0) {
-            ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke(); 
+        // FIX: Overlays ONLY apply to tier < 13 (Normal bloons)
+        if (this.tier < 13) {
+            const srcStr = asset.src || '';
+            const hasCustomCamoSprite = srcStr.includes('_camo');
+            const hasCustomRegenSprite = srcStr.includes('_regen');
+
+            // Frozen overlay
+            if (this.isFrozen) {
+                let fImg = Assets.get('effect_frozen_effect');
+                if (this.data.isLead) fImg = Assets.get('effect_frozen_effect_lead');
+                else if (this.isRegen) fImg = Assets.get('effect_frozen_effect_regen');
+                
+                ctx.save();
+                ctx.translate(drawX, drawY);
+                if (fImg && fImg.loaded) {
+                    ctx.drawImage(fImg, -w / 2, -h / 2, w, h);
+                } else {
+                    ctx.strokeStyle = 'rgba(26, 188, 156, 0.9)'; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 3, 0, Math.PI * 2); ctx.stroke(); 
+                }
+                ctx.restore();
+            } else if (this.slowFactor < 1.0) {
+                ctx.strokeStyle = 'rgba(241, 196, 15, 0.7)'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2); ctx.stroke(); 
+            }
+
+            // Camo/Regen overlay (Skip if custom sprite exists)
+            let cImg = null;
+            if (this.isCamo && this.isRegen && !hasCustomCamoSprite && !hasCustomRegenSprite) {
+                cImg = Assets.get('effect_camo_regen_effect');
+            } else if (this.isCamo && !this.isRegen && !hasCustomCamoSprite) {
+                cImg = Assets.get('effect_camo_effect');
+            } else if (this.isRegen && !hasCustomRegenSprite) {
+                cImg = Assets.get('effect_regen_effect');
+            }
+
+            if (cImg && cImg.loaded) {
+                ctx.save();
+                ctx.translate(drawX, drawY);
+                ctx.drawImage(cImg, -w / 2, -h / 2, w, h);
+                ctx.restore();
+            }
         }
         
         if (this.brittle) {
@@ -127,7 +146,6 @@ export const EnemyRenderer = {
         }
     },
 
-    // FIX: Use dynamic baseName so all bloons use their own cracks, but keep 25% intervals
     _drawCracks(ctx, w, h, drawX, drawY) {
         const maxHp = this._maxHp;
         const damagePercent = 1 - (this.hp / maxHp);
@@ -136,14 +154,12 @@ export const EnemyRenderer = {
         
         if (maxCracks <= 0 || damagePercent <= 0) return;
         
-        // STRICT 25% INTERVALS AS REQUESTED
         let stage = 0;
         if (damagePercent > 0.75) stage = 3;
         else if (damagePercent > 0.50) stage = 2;
         else if (damagePercent > 0.25) stage = 1;
-        else return; // 0-25% uses base sprite, no cracks
+        else return;
         
-        // FIX: Use baseName (e.g. moab, ceramic, bfb) instead of hardcoding 'bfb'
         const crackAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_${stage}`);
         if (!crackAsset || !crackAsset.loaded) return;
         
@@ -235,24 +251,4 @@ export const EnemyRenderer = {
             ctx.restore();
         }
     }
-};
-
-export const EnemyTypesData = {
-    1: { color: '#e74c3c', radius: 12, size: 24, speed: 60, nextTier: null, livesLost: 1, rbe: 1, maxHp: 1 },
-    2: { color: '#3498db', radius: 14, size: 28, speed: 80, nextTier: 1, livesLost: 1, rbe: 2, maxHp: 1 },
-    3: { color: '#2ecc71', radius: 16, size: 32, speed: 120, nextTier: 2, livesLost: 1, rbe: 3, maxHp: 1 },
-    4: { color: '#f1c40f', radius: 18, size: 36, speed: 180, nextTier: 3, livesLost: 1, rbe: 4, maxHp: 1 },
-    5: { color: '#ff00ff', radius: 20, size: 40, speed: 240, nextTier: 4, livesLost: 1, rbe: 5, maxHp: 1 },
-    6: { color: '#2c3e50', radius: 14, size: 32, speed: 100, nextTier: null, isBlack: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => d.isExplosion },
-    7: { color: '#ffffff', radius: 14, size: 32, speed: 110, nextTier: null, isWhite: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => d.isIce },
-    8: { color: '#95a5a6', radius: 18, size: 32, speed: 50, nextTier: null, isLead: true, livesLost: 6, rbe: 23, maxHp: 1, splitsInto: [{tier: 6, count: 2}], blocksDamageType: (d) => d.isSharp && !d.canHitLead },
-    9: { color: '#bdc3c7', radius: 18, size: 36, speed: 120, nextTier: null, isZebra: true, livesLost: 6, rbe: 23, maxHp: 1, splitsInto: [{tier: 6, count: 1}, {tier: 7, count: 1}], blocksDamageType: (d) => d.isExplosion || d.isIce },
-    10:{ color: '#9b59b6', radius: 18, size: 36, speed: 130, nextTier: null, isPurple: true, livesLost: 3, rbe: 11, maxHp: 1, splitsInto: [{tier: 5, count: 2}], blocksDamageType: (d) => (d.isPlasma || d.isEnergy || d.isFire || d.isMagic) && !d.canHitPurple },
-    11:{ color: '#e74c3c', radius: 20, size: 40, speed: 100, nextTier: null, isRainbow: true, livesLost: 12, rbe: 47, maxHp: 1, splitsInto: [{tier: 9, count: 2}] },
-    12:{ color: '#e67e22', radius: 20, size: 48, speed: 80, nextTier: null, isCeramic: true, livesLost: 26, rbe: 104, maxHp: 10, splitsInto: [{tier: 11, count: 2}] },
-    13:{ color: '#2c3e50', radius: 50, size: 110, speed: 40, nextTier: null, isMoab: true, livesLost: 154, rbe: 616, maxHp: 200, splitsInto: [{tier: 12, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 },
-    14:{ color: '#e74c3c', radius: 70, size: 140, speed: 30, nextTier: null, isMoab: true, livesLost: 791, rbe: 3164, maxHp: 700, splitsInto: [{tier: 13, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 },
-    15:{ color: '#27ae60', radius: 90, size: 180, speed: 20, nextTier: null, isMoab: true, livesLost: 4164, rbe: 16656, maxHp: 4000, splitsInto: [{tier: 14, count: 4}], spriteOffsetX: 0, spriteOffsetY: 0 },
-    16:{ color: '#2c3e50', radius: 50, size: 110, speed: 110, nextTier: null, isMoab: true, isDDT: true, isLead: true, livesLost: 816, rbe: 816, maxHp: 400, splitsInto: [{tier: 12, count: 4, forceCamo: true, forceRegen: true}], blocksDamageType: (d) => d.isExplosion || (d.isSharp && !d.canHitLead), spriteOffsetX: 0, spriteOffsetY: 0 },
-    17:{ color: '#e74c3c', radius: 110, size: 200, speed: 15, nextTier: null, isMoab: true, isBAD: true, livesLost: 55760, rbe: 55760, maxHp: 20000, splitsInto: [{tier: 15, count: 2}, {tier: 16, count: 3}], spriteOffsetX: 0, spriteOffsetY: 0 }
 };

@@ -1,107 +1,72 @@
+// js/mapEditorIO.js
 import { Config } from './config.js';
 import { Maps } from './data.js';
 import { UI } from './ui.js';
+import { MapEditorState } from './mapEditorState.js';
 
 export default {
-    // FIX: New helper to clean up massive water brush arrays
-    simplifyWaterBrushes(brushes) {
-        if (!brushes) return [];
-        return brushes.map(brush => {
-            if (!brush.points || brush.points.length < 3) return brush;
-            const simplified = [brush.points[0]];
-            for (let i = 1; i < brush.points.length - 1; i++) {
-                const p1 = simplified[simplified.length - 1];
-                const p2 = brush.points[i];
-                // Only keep points if they are at least 10px apart from the last kept point
-                if (Math.hypot(p1.x - p2.x, p1.y - p2.y) > 10) {
-                    simplified.push(p2);
-                }
-            }
-            simplified.push(brush.points[brush.points.length - 1]);
-            return { thickness: brush.thickness, points: simplified };
-        });
-    },
-
     loadBackgroundPreview() {
         const nameInput = document.getElementById('bg-image-name');
         if (!nameInput) return;
         const name = nameInput.value.trim();
-        if (!name) {
-            this.clearBackground();
-            return;
-        }
-        this.mapData.image = name;
-        this.bgImage.onload = () => { this.bgImage.loaded = true; };
-        this.bgImage.onerror = () => { 
-            this.bgImage.loaded = false; 
-            alert('Could not load day image. Make sure it is in the sprites/maps/ folder!'); 
-        };
-        this.bgImage.src = `sprites/maps/${name}.png`;
+        if (!name) { this.clearBackground(); return; }
+        
+        MapEditorState.mapData.image = name;
+        MapEditorState.bgImage = new Image();
+        MapEditorState.bgImage.onload = () => { MapEditorState.bgImage.loaded = true; };
+        MapEditorState.bgImage.onerror = () => { alert('Could not load day image. Make sure it is in the sprites/maps/ folder!'); };
+        MapEditorState.bgImage.src = `sprites/maps/${name}.png`;
+        MapEditorState.markDirty();
     },
-
-    clearBackground() {
-        this.mapData.image = null;
-        this.bgImage.loaded = false;
-        const nameInput = document.getElementById('bg-image-name');
-        if (nameInput) nameInput.value = "";
-        UI.log("Day background cleared.");
+    clearBackground() { 
+        MapEditorState.mapData.image = null; 
+        MapEditorState.bgImage = null; 
+        document.getElementById('bg-image-name').value = ""; 
+        MapEditorState.markDirty(); 
     },
     
     loadNightBackgroundPreview() {
         const nameInput = document.getElementById('bg-night-image-name');
         if (!nameInput) return;
         const name = nameInput.value.trim();
-        if (!name) {
-            this.clearNightBackground();
-            return;
-        }
-        this.mapData.imageNight = name;
-        this.bgNightImage.onload = () => { this.bgNightImage.loaded = true; };
-        this.bgNightImage.onerror = () => { 
-            this.bgNightImage.loaded = false; 
-            alert('Could not load night image. Make sure it is in the sprites/maps/ folder!'); 
-        };
-        this.bgNightImage.src = `sprites/maps/${name}.png`;
+        if (!name) { this.clearNightBackground(); return; }
+        
+        MapEditorState.mapData.imageNight = name;
+        MapEditorState.bgNightImage = new Image();
+        MapEditorState.bgNightImage.onload = () => { MapEditorState.bgNightImage.loaded = true; };
+        MapEditorState.bgNightImage.onerror = () => { alert('Could not load night image.'); };
+        MapEditorState.bgNightImage.src = `sprites/maps/${name}.png`;
+        MapEditorState.markDirty();
+    },
+    clearNightBackground() { 
+        MapEditorState.mapData.imageNight = null; 
+        MapEditorState.bgNightImage = null; 
+        document.getElementById('bg-night-image-name').value = ""; 
+        MapEditorState.markDirty(); 
     },
 
-    clearNightBackground() {
-        this.mapData.imageNight = null;
-        this.bgNightImage.loaded = false;
-        const nameInput = document.getElementById('bg-night-image-name');
-        if (nameInput) nameInput.value = "";
-        UI.log("Night background cleared.");
-    },
-    
     saveMap() {
         const nameInput = document.getElementById('editor-map-name');
-        this.mapData.name = (nameInput && nameInput.value) ? nameInput.value : "Custom Map";
+        MapEditorState.mapData.name = (nameInput && nameInput.value) ? nameInput.value : "Custom Map";
+        if (!MapEditorState.mapData.id) MapEditorState.mapData.id = crypto.randomUUID();
+        MapEditorState.mapData.paths = MapEditorState.mapData.paths.filter(p => p && p.waypoints && p.waypoints.length > 0);
         
-        if (!this.mapData.id) {
-            this.mapData.id = crypto.randomUUID();
-        }
-        
-        this.mapData.paths = this.mapData.paths.filter(p => p && p.waypoints && p.waypoints.length > 0);
-        
-        if (this.mapData.paths.length === 0) { alert("Please draw at least one path with 2 or more points."); return; }
-        
-        for (let p of this.mapData.paths) {
+        for (let p of MapEditorState.mapData.paths) {
+            // Paths keep their visibility state!
             if (p.waypoints.length < 2) { alert("Each path must have at least 2 waypoints."); return; }
+            for (let wp of p.waypoints) {
+                if (typeof wp.x !== 'number' || typeof wp.y !== 'number') { alert("Invalid waypoint coordinates."); return; }
+                if (wp.curve && (typeof wp.curve.cx !== 'number' || typeof wp.curve.cy !== 'number')) { alert("Invalid curve coordinates."); return; }
+            }
         }
+        if (MapEditorState.mapData.paths.length === 0) { alert("Please draw at least one path."); return; }
         
-        const existingIdx = Config.data.customMaps.findIndex(m => m.id === this.mapData.id);
-        const mapCopy = JSON.parse(JSON.stringify(this.mapData));
-        
-        // FIX: Clean up water brushes before saving!
-        mapCopy.waterBrushes = this.simplifyWaterBrushes(mapCopy.waterBrushes);
-        
-        if (existingIdx > -1) {
-            Config.data.customMaps[existingIdx] = mapCopy;
-            if (Maps[existingIdx + 6]) Maps[existingIdx + 6] = mapCopy;
-        } else {
-            Config.data.customMaps.push(mapCopy);
-            Maps.push(mapCopy);
-        }
+        const existingIdx = Config.data.customMaps.findIndex(m => m.id === MapEditorState.mapData.id);
+        const mapCopy = JSON.parse(JSON.stringify(MapEditorState.mapData));
+        if (existingIdx > -1) { Config.data.customMaps[existingIdx] = mapCopy; if (Maps[existingIdx + 6]) Maps[existingIdx + 6] = mapCopy; }
+        else { Config.data.customMaps.push(mapCopy); Maps.push(mapCopy); }
         Config.save();
+        MapEditorState.markClean();
         alert("Map saved successfully!");
     },
     
@@ -111,96 +76,43 @@ export default {
         const name = prompt("Enter map name to load:\n" + names.join(", "));
         if (name) {
             const map = Config.data.customMaps.find(m => m.name === name);
-            if (map) {
-                this.pushUndo();
-                this.mapData = JSON.parse(JSON.stringify(map));
-                this.applyLoadedMapData();
-            } else { alert("Map not found."); }
+            if (map) { this.pushUndo(); MapEditorState.mapData = JSON.parse(JSON.stringify(map)); this.applyLoadedMapData(); }
+            else { alert("Map not found."); }
         }
     },
     
     applyLoadedMapData() {
-        if (!Array.isArray(this.mapData.waterBrushes)) this.mapData.waterBrushes = [];
-        if (this.mapData.waterVisible === undefined) this.mapData.waterVisible = true; 
-        if (this.mapData.propsVisible === undefined) this.mapData.propsVisible = true; 
-        if (!this.mapData.imageScale) this.mapData.imageScale = 1.0;
-        if (!this.mapData.imageOffsetX) this.mapData.imageOffsetX = 0;
-        if (!this.mapData.imageOffsetY) this.mapData.imageOffsetY = 0;
-        if (!this.mapData.imageMaintainRatio) this.mapData.imageMaintainRatio = false;
-        if (!this.mapData.imageNight) this.mapData.imageNight = null;
-        if (!Array.isArray(this.mapData.props)) this.mapData.props = [];
-        if (!Array.isArray(this.mapData.paths)) this.mapData.paths = [];
+        MapEditorState.selectedPath = -1; MapEditorState.selectedPoints = []; MapEditorState.selectedProps = [];
+        document.getElementById('editor-map-name').value = MapEditorState.mapData.name || "Custom Map";
+        document.getElementById('bg-image-name').value = MapEditorState.mapData.image || "";
+        document.getElementById('bg-night-image-name').value = MapEditorState.mapData.imageNight || "";
+        document.getElementById('bg-maintain-ratio').checked = MapEditorState.mapData.imageMaintainRatio || false;
+        document.getElementById('bg-image-scale').value = MapEditorState.mapData.imageScale || 1;
+        document.getElementById('bg-image-x').value = MapEditorState.mapData.imageOffsetX || 0;
+        document.getElementById('bg-image-y').value = MapEditorState.mapData.imageOffsetY || 0;
+        document.getElementById('bg-scale-val').innerText = (MapEditorState.mapData.imageScale || 1).toFixed(2);
+        document.getElementById('bg-x-val').innerText = MapEditorState.mapData.imageOffsetX || 0;
+        document.getElementById('bg-y-val').innerText = MapEditorState.mapData.imageOffsetY || 0;
         
-        this.selectedPath = -1;
-        this.selectedPoint = null;
-        this.selectedProp = null;
-        
-        const nameInput = document.getElementById('editor-map-name');
-        if (nameInput) nameInput.value = this.mapData.name || "Custom Map";
-        
-        const bgName = document.getElementById('bg-image-name');
-        if (bgName) bgName.value = this.mapData.image || "";
-        
-        const nightName = document.getElementById('bg-night-image-name');
-        if (nightName) nightName.value = this.mapData.imageNight || "";
-        
-        const bgMaintainRatio = document.getElementById('bg-maintain-ratio');
-        if (bgMaintainRatio) bgMaintainRatio.checked = this.mapData.imageMaintainRatio;
-        
-        const bgImageScale = document.getElementById('bg-image-scale');
-        if (bgImageScale) bgImageScale.value = this.mapData.imageScale;
-        
-        const bgImageX = document.getElementById('bg-image-x');
-        if (bgImageX) bgImageX.value = this.mapData.imageOffsetX;
-        
-        const bgImageY = document.getElementById('bg-image-y');
-        if (bgImageY) bgImageY.value = this.mapData.imageOffsetY;
-        
-        const bgScaleVal = document.getElementById('bg-scale-val');
-        if (bgScaleVal) bgScaleVal.innerText = this.mapData.imageScale.toFixed(2);
-        
-        const bgXVal = document.getElementById('bg-x-val');
-        if (bgXVal) bgXVal.innerText = this.mapData.imageOffsetX;
-        
-        const bgYVal = document.getElementById('bg-y-val');
-        if (bgYVal) bgYVal.innerText = this.mapData.imageOffsetY;
-        
-        if (this.mapData.image) {
-            this.loadBackgroundPreview();
-        } else {
-            this.bgImage.loaded = false;
-        }
-        
-        if (this.mapData.imageNight) {
-            this.loadNightBackgroundPreview();
-        } else {
-            this.bgNightImage.loaded = false;
-        }
+        if (MapEditorState.mapData.image) this.loadBackgroundPreview();
+        else MapEditorState.bgImage = null;
+        if (MapEditorState.mapData.imageNight) this.loadNightBackgroundPreview();
+        else MapEditorState.bgNightImage = null;
         
         this.updatePathDropdown();
+        MapEditorState.markClean();
     },
 
     importJSON(event) {
         const file = event.target.files[0];
         if (!file) return;
-
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                
-                if (!data || !Array.isArray(data.paths)) {
-                    alert("Invalid map JSON: Missing 'paths' array.");
-                    return;
-                }
-
-                this.pushUndo();
-                this.mapData = data;
-                this.applyLoadedMapData();
-                UI.log("Map imported successfully!");
-            } catch (err) {
-                alert("Failed to import JSON: " + err.message);
-            }
+                if (!data || !Array.isArray(data.paths)) { alert("Invalid map JSON."); return; }
+                this.pushUndo(); MapEditorState.mapData = data; this.applyLoadedMapData();
+            } catch (err) { alert("Failed to import: " + err.message); }
         };
         reader.readAsText(file);
         event.target.value = ""; 
@@ -210,22 +122,14 @@ export default {
         const viewer = document.getElementById('editor-json-viewer');
         const textArea = document.getElementById('editor-json-text');
         if (!viewer || !textArea) return;
-        if (viewer.classList.contains('hidden')) {
-            // FIX: Clean up water brushes before exporting to JSON!
-            const exportData = JSON.parse(JSON.stringify(this.mapData));
-            exportData.waterBrushes = this.simplifyWaterBrushes(exportData.waterBrushes);
-            textArea.value = JSON.stringify(exportData, null, 2);
-            viewer.classList.remove('hidden');
-        } else {
-            viewer.classList.add('hidden');
-        }
+        if (viewer.classList.contains('hidden')) { textArea.value = JSON.stringify(MapEditorState.mapData, null, 2); viewer.classList.remove('hidden'); }
+        else { viewer.classList.add('hidden'); }
     },
     
     applyJSON() {
         try {
             const textArea = document.getElementById('editor-json-text');
-            if (!textArea) return;
-            this.mapData = JSON.parse(textArea.value);
+            MapEditorState.mapData = JSON.parse(textArea.value);
             this.applyLoadedMapData();
             alert("JSON applied!");
         } catch (e) { alert("Invalid JSON: " + e.message); }

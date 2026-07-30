@@ -193,12 +193,35 @@ export const menuController = {
             card.className = 'play-map-card';
             if (actualIndex === this.playMenuState.selectedMapIndex) card.classList.add('selected');
             
-            let thumbUrl = map.bgImage ? `sprites/maps/${map.bgImage}` : '';
+            let thumbUrl = map.image ? `sprites/maps/${map.image}.png` : '';
             card.innerHTML = `
                 <div class="play-map-thumb" style="background-image: url('${thumbUrl}');"></div>
                 <div class="play-map-name">${map.name || `Map ${actualIndex + 1}`}</div>
             `;
-            
+
+            // FIX: Add Delete button for custom maps
+            const isCustom = Config.data.customMaps.some(cm => cm.id === map.id);
+            if (isCustom) {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'map-delete-btn';
+                delBtn.innerHTML = '🗑';
+                delBtn.title = "Delete Custom Map";
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete custom map "${map.name}"?`)) {
+                        Config.data.customMaps = Config.data.customMaps.filter(cm => cm.id !== map.id);
+                        Config.save();
+                        const mapIdx = Maps.indexOf(map);
+                        if (mapIdx > -1) Maps.splice(mapIdx, 1);
+                        if (this.playMenuState.selectedMapIndex >= mapIdx) {
+                            this.playMenuState.selectedMapIndex = Math.max(0, this.playMenuState.selectedMapIndex - 1);
+                        }
+                        this.refreshPlayMaps();
+                    }
+                });
+                card.appendChild(delBtn);
+            }
+
             card.addEventListener('click', () => {
                 this.playMenuState.selectedMapIndex = actualIndex;
                 this.showPlayDifficulties();

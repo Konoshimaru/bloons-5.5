@@ -1,0 +1,36 @@
+#mk-viewport {
+    user-select: none; -webkit-user-select: none;
+    background-image: 
+        radial-gradient(1px 1px at 20px 30px, #ffffff, transparent), radial-gradient(1px 1px at 40px 70px, #ffffff, transparent),
+        radial-gradient(1px 1px at 90px 40px, #ffffff, transparent), radial-gradient(1px 1px at 130px 80px, #ddd, transparent),
+        radial-gradient(2px 2px at 160px 120px, #ffffff, transparent), radial-gradient(1px 1px at 250px 150px, #ffffff, transparent),
+        radial-gradient(2px 2px at 300px 200px, #ffffff, transparent), radial-gradient(1px 1px at 350px 250px, #ccc, transparent);
+    background-size: 400px 400px; background-repeat: repeat; --mk-tint: rgba(52, 152, 219, 0.15); 
+}
+#mk-viewport::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at center, var(--mk-tint) 0%, transparent 70%); pointer-events: none; transition: background 0.5s ease-in-out; z-index: 0; }
+.mk-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; z-index: 1; will-change: transform; }
+.mk-screen.active { display: block; }
+.mk-tree-container { position: absolute; top: 30%; left: 50%; width: 0; height: 0; }
+.mk-nodes { position: absolute; top: 0; left: 0; }
+.mk-lines { position: absolute; top: -1500px; left: -1500px; pointer-events: none; }
+.mk-node { position: absolute; width: 90px; height: 90px; background: #2c3e50; border: 4px solid #bdc3c7; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 0 15px rgba(255, 255, 255, 0.1); z-index: 2; transform: translate(-50%, -50%); will-change: transform; }
+.mk-node:hover { background: #34495e; border-color: #f1c40f; box-shadow: 0 0 25px rgba(241, 196, 15, 0.4); }
+.mk-node span { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 11px; color: #fff; text-align: center; pointer-events: none; padding: 4px; line-height: 1.1; word-break: break-word; }
+.mk-tab { background: #2c3e50; color: #bdc3c7; border: 1px solid #34495e; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-family: 'Nunito', sans-serif; font-weight: 700; transition: all 0.2s ease; }
+.mk-tab:hover { background: #34495e; color: #fff; }
+.mk-tab.active { background: #f1c40f; color: #000; border-color: #f1c40f; }
+#mk-focus-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0); backdrop-filter: blur(0px); pointer-events: none; z-index: 50; transition: all 0.3s ease; }
+#mk-focus-overlay.active { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); pointer-events: auto; }
+#mk-focus-node { position: absolute; top: 50%; left: 25%; transform: translate(-50%, -50%) scale(0); width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; z-index: 60; opacity: 0; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+#mk-focus-node.active { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+#mk-focus-node span { font-family: 'Luckiest Guy', cursive; font-size: 18px; color: #fff; text-align: center; }
+#mk-detail-panel { position: absolute; top: 0; right: 0; width: 350px; height: 100%; background: #1a252f; border-left: 4px solid #f1c40f; padding: 80px 20px 20px 20px; box-shadow: -10px 0 30px rgba(0,0,0,0.5); transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 60; box-sizing: border-box; display: flex; flex-direction: column; }
+#mk-detail-panel.active { transform: translateX(0); }
+#mk-close-focus { position: absolute; top: 20px; right: 20px; background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+#mk-detail-title { font-family: 'Luckiest Guy', cursive; color: #f1c40f; font-size: 28px; margin-bottom: 15px; }
+.mk-detail-info p { color: #bdc3c7; line-height: 1.5; margin-bottom: 20px; }
+.mk-detail-stats { background: #0d1419; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px; }
+.mk-detail-stats div { display: flex; justify-content: space-between; color: #ecf0f1; font-weight: 700; }
+.mk-detail-stats span:first-child { color: #95a5a6; }
+.mk-node.unlocked { border-color: #f1c40f; background: #7d6608; box-shadow: 0 0 25px rgba(241, 196, 15, 0.6); color: #fff; }
+.mk-node.unlocked span { color: #fff; }
