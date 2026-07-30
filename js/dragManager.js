@@ -8,6 +8,7 @@ import { applyBossEffects } from './input.js';
 import { getBehavior } from './registry.js'; // FIX: Import getBehavior
 import { TowerRegistry, TOWER_CATEGORIES } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
+import { CutsceneManager } from './cutscene.js'; // FIX: Import Cutscene Manager
 
 export function generateShopUI() {
     const shopView = document.getElementById('shop-view');
@@ -118,6 +119,8 @@ export function setupShopListeners() {
     
     // FIX: Re-query the DOM elements AFTER they are generated!
     dom.towerCards = document.querySelectorAll('.tower-card[data-tower]');
+    // FIX: Re-query enemy cards to include the newly added Knight card
+    dom.enemyCards = document.querySelectorAll('#enemy-view .tower-card[data-enemy]');
     
     let sandboxCamoOn = false, sandboxRegenOn = false, sandboxFortifiedOn = false;
     const shopView = document.getElementById('shop-view');
@@ -172,7 +175,33 @@ export function setupShopListeners() {
     dom.enemyCards.forEach(card => {
         card.addEventListener('click', () => {
             if (!GameEngine.isSandbox || !GameEngine.map) return;
-            const tier = parseInt(card.dataset.enemy, 10);
+            const enemyType = card.dataset.enemy;
+            
+            // FIX: Handle Knight Boss cutscene trigger
+            if (enemyType === 'knight') {
+                let boss = null;
+                let bestRbe = 0;
+                // Find the strongest MOAB-class bloon currently on screen
+                for (let e of GameEngine.enemies) {
+                    if (e && e.alive && e.data.isMoab && e.data.rbe > bestRbe) {
+                        bestRbe = e.data.rbe;
+                        boss = e;
+                    }
+                }
+                
+                // If none exists, spawn a MOAB (Tier 13) so the cutscene has something to play on
+                if (!boss) {
+                    boss = GameEngine.enemyPool.get();
+                    boss.init(13, GameEngine.map, false, false, 13, false, null, 0, false);
+                    GameEngine.enemies.push(boss);
+                }
+                
+                // Trigger the cutscene!
+                CutsceneManager.trigger(boss);
+                return;
+            }
+
+            const tier = parseInt(enemyType, 10);
             let isCamo = sandboxCamoOn || tier === 16;
             let e = GameEngine.enemyPool.get();
             e.init(tier, GameEngine.map, isCamo, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0, false);

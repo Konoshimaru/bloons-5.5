@@ -7,8 +7,10 @@ const POP_THROTTLE_MS = 50;
 const SHOOT_THROTTLE_MS = 30;
 const HIT_THROTTLE_MS = 100; // Prevents hit sounds from queueing up
 const MOAB_DESTROY_THROTTLE_MS = 200; // FIX: Prevents explosion sounds from queueing up
-const DEFAULT_GAME_PLAYLIST = ['/music/music1.mp3', '/music/music2.mp3', '/music/music3.mp3'];
-const MENU_PLAYLIST = ['/music/mainmenu_1.mp3', '/music/mainmenu_2.mp3'];
+
+// FIX: Changed to relative paths (removed leading /) so it works on itch.io
+const DEFAULT_GAME_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
+const MENU_PLAYLIST = ['music/mainmenu_1.mp3', 'music/mainmenu_2.mp3'];
 
 // FIX 3: Added Sauda SFX to the map so they get preloaded and pooled
 const SFX_ASSET_MAP = {
@@ -43,18 +45,20 @@ const sfxBufferCache = new Map();
 
 async function _loadPlaylistInternal() {
     try {
-        // FIX: Use absolute /music/ path for Vite public folder
-        const manifestRes = await fetch('/music/manifest.json');
+        // FIX: Use relative path
+        const manifestRes = await fetch('music/manifest.json');
         if (manifestRes.ok) {
             const manifest = await manifestRes.json();
             if (manifest?.songs?.length > 0) {
-                gamePlaylist = manifest.songs.map(s => s.startsWith('/') ? s : `/${s.replace(/^music\//, 'music/')}`);
+                // FIX: Use relative paths
+                gamePlaylist = manifest.songs.map(s => s.startsWith('music/') ? s : `music/${s}`);
                 return;
             }
         }
         
         // Fallback to directory listing if manifest fails
-        const response = await fetch('/music/');
+        // FIX: Use relative path
+        const response = await fetch('music/');
         if (!response.ok) throw new Error("Directory listing blocked");
         
         const html = await response.text();
@@ -62,7 +66,8 @@ async function _loadPlaylistInternal() {
         const doc = parser.parseFromString(html, 'text/html');
         const links = doc.querySelectorAll('a');
         const mp3s = [];
-        const baseUrl = new URL('/music/', window.location.href);
+        // FIX: Use relative path
+        const baseUrl = new URL('music/', window.location.href);
         
         links.forEach(link => {
             const href = link.getAttribute('href');
@@ -98,8 +103,8 @@ export function resolveSfxAsset(type) {
     const choices = getSfxAssetChoices(type);
     if (choices.length === 0) return null;
     const file = choices[Math.floor(Math.random() * choices.length)];
-    // FIX: Use absolute /sfx/ path for Vite public folder
-    return `/sfx/${file}`;
+    // FIX: Use relative path
+    return `sfx/${file}`;
 }
 
 export const AudioEngine = {
@@ -146,8 +151,8 @@ export const AudioEngine = {
 
     async _fetchAndDecodeSfx(file) {
         try {
-            // FIX: Use absolute /sfx/ path
-            const url = `/sfx/${file}`;
+            // FIX: Use relative path
+            const url = `sfx/${file}`;
             const response = await fetch(url);
             if (!response.ok) return;
             const arrayBuffer = await response.arrayBuffer();
@@ -271,8 +276,8 @@ export const AudioEngine = {
             }
             
             // Fallback to new Audio() if buffer not ready or unavailable
-            // FIX: Use absolute /sfx/ path
-            const asset = `/sfx/${file}`;
+            // FIX: Use relative path
+            const asset = `sfx/${file}`;
             try {
                 const audio = new Audio(asset);
                 audio.preload = 'auto';
