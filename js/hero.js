@@ -1,7 +1,7 @@
-﻿// js/hero.js
+// js/hero.js
 import { Tower } from './tower.js';
 import { HeroRegistry } from './heroes/index.js';
-import { GameEngine } from './engine.js'; // Added to safely access Config
+import { GameEngine } from './engine.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 const MAX_LEVEL = 20;
@@ -22,7 +22,6 @@ export class Hero extends Tower {
         
         this.stormOfArrows = null;
 
-        // MK: Empowered Heroes (Start at level 3)
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         this._applyMKEffects(mk, MKEffects.heroInit, GameEngine);
     }
@@ -32,7 +31,6 @@ export class Hero extends Tower {
         
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         let mult = 1.0;
-        // FIX: Fully generic loop using stat/amount or action
         for (const eff of MKEffects.heroXpGain) {
             if (!mk[eff.id]) continue;
             if (eff.hero && !this.stats.isHero) continue;
@@ -58,7 +56,6 @@ export class Hero extends Tower {
         
         const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
         let mult = 1.0;
-        // FIX: Fully generic loop using stat/amount or action
         for (const eff of MKEffects.heroBuyLevel) {
             if (!mk[eff.id]) continue;
             if (eff.hero && !this.stats.isHero) continue;

@@ -58,7 +58,6 @@ const SimulationLoop = {
         }
     },
 
-    // FIX: New method to update floating combat texts
     _updateFloatingTexts(dt) {
         if (!this.floatingTexts) return;
         for (let i = this.floatingTexts.length - 1; i >= 0; i--) {

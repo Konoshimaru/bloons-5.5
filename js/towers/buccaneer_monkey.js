@@ -1,4 +1,4 @@
-﻿// buccaneer_monkey.js
+// buccaneer_monkey.js
 // Defines the Buccaneer Monkey tower and its ship-based attacks.
 
 import { GameEngine } from '../engine.js';

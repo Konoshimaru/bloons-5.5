@@ -7,8 +7,16 @@ export default {
         name: "Quincy", cost: 540, range: 44, fireRate: 0.95, damage: 1, projectileSpeed: 800, pierce: 3, 
         lifespan: 0.5, desc: "Auto-levels via XP. Fires powerful bouncing arrows.", 
         dmgType: 'sharp', projectileType: 'arrow', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
+        isAbility: false, 
+        isAbility2: false,
+        abilityName: "Rapid Shot", abilityCd: 60,
+        ability2Name: "Storm of Arrows", ability2Cd: 70,
         rapidShotMult: 3, rapidShotDur: 8, rapidShotCd: 60, 
-        stormCd: 70, stormChance: 0.05, stormDmg: 6, stormMoabDmg: 6, stormCeramicDmg: 0
+        stormCd: 70, stormChance: 0.05, stormDmg: 6, stormMoabDmg: 6, stormCeramicDmg: 0,
+        abilities: [
+            { lvl: 3, name: "Rapid Shot", desc: "Shoots much faster for a short time." },
+            { lvl: 10, name: "Storm of Arrows", desc: "Fires a massive volley of arrows at the strongest Bloon." }
+        ]
     },
     xpTable: [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 14400, 16650, 14940, 16380, 17820, 19260, 20700, 16470, 17280],
     levels: {
@@ -40,7 +48,6 @@ export default {
                 const soa = tower.stormOfArrows; const nearby = GameEngine.enemyGrid.query(soa.x, soa.y, soa.radius);
                 for (let e of nearby) {
                     if (!e.alive) continue; 
-                    // PRO FIX: Use withinRange
                     if (Utils.withinRange(soa.x, soa.y, e.x, e.y, soa.radius)) {
                         if (e.stormHitTimer > 0) continue;
                         if (Math.random() < soa.chance) {

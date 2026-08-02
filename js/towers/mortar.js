@@ -43,7 +43,6 @@ export default {
         // Bombardment Ability Active Effect
         if (tower.bombardmentActive > 0) {
             tower.bombardmentActive -= dt;
-            // FIX: Apply a massive attack speed buff while active
             tower.buffedFireRate = Math.max(tower.buffedFireRate || 0, 8.0); 
         }
     },

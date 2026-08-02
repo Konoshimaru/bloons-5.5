@@ -50,7 +50,6 @@ export default {
         ]
     },
     
-    // FIX: Hook for pre-upgrade checks (requires farm for Monkeyopolis)
     canUpgrade(tower, path, engine) {
         if (path === 3 && tower.upgrades[2] === 4) { 
             const effRange = tower.stats.range * RANGE_SCALE;
@@ -68,7 +67,6 @@ export default {
         return true;
     },
 
-    // FIX: Hook to modify the cost (adds $5000 per farm for Monkeyopolis)
     getUpgradeCostModifier(tower, baseCost, path, tier, engine) {
         if (path === 3 && tier === 4) { 
             const effRange = tower.stats.range * RANGE_SCALE;
@@ -83,12 +81,10 @@ export default {
         return baseCost;
     },
 
-    // FIX: Hook to determine if targeting row should be visible
     canChangeTargeting(tower) {
         return tower.upgrades[0] >= 5; // Can only target with Primary Expertise
     },
 
-    // FIX: Hook to provide counter text
     getCounterText(t) {
         return `Dmg Dealt: ${Number(t.damageDealt) || 0}`;
     },

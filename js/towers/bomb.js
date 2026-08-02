@@ -7,7 +7,6 @@ export default {
         name: "Bomb Shooter", cost: 375, range: 40, 
         baseCooldown: 1.5, fireRate: 1.5, 
         damage: 1, pierce: 1, projectileSpeed: 180, 
-        // FIX: Increased explosionRadius from 12 to 30, and lifespan from 0.6 to 1.5
         explosionRadius: 30, explosionDamage: 1, explosionPierce: 22, 
         lifespan: 1.5, canHitLead: true, 
         desc: "Launches a powerful bomb at the Bloons. Slow rate of fire but affects a radius around the explosion.", 

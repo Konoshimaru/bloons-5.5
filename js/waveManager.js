@@ -1,4 +1,4 @@
-﻿// waveManager.js
+// waveManager.js
 import { Waves } from './data.js';
 import { Enemy } from './enemy.js';
 import { GameEngine } from './engine.js';
@@ -121,7 +121,6 @@ export class WaveManager {
             const pathCount = GameEngine.map.paths.length;
             let pathIndex = 0;
             
-            // PRO FIX: Even Split Logic
             if (pathCount > 1) {
                 if (GameEngine.map.data.evenSplit) {
                     // Alternate strictly between paths
@@ -133,10 +132,8 @@ export class WaveManager {
                 }
             }
             
-            // PRO FIX: Super Ceramics start at Round 81
             let isSuper = this.currentWave >= 81 && spawn.tier >= 12;
             
-            // ISSUE 8 FIX: Use ObjectPool for enemy spawning
             let e = GameEngine.enemyPool.get();
             e.init(
                 spawn.tier,

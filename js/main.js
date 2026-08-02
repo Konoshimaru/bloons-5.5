@@ -5,6 +5,7 @@ import '../css/menus.css';
 import '../css/mapEditor.css';
 import '../css/monkeyKnowledge.css';
 import '../css/upgradePanel.css';
+import '../css/heroMenu.css';
 
 import { GameEngine } from './engine.js';
 import { TowerStats } from './towers/index.js';
@@ -47,7 +48,6 @@ function setupEventListeners() {
     InputManager.init();
     GameEngine.updateShopPrices = updateShopPrices;
 
-    // FIX: Add F2 Dev Overlay Toggle
     window.addEventListener('keydown', (e) => {
         if (e.key === 'F2') {
             e.preventDefault();
@@ -93,7 +93,6 @@ window.addEventListener('load', () => {
                 'effect_frozen_effect', 'effect_frozen_effect_lead', 'effect_frozen_effect_regen'
             ];
             
-            // FIX: Use preloadManifest so it resolves the 'sprites/effects/' paths automatically!
             await Assets.preloadManifest(effectKeys, (pct) => {
                 loadingBar.style.width = `${50 + Math.floor(pct * 20)}%`;
             });

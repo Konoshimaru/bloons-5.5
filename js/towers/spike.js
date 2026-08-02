@@ -1,4 +1,4 @@
-﻿// js/towers/spike.js
+// js/towers/spike.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
@@ -37,7 +37,6 @@ export default {
         ]
     },
     
-    // FIX: Hook to determine if targeting row should be visible
     canChangeTargeting(tower) {
         return !!tower.stats.smartSpikes;
     },
@@ -50,7 +49,6 @@ export default {
             }
         }
         
-        // PRO FIX: Time-sliced Spike Storm spawning
         if (tower.stormSpawnsLeft > 0) {
             tower.stormTimer -= dt;
             if (tower.stormTimer <= 0) {

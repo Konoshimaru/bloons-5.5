@@ -7,9 +7,15 @@ export default {
         name: "Ezili", cost: 750, range: 45, fireRate: 1.1, damage: 1, projectileSpeed: 600, pierce: 1, 
         lifespan: 0.5, desc: "Curses Bloons with a damage over time effect.", 
         dmgType: 'normal', projectileType: 'arrow', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
+        isAbility: false, 
+        isAbility2: false,
         abilityCd: 40, abilityName: "Heart of Protection",
         ability2Cd: 60, ability2Name: "MOAB Hex",
-        dotDmg: 1, dotDur: 3.0, hexDmg: 0.1
+        dotDmg: 1, dotDur: 3.0, hexDmg: 0.1,
+        abilities: [
+            { lvl: 3, name: "Heart of Protection", desc: "Creates a shield that blocks Bloon leaks." },
+            { lvl: 6, name: "MOAB Hex", desc: "Hexes the strongest Bloon, dealing massive damage over time." }
+        ]
     },
     xpTable: [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 14400, 16650, 14940, 16380, 17820, 19260, 20700, 16470, 17280],
     levels: {

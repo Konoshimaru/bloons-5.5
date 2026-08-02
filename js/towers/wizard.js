@@ -1,4 +1,4 @@
-﻿// js/towers/wizard.js
+// js/towers/wizard.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 

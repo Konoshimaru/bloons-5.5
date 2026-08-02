@@ -131,7 +131,6 @@ export default {
             return;
         }
 
-        // FIX: Use generic pointInFootprint for selection
         for (const t of this.towers) {
             if (t && Utils.pointInFootprint(x, y, t.x, t.y, Utils.getFootprint(t))) {
                 if (this.selectedPlacedTower === t) { this.deselectAll(); } 
@@ -173,7 +172,6 @@ export default {
             }
             if (this.cash < cost) { this.log("Not enough cash!"); return; }
             
-            // FIX: Use generic intersectsFootprint for placement overlap
             const newFp = Utils.getFootprint({ stats });
             const isOverlapping = this.towers.some(t => {
                 if (!t || t.blocksPlacement === false) return false;
@@ -214,7 +212,6 @@ export default {
         if (t.type === 'spike') { modes = t.stats.smartSpikes ? ['Normal', 'Close', 'Smart'] : ['Normal']; }
         if (t.type === 'village') { if (t.upgrades[0] < 5) return; modes = ['First', 'Last', 'Strong', 'Close']; }
         
-        // FIX: Ace ONLY has flight path targeting options!
         if (t.type === 'ace') { 
             modes = ['Circle', 'Figure Infinite', 'Figure Eight']; 
             if (t.upgrades[2] >= 2) modes.push('Centered Path'); 
@@ -231,7 +228,6 @@ export default {
     },
 
     handleUpgrade(path) {
-        // FIX: 100ms buffer to prevent spam clicking
         const now = performance.now();
         if (this._lastUpgradeTime && now - this._lastUpgradeTime < 100) return;
         this._lastUpgradeTime = now;
@@ -241,7 +237,6 @@ export default {
         if (t.stats.isHero || t.isMinion) return;
         
         const behavior = getBehavior(t.type);
-        // FIX: Let the tower module run pre-upgrade checks (e.g. Beast Handler water check)
         if (behavior?.preUpgrade && !behavior.preUpgrade(t, path, this)) return;
         
         const tier = t.upgrades[path - 1];
@@ -262,39 +257,8 @@ export default {
     activateAbility(slot = 1, t = null) {
         if (!t) t = this.selectedPlacedTower;
         if (!t) return;
-        const behavior = getBehavior(t.type);
-        if (!behavior) return;
-        
-        let actualTower = t;
-        // FIX: Let the tower module decide which entity the ability targets (e.g. Beast Handler targets its Beast)
-        if (behavior.getAbilityTarget) {
-            actualTower = behavior.getAbilityTarget(t, slot) || t;
-        }
-
-        const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
-        let cdMult = 1.0;
-        for (const eff of MKEffects.abilityCooldown) {
-            if (!mk[eff.id]) continue;
-            if (eff.hero && !t.stats.isHero) continue;
-            if (eff.condition && !eff.condition(t, slot)) continue;
-            if (eff.stat === 'cdMult') cdMult *= eff.amount;
-        }
-        if (t.abilityCdMult) cdMult *= t.abilityCdMult;
-
-        if (slot === 1 && actualTower.stats.isAbility && actualTower.abilityCooldown <= 0 && behavior.ability) {
-            behavior.ability(actualTower, this);
-            let cd = actualTower.stats.abilityCd || 45;
-            actualTower.abilityCooldown = cd * cdMult; return;
-        }
-        if (slot === 2 && actualTower.stats.isAbility2 && actualTower.ability2Cooldown <= 0 && behavior.ability2) {
-            behavior.ability2(actualTower, this); 
-            let cd = actualTower.stats.isHero ? (actualTower.stats.stormCd || 70) : 60;
-            actualTower.ability2Cooldown = cd * cdMult; return;
-        }
-        if (slot === 3 && actualTower.stats.isAbility3 && actualTower.ability3Cooldown <= 0 && behavior.ability3) {
-            behavior.ability3(actualTower, this); 
-            let cd = actualTower.stats.isHero ? 120 : 60;
-            actualTower.ability3Cooldown = cd * cdMult; return;
+        if (typeof t.activateAbility === 'function') {
+            t.activateAbility(slot, this);
         }
     },
 
@@ -305,7 +269,6 @@ export default {
         if (this.selectedPlacedTower.stats.isHero) this.hero = null;
         
         const behavior = getBehavior(this.selectedPlacedTower.type);
-        // FIX: Let the tower module clean up its sub-entities (e.g. Sentries, Beasts)
         if (behavior?.onSell) behavior.onSell(this.selectedPlacedTower, this);
         
         this.selectedPlacedTower.sell(this);
@@ -314,7 +277,6 @@ export default {
         this.deselectAll();
     },
 
-    // FIX: Added hideUI parameter to prevent instant hiding when switching towers
     deselectAll(hideUI = true) {
         this.selectedTowerType = null; this.selectedPlacedTower = null;
         this.placingBeastFor = null; this.isMergingBeast = false; this.mergeSourceTower = null;

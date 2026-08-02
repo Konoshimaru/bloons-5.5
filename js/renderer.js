@@ -1,4 +1,4 @@
-﻿// js/renderer.js
+// js/renderer.js
 import { Config, RANGE_SCALE, HeroStats } from './config.js';
 import { TowerStats } from './towers/index.js';
 import { Utils } from './utils.js';
@@ -8,7 +8,7 @@ import { KnightEnemy } from './bosses/knight.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
 import { BossHealthBarHandler } from './BossHealthBarHandler.js';
 import { applyBossEffects } from './input.js';
-import { isMobile } from './mobile.js'; // FIX: Import isMobile
+import { isMobile } from './mobile.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -45,7 +45,6 @@ export const Renderer = {
 
         if (engine.gameState === 'menu' || !engine.map) {
             this._drawMainMenuScenery(ctx, engine, dt);
-            // FIX: Draw dev overlay on main menu too!
             this._drawDevOverlay(ctx, engine, dt);
             return;
         }
@@ -136,17 +135,14 @@ export const Renderer = {
         BossHealthBarHandler.draw(ctx);
         this._drawCursor(ctx, engine);
         
-        // FIX: Draw Dev Overlay last so it sits on top of everything during gameplay!
         this._drawDevOverlay(ctx, engine, dt);
     },
 
     _drawDevOverlay(ctx, engine, rawDt) {
         if (!engine.showDevOverlay) return;
 
-        // Calculate FPS (smoothened slightly)
         const fps = Math.round(1 / (rawDt || 0.016));
         
-        // FIX: Safely gather stats with fallbacks so it doesn't crash on the main menu!
         const activeProjectiles = (engine.projectilePool && engine.projectilePool.active) ? engine.projectilePool.active.length : 0;
         const maxProjectiles = (engine.projectilePool) ? engine.projectilePool.size : 0;
         const activeEnemies = engine.enemies ? engine.enemies.length : 0;
@@ -165,11 +161,9 @@ export const Renderer = {
         ctx.textAlign = 'left';
         ctx.textBaseline = 'top';
         
-        // Background box
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.fillRect(textX - 5, textY - 5, 220, (lineHeight * 9) + 10);
         
-        // Helper to draw text lines
         const drawLine = (label, value, color, y) => {
             ctx.fillStyle = '#bdc3c7';
             ctx.fillText(label, textX, y);
@@ -182,7 +176,6 @@ export const Renderer = {
         drawLine('Towers:', `${activeTowers}`, '#3498db', textY + lineHeight * 2);
         drawLine('Enemies:', `${activeEnemies}`, '#e74c3c', textY + lineHeight * 3);
         
-        // Turn orange if pool is near limit
         const projColor = activeProjectiles > maxProjectiles * 0.8 ? '#e67e22' : '#2ecc71';
         drawLine('Projectiles:', `${activeProjectiles} / ${maxProjectiles}`, projColor, textY + lineHeight * 4);
         
@@ -234,7 +227,7 @@ export const Renderer = {
 
     _drawCursor(ctx, engine) {
         if (engine.gameState !== 'playing') return;
-        if (isMobile.any()) return; // FIX: Hide cursor on mobile
+        if (isMobile.any()) return;
         
         ctx.save();
         ctx.fillStyle = '#fff';
@@ -532,7 +525,6 @@ export const Renderer = {
         ctx.globalAlpha = 0.7;
         ctx.lineWidth = 2;
         
-        // Draw Tower Ranges and Footprints
         engine.towers.forEach(t => {
             if (!t) return;
             ctx.strokeStyle = 'blue';
@@ -548,7 +540,6 @@ export const Renderer = {
             }
         });
 
-        // Draw Enemy Hitboxes (Collision Radius)
         engine.enemies.forEach(e => {
             if (!e || !e.alive) return;
             ctx.strokeStyle = 'red';
@@ -557,7 +548,6 @@ export const Renderer = {
             ctx.stroke();
         });
 
-        // Draw Minion Footprints
         const drawMinionHitbox = (m) => {
             if (!m || !m.alive) return;
             ctx.strokeStyle = 'lime';
@@ -568,7 +558,6 @@ export const Renderer = {
         if (engine.sentries) engine.sentries.forEach(drawMinionHitbox);
         if (engine.beasts) engine.beasts.forEach(drawMinionHitbox);
 
-        // FIX: Draw Projectile Hitboxes
         const projectiles = engine.projectilePool.active;
         for (let i = 0; i < projectiles.length; i++) {
             const p = projectiles[i];
@@ -580,7 +569,6 @@ export const Renderer = {
             }
         }
 
-        // FIX: Draw Explosion Radii
         ctx.setLineDash([5, 5]);
         ctx.strokeStyle = 'orange';
         for (const exp of engine.explosions) {
@@ -600,9 +588,9 @@ export const Renderer = {
 
 window.toggleNight = function() {
     if (!_engineInstance || !_engineInstance.map) {
-        console.error("❌ Night Mode Error: You must be in an active game to toggle night!");
+        console.error("? Night Mode Error: You must be in an active game to toggle night!");
         return;
     }
     _engineInstance.isNight = !_engineInstance.isNight;
-    console.log(`🌙 Night mode: ${_engineInstance.isNight ? 'ON' : 'OFF'}`);
+    console.log(`?? Night mode: ${_engineInstance.isNight ? 'ON' : 'OFF'}`);
 };

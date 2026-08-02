@@ -55,7 +55,6 @@ export default {
         ]
     },
     
-    // FIX: Hook to clean up sentries when sold
     onSell(tower, engine) {
         if (tower.sentries) {
             for (let s of tower.sentries) {

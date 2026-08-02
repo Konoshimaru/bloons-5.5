@@ -55,7 +55,6 @@ export class KnightEnemy extends Enemy {
         this.freezeX = 0;
         this.freezeY = 0;
 
-        // FIX: Add homeX/homeY so his floating animation follows his teleport position
         this.homeX = 200;
         this.homeY = 300;
 
@@ -164,7 +163,6 @@ export class KnightEnemy extends Enemy {
         this.recentDamage += damage;
         this.recentDamageTimer = 2.0;
         
-        // FIX: Teleport every 2% max HP damage
         if (this.recentDamage > this._maxHp * 0.02) {
             this._reposition();
         }

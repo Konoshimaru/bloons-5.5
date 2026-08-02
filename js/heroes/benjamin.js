@@ -7,9 +7,15 @@ export default {
         name: "Benjamin", cost: 1200, range: 0, fireRate: 0, damage: 0, projectileSpeed: 0, pierce: 0, 
         lifespan: 0, desc: "Doesn't attack. Generates cash and hacks Bloons.", 
         dmgType: 'none', projectileType: 'none', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
+        isAbility: false, 
+        isAbility2: false,
         abilityCd: 20, abilityName: "Biohack",
         ability2Cd: 60, ability2Name: "Symlink Funding",
-        passiveCash: 50
+        passiveCash: 50,
+        abilities: [
+            { lvl: 3, name: "Biohack", desc: "Buffs all towers on screen for a short time." },
+            { lvl: 5, name: "Symlink Funding", desc: "Trojan: Damages all bloons on screen and grants cash." }
+        ]
     },
     xpTable: [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 14400, 16650, 14940, 16380, 17820, 19260, 20700, 16470, 17280],
     levels: {

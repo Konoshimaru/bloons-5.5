@@ -1,4 +1,4 @@
-﻿// js/assets.js
+// js/assets.js
 // Loads and tracks game art, sprites, and asset references used by the game.
 
 import { Names } from './names.js';
@@ -15,7 +15,6 @@ const CRACK_NAMES = Object.freeze(['ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad
 const MAX_CRACK_STAGES = 10;
 const DAMAGE_STAGE_SUFFIXES = Object.freeze(['_1', '_2', '_3', '_4', '_5', '_6', '_7', '_8', '_9', '_10']);
 
-// FIX: Bulletproof helper to wait for image load without race conditions
 function awaitImageLoad(img) {
     return new Promise(resolve => {
         if (!img) return resolve();
@@ -131,7 +130,6 @@ class AssetsManager {
         await Promise.all(promises);
     }
 
-    // FIX: New method to preload exact URLs (bypasses key mapping)
     // This is perfect for UI assets that live in different folders (like portraits/)
     async preloadUrls(urls, onProgress) {
         const total = urls.length;

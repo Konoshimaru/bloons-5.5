@@ -13,6 +13,9 @@ const ProjectileHitResolution = {
         for (const e of nearby) {
             if (!e.alive) continue;
             
+            // FIX: Big Squeeze immunity
+            if (e.untargetable || e.damageImmune || e.collisionImmune) continue;
+            
             if (!cfg.exemptFromHitTracking && this.hitEnemies.has(e)) continue;
             
             if (e.isCamo && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
@@ -63,6 +66,10 @@ const ProjectileHitResolution = {
         for (const e of nearby) {
             if (hits >= maxPierce) break;
             if (!e.alive) continue;
+            
+            // FIX: Big Squeeze immunity
+            if (e.untargetable || e.damageImmune || e.collisionImmune) continue;
+            
             if (e.data.blocksDamageType && e.data.blocksDamageType(bombDmgType)) continue;
             
             if (e.isCamo && !(this.effects && this.effects.canSeeCamo) && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
@@ -74,13 +81,11 @@ const ProjectileHitResolution = {
                 const dmg = e.takeDamage(expDmg, bombDmgType, this.effects, this.tower);
                 if (dmg === -1) continue;
                 
-                // FIX: Credit parent tower for minion damage
                 if (this.tower) {
                     this.tower.damageDealt += dmg;
                     if (this.tower.parentTower) this.tower.parentTower.damageDealt += dmg;
                 }
                 
-                // FIX: Spawn floating text for critical hits
                 if (this.isCrit && dmg > 0 && GameEngine.floatingTexts) {
                     GameEngine.floatingTexts.push({
                         x: e.x, 
@@ -188,12 +193,10 @@ const ProjectileHitResolution = {
             return;
         }
         
-        // FIX: Credit parent tower for minion damage
         if (this.tower) {
             this.tower.damageDealt += actualDmg;
             if (this.tower.parentTower) this.tower.parentTower.damageDealt += actualDmg;
             
-            // FIX: Spawn floating text for critical hits
             if (this.isCrit && actualDmg > 0 && GameEngine.floatingTexts) {
                 GameEngine.floatingTexts.push({
                     x: enemy.x, 

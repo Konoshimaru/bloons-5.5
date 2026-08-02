@@ -136,7 +136,6 @@ export class Sentry {
             const distSq = Utils.distanceSq(this.x, this.y, e.x, e.y);
             const eRad = e.radius || 10;
             
-            // FIX: Target the edge of the bloon, not the center
             const effRangeWithRad = effRange + eRad;
             if (distSq > effRangeWithRad * effRangeWithRad) continue;
             

@@ -1,4 +1,4 @@
-﻿// particle.js
+// particle.js
 import Assets from './assets.js';
 import { Names } from './names.js';
 import { GLOBAL_SCALE } from './constants.js';
@@ -23,7 +23,6 @@ export class Particle {
         this.size = Math.random() * 0.5 + 0.75;
         this.rotation = Math.random() * Math.PI * 2;
         this.spin = (Math.random() - 0.5) * 3;
-        // PRO FIX: Randomly select 1, 2, or 3
         this.popVariant = Math.floor(Math.random() * 3) + 1;
     }
 
@@ -59,7 +58,7 @@ export class Particle {
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
 
-        const s = BASE_SIZE * this.size * GLOBAL_SCALE; // PRO FIX: Apply global scale to particle size
+        const s = BASE_SIZE * this.size * GLOBAL_SCALE;
         ctx.drawImage(asset, -s / 2, -s / 2, s, s);
 
         ctx.restore();

@@ -11,7 +11,18 @@ export default {
     stats: {
         name: "Gojo", cost: 2500, range: 50, fireRate: 1.2, damage: 2, pierce: 15, projectileSpeed: 0,
         lifespan: 0.4, desc: "The Honored One. Manipulates space to crush bloons.",
-        dmgType: 'magic', projectileType: 'blue', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3
+        dmgType: 'magic', projectileType: 'blue', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
+        isAbility: false, 
+        isAbility2: false, 
+        isAbility3: false,
+        abilityName: "Reversal Red", abilityCd: 30,
+        ability2Name: "Hollow Purple", ability2Cd: 90,
+        ability3Name: "0.2 Domain Expansion", ability3Cd: 120,
+        abilities: [
+            { lvl: 7, name: "Reversal Red", desc: "Pushes back all Bloons on screen." },
+            { lvl: 13, name: "Hollow Purple", desc: "Fires a massive beam of energy that deals huge damage." },
+            { lvl: 20, name: "0.2 Domain Expansion", desc: "Stuns all Bloons on screen for a short time." }
+        ]
     },
     xpTable: [500, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000, 32000, 40000, 50000, 62000, 75000, 90000, 110000, 130000, 160000, 200000, 250000],
     levels: {
@@ -180,7 +191,6 @@ export default {
                 w.life -= dt;
                 w.rot += dt * 10;
 
-                // FIX: The well slowly chases the target bloon (150 px/s)
                 if (w.target && w.target.alive) {
                     let dx = w.target.x - w.x;
                     let dy = w.target.y - w.y;
@@ -291,7 +301,6 @@ export default {
         let pulse = 1 + Math.sin(t * 4) * 0.15;
         let r = Math.max(1, baseR * pulse);
         let points = 16;
-        // FIX: Removed shadowBlur
         ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'screen';
         ctx.save(); ctx.rotate(t * 1.5); let scaleA = 1 + Math.sin(t * 3) * 0.05; ctx.scale(scaleA, scaleA);
         const gradA = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 1.2); gradA.addColorStop(0, 'rgba(0, 210, 255, 0.6)'); gradA.addColorStop(0.6, 'rgba(0, 85, 255, 0.2)'); gradA.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -312,7 +321,6 @@ export default {
         let t = performance.now() / 1000;
         let pulse = 1 + Math.sin(t * 5) * 0.15;
         let r = Math.max(1, baseR * pulse);
-        // FIX: Removed shadowBlur
         ctx.save(); ctx.translate(x, y); ctx.globalCompositeOperation = 'screen';
         for (let i = 0; i < 3; i++) {
             ctx.save(); ctx.rotate(rot + (i * Math.PI * 2 / 3));
@@ -328,7 +336,6 @@ export default {
         let t = performance.now() / 1000;
         let trembleX = (Math.random() - 0.5) * 4;
         let trembleY = (Math.random() - 0.5) * 4;
-        // FIX: Removed shadowBlur
         ctx.save(); ctx.translate(x + trembleX, y + trembleY); ctx.globalCompositeOperation = 'screen';
         let shroudR = 100 + Math.sin(t * 2) * 20;
         const shroudGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(1, shroudR * progress)); shroudGrad.addColorStop(0, `rgba(148, 0, 211, 0.9)`); shroudGrad.addColorStop(0.7, `rgba(75, 0, 130, 0.5)`); shroudGrad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -382,7 +389,6 @@ export default {
 
         for (let i = 0; i < wellCount; i++) {
             let offsetX = wellCount > 1 ? (i === 0 ? -15 : 15) : 0; let offsetY = wellCount > 1 ? (i === 0 ? -15 : 15) : 0;
-            // FIX: Store the target reference so the well can slowly chase it
             tower.blueWells.push({
                 x: target.x + offsetX, y: target.y + offsetY, target: target,
                 targetDist: target.distanceTraveled,

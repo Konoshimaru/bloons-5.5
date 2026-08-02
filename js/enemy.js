@@ -132,9 +132,15 @@ export class Enemy {
             this._maxHp *= 2;
         }
         
-        // FIX: BFB Blade Animation Timer
         this.bladeAnimTimer = 0;
         this.bladeFrame = 0;
+        
+        // FIX: Pat Fusty states
+        this.patSlapKnockbackTimer = 0;
+        this.isSqueezed = false;
+        this.damageImmune = false;
+        this.collisionImmune = false;
+        this.untargetable = false;
         
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         for (const eff of MKEffects.enemyInit) {
@@ -191,8 +197,12 @@ export class Enemy {
         if (this.knockbackCd > 0) this.knockbackCd -= dt; 
         updateTimedEffects(this, dt);
         
-        // FIX: Tick BFB blade animation at 10 FPS
-        if (this.tier === 14) {
+        // FIX: Pat Fusty Sustained Knockback Timer
+        if (this.patSlapKnockbackTimer > 0) {
+            this.patSlapKnockbackTimer -= dt;
+        }
+        
+        if (this.tier >= 13 && this.tier <= 15) {
             this.bladeAnimTimer += dt;
             if (this.bladeAnimTimer >= 0.1) { 
                 this.bladeAnimTimer = 0;
@@ -217,7 +227,17 @@ export class Enemy {
     }
 
     _updateMovement(dt) {
-        this.distanceTraveled += this.data.speed * this.slowFactor * this.gojoSlow * this.permafrostSlow * dt;
+        // FIX: Big Squeeze stops movement entirely
+        if (this.isSqueezed) return;
+        
+        // FIX: Pat Fusty Slap Sustained Knockback (3x backwards for 1 second)
+        if (this.patSlapKnockbackTimer > 0) {
+            this.distanceTraveled -= this.data.speed * 3 * dt;
+            if (this.distanceTraveled < 0) this.distanceTraveled = 0;
+        } else {
+            this.distanceTraveled += this.data.speed * this.slowFactor * this.gojoSlow * this.permafrostSlow * dt;
+        }
+        
         const pos = this.map.getPositionAtDistance(this.distanceTraveled, this.pathIndex);
         this.x = pos.x + this.offsetX;
         this.y = pos.y + this.offsetY;

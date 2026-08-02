@@ -90,7 +90,6 @@ export default {
                     tower.brewTimer = tower.stats.brewCd || 8.0;
                     let buffType = tower.stats.canBrew ? 'brew' : 'dip';
                     
-                    // FIX: Apply buff immediately and show icon!
                     if (buffType === 'brew') {
                         let duration = tower.stats.brewTimer || 5;
                         if (tower.stats.isPermBrew) duration = 9999;
@@ -137,7 +136,6 @@ export default {
                     if (e.data.rbe > bestVal) { bestVal = e.data.rbe; target = e; } 
                 }
                 if (target) {
-                    // FIX: Instantly shrink all bloons in a radius around the target
                     Utils.applyAoeDamage(GameEngine, target.x, target.y, 60, 0, {isMagic: true, canHitLead: true}, tower, {}, {
                         maxHits: 200,
                         onHit: (e) => {

@@ -1,4 +1,4 @@
-﻿// js/projectile.js
+// js/projectile.js
 import { TowerStats } from './towers/index.js';
 import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
@@ -8,7 +8,7 @@ import Assets from './assets.js';
 import { Names } from './names.js';
 import { ProjectileDrawers } from './projectileDrawers.js';
 import ProjectileHitResolution from './projectileHitResolution.js';
-import { MobileManager } from './mobile.js'; // FIX: Import MobileManager
+import { MobileManager } from './mobile.js';
 
 const MORTAR_ARC_HEIGHT = 150;
 const SEEKING_TURN_SPEED = 12;
@@ -268,7 +268,6 @@ export class Projectile {
     }
 
     _isHomingType() {
-        // FIX: Added super_dart, laser, plasma, sun_ball, dark_blade to nonHomingTypes
         // so they don't overwrite the angle offset (arc spread) every frame.
         const nonHomingTypes = ['tack', 'dart', 'ninja', 'nail', 'potion', 'spike_opult', 'juggernaut', 'ultra_juggernaut', 'arrow', 'fire', 'super_dart', 'laser', 'plasma', 'sun_ball', 'dark_blade'];
         return !nonHomingTypes.includes(this.type);
@@ -311,7 +310,6 @@ export class Projectile {
     }
 
     draw(ctx) {
-        // FIX: Apply 1.2x mobile scale to all projectiles automatically!
         const mScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
 
         if (this.type === 'mortar_shell') {
@@ -333,7 +331,7 @@ export class Projectile {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
-        ctx.scale(mScale, mScale); // FIX: Scale the projectile sprite/shape!
+        ctx.scale(mScale, mScale);
         
         if (asset && asset.loaded) {
             const targetSize = this._getDrawSize();

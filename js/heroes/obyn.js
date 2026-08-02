@@ -7,9 +7,15 @@ export default {
         name: "Obyn Greenfoot", cost: 750, range: 40, fireRate: 1.35, damage: 2, projectileSpeed: 350, pierce: 1, 
         lifespan: 1.0, desc: "Commands a spirit wolf. Buffs Magic monkeys in range.", 
         dmgType: 'normal', projectileType: 'wolf', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
+        isAbility: false, 
+        isAbility2: false,
         abilityCd: 35, abilityName: "Brambles",
         ability2Cd: 60, ability2Name: "Wall of Trees",
-        magicDmgBuff: 0, magicPierceBuff: 0
+        magicDmgBuff: 0, magicPierceBuff: 0,
+        abilities: [
+            { lvl: 4, name: "Brambles", desc: "Places brambles on the track that pop Bloons." },
+            { lvl: 8, name: "Wall of Trees", desc: "Creates vines that damage Bloons and grant lives." }
+        ]
     },
     xpTable: [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 14400, 16650, 14940, 16380, 17820, 19260, 20700, 16470, 17280],
     levels: {

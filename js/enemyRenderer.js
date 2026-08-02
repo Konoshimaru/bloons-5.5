@@ -18,13 +18,26 @@ export const EnemyRenderer = {
         }
 
         const baseName = ENEMY_NAMES[this.tier];
-        if (baseName === 'bfb') this._drawBlades(ctx);
+        
+        if (baseName === 'moab' || baseName === 'bfb' || baseName === 'zomg') {
+            this._drawBlades(ctx);
+        }
 
         if (asset && asset.loaded) this._drawSprite(ctx, asset);
         else if (this.data.isMoab) this._drawMoabFallback(ctx);
         else this._drawStandardFallback(ctx);
 
         if (this.slowFactor === 0.0 && this.slowTimer > 0 && !this.isFrozen) this._drawStunOverlay(ctx);
+    },
+
+    // Helper to apply the crush transformation
+    _applySqueezeTransform(ctx) {
+        if (!this.isSqueezed) return;
+        const t = performance.now() / 1000;
+        ctx.translate(Math.sin(t * 30) * 3, 0); // Violent horizontal shaking
+        const squashY = 0.55 + Math.sin(t * 12) * 0.1; // Rhythmic crushing (0.45 to 0.65 height)
+        const squashX = 1.0 + (1.0 - squashY) * 0.4; // Bulge out horizontally
+        ctx.scale(squashX, squashY);
     },
 
     _drawBlades(ctx) {
@@ -39,14 +52,16 @@ export const EnemyRenderer = {
         else if (damagePercent > 0.25) stage = 1;
         
         let frame = this.bladeFrame;
-        let bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_${stage}_${frame}`);
+        const baseName = ENEMY_NAMES[this.tier]; // 'moab', 'bfb', or 'zomg'
+        
+        let bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_blades_${stage}_${frame}`);
         if (!bladeAsset || !bladeAsset.loaded) {
-            if (stage === 0) bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_${frame}`);
+            if (stage === 0) bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_blades_${frame}`);
         }
         if (!bladeAsset || !bladeAsset.loaded) {
             this.bladeFrame = 0;
-            bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_${stage}_0`);
-            if (!bladeAsset || !bladeAsset.loaded && stage === 0) bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}bfb_blades_0`);
+            bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_blades_${stage}_0`);
+            if (!bladeAsset || !bladeAsset.loaded && stage === 0) bladeAsset = Assets.get(`${Names.PREFIXES.ENEMY}${baseName}_blades_0`);
         }
         if (!bladeAsset || !bladeAsset.loaded) return;
         
@@ -61,6 +76,7 @@ export const EnemyRenderer = {
         
         ctx.save();
         ctx.translate(drawX, drawY);
+        this._applySqueezeTransform(ctx); // Apply crush effect
         if (this.tier >= 13) ctx.rotate(this.angle + Math.PI / 2);
         ctx.drawImage(bladeAsset, -w / 2, -h / 2, w, h);
         ctx.restore();
@@ -68,26 +84,30 @@ export const EnemyRenderer = {
 
     _drawSprite(ctx, asset) {
         const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
+        if (asset.width !== this._cachedSpriteW || asset.height !== this._cachedSpriteH) {
+            const targetSize = (this.data.size || (this.data.radius * 2)) * GS * mobileScale;
+            const maxDim = Math.max(asset.width, asset.height);
+            const scale = targetSize / maxDim;
+            this._spriteW = asset.width * scale;
+            this._spriteH = asset.height * scale;
+            this._cachedSpriteW = asset.width;
+            this._cachedSpriteH = asset.height;
+        }
         
-        // FIX: Removed caching so it recalculates size when mobileScale changes!
-        const targetSize = (this.data.size || (this.data.radius * 2)) * GS * mobileScale;
-        const maxDim = Math.max(asset.width, asset.height);
-        const scale = targetSize / maxDim;
-        const w = asset.width * scale;
-        const h = asset.height * scale;
-        
+        const w = this._spriteW;
+        const h = this._spriteH;
         const drawX = this.x + (this.data.spriteOffsetX || 0);
         const drawY = this.y + (this.data.spriteOffsetY || 0);
         
         ctx.save();
         ctx.translate(drawX, drawY);
+        this._applySqueezeTransform(ctx); // Apply crush effect
         if (this.tier >= 13) ctx.rotate(this.angle + Math.PI / 2);
         ctx.drawImage(asset, -w / 2, -h / 2, w, h);
         ctx.restore();
         
         if (this.tier >= 12 && this.hp < this._maxHp) this._drawCracks(ctx, w, h, drawX, drawY);
 
-        // FIX: Overlays ONLY apply to tier < 13 (Normal bloons)
         if (this.tier < 13) {
             const srcStr = asset.src || '';
             const hasCustomCamoSprite = srcStr.includes('_camo');
@@ -101,6 +121,7 @@ export const EnemyRenderer = {
                 
                 ctx.save();
                 ctx.translate(drawX, drawY);
+                this._applySqueezeTransform(ctx); // Apply crush effect to overlay
                 if (fImg && fImg.loaded) {
                     ctx.drawImage(fImg, -w / 2, -h / 2, w, h);
                 } else {
@@ -126,6 +147,7 @@ export const EnemyRenderer = {
             if (cImg && cImg.loaded) {
                 ctx.save();
                 ctx.translate(drawX, drawY);
+                this._applySqueezeTransform(ctx); // Apply crush effect to overlay
                 ctx.drawImage(cImg, -w / 2, -h / 2, w, h);
                 ctx.restore();
             }
@@ -164,6 +186,7 @@ export const EnemyRenderer = {
         
         ctx.save();
         ctx.translate(drawX, drawY);
+        this._applySqueezeTransform(ctx); // Apply crush effect to cracks
         if (this.tier >= 13) ctx.rotate(this.angle + Math.PI / 2);
         ctx.drawImage(crackAsset, -w / 2, -h / 2, w, h);
         ctx.restore();
@@ -173,6 +196,7 @@ export const EnemyRenderer = {
         const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         ctx.save();
         ctx.translate(this.x, this.y);
+        this._applySqueezeTransform(ctx); // Apply crush effect
         ctx.rotate(this.angle + Math.PI / 2);
         ctx.fillStyle = this.data.color;
         ctx.fillRect(-this.radius * mobileScale, -this.radius * 0.6 * mobileScale, this.radius * 2 * mobileScale, this.radius * 1.2 * mobileScale);

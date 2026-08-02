@@ -4,7 +4,6 @@ import { GLOBAL_SCALE } from './constants.js';
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export const MapRenderCore = {
-    // FIX: Added ignoreVisibility parameter
     drawPaths(ctx, paths, ignoreVisibility = false) {
         if (!paths) return;
         for (let p = 0; p < paths.length; p++) {

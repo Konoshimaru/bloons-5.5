@@ -9,8 +9,10 @@ const SAFETY_LOOP_LIMIT = 100;
 
 const EnemyDamage = {
     takeDamage(damage, dmgType, effects, killerTower = null) {
-        // FIX: Guard against being called on an already-dead enemy. 
         if (!this.alive) return -1;
+        
+        // FIX: Big Squeeze immunity
+        if (this.damageImmune) return -1;
         
         if (!dmgType) dmgType = {};
         if (!effects) effects = {};
@@ -48,7 +50,6 @@ const EnemyDamage = {
             }
         }
         
-        // FIX: Knockback Cooldown and MOAB scaling to prevent permanent stun locks
         if (effects.knockback) {
             if (this.knockbackCd === undefined || this.knockbackCd <= 0) {
                 let kbAmount = effects.knockback;
@@ -89,7 +90,6 @@ const EnemyDamage = {
     _isImmune(dmgType, effects) {
         if (!dmgType) dmgType = {}; 
         
-        // FIX: Energy and Fire damage types cannot pop Lead unless explicitly allowed
         if (this.data.isLead && (dmgType.isEnergy || dmgType.isFire) && !dmgType.canHitLead && !this.leadStripped) {
             AudioEngine.playSfx('lead_hit');
             return true;
@@ -136,7 +136,6 @@ const EnemyDamage = {
             }
             if (effects && effects.unstableConcoction) this.unstableConcoction = true;
             
-            // FIX: RESTORED carry-over damage. Excess damage IS passed equally to the spawned children!
             const carryOver = damage - previousHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {

@@ -20,7 +20,7 @@ import { Tower } from '../tower.js';
 import { GLOBAL_SCALE } from '../constants.js';
 import { Beast } from '../beastEntity.js';
 import { LAND_BEASTS, WATER_BEASTS, AIR_BEASTS } from '../beastData.js';
-import uiTowerPanel from '../uiTowerPanel.js'; // FIX: Import for custom UI
+import uiTowerPanel from '../uiTowerPanel.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -58,7 +58,6 @@ export default {
         ]
     },
 
-    // FIX: Hook for pre-upgrade checks (e.g. water requirement)
     preUpgrade(tower, path, engine) {
         if (path === 1) {
             let hasWater = false;
@@ -73,7 +72,6 @@ export default {
         return true;
     },
 
-    // FIX: Hook to clean up beast entity when sold
     onSell(tower, engine) {
         if (tower.beast) {
             tower.beast.alive = false;
@@ -82,18 +80,15 @@ export default {
         }
     },
 
-    // FIX: Hook to let the Beast module decide which entity the ability targets
     getAbilityTarget(tower, slot) {
         if (!tower.isMinion && tower.beast) return tower.beast;
         return tower;
     },
     
-    // FIX: Hook to setup custom UI (Beast Place/Merge buttons)
     setupCustomUI(panel, t, engine) {
         uiTowerPanel._setupBeastUI(panel, t, engine);
     },
 
-    // FIX: Hook to provide counter text
     getCounterText(t) {
         if (t.beast) return `Power: ${t.beast.beastPower} / ${t.beast.data.maxPower}`;
         return `Dmg Dealt: ${Number(t.damageDealt) || 0}`;

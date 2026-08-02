@@ -1,4 +1,4 @@
-﻿// data.js
+// data.js
 import { deepFreeze } from './utils.js';
 import { EnemyTypesData } from './bloons.js';
 import { WavesData } from './waves.js';

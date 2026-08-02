@@ -30,7 +30,6 @@ export default {
             {name:"Lots More Darts", cost:550, stat:"projectileCount", amount:4, desc:"Shoots 12 darts at a time."},
             {name:"Fighter Plane", cost:1000, stat:"moabDmg", amount:5, desc:"Flies fast and launches anti-MOAB missiles.", extraMods:{missileCd: 3.0, missileDmg: 18, aceSpeedMult: 1.25}},
             {name:"Operation: Dart Storm", cost:3300, stat:"projectileCount", amount:4, desc:"Shoots 16 darts per volley, and twice as fast.", extraMods:{cooldownMult: 0.5, missileCd: -1.5, missileDmg: 6}},
-            // FIX: 16 + 16 = 32 darts. Damage 1 + 2 = 3. Pierce 5 + 3 = 8.
             {name:"Sky Shredder", cost:42500, stat:"projectileCount", amount:16, desc:"The Bloons will wish they had never come.", extraMods:{pierce: 3, damage: 2, cooldownMult: 0.5, missileDmg: 126, projectileSpeed: 60 * GS, dmgType: 'normal', ceramicDmg: 2}}
         ],
         2: [
@@ -91,7 +90,6 @@ export default {
         let dx = tower.planeX - prevX;
         let dy = tower.planeY - prevY;
         if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
-            // FIX: Sprite points RIGHT by default, so we do NOT add PI/2.
             // This aligns the nose perfectly with the movement direction.
             tower.planeAngle = Math.atan2(dy, dx); 
         }

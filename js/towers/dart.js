@@ -3,7 +3,7 @@ import Assets from '../assets.js';
 import { drawImageCentered, Utils } from '../utils.js';
 import { SpriteConfig } from '../spriteConfig.js';
 import { GLOBAL_SCALE } from '../constants.js';
-import { MobileManager } from '../mobile.js'; // FIX: Import MobileManager
+import { MobileManager } from '../mobile.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -41,7 +41,6 @@ export default {
         ]
     },
     
-    // FIX: Hook to let the Dart module decide if it can bypass the tier 5 limit
     canBuyTier5(tower, path, engine) {
         if (path === 3) { // Master Double crosspath limit
             const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
@@ -54,7 +53,6 @@ export default {
         return false;
     },
 
-    // FIX: Hook to let the Dart module modify the placement cost
     getPlacementCostModifier(stats, cost, engine) {
         if (!engine.isSandbox && engine.difficulty && !engine.difficulty.noSelling) {
             const mkActive = engine.config.data.mkActive !== false;
@@ -94,7 +92,6 @@ export default {
         }
     },
     draw(ctx, tower, isPreview) {
-        // FIX: Apply 1.2x mobile scale to all Dart Monkey drawings!
         const mScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         
         ctx.save(); ctx.translate(tower.x, tower.y);
@@ -135,7 +132,7 @@ export default {
                 
                 if (!isCustomBase) { 
                     ctx.save(); ctx.translate(tower.x, tower.y); 
-                    ctx.scale(mScale, mScale); // FIX: Apply mobile scale to overlays too
+                    ctx.scale(mScale, mScale);
                     if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2); 
                     for (let i=1; i<=3; i++) { 
                         let t = tower.upgrades[i-1]; 

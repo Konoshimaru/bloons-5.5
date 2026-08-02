@@ -1,4 +1,4 @@
-﻿// js/config.js
+// js/config.js
 import { Maps } from './data.js';
 import { HeroStats, HeroLevels } from './heroes/index.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';

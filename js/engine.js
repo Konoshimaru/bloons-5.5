@@ -1,4 +1,4 @@
-﻿// js/engine.js
+// js/engine.js
 import { Config, Difficulties, HeroStats } from './config.js';
 import { TowerStats, TowerRegistry, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
@@ -21,7 +21,6 @@ import { Renderer } from './renderer.js';
 import { CutsceneManager } from './cutscene.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
-// FIX: Import the extracted modules
 import EngineInput from './engineInput.js';
 import GameSession from './gameSession.js';
 import SimulationLoop from './simulationLoop.js';
@@ -33,12 +32,6 @@ const FPS_UPDATE_INTERVAL = 1000;
 const HANG_THRESHOLD_MS = 500; 
 
 export const GameEngine = {
-    /** @type {import('./tower.js').Tower[]} */
-    towers: [],
-    /** @type {import('./enemy.js').Enemy[]} */
-    enemies: [],
-    /** @type {import('./projectile.js').Projectile[]} */
-    // ... add it to the rest of your arrays!
     canvas: null,
     ctx: null,
     lastTime: 0,
@@ -49,16 +42,16 @@ export const GameEngine = {
     
     get config() { return Config; }, 
     
-    enemies: [],
     towers: [],
+    enemies: [],
     beasts: [], 
-    sentries: [], // FIX: Array for Sentry entities
+    sentries: [], 
     explosions: [],
-    floatingTexts: [], // FIX: Array for floating combat text
+    floatingTexts: [], 
     enemyGrid: new SpatialGrid(80),
     towerGrid: new SpatialGrid(80), 
     beastGrid: new SpatialGrid(80), 
-    sentryGrid: new SpatialGrid(80), // FIX: Grid for Sentry entities
+    sentryGrid: new SpatialGrid(80), 
     
     projectilePool: new ObjectPool(() => new Projectile(), (p) => { p.alive = false; p.active = false; }, 2000),
     particlePool: new ObjectPool(() => new Particle(), (p) => { p.life = 0; p.active = false; }, 200),
@@ -189,9 +182,9 @@ export const GameEngine = {
         this.cash = isSandbox ? 10000000 : diff.cash;
         this.imfDebt = 0;
         this.towers.length = 0; this.enemies.length = 0; this.explosions.length = 0;
-        this.floatingTexts.length = 0; // FIX: Clear floating texts
+        this.floatingTexts.length = 0; 
         this.beasts.length = 0; 
-        this.sentries.length = 0; // FIX: Clear sentries on new game
+        this.sentries.length = 0; 
         this.acidPools.length = 0; this.menuClickables.length = 0;
         this.projectilePool.clear(); this.particlePool.clear();
         if (!isSandbox && !diff.noSelling) {
@@ -273,6 +266,7 @@ export const GameEngine = {
                     }
                 } catch (err) {
                     console.error("FATAL SIMULATION ERROR:", err); 
+                    if (import.meta.env.DEV) throw err; // Fail loud in dev mode
                     this.gameState = 'gameover';
                     try { 
                         UI.toggleMenus('game-over-menu'); 
@@ -286,7 +280,9 @@ export const GameEngine = {
             if (this.gameState !== 'gameover') {
                 try { Renderer.render(this, rawDt); } 
                 catch (err) {
-                    console.error("FATAL RENDER ERROR:", err); this.gameState = 'gameover';
+                    console.error("FATAL RENDER ERROR:", err); 
+                    if (import.meta.env.DEV) throw err; // Fail loud in dev mode
+                    this.gameState = 'gameover';
                     try { 
                         UI.toggleMenus('game-over-menu'); 
                         document.getElementById('go-wave-stat').innerText = `Render Crash: ${err.message}.`; 
@@ -297,6 +293,7 @@ export const GameEngine = {
             }
         } catch (fatalError) {
             console.error("FATAL LOOP ERROR (This caused the freeze):", fatalError);
+            if (import.meta.env.DEV) throw fatalError; // Fail loud in dev mode
             this.gameState = 'gameover';
             try {
                 UI.toggleMenus('game-over-menu'); 
@@ -328,9 +325,9 @@ export const GameEngine = {
         this.beastGrid.clear(); 
         for (const b of this.beasts) this.beastGrid.insert(b); 
         
-        this._updateSentries(dt); // FIX: Update Sentries
-        this.sentryGrid.clear(); // FIX: Clear sentry grid
-        for (const s of this.sentries) this.sentryGrid.insert(s); // FIX: Insert sentries into grid
+        this._updateSentries(dt); 
+        this.sentryGrid.clear(); 
+        for (const s of this.sentries) this.sentryGrid.insert(s); 
         
         this._updateEconomy(dt); this._updateProjectiles(dt);
         this._updateExplosions(dt); this._updateFloatingTexts(dt); this._updateParticles(dt);
@@ -360,7 +357,6 @@ export const GameEngine = {
     }
 };
 
-// FIX: Mix in the extracted modules
 Object.assign(GameEngine, EngineInput);
 Object.assign(GameEngine, GameSession);
 Object.assign(GameEngine, SimulationLoop);

@@ -48,7 +48,7 @@ export const menuController = {
         this.refreshMapSelector();
         this.refreshHeroSelector();
         this.updateHeroShopCard();
-        updateShopPrices(); // FIX: Replaced updateShopUI()
+        updateShopPrices();
     },
 
     updateProfileUI() {
@@ -199,7 +199,6 @@ export const menuController = {
                 <div class="play-map-name">${map.name || `Map ${actualIndex + 1}`}</div>
             `;
 
-            // FIX: Add Delete button for custom maps
             const isCustom = Config.data.customMaps.some(cm => cm.id === map.id);
             if (isCustom) {
                 const delBtn = document.createElement('button');
@@ -342,7 +341,7 @@ export const menuController = {
             document.getElementById('top-ui-left').classList.add('hidden');
             document.getElementById('top-ui-right').classList.add('hidden');
             AudioEngine.playMenuMusic();
-            updateShopPrices(); // FIX: Replaced updateShopUI()
+            updateShopPrices();
         });
         dom.hmPrevBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: -300, behavior: 'smooth' }));
         dom.hmNextBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: 300, behavior: 'smooth' }));

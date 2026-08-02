@@ -138,7 +138,15 @@ export default {
     stats: {
         name: "Geto", cost: 720, range: 40, fireRate: 1.2, damage: 1, pierce: 2,
         projectileSpeed: 0, lifespan: 0.4, desc: "Cursed Spirit Manipulator. Captures curses and unleashes them as resentment.",
-        dmgType: 'magic', projectileType: 'squid', hitRadius: 12, isHero: true, maxLevel: 20, scale: 1.3
+        dmgType: 'magic', projectileType: 'squid', hitRadius: 12, isHero: true, maxLevel: 20, scale: 1.3,
+        isAbility: false, 
+        isAbility2: false,
+        abilityName: "Curse Capture", abilityCd: 15,
+        ability2Name: "Maximum: Uzumaki", ability2Cd: 45,
+        abilities: [
+            { lvl: 3, name: "Curse Capture", desc: "Captures a nearby curse to permanently boost damage." },
+            { lvl: 10, name: "Maximum: Uzumaki", desc: "Unleashes a massive blast of cursed spirits." }
+        ]
     },
     xpTable: [500, 1200, 2500, 4500, 7000, 10000, 14000, 19000, 25000, 32000, 40000, 50000, 62000, 75000, 90000, 110000, 130000, 160000, 200000, 250000],
     levels: {
@@ -185,7 +193,7 @@ export default {
                 GameEngine.log("Curse captured!");
             }
         }
-        for (let i = tower.squids.length - 1; i >= 0; i--) {
+        for (let i = tower.squids.length - 1; i >= 0; i++) {
             let s = tower.squids[i];
             s.life -= dt;
             if (!s.isWorm) {
@@ -193,7 +201,6 @@ export default {
                 const candidates = GameEngine.enemyGrid.query(s.x, s.y, 200);
                 for (let e of candidates) {
                     if (!e.alive || s.hitEnemies.has(e)) continue;
-                    // PRO FIX: Use distanceSq for sorting
                     let dSq = Utils.distanceSq(s.x, s.y, e.x, e.y);
                     if (dSq < nearestDistSq) { nearestDistSq = dSq; nearest = e; }
                 }
@@ -212,7 +219,6 @@ export default {
             const nearby = GameEngine.enemyGrid.query(s.x, s.y, s.hitRadius + 20);
             for (let e of nearby) {
                 if (!e.alive || s.hitEnemies.has(e)) continue;
-                // PRO FIX: Use withinRange
                 if (Utils.withinRange(s.x, s.y, e.x, e.y, e.data.radius + s.hitRadius)) {
                     let dmg = e.takeDamage(s.dmg, { isMagic: true, canHitLead: true });
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
@@ -333,7 +339,6 @@ export default {
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle);
-        // FIX: Removed shadowBlur
         const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 12);
         grad.addColorStop(0, '#a020f0');
         grad.addColorStop(0.6, '#4a0080');
@@ -365,7 +370,6 @@ export default {
         ctx.translate(x, y);
         ctx.rotate(angle);
         ctx.globalCompositeOperation = 'screen';
-        // FIX: Removed shadowBlur
         for (let i = 0; i < 6; i++) {
             let offset = Math.sin(t * 6 + i * 0.5) * 3;
             let hue = (i * 60 + t * 100) % 360;
@@ -387,7 +391,6 @@ export default {
         } else if (u.phase === 'firing') {
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
-            // FIX: Removed shadowBlur
             const grad = ctx.createRadialGradient(tower.x, tower.y, 0, tower.x, tower.y, 22);
             grad.addColorStop(0, 'rgba(255,255,255,0.9)');
             grad.addColorStop(0.5, u.isUpgraded ? 'rgba(255,0,100,0.6)' : 'rgba(128,0,255,0.6)');
@@ -422,7 +425,6 @@ export default {
         let t = performance.now() / 1000;
         ctx.save();
         ctx.globalCompositeOperation = 'screen';
-        // FIX: Removed shadowBlur
         ctx.strokeStyle = `rgba(200, 100, 255, ${progress})`; ctx.lineWidth = 3;
         ctx.setLineDash([5, 5]);
         ctx.lineDashOffset = -t * 30;
@@ -448,7 +450,6 @@ export default {
         for (let e of engine.enemies) {
             if (!e.alive) continue;
             if (e.data.isMoab || e.data.isDDT || e.data.isBAD) continue;
-            // PRO FIX: Use withinRange first to skip out of range enemies
             if (!Utils.withinRange(tower.x, tower.y, e.x, e.y, tower.stats.range)) continue;
             const dist = Utils.distance(tower.x, tower.y, e.x, e.y);
             const hp = Number.isFinite(e.hp) ? e.hp : (e.data.maxHp || 0);

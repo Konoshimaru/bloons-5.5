@@ -1,4 +1,4 @@
-﻿// js/towers/index.js
+// js/towers/index.js
 import dart from './dart.js';
 import boomerang from './boomerang_monkey.js';
 import tack from './tack.js';
@@ -39,7 +39,6 @@ placeholderTowers.forEach(([key, name, cost, desc]) => {
     TowerRegistry[key] = createPlaceholderTower(name, cost, desc);
 });
 
-// FIX: Export TOWER_CATEGORIES so it can be shared across files
 export const TOWER_CATEGORIES = {
     // Primary
     dart: 'Primary', boomerang: 'Primary', bomb: 'Primary', tack: 'Primary', 

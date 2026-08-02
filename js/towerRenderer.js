@@ -8,7 +8,7 @@ import Assets from './assets.js';
 import { Names } from './names.js';
 import { SpriteConfig } from './spriteConfig.js';
 import { GLOBAL_SCALE } from './constants.js';
-import { MobileManager } from './mobile.js'; // FIX: Import MobileManager
+import { MobileManager } from './mobile.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -20,7 +20,6 @@ const _buffIconCache = {};
 
 export default {
     draw(ctx, isPreview = false, engine = null) {
-        // FIX: Apply 1.2x scale on mobile
         const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         
         if (!isPreview && engine && engine.nightAlpha > 0) {
@@ -47,7 +46,6 @@ export default {
             this.drawBaseTower(ctx, isPreview);
         }
         
-        // FIX: Draw bananas AFTER the tower so they are visible and clickable
         this._drawBananas(ctx);
         
         // Draw buffs above the monkey's head ONLY if this tower is currently selected
@@ -55,7 +53,6 @@ export default {
             this._drawBuffs(ctx);
         }
 
-        // FIX: Draw stun stars if stunned
         if (!isPreview && this.stunTimer > 0) {
             this._drawStunOverlay(ctx);
         }
@@ -95,7 +92,6 @@ export default {
         }
     },
 
-    // FIX: Merged redundant wrapper directly into the public function
     drawBaseTower(ctx, isPreview = false) {
         if (FARM_VILLAGE_TYPES.has(this.type)) { this._drawFarmOrVillage(ctx); return; }
         const { baseAsset, armAsset, targetSize, isCustomBase } = this.getActiveAssets();
@@ -438,7 +434,6 @@ export default {
         return canvas;
     },
 
-    // FIX: Draw stun stars overlay (same as bloons)
     _drawStunOverlay(ctx) {
         const mobileScale = MobileManager.isActive ? MobileManager.spriteScale : 1.0;
         const t = performance.now() / 1000;

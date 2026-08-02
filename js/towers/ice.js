@@ -1,4 +1,4 @@
-﻿// js/towers/ice.js
+// js/towers/ice.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';

@@ -45,7 +45,6 @@ const KnightAttacks = {
                 this.targetOffset = this.screenSplitOffset * this.splitDirection;
                 GameEngine.log("Reality shatters!");
                 
-                // FIX: Removed the split screen stun logic completely.
             }
         } else if (this.state === 'split_active') {
             if (this.stateTimer <= 0) {
@@ -150,7 +149,6 @@ const KnightAttacks = {
                 } else if (s.phase === 'dash') {
                     s.x += s.vx * dt;
                     
-                    // FIX: Removed t.alive check! Towers don't have an .alive property.
                     for (let t of GameEngine.towers) {
                         if (t && Utils.withinRange(s.x, s.y, t.x, t.y, t.hitRadius + 20)) {
                             this._hitTower(t);
@@ -246,9 +244,8 @@ const KnightAttacks = {
 
     _hitTower(tower) {
         let isHighTier = tower.upgrades.some(u => u >= 4);
-        let isHero = !!tower.stats.isHero; // FIX: Check if the tower is a hero
+        let isHero = !!tower.stats.isHero;
         
-        // FIX: Heroes cannot be sold, they will always be stunned instead.
         if (!isHighTier && !isHero && Math.random() < 0.5) {
             GameEngine.log("Sword Strike! " + tower.stats.name + " was sold!");
             AudioEngine.playSfx('cash');

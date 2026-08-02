@@ -9,7 +9,15 @@ export default {
         lifespan: 0.4, desc: "Blasts Bloons with fire. Cannot hit Purple or Camo.",
         dmgType: 'fire', projectileType: 'fire', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
         canHitLead: true,
-        projectileCount: 1
+        projectileCount: 1,
+        isAbility: false, 
+        isAbility2: false,
+        abilityName: "Cocktail of Fire", abilityCd: 20,
+        ability2Name: "Firestorm", ability2Cd: 45,
+        abilities: [
+            { lvl: 3, name: "Cocktail of Fire", desc: "Throws a flaming cocktail that creates a fire puddle." },
+            { lvl: 10, name: "Firestorm", desc: "Engulfs the screen in flames, damaging all Bloons." }
+        ]
     },
     xpTable: [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 14400, 16650, 14940, 16380, 17820, 19260, 20700, 16470, 17280],
     levels: {

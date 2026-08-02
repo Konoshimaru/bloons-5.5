@@ -2,7 +2,7 @@
 import { Config } from './config.js';
 import { GameEngine } from './engine.js';
 import { AudioEngine } from './audio.js';
-import { dom } from './dom.js'; // FIX: Import dom from new file
+import { dom } from './dom.js';
 
 const settingsMenu = {
     _setupSettingsListeners() {

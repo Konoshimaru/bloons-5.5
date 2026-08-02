@@ -113,7 +113,6 @@ export default {
                     let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
                     if (target && target.alive) {
                         let p = engine.projectilePool.get();
-                        // FIX: Added moabDmg to the dmgType object
                         p.init(tower.x, tower.y, tower.stats.missileDmg, target, 'bomb', 600, 20, 2.0, null, {isExplosive: true, explosionRadius: 30, explosionDamage: tower.stats.missileDmg, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true, moabDmg: tower.stats.moabDmg || 0});
                     }
                 }

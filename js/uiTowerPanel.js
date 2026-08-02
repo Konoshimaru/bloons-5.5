@@ -5,7 +5,7 @@ import { getEffectiveCooldown } from './towerBehavior.js';
 import { HeroRegistry } from './heroes/index.js';
 import { getSellRate } from './towerEconomy.js';
 import { getBehavior } from './registry.js';
-import { GAME_AREA_WIDTH } from './constants.js'; // FIX: Import for side-rule
+import { GAME_AREA_WIDTH } from './constants.js';
 
 const _elCache = {};
 function el(id) {
@@ -89,12 +89,8 @@ const uiTowerPanel = {
             if (t.stats.isHero) {
                 this._collectHeroAbilities(t, abilities);
             } else if (t.stats.isAbility) {
-                let towerCd = t.stats.abilityCd || 45;
-                let towerName = t.stats.abilityName || "Ability";
-                if (t.type === 'tack') {
-                    towerCd = 35;
-                    towerName = t.upgrades[1] === 5 ? "Super Maelstrom" : "Blade Maelstrom";
-                }
+                const towerCd = t.stats.abilityCd || 45;
+                const towerName = t.stats.abilityName || "Ability";
                 
                 let cd = t.abilityCooldown || 0;
                 const behavior = getBehavior(t.type);
@@ -109,17 +105,16 @@ const uiTowerPanel = {
     },
 
     _collectHeroAbilities(t, abilities) {
-        let ab1Name = "Ability 1", ab2Name = "Ability 2";
-        let ab1Cd = 60, ab2Cd = 70;
+        // Read directly from stats! No more hardcoded names.
+        let ab1Name = t.stats.abilityName || "Ability 1";
+        let ab2Name = t.stats.ability2Name || "Ability 2";
+        let ab3Name = t.stats.ability3Name || "Ability 3";
+        let ab1Cd = t.stats.abilityCd || 60;
+        let ab2Cd = t.stats.ability2Cd || 70;
+        let ab3Cd = t.stats.ability3Cd || 120;
         
-        if (t.type === 'quincy') {
-            ab1Name = "Rapid"; ab2Name = "Storm";
-            ab1Cd = t.stats.rapidShotCd || 60;
-            ab2Cd = t.stats.stormCd || 70;
-        } else if (t.type === 'gwendolin') {
-            ab1Name = "Cocktail"; ab2Name = "Firestorm";
-            ab1Cd = 30; ab2Cd = 60;
-        } else if (t.type === 'gojo') {
+        // Special exception: Gojo's abilities change name based on his phase
+        if (t.type === 'gojo') {
             if (t.phase === 2) {
                 ab1Name = "Reversal Red"; ab1Cd = 30;
                 ab2Name = "Hollow Purple"; ab2Cd = 90;
@@ -136,8 +131,7 @@ const uiTowerPanel = {
             abilities.push({ tower: t, slot: 2, cd: t.ability2Cooldown || 0, maxCd: ab2Cd, name: ab2Name });
         }
         if (t.stats.isAbility3) {
-            const name = t.type === 'gojo' ? "0.2 Domain" : "Ability 3";
-            abilities.push({ tower: t, slot: 3, cd: t.ability3Cooldown || 0, maxCd: 120, name });
+            abilities.push({ tower: t, slot: 3, cd: t.ability3Cooldown || 0, maxCd: ab3Cd, name: ab3Name });
         }
     },
 
@@ -149,7 +143,6 @@ const uiTowerPanel = {
         const isCurrentlyOnRight = panel.classList.contains('sidebar-right');
         const isCurrentlyHidden = panel.classList.contains('hidden');
 
-        // FIX: If we are changing sides while visible, or showing from hidden, 
         // we must snap it to the off-screen position FIRST to restart the CSS transition.
         if (isCurrentlyHidden || shouldBeOnRight !== isCurrentlyOnRight) {
             // 1. Disable transition
@@ -549,7 +542,6 @@ const uiTowerPanel = {
         
         this._updatePortrait(t);
 
-        // FIX: Auto-update tooltip if mouse is currently hovering over an upgrade
         if (window._hoveredUpgradePath) {
             const path = window._hoveredUpgradePath;
             const tier = t.upgrades[path - 1];

@@ -1,4 +1,4 @@
-﻿// js/ui.js
+// js/ui.js
 import { TowerStats } from './towers/index.js';
 import { Config, HeroStats } from './config.js';
 import uiTowerPanel from './uiTowerPanel.js';
@@ -11,7 +11,6 @@ function el(id) {
     return elements[id];
 }
 
-// FIX: Added 'monkeys-menu' to the array so the game knows how to hide it when the back button is clicked
 const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu'];
 const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 
@@ -67,7 +66,7 @@ export const UI = {
         if (levelEl) levelEl.innerText = `Level ${Config.data.playerLevel}`;
         if (xpEl) xpEl.innerText = `${Config.data.playerXP} / ${Config.data.playerXPToNext} XP`;
         if (expFill) expFill.style.width = `${(Config.data.playerXP / Config.data.playerXPToNext) * 100}%`;
-        if (mmEl) mmEl.innerText = `🐵 $${Config.data.monkeyMoney}`;
+        if (mmEl) mmEl.innerText = `?? $${Config.data.monkeyMoney}`;
         
         const hasSave = !!Config.data.savedRun;
         const continueBtn = el('btn-continue');
@@ -97,7 +96,6 @@ export const UI = {
         const panel = el('upgrade-sidebar');
         if (panel) panel.classList.add('hidden');
         
-        // FIX: Hide ability bar and cancel button when leaving the game/deselecting
         const abilityBar = el('ability-bar');
         if (abilityBar) abilityBar.classList.add('hidden');
         
@@ -148,7 +146,6 @@ export const UI = {
             }
         });
 
-        // FIX: Added !engine.selectedPlacedTower.isMinion to prevent crashing on Sentries/Beasts
         if (engine.selectedPlacedTower && !engine.selectedPlacedTower.stats.isHero && !engine.selectedPlacedTower.isMinion) {
             this._updateUpgradeCards(engine.selectedPlacedTower, engine);
         }

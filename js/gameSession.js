@@ -72,7 +72,6 @@ const GameSession = {
         Config.data.monkeyMoney += mmEarned;
         LevelManager.addXP(xpEarned);
         
-        // FIX: Track Player Stats
         if (!Config.data.stats) Config.data.stats = { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
         Config.data.stats.gamesPlayed = (Config.data.stats.gamesPlayed || 0) + 1;
         Config.data.stats.highestRound = Math.max(Config.data.stats.highestRound || 0, wavesSurvived);

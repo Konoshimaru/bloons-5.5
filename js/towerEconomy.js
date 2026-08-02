@@ -3,9 +3,8 @@ import { Upgrades } from './towers/index.js';
 import { Utils } from './utils.js';
 import { RANGE_SCALE } from './config.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
-import { getBehavior } from './registry.js'; // FIX: Import getBehavior to access module hooks
+import { getBehavior } from './registry.js';
 
-// FIX: Extracted reusable sell rate calculation
 export function getSellRate(tower, engine) {
     let resaleRate = 0.70;
     const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
@@ -26,7 +25,6 @@ const TowerEconomy = {
         if (this.isMinion) return false; 
         
         const behavior = getBehavior(this.type);
-        // FIX: Let the specific tower module decide if it can be upgraded
         if (behavior?.canUpgrade && !behavior.canUpgrade(this, path, engine)) return false;
         
         const tier = this.upgrades[path - 1];
@@ -38,7 +36,6 @@ const TowerEconomy = {
         }
         
         if (tier === 4 && engine.tier5Bought?.[`${this.type}-${path}`]) {
-            // FIX: Let the specific tower module decide if it can bypass the tier 5 limit
             let allow = false;
             if (behavior?.canBuyTier5) allow = behavior.canBuyTier5(this, path, engine);
             if (!allow) return false;
@@ -55,7 +52,6 @@ const TowerEconomy = {
         let baseCost = upgradeData.cost;
         const behavior = getBehavior(this.type);
         
-        // FIX: Let the tower module modify the base cost (e.g. Village adds $5000 per farm)
         if (behavior?.getUpgradeCostModifier) {
             baseCost = behavior.getUpgradeCostModifier(this, baseCost, path, tier, engine);
         }
@@ -96,6 +92,46 @@ const TowerEconomy = {
             if (this.upgrades[i] === 5) engine.tier5Bought[`${this.type}-${i + 1}`] = false;
         }
         engine.updateUI();
+    },
+
+    activateAbility(slot, engine) {
+        const behavior = getBehavior(this.type);
+        if (!behavior) return false;
+        
+        let actualTower = this;
+        if (behavior.getAbilityTarget) {
+            actualTower = behavior.getAbilityTarget(this, slot) || this;
+        }
+
+        const mk = engine.config.data.mkActive === false ? {} : (engine.config.data.monkeyKnowledge || {});
+        let cdMult = 1.0;
+        for (const eff of MKEffects.abilityCooldown) {
+            if (!mk[eff.id]) continue;
+            if (eff.hero && !this.stats.isHero) continue;
+            if (eff.condition && !eff.condition(this, slot)) continue;
+            if (eff.stat === 'cdMult') cdMult *= eff.amount;
+        }
+        if (this.abilityCdMult) cdMult *= this.abilityCdMult;
+
+        if (slot === 1 && actualTower.stats.isAbility && actualTower.abilityCooldown <= 0 && behavior.ability) {
+            behavior.ability(actualTower, engine);
+            const cd = actualTower.stats.abilityCd || 45;
+            actualTower.abilityCooldown = cd * cdMult; 
+            return true;
+        }
+        if (slot === 2 && actualTower.stats.isAbility2 && actualTower.ability2Cooldown <= 0 && behavior.ability2) {
+            behavior.ability2(actualTower, engine); 
+            const cd = actualTower.stats.ability2Cd || (actualTower.stats.isHero ? 70 : 60);
+            actualTower.ability2Cooldown = cd * cdMult; 
+            return true;
+        }
+        if (slot === 3 && actualTower.stats.isAbility3 && actualTower.ability3Cooldown <= 0 && behavior.ability3) {
+            behavior.ability3(actualTower, engine); 
+            const cd = actualTower.stats.ability3Cd || (actualTower.stats.isHero ? 120 : 60);
+            actualTower.ability3Cooldown = cd * cdMult; 
+            return true;
+        }
+        return false;
     }
 };
 

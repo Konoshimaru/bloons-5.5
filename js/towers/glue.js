@@ -1,4 +1,4 @@
-﻿// js/towers/glue.js
+// js/towers/glue.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 

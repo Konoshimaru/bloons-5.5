@@ -1,4 +1,4 @@
-﻿// pool.js
+// pool.js
 // Provides object pooling for reusable gameplay entities.
 
 export class ObjectPool {

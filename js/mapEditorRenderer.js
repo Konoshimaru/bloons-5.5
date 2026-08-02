@@ -40,11 +40,9 @@ export default {
             ctx.globalAlpha = 1.0;
         }
 
-        // FIX: Paint EVERYTHING past the grid solid red
         ctx.fillStyle = '#e74c3c';
         ctx.fillRect(GAME_AREA_WIDTH, 0, CANVAS_WIDTH - GAME_AREA_WIDTH, CANVAS_HEIGHT);
 
-        // FIX: Grid only draws up to 1060px (GAME_AREA_WIDTH)
         ctx.strokeStyle = 'rgba(0,0,0,0.1)';
         ctx.lineWidth = 1 / MapEditorState.camera.zoom;
         for (let x = 0; x <= GAME_AREA_WIDTH; x += MapEditorState.gridSize) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_HEIGHT); ctx.stroke(); }

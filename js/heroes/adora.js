@@ -1,15 +1,21 @@
 // js/heroes/adora.js
 import { GameEngine } from '../engine.js';
-import { Utils } from '../utils.js'; // FIX: Corrected path to ../utils.js
+import { Utils } from '../utils.js';
 
 export default {
     stats: { 
         name: "Adora", cost: 1000, range: 50, fireRate: 1.4, damage: 2, projectileSpeed: 1000, pierce: 5, 
         lifespan: 0.2, desc: "Fires a piercing beam of holy light.", 
         dmgType: 'energy', projectileType: 'laser', hitRadius: 18, isHero: true, maxLevel: 20, scale: 1.3,
+        isAbility: false, 
+        isAbility2: false,
         abilityCd: 40, abilityName: "Long Arm of Light",
         ability2Cd: 60, ability2Name: "Blood Sacrifice",
-        sacrDmgBonus: 0
+        sacrDmgBonus: 0,
+        abilities: [
+            { lvl: 3, name: "Long Arm of Light", desc: "Extends light beams to hit all Bloons on screen." },
+            { lvl: 7, name: "Blood Sacrifice", desc: "Sacrifices a nearby tower to permanently boost Adora's damage." }
+        ]
     },
     xpTable: [180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 14400, 16650, 14940, 16380, 17820, 19260, 20700, 16470, 17280],
     levels: {

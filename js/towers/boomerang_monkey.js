@@ -1,4 +1,4 @@
-﻿// js/towers/boomerang_monkey.js
+// js/towers/boomerang_monkey.js
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
@@ -39,7 +39,6 @@ export default {
         // Turbo Charge Ability active effect
         if (tower.turboActive > 0) {
             tower.turboActive -= dt;
-            // FIX: Apply a massive attack speed buff while active
             tower.buffedFireRate = Math.max(tower.buffedFireRate || 0, 5.0); 
         }
         

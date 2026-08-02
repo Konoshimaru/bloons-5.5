@@ -5,7 +5,7 @@ import Assets from '../assets.js';
 import { Config, RANGE_SCALE } from '../config.js';
 import { GLOBAL_SCALE } from '../constants.js';
 import { AudioEngine } from '../audio.js'; // FIX 3: Import AudioEngine
-import { MobileManager } from '../mobile.js'; // FIX: Import MobileManager
+import { MobileManager } from '../mobile.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
@@ -26,7 +26,15 @@ export default {
         lifespan: 0.1, desc: "Carves up Bloons with dual swords in a 180-degree cone. Has built-in camo detection.",
         dmgType: 'sharp', isHero: true, maxLevel: 20, scale: 1.3,
         canSeeCamo: true,
-        ceramicDmg: 1, moabDmg: 1
+        ceramicDmg: 1, moabDmg: 1,
+        isAbility: false, 
+        isAbility2: false,
+        abilityName: "Leaping Sword", abilityCd: 20,
+        ability2Name: "Sword Charge", ability2Cd: 40,
+        abilities: [
+            { lvl: 3, name: "Leaping Sword", desc: "Leaps to the strongest Bloon and strikes it." },
+            { lvl: 10, name: "Sword Charge", desc: "Charges down the track, slashing all Bloons in the way." }
+        ]
     },
     xpTable: [257, 656, 1425, 2651, 4674, 7382, 11856, 13367, 19409, 23342, 20520, 23726, 21290, 23342, 25394, 27446, 29498, 23470, 24624],
     levels: {
@@ -220,7 +228,7 @@ export default {
                 ctx.translate(shadow.x, shadow.y);
                 ctx.rotate(shadow.angle + Math.PI / 2); 
                 
-                let targetSize = 45 * (tower.stats.scale || 1.0) * GS * mobileScale; // FIX: Scale shadow
+                let targetSize = 45 * (tower.stats.scale || 1.0) * GS * mobileScale;
                 
                 if (asset && asset.loaded) {
                     drawImageCentered(ctx, asset, targetSize);
@@ -238,7 +246,7 @@ export default {
                 let asset = Assets.get('proj_slash');
                 if (asset && asset.loaded) {
                     let alpha = s.life / s.maxLife;
-                    let w = asset.width * SlashConfig.sizeScale * mobileScale; // FIX: Scale slash
+                    let w = asset.width * SlashConfig.sizeScale * mobileScale;
                     let h = asset.height * SlashConfig.sizeScale * mobileScale;
                     
                     ctx.save();
@@ -258,12 +266,12 @@ export default {
                 ctx.save();
                 ctx.translate(tower.x, tower.y);
                 if (!isPreview && !tower.stats.isStaticRotation) ctx.rotate(tower.angle + Math.PI / 2);
-                drawImageCentered(ctx, baseAsset, targetSize * mobileScale); // FIX: Scale main body
+                drawImageCentered(ctx, baseAsset, targetSize * mobileScale);
                 ctx.restore();
             } else {
                 ctx.save();
                 ctx.translate(tower.x, tower.y);
-                const s = (tower.stats.scale || 1.0) * GS * mobileScale; // FIX: Scale fallback
+                const s = (tower.stats.scale || 1.0) * GS * mobileScale;
                 ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.arc(0, 0, 15 * s, 0, Math.PI * 2); ctx.fill();
                 ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(0, 0, 10 * s, 0, Math.PI * 2); ctx.fill();
                 ctx.restore();

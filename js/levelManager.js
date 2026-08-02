@@ -38,7 +38,6 @@ export const LevelManager = {
 
         const unlockText = data.unlocks;
         
-        // FIX: Check for all possible rewards instead of using else-if so we don't skip heroes!
         
         if (unlockText.includes("Primary tower")) {
             this._showSelectionScreen('Primary', level);

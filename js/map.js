@@ -1,4 +1,4 @@
-﻿import { Utils } from './utils.js';
+import { Utils } from './utils.js';
 import { GameEngine } from './engine.js';
 import Assets from './assets.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';

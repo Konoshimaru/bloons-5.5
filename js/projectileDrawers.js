@@ -1,4 +1,4 @@
-﻿// projectileDrawers.js
+// projectileDrawers.js
 // Contains helpers that draw projectile visuals to the canvas.
 
 // Each drawer is a tiny canvas-rendering function for a projectile type.

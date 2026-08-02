@@ -1,6 +1,6 @@
 // js/monkeyKnowledge.js
 import { Config } from './config.js';
-import MonkeyKnowledgeData from './monkeyKnowledgeData.js'; // FIX: Import data file
+import MonkeyKnowledgeData from './monkeyKnowledgeData.js';
 
 export const MonkeyKnowledge = {
     viewport: null,
@@ -167,7 +167,6 @@ export const MonkeyKnowledge = {
         if (!screenEl) return;
         screenEl.innerHTML = ''; 
 
-        // FIX: Fetch data from the extracted module
         let treeData = [];
         if (screen === 'primary') treeData = MonkeyKnowledgeData.getPrimaryTree();
         else if (screen === 'military') treeData = MonkeyKnowledgeData.getMilitaryTree();
@@ -405,7 +404,6 @@ export const MonkeyKnowledge = {
     },
 
     _animate() {
-        // PRO FIX: Gate the entire animation loop behind menu visibility to save performance
         const menu = document.getElementById('knowledge-menu');
         if (menu && menu.classList.contains('hidden')) {
             this.rafId = requestAnimationFrame(() => this._animate());

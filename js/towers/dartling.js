@@ -64,7 +64,6 @@ export default {
                 tower.stormTimer = 0.05; // Fire 20 times a second
                 let fakeTarget = { x: engine.mouse.x, y: engine.mouse.y };
                 let p = engine.projectilePool.get();
-                // FIX: Added moabDmg to the dmgType object
                 p.init(tower.x, tower.y, 1, fakeTarget, 'bomb', 600, 10, 2.0, null, {isExplosive: true, explosionRadius: 30, explosionDamage: 1, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true, moabDmg: tower.stats.moabDmg || 0});
             }
         }

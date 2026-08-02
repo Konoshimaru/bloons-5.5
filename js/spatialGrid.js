@@ -1,4 +1,4 @@
-﻿// spatialGrid.js
+// spatialGrid.js
 // Implements spatial partitioning for efficient targeting and collision checks.
 
 const HASH_OFFSET = 32768; // Prevents negative keys for coordinates within +/- 32k
@@ -16,7 +16,6 @@ export class SpatialGrid {
     }
 
     clear() {
-        // ISSUE 3 FIX: Truncate arrays in place instead of dropping the Map
         // This prevents array reallocation on the next insert() call
         for (const bucket of this.cells.values()) {
             bucket.length = 0;

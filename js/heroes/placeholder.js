@@ -1,4 +1,4 @@
-﻿// placeholder.js
+// placeholder.js
 // Acts as a placeholder hero implementation for prototyping and testing.
 
 import { GameEngine } from '../engine.js';

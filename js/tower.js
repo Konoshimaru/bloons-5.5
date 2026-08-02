@@ -35,7 +35,6 @@ import { RANGE_SCALE } from './config.js';
 import { getBehavior } from './registry.js'; 
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
-// FIX: Import the extracted modules
 import TowerRenderer from './towerRenderer.js';
 import TowerEconomy from './towerEconomy.js';
 
@@ -63,7 +62,7 @@ export class Tower {
         this.hitscans = [];
         this.bananas = [];
         this.targetingMode = 'First';
-        this.targetingMode2 = 'Last'; // FIX: Default second arm to Last for Robo Monkey
+        this.targetingMode2 = 'Last';
         
         this.stats.canSeeCamo = this.stats.canSeeCamo || false;
         this.stats.canHitLead = this.stats.canHitLead || false;
@@ -92,7 +91,6 @@ export class Tower {
         this.hitRadius = (this.stats.hitRadius || DEFAULT_HIT_RADIUS) * GS;
         this._losBlockers = null;
         
-        // FIX: Footprint system initialization
         this.blocksPlacement = this.stats.blocksPlacement !== false;
         
         this.attackAnimActive = false;
@@ -122,7 +120,6 @@ export class Tower {
 
         this.activeBuffs = [];
 
-        // FIX: Beast Handler Minion System properties
         this.isMinion = false;
         this.parentTower = null;
         this.beastPower = 0;
@@ -131,7 +128,6 @@ export class Tower {
         this.beastPath = -1;
         this.activeBeast = null;
 
-        // FIX: Apply base MK effects generically
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         this._applyMKEffects(mk, MKEffects.base, GameEngine);
     }
@@ -151,6 +147,11 @@ export class Tower {
 
     update(dt, engine) {
         TowerBehavior.update(this, dt, engine);
+        
+        // Guarantee ability cooldowns tick down every frame
+        if (this.abilityCooldown > 0) this.abilityCooldown -= dt;
+        if (this.ability2Cooldown > 0) this.ability2Cooldown -= dt;
+        if (this.ability3Cooldown > 0) this.ability3Cooldown -= dt;
     }
 
     _recalculateStats() {
@@ -167,13 +168,11 @@ export class Tower {
             }
         }
 
-        // FIX: Apply cooldown and tier MK effects generically
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         this._applyMKEffects(mk, MKEffects.cooldown, GameEngine);
         this._applyMKEffects(mk, MKEffects.tier, GameEngine);
     }
 
-    // FIX: Generic MK application loop
     _applyMKEffects(mk, effectList, engine) {
         for (const eff of effectList) {
             if (!mk[eff.id]) continue;
@@ -205,7 +204,6 @@ export class Tower {
             }
         }
         
-        // FIX: Prevent extraMods from buffing the Beast Handler itself. Beast Handler stats are handled in beast.js.
         if (upgradeData.extraMods && this.type !== 'beast') {
             for (const key in upgradeData.extraMods) {
                 const val = upgradeData.extraMods[key];
@@ -219,7 +217,6 @@ export class Tower {
             if (upgradeData.extraMods.scale) {
                 this.hitRadius = (TowerStats[this.type].hitRadius || DEFAULT_HIT_RADIUS) * upgradeData.extraMods.scale * GS;
             }
-            // FIX: Allow dynamic footprint changes (e.g. Sun Temple)
             if (upgradeData.extraMods.footprint) {
                 this.stats.footprint = upgradeData.extraMods.footprint;
             }
@@ -270,7 +267,6 @@ export class Tower {
     }
 }
 
-// FIX: Merge extracted modules
 Object.assign(Tower.prototype, TowerRenderer);
 Object.assign(Tower.prototype, TowerEconomy);
 Tower.drawPreview = TowerRenderer.drawPreview;

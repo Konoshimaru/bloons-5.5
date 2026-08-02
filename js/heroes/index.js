@@ -1,4 +1,4 @@
-﻿// js/heroes/index.js
+// js/heroes/index.js
 import Quincy from './quincy.js';
 import Gwendolin from './gwendolin.js';
 import Gojo from './gojo.js'; 

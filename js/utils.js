@@ -1,9 +1,8 @@
-﻿// utils.js
+// utils.js
 // Holds shared utility functions used across the game.
 
 const distance = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
 
-// PRO FIX: Squared distance helpers to avoid Math.sqrt in hot loops
 const distanceSq = (x1, y1, x2, y2) => {
     const dx = x2 - x1;
     const dy = y2 - y1;
@@ -26,7 +25,6 @@ const distToSegment = (px, py, x1, y1, x2, y2) => {
     return distance(px, py, x1 + t * dx, y1 + t * dy);
 };
 
-// FIX: Unified effective range calculation to prevent formula drift
 function getEffectiveRange(tower, engine, scale = 3.0) {
     const baseRange = typeof tower.stats.range === 'number' ? tower.stats.range : 100;
     const buffMult = typeof tower.buffedRange === 'number' ? tower.buffedRange : 0;
@@ -37,7 +35,6 @@ function getEffectiveRange(tower, engine, scale = 3.0) {
     return effRange;
 }
 
-// FIX: Footprint system helpers
 const GS = 1.3; // Assuming GS is 1.3 based on constants.js
 
 function getFootprint(entity) {
@@ -72,7 +69,6 @@ function intersectsFootprint(x1, y1, fp1, x2, y2, fp2) {
     return Math.abs(x1 - x2) * 2 < (fp1.width + fp2.width) && Math.abs(y1 - y2) * 2 < (fp1.height + fp2.height);
 }
 
-// FIX: Added scale parameter for mobile touch hitboxes
 function pointInFootprint(px, py, cx, cy, fp, scale = 1.0) {
     if (fp.shape === 'circle') {
         const r = fp.radius * scale;

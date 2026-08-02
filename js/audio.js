@@ -1,4 +1,4 @@
-﻿// js/audio.js
+// js/audio.js
 import { Config } from './config.js';
 
 const SFX_VOLUME_MODIFIER = 0.1;
@@ -6,9 +6,8 @@ const MIN_VOLUME = 0.0001;
 const POP_THROTTLE_MS = 50;
 const SHOOT_THROTTLE_MS = 30;
 const HIT_THROTTLE_MS = 100; // Prevents hit sounds from queueing up
-const MOAB_DESTROY_THROTTLE_MS = 200; // FIX: Prevents explosion sounds from queueing up
+const MOAB_DESTROY_THROTTLE_MS = 200;
 
-// FIX: Changed to relative paths (removed leading /) so it works on itch.io
 const DEFAULT_GAME_PLAYLIST = ['music/music1.mp3', 'music/music2.mp3', 'music/music3.mp3'];
 const MENU_PLAYLIST = ['music/mainmenu_1.mp3', 'music/mainmenu_2.mp3'];
 
@@ -38,26 +37,22 @@ let isPlaying = false;
 let lastPopTime = 0;
 let lastShootTime = 0;
 let lastHitTime = 0;
-let lastMoabDestroyTime = 0; // FIX: Track MOAB destroy sounds
+let lastMoabDestroyTime = 0;
 
-// PRO FIX: Cache for preloaded AudioBuffers to avoid per-shot allocations
 const sfxBufferCache = new Map();
 
 async function _loadPlaylistInternal() {
     try {
-        // FIX: Use relative path
         const manifestRes = await fetch('music/manifest.json');
         if (manifestRes.ok) {
             const manifest = await manifestRes.json();
             if (manifest?.songs?.length > 0) {
-                // FIX: Use relative paths
                 gamePlaylist = manifest.songs.map(s => s.startsWith('music/') ? s : `music/${s}`);
                 return;
             }
         }
         
         // Fallback to directory listing if manifest fails
-        // FIX: Use relative path
         const response = await fetch('music/');
         if (!response.ok) throw new Error("Directory listing blocked");
         
@@ -66,7 +61,6 @@ async function _loadPlaylistInternal() {
         const doc = parser.parseFromString(html, 'text/html');
         const links = doc.querySelectorAll('a');
         const mp3s = [];
-        // FIX: Use relative path
         const baseUrl = new URL('music/', window.location.href);
         
         links.forEach(link => {
@@ -103,7 +97,6 @@ export function resolveSfxAsset(type) {
     const choices = getSfxAssetChoices(type);
     if (choices.length === 0) return null;
     const file = choices[Math.floor(Math.random() * choices.length)];
-    // FIX: Use relative path
     return `sfx/${file}`;
 }
 
@@ -125,14 +118,12 @@ export const AudioEngine = {
                 musicAudio.addEventListener('ended', () => this.nextTrack());
             }
             
-            // PRO FIX: Preload all SFX files into AudioBuffers
             await this._preloadSfx();
         } catch (e) {
             console.error("Failed to initialize AudioEngine:", e);
         }
     },
 
-    // PRO FIX: Fetch and decode all SFX files once at startup
     async _preloadSfx() {
         if (!ctx) return;
         const uniqueFiles = new Set();
@@ -151,7 +142,6 @@ export const AudioEngine = {
 
     async _fetchAndDecodeSfx(file) {
         try {
-            // FIX: Use relative path
             const url = `sfx/${file}`;
             const response = await fetch(url);
             if (!response.ok) return;
@@ -239,14 +229,14 @@ export const AudioEngine = {
 
         if (type === 'pop' && now - lastPopTime < POP_THROTTLE_MS) return;
         if (type === 'shoot' && now - lastShootTime < SHOOT_THROTTLE_MS) return;
-        if (type === 'moab_destroy' && now - lastMoabDestroyTime < MOAB_DESTROY_THROTTLE_MS) return; // FIX: Throttle MOAB deaths
+        if (type === 'moab_destroy' && now - lastMoabDestroyTime < MOAB_DESTROY_THROTTLE_MS) return;
         
         const isHitSound = ['moab_hit', 'ceramic_hit', 'frozen_hit', 'lead_hit'].includes(type);
         if (isHitSound && now - lastHitTime < HIT_THROTTLE_MS) return;
 
         if (type === 'pop') lastPopTime = now;
         if (type === 'shoot') lastShootTime = now;
-        if (type === 'moab_destroy') lastMoabDestroyTime = now; // FIX: Update MOAB death timer
+        if (type === 'moab_destroy') lastMoabDestroyTime = now;
         if (isHitSound) lastHitTime = now;
 
         const choices = getSfxAssetChoices(type);
@@ -254,7 +244,6 @@ export const AudioEngine = {
             const file = choices[Math.floor(Math.random() * choices.length)];
             const buffer = sfxBufferCache.get(file);
             
-            // PRO FIX: Play via AudioBufferSourceNode if cached
             if (buffer && ctx) {
                 try {
                     if (ctx.state === 'suspended') ctx.resume();
@@ -276,7 +265,6 @@ export const AudioEngine = {
             }
             
             // Fallback to new Audio() if buffer not ready or unavailable
-            // FIX: Use relative path
             const asset = `sfx/${file}`;
             try {
                 const audio = new Audio(asset);
@@ -289,6 +277,5 @@ export const AudioEngine = {
             }
         }
 
-        // FIX: Synth fallback completely removed to prevent computer-generated beep sounds.
     }
 };

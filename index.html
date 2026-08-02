@@ -189,29 +189,31 @@
                     <button class="back-btn hm-back-btn" data-target="main-menu-ui">Back</button>
                 </div>
                 <div class="hm-main">
-                    <div class="hm-left">
-                        <div class="hm-skins">
-                            <div class="hm-skin-btn active">1</div>
-                            <div class="hm-skin-btn">2</div>
-                            <div class="hm-skin-btn">3</div>
+                    <!-- Left: Hero List -->
+                    <div id="hero-selector" class="hm-hero-list"></div>
+                    
+                    <!-- Right: Details -->
+                    <div class="hm-right-panel">
+                        <div class="hm-left-details">
+                            <div class="hm-portrait-large" id="hero-portrait-large"></div>
+                            <div class="hm-skins hidden">
+                                <div class="hm-skin-btn active">1</div>
+                                <div class="hm-skin-btn">2</div>
+                                <div class="hm-skin-btn">3</div>
+                            </div>
+                            <div class="hm-abilities" id="hero-abilities-container">
+                                <!-- Abilities populated by JS -->
+                            </div>
+                            <button class="hm-upgrades-btn" id="hm-toggle-upgrades">Show Level Upgrades</button>
                         </div>
-                        <div class="hm-model" id="hero-model-view">Hero Model</div>
+                        <div class="hm-right-details">
+                            <div class="hm-bio">
+                                <h4>Hero Details</h4>
+                                <div id="hero-bio-text">Select a hero to view their details.</div>
+                            </div>
+                            <div class="hm-upgrades-list hidden" id="hm-upgrades-list"></div>
+                        </div>
                     </div>
-                    <div class="hm-right">
-                        <div class="hm-abilities">
-                            <div class="hm-ability-sq" id="hero-ab1">Ab1</div>
-                            <div class="hm-ability-sq" id="hero-ab2">Ab2</div>
-                        </div>
-                        <div class="hm-bio">
-                            <h4>Hero Details</h4>
-                            <div id="hero-bio-text">Select a hero to view their details.</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="hm-bottom">
-                    <button id="hm-prev-btn" class="hm-nav-btn">◀</button>
-                    <div id="hero-selector" class="hm-carousel"></div>
-                    <button id="hm-next-btn" class="hm-nav-btn">▶</button>
                 </div>
             </div>
         </div>

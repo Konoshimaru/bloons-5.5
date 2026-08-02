@@ -1,4 +1,4 @@
-﻿// super.js
+// super.js
 // Defines the Super tower and its upgraded combat behavior.
 
 import { GameEngine } from '../engine.js';
@@ -41,7 +41,6 @@ export default {
         ]
     },
 
-    // FIX: Hook to determine if secondary targeting row should be visible
     hasSecondaryTargeting(tower) {
         return tower.upgrades[1] >= 3; // Robo Monkey gets a second targeting arm
     },
@@ -352,7 +351,6 @@ export default {
 
         const baseDmg = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0);
         
-        // FIX: Calculate perpendicular offsets so arms shoot from different spots!
         const perpX = Math.cos(tower.angle + Math.PI / 2);
         const perpY = Math.sin(tower.angle + Math.PI / 2);
 
@@ -373,7 +371,6 @@ export default {
             // Arm 0 shoots primary target, Arm 1 shoots secondary target
             let currentTarget = (i === 0) ? target : target2;
             
-            // FIX: Visually offset the spawn position for Robo Monkey's two arms
             let spawnX = tower.x;
             let spawnY = tower.y;
             if (count === 2 && tower.stats.canCrit) {
@@ -394,7 +391,6 @@ export default {
             let pulseDmg = isUpgraded ? 10400 : 2600; 
             const expRadius = isUpgraded ? 800 : 500;
             
-            // FIX: Tech Terror every 3rd use is a crit for 3900 damage
             if (!isUpgraded) {
                 tower.annihilateUseCount = (tower.annihilateUseCount || 0) + 1;
                 if (tower.annihilateUseCount % 3 === 0) {
@@ -412,7 +408,6 @@ export default {
                     hits++;
                 }
             }
-            // FIX: Removed AudioEngine.playSfx('moab_destroy') as requested
         } else if (name === "Darkshift") {
             let tx = engine.mouse.x;
             let ty = engine.mouse.y;
@@ -449,6 +444,5 @@ export default {
                 e.takeDamage(99999, { isExplosion: true, canHitLead: true });
             }
         }
-        // FIX: Removed AudioEngine.playSfx('moab_destroy') as requested
     }
 };

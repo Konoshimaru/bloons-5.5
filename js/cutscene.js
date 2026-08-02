@@ -18,7 +18,6 @@ const PHASE_RIP_DURATION = 0.8;
 const PHASE_PAN_DURATION = 1.2;
 const PHASE_REVEAL_DURATION = 1.5;
 
-// FIX: Removed the hardcoded Audio object. It is now handled by AudioEngine.
 
 Assets.get('enemy_knight_front');
 Assets.get('enemy_knight_back');
@@ -123,7 +122,6 @@ export const CutsceneManager = {
                 this.state = 'slashing';
                 this.timer = PHASE_SLASH_DURATION;
                 
-                // FIX: Play the slash sound through the AudioEngine so it respects the volume slider!
                 AudioEngine.playSfx('knight_slash_moab');
             }
         }

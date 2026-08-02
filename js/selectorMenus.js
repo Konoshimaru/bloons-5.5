@@ -69,12 +69,60 @@ const selectorMenus = {
     updateHeroInfo(key) {
         const hero = HeroRegistry[key];
         if (!hero) return;
+        
         document.getElementById('hero-select-title').innerText = hero.stats.name;
         document.getElementById('hero-select-subtitle').innerText = hero.stats.desc;
-        document.getElementById('hero-model-view').innerText = hero.stats.name;
+        
+        const largePortrait = document.getElementById('hero-portrait-large');
+        if (largePortrait) {
+            largePortrait.style.backgroundImage = `url('sprites/portraits/${key}_menuportrait.png')`;
+        }
+        
         const bioText = `Cost: $${hero.stats.cost}<br>Base Range: ${hero.stats.range}<br>Base Damage: ${hero.stats.damage}<br>Attack Rate: ${hero.stats.fireRate}s<br>Damage Type: ${hero.stats.dmgType}<br><br><i>${hero.stats.name} is ready for battle.</i>`;
         document.getElementById('hero-bio-text').innerHTML = bioText;
-        document.querySelectorAll('.hm-carousel-item').forEach(item => {
+        
+        const abContainer = document.getElementById('hero-abilities-container');
+        if (abContainer) {
+            abContainer.innerHTML = '';
+            // FIX: Read abilities directly from the hero stats object!
+            const abilities = hero.stats.abilities || [];
+            if (abilities.length === 0) {
+                abContainer.innerHTML = `<div style="font-size:13px; color:#95a5a6;">No abilities documented.</div>`;
+            } else {
+                abilities.forEach(ab => {
+                    abContainer.innerHTML += `
+                        <div class="hm-ability-box">
+                            <div class="hm-ability-icon">L${ab.lvl}</div>
+                            <div class="hm-ability-info">
+                                <h5>${ab.name}</h5>
+                                <span>${ab.desc}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+        }
+        
+        // Populate Level Upgrades list
+        const upList = document.getElementById('hm-upgrades-list');
+        if (upList) {
+            upList.innerHTML = '';
+            for (let lvl = 1; lvl <= 20; lvl++) {
+                const data = hero.levels[lvl];
+                let desc = `Base Stats`;
+                if (data && data.length > 0) {
+                    desc = data.map(mod => {
+                        if (typeof mod.amount === 'boolean') return `Unlocks ${mod.stat}`;
+                        if (mod.amount > 0) return `+${mod.amount} ${mod.stat}`;
+                        return `${mod.amount} ${mod.stat}`;
+                    }).join(', ');
+                }
+                upList.innerHTML += `<div class="hm-upgrade-tier"><b>Lvl ${lvl}:</b> ${desc}</div>`;
+            }
+        }
+
+        // Update active class for the grid
+        document.querySelectorAll('.hm-hero-item').forEach(item => {
             item.classList.toggle('active', item.dataset.hero === key);
         });
     },
@@ -83,43 +131,25 @@ const selectorMenus = {
         const heroSelector = document.getElementById('hero-selector');
         if (!heroSelector) return;
         heroSelector.innerHTML = '';
+        
         Object.entries(HeroRegistry).forEach(([key, hero]) => {
-            const btn = document.createElement('button');
-            btn.className = 'hm-carousel-item';
-            btn.dataset.hero = key;
+            const item = document.createElement('div');
+            item.className = 'hm-hero-item';
+            item.dataset.hero = key;
+            item.style.backgroundImage = `url('sprites/portraits/${key}_menuportrait.png')`;
             
-            // FIX: Check unlockedTowers array
             const isLocked = !Config.data.unlockedTowers.includes(key);
-            
-            if (isLocked) {
-                btn.innerText = '🔒';
-                btn.title = `Locked`;
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-                btn.style.cursor = 'not-allowed';
-            } else {
-                btn.innerText = hero.stats.name.substring(0, 2);
-                btn.title = hero.stats.name;
-                btn.disabled = false;
-                btn.style.opacity = '';
-                btn.style.cursor = '';
-            }
 
-            if (Config.data.selectedHero === key && !isLocked) {
-                btn.classList.add('active');
-                this.updateHeroInfo(key);
-            } else if (Config.data.selectedHero === key && isLocked) {
-                // If the selected hero is somehow locked, fallback to Quincy
-                Config.data.selectedHero = 'quincy';
-                Config.save();
-                if (key === 'quincy') {
-                    btn.classList.add('active');
-                    this.updateHeroInfo(key);
-                }
-            }
-            
-            if (!isLocked) {
-                btn.addEventListener('click', () => {
+            const nameOverlay = document.createElement('div');
+            nameOverlay.className = 'hm-hero-name-overlay';
+            nameOverlay.innerText = isLocked ? 'Locked' : hero.stats.name;
+            item.appendChild(nameOverlay);
+
+            if (isLocked) {
+                item.classList.add('locked');
+                item.title = `Locked`;
+            } else {
+                item.addEventListener('click', () => {
                     Config.data.selectedHero = key;
                     GameEngine.selectedHero = key;
                     Config.save();
@@ -127,8 +157,32 @@ const selectorMenus = {
                     this.updateHeroShopCard();
                 });
             }
-            heroSelector.appendChild(btn);
+
+            if (Config.data.selectedHero === key && !isLocked) {
+                item.classList.add('active');
+                this.updateHeroInfo(key);
+            } else if (Config.data.selectedHero === key && isLocked) {
+                Config.data.selectedHero = 'quincy';
+                Config.save();
+                if (key === 'quincy') {
+                    item.classList.add('active');
+                    this.updateHeroInfo(key);
+                }
+            }
+            heroSelector.appendChild(item);
         });
+
+        // Hook up the toggle button for upgrades
+        const toggleBtn = document.getElementById('hm-toggle-upgrades');
+        if (toggleBtn && !toggleBtn.dataset.hooked) {
+            toggleBtn.dataset.hooked = 'true';
+            toggleBtn.addEventListener('click', () => {
+                const list = document.getElementById('hm-upgrades-list');
+                const isHidden = list.classList.contains('hidden');
+                list.classList.toggle('hidden');
+                toggleBtn.innerText = isHidden ? 'Hide Level Upgrades' : 'Show Level Upgrades';
+            });
+        }
     },
 
     updateHeroShopCard() {

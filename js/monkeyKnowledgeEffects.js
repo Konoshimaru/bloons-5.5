@@ -1,4 +1,4 @@
-// monkeyKnowledgeEffects.js
+// js/monkeyKnowledgeEffects.js
 // Declarative Monkey Knowledge effects. 
 
 export const MKEffects = {
@@ -11,13 +11,15 @@ export const MKEffects = {
         { id: 'advanced_logistics', type: ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'], stat: 'cost', amount: 0.95, mode: 'mult' },
         { id: 'naval_upgrades', type: ['buccaneer', 'sub'], stat: 'pierce', amount: 1 },
         { id: 'airforce_upgrades', type: ['ace', 'heli'], stat: 'pierce', amount: 1 },
+        { id: 'elite_mil_training', type: ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'], stat: 'pierce', amount: 1 },
         { id: 'lingering_magic', type: ['wizard', 'super', 'ninja', 'druid'], stat: 'lifespan', amount: 1.2, mode: 'mult' },
         { id: 'hot_magic', type: ['wizard', 'super', 'ninja', 'druid', 'alchemist'], stat: 'canHitFrozen', amount: true },
         { id: 'flat_pack', type: ['farm', 'village'], stat: 'cost', amount: 0.98, mode: 'mult' },
         { id: 'one_more_spike', type: ['spike'], stat: 'pierce', amount: 1 },
         { id: 'hero_favors', hero: true, stat: 'cost', amount: 0.9, mode: 'mult' },
         { id: 'heroic_reach', hero: true, stat: 'range', amount: 3 },
-        { id: 'heroic_velocity', hero: true, stat: 'projectileSpeed', amount: 1.1, mode: 'mult' }
+        { id: 'heroic_velocity', hero: true, stat: 'projectileSpeed', amount: 1.1, mode: 'mult' },
+        { id: 'master_double', type: ['dart'], stat: 'canBuyDoubleCrossbowMaster', amount: true }
     ],
 
     // Applied during stat recalculation
@@ -30,7 +32,9 @@ export const MKEffects = {
         { id: 'flanking_maneuvers', type: ['sniper', 'sub', 'buccaneer'], condition: t => t.targetingMode === 'Last', stat: '_cooldownMult', amount: 0.90, mode: 'mult' },
         { id: 'speedy_brewing', type: ['alchemist'], stat: '_cooldownMult', amount: 0.95, mode: 'mult' },
         { id: 'veteran_training', stat: '_cooldownMult', amount: 0.97, mode: 'mult' },
-        { id: 'quick_hands', hero: true, stat: '_cooldownMult', amount: 0.96, mode: 'mult' }
+        { id: 'quick_hands', hero: true, stat: '_cooldownMult', amount: 0.96, mode: 'mult' },
+        { id: 'emergency_unlock', type: ['dartling'], stat: '_cooldownMult', amount: 0.85, mode: 'mult' },
+        { id: 'paragon_of_power', stat: '_cooldownMult', amount: 0.80, mode: 'mult', condition: (t, eng) => eng.towers.every(tw => !tw || tw.type !== t.type || tw === t || !tw.upgrades.some(u => u === 5)) }
     ],
 
     // Applied during stat recalculation
@@ -56,6 +60,7 @@ export const MKEffects = {
         { id: 'recurring_rangs', type: ['boomerang'], stat: 'recurringRangs', amount: true },
         { id: 'big_bunch', type: ['buccaneer'], condition: t => t.upgrades[0] >= 2, stat: 'grapeCount', amount: 1 },
         { id: 'accel_aerodarts', type: ['ace'], stat: 'projectileSpeed', amount: 1.5, mode: 'mult' },
+        { id: 'targeted_pineapples', type: ['ace'], stat: 'targetedPineapples', amount: true },
         { id: 'ceramic_shock', type: ['sniper'], stat: 'ceramicShock', amount: true },
         { id: 'breaking_ballistic', type: ['sub'], condition: t => t.upgrades[1] >= 3, stat: 'ceramicDmg', amount: 1 },
         { id: 'faster_takedowns', type: ['buccaneer'], condition: t => t.upgrades[2] >= 4, stat: 'abilityCd', amount: -5 },
@@ -90,6 +95,7 @@ export const MKEffects = {
         { id: 'thicker_foams', type: ['engineer'], condition: t => t.upgrades[1] >= 2, stat: 'foamPierce', amount: 3 },
         { id: 'very_shreddy', type: ['spike'], condition: t => t.upgrades[1] >= 2, stat: 'moabDmg', amount: 1 },
         { id: 'bigger_banks', type: ['farm'], condition: t => t.upgrades[1] >= 3, stat: 'bankCap', amount: 2500 },
+        { id: 'bank_deposits', type: ['farm'], condition: t => t.upgrades[1] >= 3, stat: 'canDeposit', amount: true },
         { id: 'big_traps', type: ['engineer'], condition: t => t.upgrades[2] >= 4, stat: 'trapRbe', amount: 30 },
         { id: 'healthy_bananas', type: ['farm'], condition: t => t.upgrades[2] >= 3, action: t => { t.stats.healthyBananas = t.upgrades[2] >= 4 ? 3 : 1; } },
         { id: 'to_arms', type: ['village'], condition: t => t.upgrades[1] >= 4, stat: 'abilityDuration', amount: 3 },
@@ -112,7 +118,6 @@ export const MKEffects = {
     ],
 
     // Applied inside TowerEconomy.sell()
-    // FIX: flat_pack uses an action to dynamically check for better_sell_deals
     sellRate: [
         { id: 'better_sell_deals', stat: 'resaleRate', amount: 0.75 },
         { id: 'flat_pack', type: ['farm', 'village'], action: (t, eng) => {
@@ -132,7 +137,6 @@ export const MKEffects = {
         }}
     ],
 
-    // FIX: Use stat/amount for static multipliers to be fully generic
     heroXpGain: [
         { id: 'self_taught', hero: true, stat: 'mult', amount: 1.10 },
         { id: 'monkeys_together', hero: true, action: (hero, engine) => {
@@ -173,7 +177,6 @@ export const MKEffects = {
         { id: 'monkey_education', action: (eng) => eng.globalXpMult = 1.08 }
     ],
 
-    // FIX: Added unlock_free_dart as an alwaysActive entry to sync with UI checks
     towerPlacement: [
         { id: 'bonus_monkey', type: ['dart'], condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && !eng.towers.some(t => t.type === 'dart'), action: (cost) => 0 },
         { id: 'unlock_free_dart', type: ['dart'], alwaysActive: true, condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && eng.config.data.unlocks.freeFirstDartMonkey && !eng.towers.some(t => t.type === 'dart'), action: (cost) => 0 },
@@ -188,7 +191,6 @@ export const MKEffects = {
         { id: 'ability_mastery', hero: true, condition: (t, slot) => slot === 1 && t.level >= 20, stat: 'cdMult', amount: 0.70 }
     ],
 
-    // FIX: Use stat/amount for economy effects to be fully generic
     economy: [
         { id: 'backroom_deals', stat: 'imfTaxRate', amount: 0.40 },
         { id: 'mo_monkey_money', stat: 'mmRewardMult', amount: 1.10 }

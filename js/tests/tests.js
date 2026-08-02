@@ -4,7 +4,7 @@ import { DamageType, createDmgType, resolveDmgType } from '../damageTypes.js';
 import { EnemyTypes } from '../data.js';
 import { Difficulties } from '../config.js';
 import { getSfxAssetChoices } from '../audio.js';
-import { CutsceneManager } from '../cutscene.js'; // PRO FIX: Import CutsceneManager
+import { CutsceneManager } from '../cutscene.js';
 
 const results = { passed: 0, failed: 0, errors: [] };
 
@@ -112,7 +112,6 @@ console.log("\n── deepFreeze / resolveDmgType ──");
     assertEqual(resolveDmgType('acid'), DamageType.ACID, "resolveDmgType('acid')");
     assertEqual(resolveDmgType('heavy'), DamageType.HEAVY, "resolveDmgType('heavy')");
     
-    // PRO FIX: Test that glue resolves correctly (previous bug)
     assert(resolveDmgType('glue') !== DamageType.NONE, "resolveDmgType('glue') is not NONE");
     assertEqual(resolveDmgType('nonexistent'), DamageType.NONE, "resolveDmgType('nonexistent') → NONE");
     assertEqual(resolveDmgType(''), DamageType.NONE, "resolveDmgType('') → NONE");
@@ -147,7 +146,6 @@ console.log("\n── Restored SFX mapping regression ──");
     assert(getSfxAssetChoices('frozen_hit').includes('frozen_hit.mp3'), "Frozen hit asset restored");
 }
 
-// PRO FIX: 6. CutsceneManager state machine
 console.log("\n── CutsceneManager state machine ──");
 {
     CutsceneManager.reset();

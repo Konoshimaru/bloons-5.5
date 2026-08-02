@@ -28,7 +28,6 @@ export const BossHealthBarHandler = {
         const barHeight = 24;
         const spacing = 36;
         
-        // FIX: Use GAME_AREA_WIDTH instead of CANVAS_WIDTH - 300
         const startX = (GAME_AREA_WIDTH - barWidth) / 2; 
         const startY = 55; 
 

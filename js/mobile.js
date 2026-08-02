@@ -7,7 +7,6 @@ export const isMobile = {
     Opera: function() { return navigator.userAgent.match(/Opera Mini/i); },
     Windows: function() { return navigator.userAgent.match(/IEMobile/i); },
     any: function() {
-        // FIX: Modern iPads (iPadOS 13+) pretend to be desktop Macs.
         const isMacTouch = navigator.userAgent.match(/Macintosh/i) && (navigator.maxTouchPoints > 1);
         return (this.Android() || this.iOS() || this.Opera() || this.Windows() || isMacTouch);
     }

@@ -1,4 +1,4 @@
-﻿// names.js
+// names.js
 // Provides naming helpers for enemies, towers, and other game labels.
 
 const ENEMY_PREFIX = 'enemy_';
@@ -55,7 +55,6 @@ export const Names = {
         return `${TOWER_PREFIX}${type}_p${path}_t${tier}_arm`;
     },
 
-    // PRO FIX: Added variant parameter for pop effects
     getPopEffect(variant = 1) {
         return variant === 1 ? `${EFFECT_PREFIX}pop` : `${EFFECT_PREFIX}pop${variant}`;
     },

@@ -1,4 +1,4 @@
-﻿// sub.js
+// sub.js
 // Defines the Sub tower and its underwater attacks.
 
 import { GameEngine } from '../engine.js';
@@ -8,7 +8,7 @@ export default {
     stats: { 
         name: "Monkey Sub", cost: 325, range: 42, fireRate: 0.75, damage: 1, pierce: 2, 
         projectileSpeed: 600, 
-        projectileCount: 1, // FIX: Explicitly declared so Twin/Triple Guns add up correctly
+        projectileCount: 1,
         lifespan: 1.5, desc: "Shoots homing darts. Must be placed in water.", 
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 12, 
         waterOnly: true, category: 'Military' 

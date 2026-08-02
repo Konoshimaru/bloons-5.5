@@ -1,4 +1,4 @@
-﻿// js/towerBehavior.js
+// js/towerBehavior.js
 import { RANGE_SCALE } from './config.js';
 import { GLOBAL_SCALE } from './constants.js';
 import { TowerRegistry, Upgrades } from './towers/index.js';
@@ -140,7 +140,6 @@ function _acquireAndFire(tower, dt, engine) {
         return;
     }
 
-    // FIX: Towers that fire without a target (like Monkey Ace) fire constantly during a wave
     if (tower.stats.fireWithoutTarget) {
         let target = null;
         // Spectre/Flying Fortress still need to find a target for their machine guns
@@ -196,7 +195,6 @@ function _findTarget(tower, engine) {
         const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
         const eRad = e.radius || 10;
         
-        // FIX: Target the edge of the bloon, not the center
         const effRangeWithRad = effRange + eRad;
         const effRangeWithRadSq = effRangeWithRad * effRangeWithRad;
         
@@ -276,7 +274,6 @@ function _triggerAttack(tower, target, effFireRate, engine) {
 }
 
 function _executeFire(tower, target, engine) {
-    // FIX: If there is no target (like Monkey Ace firing blindly), skip aim prediction and just fire
     if (!target) {
         fire(tower, null, engine);
         return;
@@ -431,7 +428,6 @@ function _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType
         }
     } else {
         const p = engine.projectilePool.get();
-        // FIX: Multiply base projectile speed by GLOBAL_SCALE (GS) here!
         const projSpeed = (tower.stats.projectileSpeed * GS) * (tower.buffedProjSpeed || 1);
         p.init(tower.x, tower.y, damage, target, projType, projSpeed, pierce, tower.stats.lifespan, null, effects, 0, tower, dmgType, isCrit);
     }

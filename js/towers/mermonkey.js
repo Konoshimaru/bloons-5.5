@@ -199,7 +199,6 @@ export default {
                         
                         if (hits + cost > pierce) continue; 
                         
-                        // FIX: True Spiral Orbit Math
                         if (canPull) {
                             const pos = engine.map.getPositionAtDistance(e.distanceTraveled, e.pathIndex || 0);
                             if (pos && !pos.finished) {
@@ -402,7 +401,6 @@ export default {
         
         // Place Totem Ability (Symphonic Resonance +)
         if (tower.upgrades[2] >= 4) {
-            // FIX: Enter placement mode. The actual placement happens on the next canvas click.
             tower.isPlacingTotem = true;
             engine.log("Click on the map to place the Totem!");
         }

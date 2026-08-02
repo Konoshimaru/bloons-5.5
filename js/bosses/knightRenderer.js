@@ -42,7 +42,6 @@ const KnightRenderer = {
         for (let s of this.spinningSlashes) {
             ctx.save();
             ctx.globalAlpha = s.alpha;
-            // FIX: Removed shadowBlur, using a thicker red line instead for the glow effect
             ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)';
             ctx.lineWidth = 10;
             ctx.beginPath();
