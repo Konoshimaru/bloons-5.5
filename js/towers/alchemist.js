@@ -7,6 +7,8 @@ import { GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _alchCandidatesScratch = [];
+
 export default {
     stats: {
         name: "Alchemist", cost: 550, range: 45,
@@ -51,7 +53,7 @@ export default {
                     tower.monsterFireTimer = 0.03;
                     let target = null, bestVal = -Infinity;
                     const effRange = Utils.getEffectiveRange(tower, GameEngine) + (27 * RANGE_SCALE * GS);
-                    const candidates = GameEngine.enemyGrid.query(tower.x, tower.y, effRange);
+                    const candidates = GameEngine.enemyGrid.query(tower.x, tower.y, effRange, _alchCandidatesScratch);
                     for (let e of candidates) { 
                         if (!e || !e.alive) continue; 
                         if (e.distanceTraveled > bestVal) { bestVal = e.distanceTraveled; target = e; } 

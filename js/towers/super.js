@@ -8,6 +8,10 @@ import { GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _superBeamScratch = [];
+const _superExpScratch = [];
+const _superDarkScratch = [];
+
 export default {
     stats: { 
         name: "Super Monkey", cost: 2500, range: 50, 
@@ -263,7 +267,7 @@ export default {
             tower.magStorm.timer -= dt;
             if (tower.magStorm.timer <= 0) {
                 tower.magStorm.timer = tower.magStorm.cd;
-                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine));
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine), _superBeamScratch);
                 let hits = 0;
                 for (const e of nearby) {
                     if (e.alive && hits < tower.magStorm.pierce) {
@@ -399,7 +403,7 @@ export default {
             }
             
             engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.5, maxLife: 0.5, color: '#3498db' });
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, expRadius);
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, expRadius, _superExpScratch);
             let hits = 0;
             for (const e of nearby) {
                 if (hits >= 2000) break; // Max 2000 bloons
@@ -438,7 +442,7 @@ export default {
         const expRadius = 150;
         engine.explosions.push({ x: pos.x, y: pos.y, radius: 0, maxRadius: expRadius, life: 2.0, maxLife: 2.0, color: '#9b59b6' });
         
-        const nearby = engine.enemyGrid.query(pos.x, pos.y, expRadius);
+        const nearby = engine.enemyGrid.query(pos.x, pos.y, expRadius, _superDarkScratch);
         for (const e of nearby) {
             if (e.alive) {
                 e.takeDamage(99999, { isExplosion: true, canHitLead: true });

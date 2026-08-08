@@ -23,6 +23,8 @@ import { Sentry } from '../sentryEntity.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _sentryTrapScratch = [];
+
 export default {
     stats: {
         name: "Engineer Monkey", scale:1.2, cost: 350, range: 40, 
@@ -175,7 +177,7 @@ export default {
                 }
             } else {
                 const trap = tower.activeTrap; 
-                const nearby = GameEngine.enemyGrid.query(trap.x, trap.y, trap.radius);
+                const nearby = GameEngine.enemyGrid.query(trap.x, trap.y, trap.radius, _sentryTrapScratch);
                 for (let e of nearby) {
                     if (!e.alive || e.isCamo) continue; 
                     if (Utils.withinRange(trap.x, trap.y, e.x, e.y, trap.radius + e.data.radius)) {

@@ -6,11 +6,13 @@ import { GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _sniperBounceScratch = [];
+
 export default {
     stats: {
         name: "Sniper Monkey", cost: 350, range: 9999,
         baseCooldown: 1.59, fireRate: 1.59,
-        damage: 2, pierce: 1, projectileSpeed: 1000,
+        damage: 2, pierce: 1, projectileSpeed: 1000, hitscan: true,
         lifespan: 1.2, desc: "Shoots bloons from anywhere on the map.",
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 18,
         drawSize: 150
@@ -120,7 +122,7 @@ export default {
                 this._fireShrapnel(tower, currentTarget, dmgType, engine);
             }
             if (i >= bounces) break;
-            const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40);
+            const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40, _sniperBounceScratch);
             let nextTarget = null;
             let bestDistSq = Infinity;
             for (let e of nearby) {

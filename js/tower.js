@@ -148,10 +148,8 @@ export class Tower {
     update(dt, engine) {
         TowerBehavior.update(this, dt, engine);
         
-        // Guarantee ability cooldowns tick down every frame
-        if (this.abilityCooldown > 0) this.abilityCooldown -= dt;
-        if (this.ability2Cooldown > 0) this.ability2Cooldown -= dt;
-        if (this.ability3Cooldown > 0) this.ability3Cooldown -= dt;
+        // FIX: Removed manual cooldown ticking. TowerBehavior.update() already handles this!
+        // Leaving these here caused the cooldowns to tick down twice as fast.
     }
 
     _recalculateStats() {

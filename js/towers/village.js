@@ -18,6 +18,10 @@ import { RANGE_SCALE } from '../config.js';
 import { Tower } from '../tower.js';
 import { MKEffects } from '../monkeyKnowledgeEffects.js';
 
+const _villageScratchA = [];
+const _villageScratchB = [];
+const _villageTowerScratch = [];
+
 export default {
     stats: { 
         name: "Monkey Village", cost: 1200, range: 40, fireRate: 0, 
@@ -91,7 +95,7 @@ export default {
     
     updateSupport(tower, dt) {
         const effRange = tower.stats.range * RANGE_SCALE;
-        const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange);
+        const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange, _villageTowerScratch);
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         
         for (let t of nearbyTowers) {
@@ -214,7 +218,7 @@ export default {
         }
 
         if (tower.upgrades[1] >= 1) {
-            const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, effRange);
+            const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, effRange, _villageScratchB);
             for (let e of nearby) {
                 if (e.alive && e.isRegen && Utils.withinRange(tower.x, tower.y, e.x, e.y, effRange)) {
                     e.isRegen = false;
@@ -247,7 +251,7 @@ export default {
                 if (tower.targetingMode === 'Close') {
                     bestVal = Infinity;
                 }
-                const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, effRange);
+            const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, effRange, _villageScratchA);
                 for (let e of nearby) {
                     if (!e.alive) continue;
                     let val = 0;

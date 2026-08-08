@@ -16,6 +16,8 @@ import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 
+const _ninjaShinobiScratch = [];
+
 export default {
     stats: {
         name: "Ninja Monkey", cost: 400, range: 32,
@@ -52,7 +54,7 @@ export default {
         if (tower.stats.shinobi) {
             let ninjaCount = 0; 
             let effRange = Utils.getEffectiveRange(tower, GameEngine);
-            const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange);
+            const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange, _ninjaShinobiScratch);
             for (let ot of nearbyTowers) { 
                 if (ot && ot.type === 'ninja' && ot !== tower) { 
                     if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, effRange)) ninjaCount++; 

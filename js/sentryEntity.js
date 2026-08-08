@@ -6,6 +6,9 @@ import { GLOBAL_SCALE } from './constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _sentryExpScratch = [];
+const _sentryCandidatesScratch = [];
+
 export class Sentry {
     constructor(x, y, config, parentTower) {
         this.x = x;
@@ -80,7 +83,7 @@ export class Sentry {
                 const expDmg = this.stats.explosionDamage;
                 const expPierce = this.stats.explosionPierce;
                 engine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expR, life: 0.3, maxLife: 0.3, color: '#9b59b6' });
-                const nearby = engine.enemyGrid.query(this.x, this.y, expR);
+                const nearby = engine.enemyGrid.query(this.x, this.y, expR, _sentryExpScratch);
                 let hits = 0;
                 for (let e of nearby) {
                     if (hits >= expPierce) break;
@@ -118,7 +121,7 @@ export class Sentry {
 
     _findTarget(engine) {
         const effRange = Utils.getEffectiveRange(this, engine);
-        const candidates = engine.enemyGrid.query(this.x, this.y, effRange);
+        const candidates = engine.enemyGrid.query(this.x, this.y, effRange, _sentryCandidatesScratch);
         
         let currentTargeting = this.targetingMode || 'First';
         let bestTarget = null;

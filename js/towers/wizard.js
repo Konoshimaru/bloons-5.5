@@ -2,6 +2,10 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
+const _wizAuraScratch = [];
+const _wizWellScratch = [];
+const _wizFireScratch = [];
+
 export default {
     stats: { 
         name: "Wizard Monkey", cost: 250, range: 40, 
@@ -41,7 +45,7 @@ export default {
             tower.fireWellTimer = (tower.fireWellTimer || 0) - dt;
             if (tower.fireWellTimer <= 0) {
                 tower.fireWellTimer = tower.stats.fireWellCd;
-                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine));
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine), _wizAuraScratch);
                 if (nearby.length > 0) {
                     let target = nearby[Math.floor(Math.random() * nearby.length)];
                     if (target && target.alive) {
@@ -58,7 +62,7 @@ export default {
                 let w = tower.fireWells[i];
                 w.life -= dt;
                 if (w.life <= 0) { tower.fireWells.splice(i, 1); continue; }
-                const wNearby = engine.enemyGrid.query(w.x, w.y, w.radius);
+                const wNearby = engine.enemyGrid.query(w.x, w.y, w.radius, _wizWellScratch);
                 for (let e of wNearby) {
                     if (!e || !e.alive) continue;
                     if (Utils.withinRange(w.x, w.y, e.x, e.y, w.radius)) {
@@ -89,7 +93,7 @@ export default {
             if (tower.shimmerTimer <= 0) {
                 tower.shimmerTimer = tower.stats.shimmerCd;
                 const range = Utils.getEffectiveRange(tower, engine);
-                const nearby = engine.enemyGrid.query(tower.x, tower.y, range);
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, range, _wizFireScratch);
                 for (const e of nearby) {
                     if (e && e.alive && e.isCamo) {
                         e.isCamo = false;

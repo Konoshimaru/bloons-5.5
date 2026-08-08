@@ -7,7 +7,7 @@ export { HeroStats, HeroLevels, CANVAS_WIDTH, CANVAS_HEIGHT };
 export const RANGE_SCALE = 3.0;
 
 const STORAGE_KEY = 'td_config';
-const CURRENT_SCHEMA_VERSION = 15;
+const CURRENT_SCHEMA_VERSION = 16;
 
 const migrations = {
     11: (data) => {
@@ -34,6 +34,16 @@ const migrations = {
         if (!data.unlocks) data.unlocks = {};
         if (data.unlocks.farmer === undefined) data.unlocks.farmer = false;
         return data;
+    },
+    16: (data) => {
+        if (!Array.isArray(data.claimedLevels)) {
+            // Assume all levels up to current were already claimed normally,
+            // so existing players don't get re-granted rewards on first load.
+            const current = data.playerLevel || 1;
+            data.claimedLevels = [];
+            for (let l = 2; l <= current; l++) data.claimedLevels.push(l);
+        }
+        return data;
     }
 };
 
@@ -58,6 +68,7 @@ const DEFAULT_DATA = {
     playerName: "",
     savedRun: null,
     unlockedPerks: [],
+    claimedLevels: [],
     extremeSpeedEnabled: false,
     showTowerStats: false,
     uncapFps: false,
@@ -99,6 +110,7 @@ export const Config = {
             if (!this.data.unlocks) this.data.unlocks = {};
             if (!this.data.monkeyKnowledge) this.data.monkeyKnowledge = {};
             if (!Array.isArray(this.data.unlockedPerks)) this.data.unlockedPerks = [];
+            if (!Array.isArray(this.data.claimedLevels)) this.data.claimedLevels = [];
             if (!Array.isArray(this.data.unlockedTowers)) this.data.unlockedTowers = ['dart', 'wizard', 'quincy'];
             if (!this.data.stats) this.data.stats = { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
             if (!this.data.playerName) this.data.playerName = "";
@@ -126,6 +138,28 @@ export const Config = {
         } catch (e) {
             console.error("Failed to save config.", e);
         }
+    },
+    // Wipes all player progress (level, XP, MK, unlocks, stats) back to a fresh save.
+    // Does NOT touch settings the player likely wants to keep (volume, custom maps, display prefs).
+    resetProgress() {
+        const preserved = {
+            sfxVolume: this.data.sfxVolume,
+            musicVolume: this.data.musicVolume,
+            runInBackground: this.data.runInBackground,
+            autoStart: this.data.autoStart,
+            showFlavor: this.data.showFlavor,
+            smoothingEnabled: this.data.smoothingEnabled,
+            showFps: this.data.showFps,
+            customMaps: this.data.customMaps,
+            musicShuffle: this.data.musicShuffle,
+            musicRandomStart: this.data.musicRandomStart,
+            playerName: this.data.playerName,
+            uncapFps: this.data.uncapFps,
+            showHitboxes: this.data.showHitboxes,
+            showTowerStats: this.data.showTowerStats
+        };
+        this.data = { ...structuredClone(DEFAULT_DATA), ...preserved };
+        this.save();
     }
 };
 

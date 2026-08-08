@@ -115,10 +115,33 @@ export const GameEngine = {
         }
         
         this.runInBackground = Config.data.runInBackground;
-        this.canvas = document.getElementById('gameCanvas'); 
-        this.ctx = this.canvas.getContext('2d');
-        this.ctx.imageSmoothingEnabled = Config.data.smoothingEnabled;
-        if (Config.data.smoothingEnabled) this.ctx.imageSmoothingQuality = 'high';
+        this.canvas = document.getElementById('gameCanvas');
+
+        // DEBUG TOGGLE (not part of normal gameplay): ?webgl=1 in the URL
+        // switches rendering to the in-progress PixiJS renderer instead of
+        // Canvas2D. A <canvas> element can only have ONE context type for
+        // its lifetime, so when this is active we skip getContext('2d')
+        // entirely rather than grabbing both. Dynamic import so the webgl/
+        // module graph isn't even fetched for normal players. Everything
+        // else (game logic, input, UI) is completely untouched by this flag.
+        this.useWebGLDebug = new URLSearchParams(location.search).get('webgl') === '1';
+        this._pixiRenderer = null;
+
+        if (this.useWebGLDebug) {
+            console.log('[webgl debug] Loading PixiJS renderer...');
+            import('./webgl/pixiRenderer.js').then(({ PixiRenderer }) => {
+                return PixiRenderer.init(this.canvas).then(() => {
+                    this._pixiRenderer = PixiRenderer;
+                    console.log('[webgl debug] PixiJS renderer ready.');
+                });
+            }).catch(err => {
+                console.error('[webgl debug] Failed to init PixiJS renderer, falling back to nothing being drawn:', err);
+            });
+        } else {
+            this.ctx = this.canvas.getContext('2d');
+            this.ctx.imageSmoothingEnabled = Config.data.smoothingEnabled;
+            if (Config.data.smoothingEnabled) this.ctx.imageSmoothingQuality = 'high';
+        }
         
         this.waveManager.autoWaveEnabled = Config.data.autoStart; 
         Assets.preloadCracks(); 
@@ -278,16 +301,25 @@ export const GameEngine = {
                 UI.updateAbilityBar(this); this.updateUI();
             }
             if (this.gameState !== 'gameover') {
-                try { Renderer.render(this, rawDt); } 
-                catch (err) {
-                    console.error("FATAL RENDER ERROR:", err); 
-                    if (import.meta.env.DEV) throw err; // Fail loud in dev mode
-                    this.gameState = 'gameover';
-                    try { 
-                        UI.toggleMenus('game-over-menu'); 
-                        document.getElementById('go-wave-stat').innerText = `Render Crash: ${err.message}.`; 
-                    } catch(e) {
-                        console.error("UI also crashed during render game over:", e);
+                if (this.useWebGLDebug) {
+                    if (this._pixiRenderer) {
+                        // FIX: Pass rawDt so the Dev Overlay can calculate FPS
+                        try { this._pixiRenderer.render(this, rawDt); }
+                        catch (err) { console.error('[webgl debug] PIXI RENDER ERROR:', err); }
+                    }
+                    // else: Pixi still loading, skip this frame's draw silently.
+                } else {
+                    try { Renderer.render(this, rawDt); } 
+                    catch (err) {
+                        console.error("FATAL RENDER ERROR:", err); 
+                        if (import.meta.env.DEV) throw err; // Fail loud in dev mode
+                        this.gameState = 'gameover';
+                        try { 
+                            UI.toggleMenus('game-over-menu'); 
+                            document.getElementById('go-wave-stat').innerText = `Render Crash: ${err.message}.`; 
+                        } catch(e) {
+                            console.error("UI also crashed during render game over:", e);
+                        }
                     }
                 }
             }
@@ -360,3 +392,6 @@ export const GameEngine = {
 Object.assign(GameEngine, EngineInput);
 Object.assign(GameEngine, GameSession);
 Object.assign(GameEngine, SimulationLoop);
+
+// ADD THIS LINE AT THE VERY BOTTOM:
+window.GameEngine = GameEngine;

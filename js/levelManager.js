@@ -32,21 +32,33 @@ export const LevelManager = {
         UI.updateMetaStats();
     },
 
-    _processLevelUp(level) {
+    _processLevelUp(level, opts = {}) {
         const data = LevelProgression[level];
         if (!data || !data.unlocks) return;
+        if (Config.data.claimedLevels.includes(level)) return;
 
         const unlockText = data.unlocks;
+        const autoGrantCategory = !!opts.autoGrantCategory;
         
         
-        if (unlockText.includes("Primary tower")) {
-            this._showSelectionScreen('Primary', level);
-        } else if (unlockText.includes("Military tower")) {
-            this._showSelectionScreen('Military', level);
-        } else if (unlockText.includes("Magic tower")) {
-            this._showSelectionScreen('Magic', level);
-        } else if (unlockText.includes("Support tower")) {
-            this._showSelectionScreen('Support', level);
+        let category = null;
+        if (unlockText.includes("Primary tower")) category = 'Primary';
+        else if (unlockText.includes("Military tower")) category = 'Military';
+        else if (unlockText.includes("Magic tower")) category = 'Magic';
+        else if (unlockText.includes("Support tower")) category = 'Support';
+
+        if (category) {
+            if (autoGrantCategory) {
+                // Reconciliation mode: no interactive choice, just grant everything missed.
+                for (const type in TowerStats) {
+                    const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
+                    if (cat === category && !Config.data.unlockedTowers.includes(type)) {
+                        Config.data.unlockedTowers.push(type);
+                    }
+                }
+            } else {
+                this._showSelectionScreen(category, level);
+            }
         }
         
         if (unlockText.includes("Monkey Money 50")) {
@@ -70,6 +82,36 @@ export const LevelManager = {
         // Always attempt to unlock specific heroes/towers by name
         this._unlockSpecificByName(unlockText);
         updateShopPrices();
+
+        // Only mark claimed once there's no pending interactive choice left for the player to make.
+        if (category && !autoGrantCategory) {
+            // The selection screen itself marks this level claimed once the player picks/continues.
+        } else {
+            Config.data.claimedLevels.push(level);
+        }
+    },
+
+    // Scans every level up to the player's current level and grants any rewards
+    // that were never actually applied (e.g. from the level-up screen getting stuck).
+    // Safe to run repeatedly: already-claimed levels are skipped.
+    reconcileLevel() {
+        const before = { mm: Config.data.monkeyMoney, mk: Config.data.knowledgePoints, towers: Config.data.unlockedTowers.length };
+        let fixedLevels = 0;
+        for (let level = 2; level <= Config.data.playerLevel; level++) {
+            if (Config.data.claimedLevels.includes(level)) continue;
+            if (!LevelProgression[level]) continue;
+            this._processLevelUp(level, { autoGrantCategory: true });
+            fixedLevels++;
+        }
+        Config.save();
+        updateShopPrices();
+        UI.updateMetaStats();
+        return {
+            fixedLevels,
+            mmGained: Config.data.monkeyMoney - before.mm,
+            mkGained: Config.data.knowledgePoints - before.mk,
+            towersGained: Config.data.unlockedTowers.length - before.towers
+        };
     },
 
     _unlockSpecificByName(text) {
@@ -145,6 +187,7 @@ export const LevelManager = {
 
                 card.addEventListener('click', () => {
                     Config.data.unlockedTowers.push(type);
+                    if (!Config.data.claimedLevels.includes(level)) Config.data.claimedLevels.push(level);
                     Config.save();
                     overlay.remove();
                     updateShopPrices();
@@ -156,7 +199,20 @@ export const LevelManager = {
 
         if (availableOptions.length === 0) {
             Config.data.knowledgePoints += 1;
+            Config.save();
             content.innerHTML += `<p>All ${category} towers already unlocked! +1 Monkey Knowledge Point granted.</p>`;
+
+            const continueBtn = document.createElement('button');
+            continueBtn.textContent = 'Continue';
+            continueBtn.className = 'back-btn';
+            continueBtn.style.marginTop = '15px';
+            continueBtn.addEventListener('click', () => {
+                if (!Config.data.claimedLevels.includes(level)) Config.data.claimedLevels.push(level);
+                Config.save();
+                overlay.remove();
+                updateShopPrices();
+            });
+            content.appendChild(continueBtn);
         } else {
             content.appendChild(grid);
         }

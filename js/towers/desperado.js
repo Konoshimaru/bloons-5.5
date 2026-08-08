@@ -2,6 +2,9 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
+const _despScratchA = [];
+const _despScratchB = [];
+
 export default {
     stats: { 
         name: "Desperado", cost: 300, range: 60, fireRate: 1.2, 
@@ -46,7 +49,7 @@ export default {
         
         // Standoff (faster if few bloons)
         if (tower.stats.standoff) {
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine));
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine), _despScratchA);
             if (nearby.length < 5) buffMult += 0.2;
         }
         
@@ -61,7 +64,7 @@ export default {
         
         // Nomad (faster if many bloons)
         if (tower.stats.nomad) {
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine));
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine), _despScratchA);
             if (nearby.length > 10) buffMult += 0.3;
         }
 

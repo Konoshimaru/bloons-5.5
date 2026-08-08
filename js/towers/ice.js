@@ -7,6 +7,11 @@ import { GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _iceAuraScratch = [];
+const _iceIcicleScratch = [];
+const _icePasserbyScratch = [];
+const _iceExpScratch = [];
+
 export default {
     stats: {
         name: "Ice Monkey", cost: 400, range: 20,
@@ -62,7 +67,7 @@ export default {
         if (tower.stats.arcticWind) {
             const auraRange = Utils.getEffectiveRange(tower, GameEngine);
             const slowFactor = tower.stats.arcticSlowFactor || 0.6; 
-            const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, auraRange);
+            const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, auraRange, _iceAuraScratch);
             for (let e of nearby) {
                 if (!e.alive) continue;
                 if (Utils.withinRange(tower.x, tower.y, e.x, e.y, auraRange)) {
@@ -84,12 +89,12 @@ export default {
             if (tower._icicleTick <= 0) {
                 tower._icicleTick = 0.3;
                 const range = Utils.getEffectiveRange(tower, GameEngine);
-                const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, range);
+                const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, range, _iceIcicleScratch);
                 for (let e of nearby) {
                     if (!e.alive || !e.isFrozen) continue;
                     if (!Utils.withinRange(tower.x, tower.y, e.x, e.y, range)) continue;
                     const icicleRange = 35;
-                    const passersby = GameEngine.enemyGrid.query(e.x, e.y, icicleRange);
+                    const passersby = GameEngine.enemyGrid.query(e.x, e.y, icicleRange, _icePasserbyScratch);
                     for (let p of passersby) {
                         if (!p.alive || p.isFrozen) continue;
                         if (Utils.withinRange(e.x, e.y, p.x, p.y, icicleRange)) {
@@ -153,7 +158,7 @@ export default {
         
         let expRadius = Utils.getEffectiveRange(tower, GameEngine);
         GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#1abc9c' });
-        const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius);
+        const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius, _iceExpScratch);
         let hits = 0;
         
         const freezeLayers = tower.stats.absoluteZero ? 8 : (tower.stats.deepFreeze ? 4 : 2);

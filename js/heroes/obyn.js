@@ -2,6 +2,9 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
+const _trapScratch = [];
+const _buffTowerScratch = [];
+
 export default {
     stats: { 
         name: "Obyn Greenfoot", cost: 750, range: 40, fireRate: 1.35, damage: 2, projectileSpeed: 350, pierce: 1, 
@@ -42,7 +45,7 @@ export default {
     update(tower, dt, engine) {
         // Obyn buffs Magic towers in range
         const effRange = Utils.getEffectiveRange(tower, engine);
-        const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange);
+        const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange, _buffTowerScratch);
         for (let t of nearbyTowers) {
             if (t === tower) continue;
             if (Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
@@ -56,7 +59,7 @@ export default {
         // Handle Brambles/Tree Trap
         if (tower.activeTrap) {
             const trap = tower.activeTrap; 
-            const nearby = GameEngine.enemyGrid.query(trap.x, trap.y, trap.radius);
+            const nearby = GameEngine.enemyGrid.query(trap.x, trap.y, trap.radius, _trapScratch);
             for (let e of nearby) {
                 if (!e.alive) continue;
                 if (Utils.withinRange(trap.x, trap.y, e.x, e.y, trap.radius + e.data.radius)) {

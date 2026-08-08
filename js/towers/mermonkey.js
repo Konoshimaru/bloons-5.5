@@ -5,6 +5,9 @@ import { GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _mermAuraScratch = [];
+const _mermRiptideScratch = [];
+
 export default {
     stats: { 
         name: "Mermonkey", cost: 750, range: 28, fireRate: 1.2, damage: 2, pierce: 2, 
@@ -86,7 +89,7 @@ export default {
                     let angle = (i / 8) * Math.PI * 2;
                     let target = null;
                     let bestVal = -Infinity; 
-                    const nearby = engine.enemyGrid.query(tower.x, tower.y, effRange);
+                    const nearby = engine.enemyGrid.query(tower.x, tower.y, effRange, _mermAuraScratch);
                     
                     for (const e of nearby) {
                         if (!e || !e.alive) continue;
@@ -237,7 +240,7 @@ export default {
                 r.dmg = r.baseDmg * (1 + Math.min(2, r.timeAlive * growth));
                 r.radius = r.baseRadius * (1 + r.timeAlive * 0.1);
                 
-                const nearby = engine.enemyGrid.query(r.x, r.y, r.radius + 20);
+                const nearby = engine.enemyGrid.query(r.x, r.y, r.radius + 20, _mermRiptideScratch);
                 for (const e of nearby) {
                     if (!e.alive || r.hitEnemies.has(e)) continue;
                     if (Utils.withinRange(r.x, r.y, e.x, e.y, r.radius + e.data.radius)) {
@@ -353,7 +356,7 @@ export default {
             if (tower.upgrades[1] >= 5) count = 3;
             
             for (let i=0; i<count; i++) {
-                let angle = Utils.angle(tower.x, tower.y, target.x, target.y);
+                let angle = Utils.angle(tower.x, tower.y, (tower._aim && tower._aim.x) || target.x, (tower._aim && tower._aim.y) || target.y);
                 if (count > 1) angle += (i - 1) * (Math.PI / 4);
                 tower.activeRiptides.push({
                     x: tower.x, y: tower.y, angle: angle,

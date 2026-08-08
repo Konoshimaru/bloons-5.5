@@ -16,6 +16,7 @@ const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 
 export const UI = {
     _towerCardCache: null,
+    _prevLives: -1,
 
     toggleMenus(menuId) {
         let anyOverlayVisible = false;
@@ -119,7 +120,15 @@ export const UI = {
 
     updateLives(lives) {
         const livesEl = el('lives-display');
-        if (livesEl) livesEl.innerText = `Lives: ${lives}`;
+        if (livesEl) {
+            if (this._prevLives !== -1 && lives < this._prevLives) {
+                livesEl.classList.remove('pulse');
+                void livesEl.offsetWidth;
+                livesEl.classList.add('pulse');
+            }
+            this._prevLives = lives;
+            livesEl.innerText = `Lives: ${lives}`;
+        }
     },
 
     updateWave(wave) {

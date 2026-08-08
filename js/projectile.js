@@ -15,6 +15,11 @@ const SEEKING_TURN_SPEED = 12;
 const SPIKE_FRICTION = 0.9;
 const OFFSCREEN_PADDING = 50;
 
+// Reusable scratch arrays for enemyGrid.query lookups. Per-call-site arrays so a
+// nested query can never clobber a result that is still being iterated.
+const _shrinkScratch = [];
+const _seekScratch = [];
+
 export class Projectile {
     constructor() {
         this.active = false;
@@ -36,7 +41,9 @@ export class Projectile {
         this.life = lifespan;
         this.maxLife = lifespan;
         
-        const baseAngle = fixedAngle !== null ? fixedAngle : (target ? Utils.angle(this.x, this.y, target.x, target.y) : 0);
+        const aimX = tower && tower._aim ? tower._aim.x : (target ? target.x : x);
+        const aimY = tower && tower._aim ? tower._aim.y : (target ? target.y : y);
+        const baseAngle = fixedAngle !== null ? fixedAngle : (target ? Utils.angle(this.x, this.y, aimX, aimY) : 0);
         this.angle = baseAngle + (angleOffset * Math.PI / 180);
         
         this.radius = this._getRadius(type);
@@ -57,15 +64,15 @@ export class Projectile {
         this.targetY = 0;
         
         if (type === 'boomerang' && target) {
-            this._initBoomerang(target);
+            this._initBoomerang(target, aimX, aimY);
         } else if (type === 'mortar_shell' && target) {
-            this._initMortar(target, lifespan);
+            this._initMortar(target, aimX, aimY, lifespan);
         }
     }
 
-    _initBoomerang(target) {
-        this.targetX = target.x;
-        this.targetY = target.y;
+    _initBoomerang(target, aimX, aimY) {
+        this.targetX = aimX;
+        this.targetY = aimY;
         this.mx = (this.startX + this.targetX) / 2;
         this.my = (this.startY + this.targetY) / 2;
         let dx = this.targetX - this.mx;
@@ -80,9 +87,9 @@ export class Projectile {
         this.life = 1.5;
     }
 
-    _initMortar(target, lifespan) {
-        this.targetX = target.x;
-        this.targetY = target.y;
+    _initMortar(target, aimX, aimY, lifespan) {
+        this.targetX = aimX;
+        this.targetY = aimY;
         this.arcTime = lifespan;
         this.life = this.arcTime;
         this.maxLife = this.arcTime;
@@ -171,7 +178,7 @@ export class Projectile {
         this.y += Math.sin(this.angle) * this.speed * dt;
 
         if (Utils.withinRange(this.x, this.y, this.targetX, this.targetY, 10)) {
-            const nearby = GameEngine.enemyGrid.query(this.x, this.y, 100);
+            const nearby = GameEngine.enemyGrid.query(this.x, this.y, 100, _shrinkScratch);
             let hits = 0;
             for (const e of nearby) {
                 if (!e.alive || e.data.isBAD) continue;
@@ -293,7 +300,7 @@ export class Projectile {
     }
 
     _findSeekingTarget() {
-        const nearby = GameEngine.enemyGrid.query(this.x, this.y, 250);
+        const nearby = GameEngine.enemyGrid.query(this.x, this.y, 250, _seekScratch);
         let bestDistSq = 250 * 250;
         for (const e of nearby) {
             if (!e.alive) continue;
@@ -325,7 +332,14 @@ export class Projectile {
             return;
         }
 
-        const assetKey = Names.getProjectile(this.type);
+        let assetKey = Names.getProjectile(this.type);
+        
+        // FIX: Animate meteor frames (0 to 15) in Canvas2D
+        if (this.type === 'meteor') {
+            const frame = Math.floor(performance.now() / 50) % 16; // Cycles 0-15 every 800ms
+            assetKey = `proj_meteor_${frame}`;
+        }
+        
         const asset = Assets.get(assetKey);
         
         ctx.save();
@@ -345,6 +359,7 @@ export class Projectile {
 
     _getDrawSize() {
         switch (this.type) {
+            case 'meteor': return 45; // FIX: Added meteor size so it renders largely
             case 'bomb': return 22;
             case 'spike':
             case 'spike_opult': return 20;

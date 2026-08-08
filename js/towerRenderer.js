@@ -39,11 +39,22 @@ export default {
         if (!isPreview) drawShadow(ctx, this.x, this.y, SHADOW_SCALE * (this.stats.scale || 1.0) * GS * mobileScale);
         this._drawHitscans(ctx);
         
+        const isSelected = !isPreview && GameEngine.selectedPlacedTower === this;
+        if (isSelected) {
+            ctx.save();
+            // FIX: Perfect solid white outline using overlapping drop-shadows
+            ctx.filter = 'drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff) drop-shadow(0 0 2px #fff)';
+        }
+
         const behavior = getBehavior(this.type);
         if (behavior && behavior.draw) {
             behavior.draw(ctx, this, isPreview, engine);
         } else {
             this.drawBaseTower(ctx, isPreview);
+        }
+        
+        if (isSelected) {
+            ctx.restore();
         }
         
         this._drawBananas(ctx);

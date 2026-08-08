@@ -7,6 +7,8 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _wellScratch = [];
+
 export default {
     stats: {
         name: "Gojo", cost: 2500, range: 50, fireRate: 1.2, damage: 2, pierce: 15, projectileSpeed: 0,
@@ -203,7 +205,7 @@ export default {
                     w.targetDist = w.target.distanceTraveled;
                 }
 
-                const nearby = GameEngine.enemyGrid.query(w.x, w.y, w.radius);
+                const nearby = GameEngine.enemyGrid.query(w.x, w.y, w.radius, _wellScratch);
                 let pullHits = 0;
 
                 for (let j = 0; j < nearby.length; j++) {

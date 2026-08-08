@@ -2,6 +2,9 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
+const _patUpdateScratch = [];
+const _patFireScratch = [];
+
 export default {
     stats: { 
         name: "Pat Fusty", cost: 500, range: 27, fireRate: 1.1, damage: 3, projectileSpeed: 0, pierce: 1, 
@@ -196,7 +199,7 @@ export default {
         
         if (isSlap) {
             // Sustained knockback applied via timer in enemy.js
-            const nearby = engine.enemyGrid.query(target.x, target.y, 20);
+            const nearby = engine.enemyGrid.query(target.x, target.y, 20, _patUpdateScratch);
             let hits = 0;
             
             for (let e of nearby) {
@@ -221,7 +224,7 @@ export default {
             const aoeDmg = slamDamage;
             const aoeCeramicDmg = slamCeramicDmg;
             
-            const nearby = engine.enemyGrid.query(target.x, target.y, slamRadius);
+            const nearby = engine.enemyGrid.query(target.x, target.y, slamRadius, _patFireScratch);
             let hits = 0;
             
             for (let e of nearby) {

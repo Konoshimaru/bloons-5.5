@@ -7,6 +7,8 @@ import { GLOBAL_SCALE } from './constants.js';
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 const SAFETY_LOOP_LIMIT = 100;
 
+const _enemyDmgScratch = [];
+
 const EnemyDamage = {
     takeDamage(damage, dmgType, effects, killerTower = null) {
         if (!this.alive) return -1;
@@ -129,7 +131,7 @@ const EnemyDamage = {
             if (this.unstableConcoction) {
                 const expDmg = this.data.maxHp * 0.10;
                 GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#e67e22' });
-                const nearby = GameEngine.enemyGrid.query(this.x, this.y, 100);
+                const nearby = GameEngine.enemyGrid.query(this.x, this.y, 100, _enemyDmgScratch);
                 for (const e of nearby) {
                     if (e.alive && e !== this) e.takeDamage(expDmg, { isExplosion: true, canHitLead: true });
                 }

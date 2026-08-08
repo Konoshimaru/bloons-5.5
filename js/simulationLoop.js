@@ -8,6 +8,9 @@ const MAX_PARTICLES = 400;
 const MAX_EXPLOSIONS = 100;
 const MAX_ACID_POOLS = 100;
 
+const _foamScratch = [];
+const _acidScratch = [];
+
 const SimulationLoop = {
     _updateLimitsAndTimers(dt) {
         if (this.projectilePool.active.length > MAX_PROJECTILES) this.projectilePool.removeAt(0);
@@ -26,7 +29,7 @@ const SimulationLoop = {
             
             // Cleansing Foam Splat Logic
             if (pool.isFoam) {
-                const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
+                const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius, _foamScratch);
                 for (const e of nearby) {
                     if (pool.pierce <= 0) break;
                     if (!e.alive || pool.hitEnemies.has(e)) continue;
@@ -47,7 +50,7 @@ const SimulationLoop = {
                 pool.tick -= dt;
                 if (pool.tick <= 0) {
                     pool.tick = 1.0;
-                    const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius);
+                    const nearby = this.enemyGrid.query(pool.x, pool.y, pool.radius, _acidScratch);
                     for (const e of nearby) {
                         if (e.alive && Utils.withinRange(pool.x, pool.y, e.x, e.y, pool.radius)) {
                             e.takeDamage(pool.dmg, { isAcid: true, canHitLead: true });

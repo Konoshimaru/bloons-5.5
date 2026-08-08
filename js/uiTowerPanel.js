@@ -16,6 +16,8 @@ function el(id) {
 }
 
 const uiTowerPanel = {
+    _lastHeroLevel: -1,
+
     refreshSelectedTower(engine) {
         const selected = engine.selectedPlacedTower;
         if (!selected) return;
@@ -105,7 +107,6 @@ const uiTowerPanel = {
     },
 
     _collectHeroAbilities(t, abilities) {
-        // Read directly from stats! No more hardcoded names.
         let ab1Name = t.stats.abilityName || "Ability 1";
         let ab2Name = t.stats.ability2Name || "Ability 2";
         let ab3Name = t.stats.ability3Name || "Ability 3";
@@ -113,7 +114,6 @@ const uiTowerPanel = {
         let ab2Cd = t.stats.ability2Cd || 70;
         let ab3Cd = t.stats.ability3Cd || 120;
         
-        // Special exception: Gojo's abilities change name based on his phase
         if (t.type === 'gojo') {
             if (t.phase === 2) {
                 ab1Name = "Reversal Red"; ab1Cd = 30;
@@ -143,22 +143,12 @@ const uiTowerPanel = {
         const isCurrentlyOnRight = panel.classList.contains('sidebar-right');
         const isCurrentlyHidden = panel.classList.contains('hidden');
 
-        // we must snap it to the off-screen position FIRST to restart the CSS transition.
         if (isCurrentlyHidden || shouldBeOnRight !== isCurrentlyOnRight) {
-            // 1. Disable transition
             panel.style.transition = 'none';
-            
-            // 2. Move to new side and set to hidden (off-screen)
             panel.classList.toggle('sidebar-right', shouldBeOnRight);
             panel.classList.add('hidden');
-            
-            // 3. Force browser to redraw (reflow) so the off-screen position is applied
             void panel.offsetWidth; 
-            
-            // 4. Re-enable transition
             panel.style.transition = '';
-            
-            // 5. Use requestAnimationFrame to slide it in on the next frame
             requestAnimationFrame(() => {
                 panel.classList.remove('hidden');
             });
@@ -271,6 +261,17 @@ const uiTowerPanel = {
             nextDesc.innerText = t.level < 20 ? `Next: ${this._getHeroLevelDescription(t.type, t.level + 1)}` : "Max Level Reached";
         }
         
+        // FIX: Hero level up pop animation on the PORTRAIT
+        const portrait = el('up-portrait');
+        if (this._lastHeroLevel !== -1 && t.level > this._lastHeroLevel) {
+            if (portrait) {
+                portrait.classList.remove('pop-anim');
+                void portrait.offsetWidth; // Force reflow to restart animation
+                portrait.classList.add('pop-anim');
+            }
+        }
+        this._lastHeroLevel = t.level;
+
         this._updateHeroBuyButton(t, engine);
         this._updateTargetingText(t);
     },
@@ -449,14 +450,17 @@ const uiTowerPanel = {
         const basePierce = Number(t.stats.pierce) || 0;
         const buffedPierce = Number(t.buffedPierce) || 0;
         const alchPierce = (t.alchBuff && Number(t.alchBuff.pierce)) || 0;
-        const effPierce = basePierce + buffedPierce + alchPierce;
+        const effPierce = Math.round(basePierce + buffedPierce + alchPierce);
         
         const baseDmg = Number(t.stats.damage) || 0;
         const buffedDmg = Number(t.buffedDmg) || 0;
         const alchDmg = (t.alchBuff && Number(t.alchBuff.dmg)) || 0;
-        const effDmg = baseDmg + buffedDmg + alchDmg;
+        const effDmg = Math.round(baseDmg + buffedDmg + alchDmg);
         
-        upStats.innerText = `DMG: ${effDmg} | RNG: ${t.stats.range === 9999 ? 'Global' : t.stats.range} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`;
+        const rangeVal = Number(t.stats.range) || 0;
+        const rangeStr = rangeVal === 9999 ? 'Global' : rangeVal.toFixed(1);
+        
+        upStats.innerText = `DMG: ${effDmg} | RNG: ${rangeStr} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`;
     },
 
     _updateTargetingText(t) {
@@ -480,7 +484,37 @@ const uiTowerPanel = {
         if (statsEl) {
             if (Config.data.showTowerStats) {
                 statsEl.classList.remove('hidden');
-                this._updateTowerStats(t);
+                
+                // FIX: Pre-purchase upgrade previews
+                if (window._hoveredUpgradePath) {
+                    const path = window._hoveredUpgradePath;
+                    const tier = t.upgrades[path - 1];
+                    const data = Upgrades[t.type][path][tier];
+                    
+                    if (data) {
+                        let projDmg = Number(t.stats.damage) || 0;
+                        let projPierce = Number(t.stats.pierce) || 0;
+                        let projRange = Number(t.stats.range) || 0;
+                        let projRate = getEffectiveCooldown(t);
+                        
+                        if (data.stat === 'damage') projDmg += data.amount;
+                        if (data.stat === 'pierce') projPierce += data.amount;
+                        if (data.stat === 'range') projRange += data.amount;
+                        if (data.cooldownMult) projRate *= data.cooldownMult;
+                        
+                        if (data.extraMods) {
+                            if (data.extraMods.damage) projDmg += data.extraMods.damage;
+                            if (data.extraMods.pierce) projPierce += data.extraMods.pierce;
+                            if (data.extraMods.range) projRange += data.extraMods.range;
+                        }
+                        
+                        statsEl.innerHTML = `<span style="color:#00ffff; font-weight:bold;">DMG: ${Math.round(projDmg)} | RNG: ${projRange.toFixed(1)} | RATE: ${projRate.toFixed(2)}s | PRC: ${Math.round(projPierce)}</span>`;
+                    } else {
+                        this._updateTowerStats(t);
+                    }
+                } else {
+                    this._updateTowerStats(t);
+                }
             } else {
                 statsEl.classList.add('hidden');
             }
@@ -515,6 +549,13 @@ const uiTowerPanel = {
             const cache = card._cache;
             
             if (cache.tier !== tier && tierBoxes) {
+                // FIX: Trigger the pop animation when an upgrade is successfully purchased!
+                if (cache.tier !== -1 && tier > cache.tier) {
+                    card.classList.remove('pop-anim');
+                    void card.offsetWidth; // Force reflow to restart animation
+                    card.classList.add('pop-anim');
+                }
+                
                 tierBoxes.innerHTML = '';
                 for (let j = 0; j < 5; j++) {
                     const box = document.createElement('div');

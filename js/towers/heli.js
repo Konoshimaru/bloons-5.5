@@ -3,6 +3,10 @@ import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants.js';
 
+const _heliBladesScratch = [];
+const _heliDowndraftScratch = [];
+const _heliShoveScratch = [];
+
 export default {
     stats: { 
         name: "Heli Pilot", cost: 1500, range: 42, fireRate: 0.57, 
@@ -76,7 +80,7 @@ export default {
 
         // 2. Razor Rotors (Path 1 T3+)
         if (tower.stats.rotorDmg) {
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, tower.stats.rotorRadius);
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, tower.stats.rotorRadius, _heliBladesScratch);
             for (const e of nearby) {
                 if (e && e.alive && Utils.withinRange(tower.x, tower.y, e.x, e.y, tower.stats.rotorRadius)) {
                     e.takeDamage(tower.stats.rotorDmg * dt * 2, {isSharp: true, canHitLead: true}, {}, tower);
@@ -86,7 +90,7 @@ export default {
 
         // 3. Downdraft (Path 2 T3+)
         if (tower.stats.downdraft) {
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, tower.stats.downdraft);
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, tower.stats.downdraft, _heliDowndraftScratch);
             for (const e of nearby) {
                 if (e && e.alive && Utils.withinRange(tower.x, tower.y, e.x, e.y, tower.stats.downdraft)) {
                     e.distanceTraveled = Math.max(0, e.distanceTraveled - 100 * dt);
@@ -96,7 +100,7 @@ export default {
 
         // 4. MOAB Shove (Path 3 T3+)
         if (tower.stats.moabShove) {
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, tower.stats.moabShove);
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, tower.stats.moabShove, _heliShoveScratch);
             for (const e of nearby) {
                 if (e && e.alive && e.data.isMoab && Utils.withinRange(tower.x, tower.y, e.x, e.y, tower.stats.moabShove)) {
                     e.distanceTraveled = Math.max(0, e.distanceTraveled - 50 * dt);

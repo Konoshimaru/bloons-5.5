@@ -106,9 +106,18 @@ function drawImageCentered(ctx, asset, targetSize, offsetX = 0, offsetY = 0) {
 }
 
 // Direction 2: Shared AoE Damage Helper
+// Scratch arrays for SpatialGrid.query, depth-stacked so recursive/nested AoE
+// damage (e.g. chain explosions triggered inside takeDamage) never corrupt an
+// outer query's result. The array is fully consumed inside this function, so a
+// level-N reuse only ever happens after the level-N query has finished.
+const _aoeScratch = [];
+let _aoeScratchDepth = 0;
+
 function applyAoeDamage(engine, x, y, radius, damage, dmgType, killerTower = null, effects = {}, options = {}) {
     let totalDmgDealt = 0;
-    const nearby = engine.enemyGrid.query(x, y, radius);
+    const out = _aoeScratch[_aoeScratchDepth] || (_aoeScratch[_aoeScratchDepth] = []);
+    _aoeScratchDepth++;
+    const nearby = engine.enemyGrid.query(x, y, radius, out);
     const maxHits = options.maxHits || Infinity;
     let hits = 0;
 
@@ -133,6 +142,7 @@ function applyAoeDamage(engine, x, y, radius, damage, dmgType, killerTower = nul
             if (options.onHit) options.onHit(e, dmg);
         }
     }
+    _aoeScratchDepth--;
     return totalDmgDealt;
 }
 

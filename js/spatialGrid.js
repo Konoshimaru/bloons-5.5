@@ -36,9 +36,13 @@ export class SpatialGrid {
         bucket.push(entity);
     }
 
-    query(x, y, radius) {
+    query(x, y, radius, out) {
         // Expand the search to a ring of neighboring cells around the requested area.
-        const result = [];
+        // `out` is an optional caller-owned scratch array that is cleared and reused,
+        // avoiding a fresh array allocation on every query. When omitted a new array
+        // is returned (kept for API compatibility).
+        const result = out || [];
+        result.length = 0;
         const r = Math.ceil(radius / this.cellSize) + 1;
         const cx = Math.floor(x / this.cellSize);
         const cy = Math.floor(y / this.cellSize);

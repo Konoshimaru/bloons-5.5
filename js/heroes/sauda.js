@@ -9,6 +9,11 @@ import { MobileManager } from '../mobile.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _leapChargeScratch = [];
+const _afterswordScratch = [];
+const _leapAttackScratch = [];
+const _coneScratch = [];
+
 // --- SLASH CUSTOMIZATION ---
 export const SlashConfig = {
     lifespan: 0.4,           // How long the slash lasts in seconds
@@ -129,7 +134,7 @@ export default {
                     shadow.y = pos.y;
                     shadow.angle = Utils.angle(pos.x, pos.y, nextPos.x, nextPos.y);
                     
-                    const nearby = GameEngine.enemyGrid.query(pos.x, pos.y, chargeRadius);
+                    const nearby = GameEngine.enemyGrid.query(pos.x, pos.y, chargeRadius, _leapChargeScratch);
                     for (let e of nearby) {
                         if (!e.alive || e.pathIndex !== shadow.pathIndex) continue;
                         if (shadow.hitSet.has(e)) continue;
@@ -170,7 +175,7 @@ export default {
                 tower.aftersword.tick -= dt;
                 if (tower.aftersword.tick <= 0) {
                     tower.aftersword.tick = 0.1;
-                    const nearby = GameEngine.enemyGrid.query(tower.aftersword.x, tower.aftersword.y, 15);
+                    const nearby = GameEngine.enemyGrid.query(tower.aftersword.x, tower.aftersword.y, 15, _afterswordScratch);
                     let hits = 0;
                     for (let e of nearby) {
                         if (!e.alive || hits >= 5) continue;
@@ -298,7 +303,7 @@ export default {
         }
 
         if (target) {
-            const leapNearby = engine.enemyGrid.query(target.x, target.y, 15);
+            const leapNearby = engine.enemyGrid.query(target.x, target.y, 15, _leapAttackScratch);
             let hits = 0;
             let maxHits = tower.stats.leapPierce || 20;
             let level = tower.level;
@@ -371,7 +376,7 @@ export default {
         const centerAngle = Utils.angle(tower.x, tower.y, target.x, target.y);
         const halfCone = Math.PI / 2; 
         
-        const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, actualRange);
+        const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, actualRange, _coneScratch);
         let hits = 0;
         
         for (let e of nearby) {

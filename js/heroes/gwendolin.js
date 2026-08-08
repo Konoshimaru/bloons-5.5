@@ -3,6 +3,8 @@ import { GameEngine } from '../engine.js';
 import { Projectile } from '../projectile.js';
 import { Utils } from '../utils.js';
 
+const _cocktailScratch = [];
+
 export default {
     stats: {
         name: "Gwendolin", cost: 725, range: 38, fireRate: 0.5, damage: 1, pierce: 2, projectileSpeed: 400,
@@ -62,7 +64,7 @@ export default {
                 if (c.life <= 0) { tower.cocktails.splice(i, 1); continue; }
                 if (c.tick <= 0) {
                     c.tick = tower.stats.cocktailTick || 0.2;
-                    const nearby = GameEngine.enemyGrid.query(c.x, c.y, 60);
+                    const nearby = GameEngine.enemyGrid.query(c.x, c.y, 60, _cocktailScratch);
                     let hits = 0;
                     for (let e of nearby) {
                         if (hits >= (tower.stats.cocktailPierce || 20)) break;
@@ -161,7 +163,7 @@ export default {
             burnEffects.dot = tower.stats.burnDmg;
             burnEffects.dotTimer = tower.stats.burnDuration || 3;
         }
-        let baseAngle = Utils.angle(tower.x, tower.y, target.x, target.y);
+        let baseAngle = Utils.angle(tower.x, tower.y, (tower._aim && tower._aim.x) || target.x, (tower._aim && tower._aim.y) || target.y);
         for(let i=0; i<count; i++) {
             let offset = count > 1 ? (i - (count-1)/2) * 10 : 0;
             let perpAngle = baseAngle + Math.PI / 2;

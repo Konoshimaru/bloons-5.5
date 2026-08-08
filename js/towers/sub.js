@@ -4,6 +4,9 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
+const _subScratchA = [];
+const _subScratchB = [];
+
 export default {
     stats: { 
         name: "Monkey Sub", cost: 325, range: 42, fireRate: 0.75, damage: 1, pierce: 2, 
@@ -51,7 +54,7 @@ export default {
             
             // T4: Pop Bloons in radius & reduce water cooldowns
             if (tower.upgrades[0] >= 4) {
-                const nearby = engine.enemyGrid.query(tower.x, tower.y, effRange);
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, effRange, _subScratchA);
                 for (const e of nearby) {
                     if (e.alive && Utils.withinRange(tower.x, tower.y, e.x, e.y, effRange)) {
                         e.takeDamage(1 * dt, {isSharp: true, canHitLead: true}, {}, tower);
@@ -87,7 +90,7 @@ export default {
             if (tower.missileCooldown <= 0) {
                 let target = null;
                 let bestVal = -Infinity;
-                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine));
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine), _subScratchB);
                 for (const e of nearby) {
                     if (!e || !e.alive) continue;
                     if (e.data.isMoab || e.data.isCeramic) {

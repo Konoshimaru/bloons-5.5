@@ -7,6 +7,9 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _getoCandidatesScratch = [];
+const _getoHitScratch = [];
+
 const _UZUMAKI_FACE_TYPES = ['screaming', 'cyclops', 'hollow'];
 class _UzumakiSpirit {
     constructor(cx, cy, maxDim) { this.reset(cx, cy, maxDim, true); }
@@ -198,7 +201,7 @@ export default {
             s.life -= dt;
             if (!s.isWorm) {
                 let nearest = null, nearestDistSq = Infinity;
-                const candidates = GameEngine.enemyGrid.query(s.x, s.y, 200);
+                const candidates = GameEngine.enemyGrid.query(s.x, s.y, 200, _getoCandidatesScratch);
                 for (let e of candidates) {
                     if (!e.alive || s.hitEnemies.has(e)) continue;
                     let dSq = Utils.distanceSq(s.x, s.y, e.x, e.y);
@@ -216,7 +219,7 @@ export default {
             }
             s.x += s.vx * dt;
             s.y += s.vy * dt;
-            const nearby = GameEngine.enemyGrid.query(s.x, s.y, s.hitRadius + 20);
+            const nearby = GameEngine.enemyGrid.query(s.x, s.y, s.hitRadius + 20, _getoHitScratch);
             for (let e of nearby) {
                 if (!e.alive || s.hitEnemies.has(e)) continue;
                 if (Utils.withinRange(s.x, s.y, e.x, e.y, e.data.radius + s.hitRadius)) {

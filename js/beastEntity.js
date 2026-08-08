@@ -22,6 +22,8 @@ import { createDmgType, resolveDmgType } from './damageTypes.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
+const _beastCandidatesScratch = [];
+
 export class Beast {
     constructor(x, y, terrain, tier, ownerTower) {
         this.x = x;
@@ -153,7 +155,7 @@ export class Beast {
 
     _findTarget(engine) {
         const effRange = Utils.getEffectiveRange(this, engine);
-        const candidates = engine.enemyGrid.query(this.x, this.y, effRange);
+        const candidates = engine.enemyGrid.query(this.x, this.y, effRange, _beastCandidatesScratch);
         
         let currentTargeting = this.targetingMode || 'First';
         let bestTarget = null;

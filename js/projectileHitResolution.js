@@ -5,9 +5,16 @@ import { DamageType, createDmgType } from './damageTypes.js';
 import { ProjectileTypeConfig } from './projectileTypeConfig.js';
 import { GLOBAL_SCALE } from './constants.js'; 
 
+// Reusable scratch arrays for enemyGrid.query. Each call site gets its own array
+// because a query result may be iterated while a different query runs (e.g. an
+// explosion resolving inside a collision loop must not reuse the collision array).
+const _collideScratch = [];
+const _explosionScratch = [];
+const _ricochetScratch = [];
+
 const ProjectileHitResolution = {
     _checkCollisions() {
-        const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.radius + 40);
+        const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.radius + 40, _collideScratch);
         const cfg = ProjectileTypeConfig[this.type] || {};
         
         for (const e of nearby) {
@@ -59,7 +66,7 @@ const ProjectileHitResolution = {
         GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.3, maxLife: 0.3, color: expColor });
         
         const bombDmgType = this._createBombDmgType();
-        const nearby = GameEngine.enemyGrid.query(this.x, this.y, expRadius);
+        const nearby = GameEngine.enemyGrid.query(this.x, this.y, expRadius, _explosionScratch);
         const maxPierce = this._getExplosionPierce();
         
         let hits = 0;
@@ -250,7 +257,7 @@ const ProjectileHitResolution = {
         }
 
         if (this.effects && this.effects.ricochet > 0) {
-            const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.effects.ricochetRange);
+            const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.effects.ricochetRange, _ricochetScratch);
             let bestDistSq = this.effects.ricochetRange * this.effects.ricochetRange;
             let nextTarget = null;
             for (const e of nearby) {

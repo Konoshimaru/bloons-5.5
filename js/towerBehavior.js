@@ -15,6 +15,11 @@ const MIN_FIRE_RATE = 0.01;
 const ANIM_FRAME_DURATION = 0.03;
 const ATTACK_THROW_FRAME = 4;
 
+// Reusable scratch array for targeting queries. Safe because the candidates
+// loop fully finishes (and _findTarget returns) before any nested grid query
+// can run.
+const _targetScratch = [];
+
 export function getEffectiveCooldown(tower) {
     if (tower.fanClubBuffTimer > 0) return 0.06;
     if (tower.isMonster) return 0.03;
@@ -169,7 +174,7 @@ function _acquireAndFire(tower, dt, engine) {
 
 function _findTarget(tower, engine) {
     const effRange = Utils.getEffectiveRange(tower, engine);
-    const candidates = tower.stats.range === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange);
+    const candidates = tower.stats.range === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange, _targetScratch);
     
     let currentTargeting = tower.targetingMode;
     if (currentTargeting === 'Elite') {
@@ -281,10 +286,9 @@ function _executeFire(tower, target, engine) {
     if (!target.alive) return; 
 
     const projSpeed = tower.stats.projectileSpeed || 0;
-    let aimX = target.x, aimY = target.y;
+    let aim = null;
     
-    if (projSpeed > 0 && projSpeed < 1500 && target.data.speed > 0) {
-        // ... rest of the existing aim prediction code ...
+    if (projSpeed > 0 && projSpeed < 1500 && !tower.stats.hitscan && target.data.speed > 0) {
         const dist = Utils.distance(tower.x, tower.y, target.x, target.y);
         
         const effSpeed = target.data.speed * (target.slowFactor || 1) * (target.gojoSlow || 1) * (target.permafrostSlow || 1);
@@ -298,20 +302,11 @@ function _executeFire(tower, target, engine) {
         const futurePos = engine.map.getPositionAtDistance(safeFutureDist, pathIdx);
         
         if (!futurePos.finished) {
-            aimX = futurePos.x;
-            aimY = futurePos.y;
+            aim = { x: futurePos.x, y: futurePos.y };
         }
     }
     
-    const realX = target.x;
-    const realY = target.y;
-    target.x = aimX;
-    target.y = aimY;
-    
-    fire(tower, target, engine);
-    
-    target.x = realX;
-    target.y = realY;
+    fire(tower, target, engine, aim);
 }
 
 function _getAnimationAsset(tower) {
@@ -350,20 +345,25 @@ function _getAnimationAsset(tower) {
     return animAsset;
 }
 
-export function fire(tower, target, engine) {
+export function fire(tower, target, engine, aim = null) {
     if (target && !target.alive) return; 
     AudioEngine.playSfx('shoot'); 
     
-    const { damage, isCrit } = _rollDamage(tower);
-    const dmgTypeStr = tower.stats.dmgType;
-    const canHitLead = _canHitLead(tower);
-    const projType = tower.stats.projectileType || 'dart';
-    const pierce = _calculatePierce(tower);
-    const dmgType = _createDamageType(dmgTypeStr, canHitLead, tower);
-    const effects = _gatherEffects(tower);
-    
-    _decrementBuffs(tower);
-    _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine);
+    tower._aim = aim;
+    try {
+        const { damage, isCrit } = _rollDamage(tower);
+        const dmgTypeStr = tower.stats.dmgType;
+        const canHitLead = _canHitLead(tower);
+        const projType = tower.stats.projectileType || 'dart';
+        const pierce = _calculatePierce(tower);
+        const dmgType = _createDamageType(dmgTypeStr, canHitLead, tower);
+        const effects = _gatherEffects(tower);
+        
+        _decrementBuffs(tower);
+        _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine);
+    } finally {
+        tower._aim = null;
+    }
 }
 
 function _rollDamage(tower) {

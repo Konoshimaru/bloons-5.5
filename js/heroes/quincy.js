@@ -2,6 +2,8 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
+const _stormScratch = [];
+
 export default {
     stats: { 
         name: "Quincy", cost: 540, range: 44, fireRate: 0.95, damage: 1, projectileSpeed: 800, pierce: 3, 
@@ -45,7 +47,7 @@ export default {
             tower.stormOfArrows.timer -= dt;
             if (tower.stormOfArrows.timer <= 0) tower.stormOfArrows.active = false;
             else {
-                const soa = tower.stormOfArrows; const nearby = GameEngine.enemyGrid.query(soa.x, soa.y, soa.radius);
+                const soa = tower.stormOfArrows; const nearby = GameEngine.enemyGrid.query(soa.x, soa.y, soa.radius, _stormScratch);
                 for (let e of nearby) {
                     if (!e.alive) continue; 
                     if (Utils.withinRange(soa.x, soa.y, e.x, e.y, soa.radius)) {

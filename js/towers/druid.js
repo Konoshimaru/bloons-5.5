@@ -2,6 +2,10 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
+const _druidAuraScratch = [];
+const _druidStormScratch = [];
+const _druidFireScratch = [];
+
 export default {
     stats: { 
         name: "Druid", cost: 400, range: 35, fireRate: 1.1, 
@@ -48,7 +52,7 @@ export default {
         // 2. Druid of Wrath (Path 3 T3)
         if (tower.stats.wrath && engine.waveManager.waveActive) {
             // Ramp up attack speed if there are bloons in range
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine));
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine), _druidFireScratch);
             if (nearby.length > 0) {
                 tower.wrathStacks = Math.min(40, (tower.wrathStacks || 0) + dt * 4); // Ramps up in 10s
             }
@@ -69,7 +73,7 @@ export default {
         // 4. Avatar of Wrath (Path 3 T5)
         if (tower.stats.avatar) {
             const range = Utils.getEffectiveRange(tower, engine);
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, range);
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, range, _druidStormScratch);
             let bloonCount = 0;
             for(const e of nearby) { if(e.alive) bloonCount++; }
             // +1 damage for every 5 bloons, up to +20
@@ -117,7 +121,7 @@ export default {
                 tower.vineTimer = tower.stats.vineCd;
                 // Instantly damage a bloon and leave an acid pool (thorn pile)
                 let target = null, bestVal = -Infinity;
-                const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine));
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, Utils.getEffectiveRange(tower, engine), _druidAuraScratch);
                 for (const e of nearby) {
                     if (!e || !e.alive) continue;
                     if (e.distanceTraveled > bestVal) { bestVal = e.distanceTraveled; target = e; }

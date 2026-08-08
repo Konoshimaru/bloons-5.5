@@ -16,7 +16,7 @@ const PLACEMENT_RADIUS = 18;
 const TOWER_HIT_RADIUS_PADDING = 4;
 const TOWER_SELECTION_LINE_WIDTH = 3;
 const TOWER_SELECTION_FILL_ALPHA = 0.15;
-const TOWER_RANGE_FILL_COLOR = 'rgba(230, 126, 34, 1)';
+const TOWER_RANGE_FILL_COLOR = 'rgba(255, 255, 255, 0.2)'; // Changed to white
 const TOWER_OUT_OF_BOUNDS_COLOR = 'rgba(255, 0, 0, 0.2)';
 const TOWER_AFFORDABLE_COLOR = 'rgba(255, 255, 255, 0.2)';
 const TOWER_OVERLAP_COLOR = 'red';
@@ -68,10 +68,11 @@ export const Renderer = {
         engine.map.draw(wctx);
         this._drawAcidPools(wctx, engine); 
         this._drawExplosions(wctx, engine.explosions);
+        this._drawPlacementPreview(wctx, engine);
+        this._drawSelectionFill(wctx, engine); // Draw fill BEFORE entities
         this._drawEntities(wctx, engine);
         this._drawFloatingTexts(wctx, engine); 
-        this._drawPlacementPreview(wctx, engine);
-        this._drawSelection(wctx, engine);
+        this._drawSelectionOutline(wctx, engine); // Draw outline AFTER entities
         this._drawLeakFlash(wctx, engine);
 
         if (Config.data.showHitboxes) {
@@ -497,19 +498,26 @@ export const Renderer = {
         return false;
     },
 
-    _drawSelection(ctx, engine) {
+    _drawSelectionFill(ctx, engine) {
         if (!engine.selectedPlacedTower) return;
-
         const t = engine.selectedPlacedTower;
-        ctx.strokeStyle = '#e67e22'; ctx.lineWidth = TOWER_SELECTION_LINE_WIDTH;
-        ctx.beginPath(); ctx.arc(t.x, t.y, Math.max(1, t.hitRadius + TOWER_HIT_RADIUS_PADDING), 0, Math.PI * 2); ctx.stroke();
-
         if (t.stats.range < 9999) {
             const effRange = Math.max(1, Utils.getEffectiveRange(t, engine));
-
-            ctx.fillStyle = TOWER_RANGE_FILL_COLOR; ctx.globalAlpha = TOWER_SELECTION_FILL_ALPHA;
+            // FIX: Proper translucent white fill
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.beginPath(); ctx.arc(t.x, t.y, effRange, 0, Math.PI * 2); ctx.fill();
-            ctx.globalAlpha = 1;
+        }
+    },
+
+    _drawSelectionOutline(ctx, engine) {
+        if (!engine.selectedPlacedTower) return;
+        const t = engine.selectedPlacedTower;
+        if (t.stats.range < 9999) {
+            const effRange = Math.max(1, Utils.getEffectiveRange(t, engine));
+            // FIX: Solid white border
+            ctx.strokeStyle = '#ffffff'; 
+            ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(t.x, t.y, effRange, 0, Math.PI * 2); ctx.stroke();
         }
     },
 
@@ -587,10 +595,13 @@ export const Renderer = {
 };
 
 window.toggleNight = function() {
-    if (!_engineInstance || !_engineInstance.map) {
-        console.error("? Night Mode Error: You must be in an active game to toggle night!");
+    // _engineInstance is only populated by the Canvas2D renderer; in WebGL
+    // debug mode that render() never runs, so reference the live singleton.
+    const engine = (window.GameEngine && window.GameEngine) || _engineInstance;
+    if (!engine || !engine.map) {
+        console.error("❌ Night Mode Error: You must be in an active game to toggle night!");
         return;
     }
-    _engineInstance.isNight = !_engineInstance.isNight;
-    console.log(`?? Night mode: ${_engineInstance.isNight ? 'ON' : 'OFF'}`);
+    engine.isNight = !engine.isNight;
+    console.log(`🌙 Night mode: ${engine.isNight ? 'ON' : 'OFF'}`);
 };
