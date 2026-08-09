@@ -77,6 +77,12 @@ const SimulationLoop = {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const e = this.enemies[i];
             if (!e) continue;
+            // The knight boss (tier 99) is already updated once by
+            // CutsceneManager.update() every frame; updating it here too
+            // would run its state machine/attacks/trail at 2x speed during
+            // the fight. Its removal on death is handled by the cutscene's
+            // reset(), not the swap-remove below, so skipping is safe.
+            if (e.tier === 99) continue;
             e.update(dt);
             if (!e.alive) {
                 const last = this.enemies.pop();

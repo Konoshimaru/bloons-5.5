@@ -24,6 +24,7 @@ import { Container, Graphics, Sprite, FillGradient, Texture } from 'pixi.js';
 import { PixiApp } from './pixiApp.js';
 import { PixiAssets } from './pixiAssets.js';
 import { GLOBAL_SCALE } from '../constants.js';
+import { getSpriteScale } from '../mobile.js';
 
 function rotScale(px, py, ang, s) {
     const c = Math.cos(ang), sn = Math.sin(ang);
@@ -34,7 +35,10 @@ function radialGrad(outerR, stops) {
     return new FillGradient({
         type: 'radial', center: { x: 0, y: 0 }, innerRadius: 0,
         outerCenter: { x: 0, y: 0 }, outerRadius: Math.max(1, outerR),
-        colorStops: stops, textureSpace: 'local',
+        // 'global' (not 'local'): Pixi v8's local-space radial gradients
+        // render as a flat solid disc (per-pixel alpha is lost); global maps
+        // the texture's fade onto the exact circle radius.
+        colorStops: stops, textureSpace: 'global',
     });
 }
 
@@ -150,7 +154,7 @@ export const HeroVFXRenderer = {
         if (tower.aftersword) {
             const { x, y } = tower.aftersword;
             const alpha = Math.min(1, tower.aftersword.life / 2) * 0.7;
-            const r = 15;
+            const r = 15 * getSpriteScale();
             entry.aftersword.position.set(x, y);
             entry.aftersword.circle(0, 0, r).fill({ fill: radialGrad(r, [
                 { offset: 0, color: '#e74c3c' },
@@ -164,7 +168,7 @@ export const HeroVFXRenderer = {
         }
         while (entry.shadowSprites.length > shadows.length) { entry.shadowSprites.pop().destroy(); }
         const baseTexture = PixiAssets.get('tower_sauda_base');
-        const shadowSize = 45 * (tower.stats?.scale || 1.0) * GLOBAL_SCALE;
+        const shadowSize = 45 * (tower.stats?.scale || 1.0) * GLOBAL_SCALE * getSpriteScale();
         for (let i = 0; i < shadows.length; i++) {
             const shadow = shadows[i];
             const sprite = entry.shadowSprites[i];
@@ -197,8 +201,8 @@ export const HeroVFXRenderer = {
             sprite.alpha = s.life / s.maxLife;
             if (slashTexture !== Texture.EMPTY) {
                 if (sprite.texture !== slashTexture) sprite.texture = slashTexture;
-                sprite.width = slashTexture.width * 0.35; // SlashConfig.sizeScale
-                sprite.height = slashTexture.height * 0.35;
+                sprite.width = slashTexture.width * 0.35 * getSpriteScale(); // SlashConfig.sizeScale
+                sprite.height = slashTexture.height * 0.35 * getSpriteScale();
                 sprite.visible = true;
             } else {
                 sprite.visible = false;

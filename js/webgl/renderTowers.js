@@ -5,12 +5,14 @@ import { PixiAssets } from './pixiAssets.js';
 import { CanvasGraphicsAdapter } from './canvasGraphicsAdapter.js';
 import { SpriteConfig } from '../spriteConfig.js';
 import { GLOBAL_SCALE } from '../constants.js';
+import { getSpriteScale } from '../mobile.js';
 import * as Const from './rendererConstants.js';
 
 export const TowersRenderer = {
     _drawTowers(engine) {
         const layer = PixiApp.layer('towers');
         const seen = new Set();
+        const mscale = getSpriteScale();
 
         for (const tower of engine.towers) {
             if (!tower) continue;
@@ -46,14 +48,14 @@ export const TowersRenderer = {
             // counter-rotate it to cancel out container.rotation.
             entry.shadow.rotation = -entry.container.rotation;
 
-            const shadowR = Const.TOWER_SHADOW_SCALE * (tower.stats?.scale || 1.0) * GLOBAL_SCALE;
+            const shadowR = Const.TOWER_SHADOW_SCALE * (tower.stats?.scale || 1.0) * GLOBAL_SCALE * mscale;
             entry.shadow.clear();
             entry.shadow.ellipse(0, shadowR * Const.SHADOW_Y_OFFSET, shadowR, shadowR * Const.SHADOW_SQUASH)
                 .fill({ color: Const.SHADOW_COLOR, alpha: Const.SHADOW_ALPHA });
 
             entry.nightGlow.clear();
             if (engine.nightAlpha > 0) {
-                const glowR = Const.NIGHT_GLOW_RADIUS * GLOBAL_SCALE;
+                const glowR = Const.NIGHT_GLOW_RADIUS * GLOBAL_SCALE * mscale;
                 if (!entry.nightGlowGradient || entry.nightGlowGradientR !== glowR) {
                     entry.nightGlowGradient = new FillGradient({
                         type: 'radial', center: { x: 0, y: 0 }, innerRadius: 0,
@@ -62,7 +64,12 @@ export const TowersRenderer = {
                             { offset: 0, color: Const.NIGHT_GLOW_INNER_COLOR },
                             { offset: 1, color: Const.NIGHT_GLOW_OUTER_COLOR },
                         ],
-                        textureSpace: 'local',
+                        // 'global' (not 'local'): Pixi v8's local-space radial
+                        // gradients render as a flat solid disc (per-pixel
+                        // alpha is lost); global maps the texture's fade onto
+                        // the exact circle radius, matching the Canvas2D
+                        // radial-gradient glow. Verified pixel-level.
+                        textureSpace: 'global',
                     });
                     entry.nightGlowGradientR = glowR;
                 }
@@ -83,7 +90,7 @@ export const TowersRenderer = {
                 const stunTexture = PixiAssets.get(`effect_stun_${frame}`);
                 if (stunTexture !== Texture.EMPTY) {
                     if (entry.stun.texture !== stunTexture) entry.stun.texture = stunTexture;
-                    const s = 30 * GLOBAL_SCALE;
+                    const s = 30 * GLOBAL_SCALE * mscale;
                     entry.stun.width = s;
                     entry.stun.height = s;
                     entry.stun.x = tower.x;
@@ -305,7 +312,7 @@ export const TowersRenderer = {
             container.x = tower.x; container.y = tower.y; return;
         }
         arm.visible = true; base.visible = true;
-        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE;
+        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE * getSpriteScale();
         const attackPrefix = tower.attackPrefix || `tower_${type}_`;
         let bestTier = 0, bestPath = 0;
         for (let p = 1; p <= 3; p++) { if ((tower.upgrades?.[p - 1] || 0) > bestTier) { bestTier = tower.upgrades[p - 1]; bestPath = p; } }
@@ -397,7 +404,7 @@ export const TowersRenderer = {
         let bestTier = 0, bestPath = 0;
         for (let p = 1; p <= 3; p++) { if ((tower.upgrades?.[p - 1] || 0) > bestTier) { bestTier = tower.upgrades[p - 1]; bestPath = p; } }
         const sharedConfigType = bestTier > 0 ? `dart_p${bestPath}_t${bestTier}` : 'dart';
-        const dartFallbackSize = 45 * GLOBAL_SCALE;
+        const dartFallbackSize = 45 * GLOBAL_SCALE * getSpriteScale();
         let baseKey = 'tower_dart_base'; let isCustomBase = false;
         if (bestTier > 0) {
             const customKey = `tower_dart_p${bestPath}_t${bestTier}_base`;
@@ -467,7 +474,7 @@ export const TowersRenderer = {
         const baseTexture = PixiAssets.get(baseKey);
         base.visible = true;
         if (base.texture !== baseTexture) base.texture = baseTexture;
-        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE;
+        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE * getSpriteScale();
         this._sizeUniform(base, baseTexture, targetSize);
         base.x = 0; base.y = 0;
         container.x = tower.x; container.y = tower.y;
@@ -481,7 +488,7 @@ export const TowersRenderer = {
         
         // If SpriteConfig provides a scale, it overrides everything completely.
         // Otherwise, we fall back to the defaultSize passed in.
-        const size = off ? (45 * (off.scale || 1) * GLOBAL_SCALE) : defaultSize;
+        const size = off ? (45 * (off.scale || 1) * GLOBAL_SCALE * getSpriteScale()) : defaultSize;
         
         const maxDim = Math.max(texture.width, texture.height) || 1;
         const scale = size / maxDim;

@@ -4,12 +4,14 @@ import { PixiApp } from './pixiApp.js';
 import { PixiAssets } from './pixiAssets.js';
 import { CanvasGraphicsAdapter } from './canvasGraphicsAdapter.js';
 import { GLOBAL_SCALE } from '../constants.js';
+import { getSpriteScale } from '../mobile.js';
 import { ENEMY_NAMES, CRACKABLE } from './rendererConstants.js';
 
 export const EnemiesRenderer = {
     _drawEnemies(engine) {
         const layer = PixiApp.layer('enemies');
         const seen = new Set();
+        const mscale = getSpriteScale();
 
         for (const enemy of engine.enemies) {
             if (!enemy || !enemy.alive) continue;
@@ -22,20 +24,10 @@ export const EnemiesRenderer = {
 
             let entry = this._enemySprites.get(enemy);
             if (!entry) {
-                const container = new Container();
-                const blade = new Sprite(); blade.anchor.set(0.5);
-                const base = new Sprite(); base.anchor.set(0.5);
-                const crack = new Sprite(); crack.anchor.set(0.5);
-                const frozenSprite = new Sprite(); frozenSprite.anchor.set(0.5);
-                const camoRegenSprite = new Sprite(); camoRegenSprite.anchor.set(0.5);
-                const statusGraphics = new Graphics();
-                const tintSprite = new Sprite(); tintSprite.anchor.set(0.5); tintSprite.tint = 0xa253ff;
-                const stun = new Sprite(); stun.anchor.set(0.5);
-                container.addChild(blade, base, crack, frozenSprite, camoRegenSprite, statusGraphics, tintSprite, stun);
-                layer.addChild(container);
-                entry = { container, blade, base, crack, frozenSprite, camoRegenSprite, statusGraphics, statusAdapter: new CanvasGraphicsAdapter(statusGraphics), tintSprite, stun };
+                entry = this._acquireEnemyEntry();
                 this._enemySprites.set(enemy, entry);
             }
+            entry.container.visible = true;
 
             const { container, base, crack, blade, frozenSprite, camoRegenSprite, statusGraphics, statusAdapter, tintSprite, stun } = entry;
             const baseName = ENEMY_NAMES[enemy.tier];
@@ -46,7 +38,7 @@ export const EnemiesRenderer = {
             if (!usedCustomModifierSprite) texture = PixiAssets.get(`enemy_${baseName}`);
             if (base.texture !== texture) base.texture = texture;
 
-            const targetSize = (enemy.data?.size || (enemy.radius * 2) || 20) * GLOBAL_SCALE;
+            const targetSize = (enemy.data?.size || (enemy.radius * 2) || 20) * GLOBAL_SCALE * mscale;
             const spriteOffX = enemy.data?.spriteOffsetX || 0;
             const spriteOffY = enemy.data?.spriteOffsetY || 0;
             this._sizeUniform(base, texture, targetSize);
@@ -91,9 +83,8 @@ export const EnemiesRenderer = {
                     if (frozenTexture !== Texture.EMPTY) {
                         frozenSprite.texture = frozenTexture; this._sizeUniform(frozenSprite, frozenTexture, targetSize);
                         frozenSprite.x = spriteOffX; frozenSprite.y = spriteOffY; frozenSprite.visible = true;
-                    } else { statusRingRadius = enemy.radius + 3; statusRingColor = 'rgba(26, 188, 156, 0.9)'; }
-                } else if (enemy.slowFactor < 1.0) { statusRingRadius = enemy.radius + 3; statusRingColor = 'rgba(241, 196, 15, 0.7)'; }
-
+                    } else { statusRingRadius = (enemy.radius + 3) * mscale; statusRingColor = 'rgba(26, 188, 156, 0.9)'; }
+                } else if (enemy.slowFactor < 1.0) { statusRingRadius = (enemy.radius + 3) * mscale; statusRingColor = 'rgba(241, 196, 15, 0.7)'; }
                 let camoRegenKey = null;
                 if (enemy.isCamo && enemy.isRegen && !usedCustomModifierSprite) camoRegenKey = 'effect_camo_regen_effect';
                 else if (enemy.isCamo && !enemy.isRegen && !usedCustomModifierSprite) camoRegenKey = 'effect_camo_effect';
@@ -108,14 +99,18 @@ export const EnemiesRenderer = {
             }
 
             statusGraphics.clear(); statusAdapter.reset();
+            let hasStatus = false;
             if (statusRingRadius !== null) {
                 statusAdapter.strokeStyle = statusRingColor; statusAdapter.lineWidth = statusRingColor.includes('26, 188, 156') ? 3 : 2;
                 statusAdapter.beginPath(); statusAdapter.arc(0, 0, statusRingRadius, 0, Math.PI * 2); statusAdapter.stroke();
+                hasStatus = true;
             }
             if (enemy.brittle) {
                 statusAdapter.strokeStyle = '#e74c3c'; statusAdapter.lineWidth = 2;
-                statusAdapter.beginPath(); statusAdapter.arc(0, 0, enemy.radius + 6, 0, Math.PI * 2); statusAdapter.stroke();
+                statusAdapter.beginPath(); statusAdapter.arc(0, 0, (enemy.radius + 6) * mscale, 0, Math.PI * 2); statusAdapter.stroke();
+                hasStatus = true;
             }
+            statusGraphics.visible = hasStatus;
 
             tintSprite.visible = false;
             if (enemy.infinityTint > 0) {
@@ -130,7 +125,7 @@ export const EnemiesRenderer = {
                 if (stunTexture === Texture.EMPTY) stunTexture = PixiAssets.get('effect_stun_0');
                 if (stunTexture === Texture.EMPTY) stunTexture = PixiAssets.get('effect_stun');
                 if (stunTexture !== Texture.EMPTY) {
-                    const s = (enemy.data?.size || 40) * GLOBAL_SCALE * 0.8;
+                    const s = (enemy.data?.size || 40) * GLOBAL_SCALE * 0.8 * mscale;
                     stun.texture = stunTexture; stun.width = s; stun.height = s; stun.x = 0; stun.y = -enemy.radius * 0.6 - s / 2; stun.rotation = t * 5; stun.visible = true;
                 }
             }
@@ -147,7 +142,37 @@ export const EnemiesRenderer = {
         }
 
         for (const [enemy, entry] of this._enemySprites) {
-            if (!seen.has(enemy)) { entry.container.destroy({ children: true }); this._enemySprites.delete(enemy); }
+            if (!seen.has(enemy)) {
+                entry.container.visible = false;
+                this._enemySprites.delete(enemy);
+                this._enemySpritePool.push(entry);
+            }
         }
-    }
+    },
+
+    // Pops a pooled enemy render entry (a hidden Container with all its
+    // sprites still attached) or builds a fresh one. Pooling matters for the
+    // mass-pop case: when a cluster of bloons splits, dozens/hundreds of
+    // children appear in a single frame, and reusing hidden entries instead
+    // of constructing Containers+Sprite trees (then destroying them) avoids
+    // the allocation/GC churn that shows up as lag exactly during breaks.
+    _enemySpritePool: [],
+    _acquireEnemyEntry() {
+        const pooled = this._enemySpritePool.pop();
+        if (pooled) return pooled;
+
+        const layer = PixiApp.layer('enemies');
+        const container = new Container();
+        const blade = new Sprite(); blade.anchor.set(0.5);
+        const base = new Sprite(); base.anchor.set(0.5);
+        const crack = new Sprite(); crack.anchor.set(0.5);
+        const frozenSprite = new Sprite(); frozenSprite.anchor.set(0.5);
+        const camoRegenSprite = new Sprite(); camoRegenSprite.anchor.set(0.5);
+        const statusGraphics = new Graphics();
+        const tintSprite = new Sprite(); tintSprite.anchor.set(0.5); tintSprite.tint = 0xa253ff;
+        const stun = new Sprite(); stun.anchor.set(0.5);
+        container.addChild(blade, base, crack, frozenSprite, camoRegenSprite, statusGraphics, tintSprite, stun);
+        layer.addChild(container);
+        return { container, blade, base, crack, frozenSprite, camoRegenSprite, statusGraphics, statusAdapter: new CanvasGraphicsAdapter(statusGraphics), tintSprite, stun };
+    },
 };

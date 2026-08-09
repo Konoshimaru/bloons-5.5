@@ -21,6 +21,56 @@ reachable via a `?webgl=1` URL debug flag, wired in `js/engine.js`. Normal
 gameplay is 100% unaffected — the Canvas2D path is untouched and still what
 everyone actually plays on.
 
+## Latest verified status (2026-08) — read this first, the sections below are a log
+
+A browser-based pixel A/B harness (canvas vs `?webgl=1`, same deterministic
+scene, per-pixel diff) now exists and has been run. Results:
+
+- **Dense game scene** (15 tower types incl. upgrades, 8 enemy tiers incl.
+  frozen/camo/regen/MOAB, 90 simulated frames of shooting/pops/particles):
+  mean abs diff ≈ 1.5/255, ~1% of pixels differ at all, <0.5% differ by more
+  than 64/255. The remaining diffs are localized to entity-sprite edges
+  (pixel-art sheets vs canvas upscaling) and overlapping projectiles — no
+  missing subsystems.
+- **Night mode**: WebGL now applies the night map overlay (see the fix below);
+  grass pixel-verifiably darkens in both renderers. Prior to this round the
+  WebGL background never drew the `_night` map variant at all.
+- **Menu**: mean abs diff ≈ 2-4/255. Residual diffs are the falling-dart
+  confetti positions (both renderers use `Math.random()` independently, so
+  they can never line up) and procedural clouds/sun — not a port bug.
+- **Console**: zero runtime errors in either renderer across all scenarios.
+
+**Fixes landed this round** (all in `js/webgl/`, none touch game logic):
+
+- **Night map overlay** (`renderWorld.js` `_drawBackground`): added a night
+  sprite drawn over the day map at `engine.nightAlpha`, mirroring `map.js`
+  `draw()` lines 140-148 (uses `data.imageNight` if set, else
+  `<image>_night`). This was the last pixel-verified visual gap.
+- **Map water + visible paths** (`renderWorld.js` `_drawMapDecorations`):
+  static per-map overlay (water brushes when `waterVisible !== false`, and
+  visible paths) drawn once into the `path` layer, reusing the exact
+  `MapRenderCore.drawWater`/`drawPaths` functions via
+  `CanvasGraphicsAdapter`. Props deliberately skipped — the canvas version
+  has them commented out in `drawToCache()` too. No current map ships visible
+  paths or non-empty water brushes, so this is future-proofing that matches
+  canvas behavior exactly if such a map is added.
+
+**Corrected stale entries** in the gap lists below: `geto`/`gojo`/`sauda`
+hero VFX are fully ported (`renderHeroVFX.js`), boss screen-split is ported
+(`renderUI.js` `_compositeWorld`), camera pan + cutscene incl. the
+silhouette-rip are ported (`renderCutscene.js`), main-menu scenery and dev
+overlay are ported. The "ship.png underwater flag", "hero auras", "gold
+chips/chest" and "arrow/laser side-effects" items were checked against the
+real source and are fictional — those subsystems don't exist on the canvas
+side (`isSubmerged` is attack logic only; `arrow`/`laser` are ordinary
+projectile types already handled via `projectileDrawers.js`).
+
+**Remaining real work** is verification-only: the `dragManager.js`
+drag-and-drop click flow, HiDPI displays (resolution is pinned to 1 by
+design — see the comment in `pixiApp.js`), and the `?webgl=1` toggle default.
+The switch to make WebGL the default renderer + delete the Canvas2D path is
+still the end state but hasn't been done.
+
 ## How to try it
 
 ```

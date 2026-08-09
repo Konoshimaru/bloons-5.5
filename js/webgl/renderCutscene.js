@@ -38,7 +38,7 @@ import { Container, Graphics, Sprite, Texture, RenderTexture, ColorMatrixFilter 
 import { PixiApp } from './pixiApp.js';
 import { PixiAssets } from './pixiAssets.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
-import { ENEMY_NAMES, KNIGHT_SCALE, KNIGHT_TRAIL_SCALE, KNIGHT_SWORD_SCALE, KNIGHT_SLASH_COLOR, KNIGHT_SLASH_EDGE_COLOR, KNIGHT_AIM_TRACK_COLOR, KNIGHT_AIM_LOCK_COLOR } from './rendererConstants.js';
+import { ENEMY_NAMES, KNIGHT_SCALE, KNIGHT_TRAIL_SCALE, KNIGHT_TRAIL_DRIFT, KNIGHT_SWORD_SCALE, KNIGHT_SLASH_COLOR, KNIGHT_SLASH_EDGE_COLOR, KNIGHT_AIM_TRACK_COLOR, KNIGHT_AIM_LOCK_COLOR } from './rendererConstants.js';
 import { CutsceneManager } from '../cutscene.js';
 import CutsceneBalls from '../bosses/cutsceneBalls.js';
 
@@ -72,8 +72,15 @@ export const CutsceneRenderer = {
     // two parallel sprite pools (fills first, rings on top) to reproduce the
     // canvas two-pass exactly.
     _ballBucketRadii: [8, 10, 13, 16, 20, 25, 32, 40, 50, 63, 79, 100],
-    _ballFillTextures: [],
+    // Perf: fill/erase discs are solid black — scale-invariant — so one shared
+    // texture covers every ball radius instead of per-bucket textures. That
+    // kills the per-ball bucket lookup AND collapses the whole fill pass to a
+    // single batch. Rings are NOT shareable (their band width is absolute,
+    // radius - outlineWidth), so they stay bucketed. See _getBallRingTexture.
+    _ballFillTexture: null,
+    _ballFillRadius: 100,
     _ballRingTextures: new Map(),
+    _ballRingBucketCache: new Map(),
     _ballFillSprites: [],
     _ballRingSprites: [],
     _ballEraseSprites: [],
@@ -85,6 +92,18 @@ export const CutsceneRenderer = {
     _ballsRingContainer: null,
     _ballsEraseContainer: null,
     _ballsRingGroup: null,
+    // Perf: the storm is slow (balls jitter ±10px on 1-3 rad/s sin/cos,
+    // drifters crawl at ~60-110 px/s) and the canvas original redraws all
+    // ~2000 arcs every frame, so we redraw every frame too for parity — but
+    // into HALF-resolution RenderTextures (see _ballsFillRT / the 0.5-scaled
+    // source containers), which cuts the GPU fill ~4x. The composites are
+    // scaled back up 2x, and since the storm is a soft black blob with white
+    // rings, the upscale is invisible. A full-rate redraw of 6390 sprites at
+    // half-res costs ~3ms/frame, vs ~12ms at full res.
+    _ballPoolBudget: 800,
+    // Max ball textures baked per cutscene frame while warming up.
+    _ballBakeBudget: 6,
+    _ballBakeQueue: null,
 
     _ballBucketIndex(r) {
         let idx = this._ballBucketRadii.findIndex(br => br >= r);
@@ -92,24 +111,33 @@ export const CutsceneRenderer = {
         return idx;
     },
 
-    _getBallFillTexture(r) {
-        const idx = this._ballBucketIndex(r);
-        let texture = this._ballFillTextures[idx];
-        if (!texture) {
-            const radius = this._ballBucketRadii[idx];
+    // One shared solid-black disc for every ball radius (fill and erase
+    // passes). Solid discs are scale-invariant, so scaling a 100px disc to
+    // any radius is pixel-identical to a per-bucket texture — but it's a
+    // single texture, so the whole pass batches into one draw call and the
+    // per-ball bucket lookup disappears.
+    _getBallFillTexture() {
+        if (!this._ballFillTexture) {
             const g = new Graphics();
-            g.circle(0, 0, radius).fill({ color: '#000000' });
-            texture = PixiApp.app.renderer.generateTexture({ target: g, resolution: 1 });
+            g.circle(0, 0, this._ballFillRadius).fill({ color: '#000000' });
+            this._ballFillTexture = PixiApp.app.renderer.generateTexture({ target: g, resolution: 1 });
             g.destroy();
-            this._ballFillTextures[idx] = texture;
         }
-        return { texture, radius: this._ballBucketRadii[idx] };
+        return this._ballFillTexture;
     },
 
     _getBallRingTexture(r, outlineWidth) {
+        // Perf: balls keep a fixed radius for the whole fight, so cache the
+        // (bucket index, texture, radius) lookup per radius — no findIndex or
+        // string-key concat in the per-frame loop. The baked texture is still
+        // keyed by BUCKET index + outlineWidth (only ~12 textures), so all
+        // balls sharing a bucket batch into one draw call.
+        const cacheKey = `${r}_${outlineWidth}`;
+        let cached = this._ballRingBucketCache.get(cacheKey);
+        if (cached) return cached;
         const idx = this._ballBucketIndex(r);
-        const key = `${idx}_${outlineWidth}`;
-        let texture = this._ballRingTextures.get(key);
+        const textureKey = `${idx}_${outlineWidth}`;
+        let texture = this._ballRingTextures.get(textureKey);
         if (!texture) {
             const radius = this._ballBucketRadii[idx];
             // Bake the ring exactly like cutsceneBalls.js does: a full white
@@ -126,9 +154,57 @@ export const CutsceneRenderer = {
             c.addChild(outer, inner);
             texture = PixiApp.app.renderer.generateTexture({ target: c, resolution: 1 });
             c.destroy({ children: true });
-            this._ballRingTextures.set(key, texture);
+            this._ballRingTextures.set(textureKey, texture);
         }
-        return { texture, radius: this._ballBucketRadii[idx] };
+        cached = { texture, radius: this._ballBucketRadii[idx] };
+        this._ballRingBucketCache.set(cacheKey, cached);
+        return cached;
+    },
+
+    // Bakes the small set of ball textures gradually (up to `budget` per
+    // call) instead of all at once on the fight's first frame. Fires while
+    // the cutscene plays, well before knight_floating, so the first frame of
+    // the fight only pays ~0ms of generateTexture. Idempotent; the bake
+    // queue is drained once and never rebuilt (a late BallsConfig
+    // outlineWidth change lazily bakes its own ring textures on first use).
+    _warmBallTextures(budget) {
+        if (!this._ballBakeQueue) {
+            this._ballBakeQueue = [];
+            // Fill/erase share one scale-invariant disc; only rings are per-bucket.
+            this._ballBakeQueue.push(['fill']);
+            const widths = new Set([4]);
+            const cfg = window.BallsConfig || {};
+            if (typeof cfg.outlineWidth === 'number') widths.add(cfg.outlineWidth);
+            for (const w of widths) {
+                for (let i = 0; i < this._ballBucketRadii.length; i++) {
+                    this._ballBakeQueue.push(['ring', this._ballBucketRadii[i], w]);
+                }
+            }
+        }
+        let n = 0;
+        while (this._ballBakeQueue.length && n < budget) {
+            const [kind, rad, w] = this._ballBakeQueue.shift();
+            if (kind === 'fill') this._getBallFillTexture();
+            else this._getBallRingTexture(rad, w);
+            n++;
+        }
+    },
+
+    // Grows the three sprite pools toward `target`, creating at most `budget`
+    // new sprites per call (spread across frames) so the first fight frame
+    // doesn't allocate 6390 sprites synchronously. Returns the count created.
+    _growBallSprites(target, budget) {
+        let created = 0;
+        while (this._ballFillSprites.length < target && created < budget) {
+            const s = new Sprite(); s.anchor.set(0.5); this._ballsFillContainer.addChild(s); this._ballFillSprites.push(s); created++;
+        }
+        while (this._ballRingSprites.length < target && created < budget) {
+            const s = new Sprite(); s.anchor.set(0.5); this._ballsRingContainer.addChild(s); this._ballRingSprites.push(s); created++;
+        }
+        while (this._ballEraseSprites.length < target && created < budget) {
+            const s = new Sprite(); s.anchor.set(0.5); s.blendMode = 'erase'; this._ballsEraseContainer.addChild(s); this._ballEraseSprites.push(s); created++;
+        }
+        return created;
     },
 
     _drawCutsceneBalls(engine) {
@@ -140,12 +216,14 @@ export const CutsceneRenderer = {
         const active = CutsceneManager.state === 'knight_floating';
 
         if (!this._ballsFillRT) {
-            this._ballsFillRT = RenderTexture.create({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
-            this._ballsRingRT = RenderTexture.create({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+            this._ballsFillRT = RenderTexture.create({ width: CANVAS_WIDTH / 2, height: CANVAS_HEIGHT / 2 });
+            this._ballsRingRT = RenderTexture.create({ width: CANVAS_WIDTH / 2, height: CANVAS_HEIGHT / 2 });
         }
         if (!this._ballsFillComposite) {
             this._ballsFillComposite = new Sprite(this._ballsFillRT);
             this._ballsRingComposite = new Sprite(this._ballsRingRT);
+            this._ballsFillComposite.scale.set(2, 2);
+            this._ballsRingComposite.scale.set(2, 2);
             layer.addChild(this._ballsFillComposite, this._ballsRingComposite);
         }
         if (!this._ballsFillContainer) {
@@ -154,44 +232,77 @@ export const CutsceneRenderer = {
             this._ballsEraseContainer = new Container();
             this._ballsRingGroup = new Container();
             this._ballsRingGroup.addChild(this._ballsRingContainer, this._ballsEraseContainer);
+            // The source containers draw in fullscreen (0,0..CANVAS_W/H)
+            // coordinates; scaling them 0.5 renders into the half-resolution
+            // RenderTextures, which the 2x composites scale back up.
+            this._ballsFillContainer.scale.set(0.5, 0.5);
+            this._ballsRingContainer.scale.set(0.5, 0.5);
+            this._ballsEraseContainer.scale.set(0.5, 0.5);
         }
 
-        while (this._ballFillSprites.length < balls.length) {
-            const s = new Sprite(); s.anchor.set(0.5); this._ballsFillContainer.addChild(s); this._ballFillSprites.push(s);
-        }
+        // While the cutscene plays (but before the fight phase), bake the
+        // small set of ball textures gradually so the first knight_floating
+        // frame doesn't spend ~30ms in generateTexture.
+        if (CutsceneManager.state !== 'idle') this._warmBallTextures(this._ballBakeBudget);
+
+        // Grow the sprite pool gradually (budget per frame) so the first
+        // knight_floating frame doesn't allocate all 6390 sprites at once.
+        this._growBallSprites(balls.length, this._ballPoolBudget);
         while (this._ballFillSprites.length > balls.length) this._ballFillSprites.pop().destroy();
-        while (this._ballRingSprites.length < balls.length) {
-            const s = new Sprite(); s.anchor.set(0.5); this._ballsRingContainer.addChild(s); this._ballRingSprites.push(s);
-        }
         while (this._ballRingSprites.length > balls.length) this._ballRingSprites.pop().destroy();
-        while (this._ballEraseSprites.length < balls.length) {
-            const s = new Sprite(); s.anchor.set(0.5); s.blendMode = 'erase'; this._ballsEraseContainer.addChild(s); this._ballEraseSprites.push(s);
-        }
         while (this._ballEraseSprites.length > balls.length) this._ballEraseSprites.pop().destroy();
+
         this._ballsFillComposite.visible = active;
         this._ballsRingComposite.visible = active;
-        for (const s of this._ballFillSprites) s.visible = false;
-        for (const s of this._ballRingSprites) s.visible = false;
-        for (const s of this._ballEraseSprites) s.visible = false;
-        if (!active) return;
 
+        if (!active) {
+            for (const s of this._ballFillSprites) s.visible = false;
+            for (const s of this._ballRingSprites) s.visible = false;
+            for (const s of this._ballEraseSprites) s.visible = false;
+            return;
+        }
+
+        // Full-rate redraw: the canvas original redraws the storm every frame,
+        // and half-res RenderTextures keep each redraw ~3ms. Between frames the
+        // cached RenderTextures stay composited while the pool is still growing.
         const cfg = window.BallsConfig || {};
         const outlineWidth = cfg.outlineWidth ?? 4;
         const t = performance.now() / 1000;
 
-        for (let i = 0; i < balls.length; i++) {
+        // Only touch sprites that actually exist while the pool is growing.
+        const drawn = Math.min(balls.length, this._ballFillSprites.length, this._ballRingSprites.length, this._ballEraseSprites.length);
+        // The canvas paints every ball, off-screen ones included (canvas clips
+        // them), so culling outside the viewport is pixel-identical but skips
+        // both the sprite updates and the RT fill for those balls. The storm
+        // spans a ~700x700 cloud; typically a quarter of the balls sit off-screen.
+        const viewL = 0, viewR = CANVAS_WIDTH, viewT = 0, viewB = CANVAS_HEIGHT;
+
+        const fillTexture = this._getBallFillTexture();
+        const fillScaleToR = 1 / this._ballFillRadius;
+
+        for (let i = 0; i < drawn; i++) {
             const b = balls[i];
-            if (!(b.r > 0)) continue;
+            if (!(b.r > 0)) {
+                this._ballFillSprites[i].visible = false;
+                this._ballRingSprites[i].visible = false;
+                this._ballEraseSprites[i].visible = false;
+                continue;
+            }
             const sx = CutsceneBalls.ballCenterX + b.ox + Math.sin(t * b.speed + b.phase) * 10;
             const sy = (CANVAS_HEIGHT / 2) + b.oy + Math.cos(t * b.speed + b.phase) * 10;
+            if (sx + b.r < viewL || sx - b.r > viewR || sy + b.r < viewT || sy - b.r > viewB) {
+                this._ballFillSprites[i].visible = false;
+                this._ballRingSprites[i].visible = false;
+                this._ballEraseSprites[i].visible = false;
+                continue;
+            }
             const alpha = b.alpha !== undefined ? b.alpha : 1.0;
 
             // Fill pass: all black disks first (later balls merge into the
             // shared silhouette, exactly like ballCanvas in the original).
-            const fillBucket = this._getBallFillTexture(b.r);
             const fillSprite = this._ballFillSprites[i];
-            if (fillSprite.texture !== fillBucket.texture) fillSprite.texture = fillBucket.texture;
-            fillSprite.scale.set(b.r / fillBucket.radius);
+            if (fillSprite.texture !== fillTexture) fillSprite.texture = fillTexture;
+            fillSprite.scale.set(b.r * fillScaleToR);
             fillSprite.x = sx; fillSprite.y = sy;
             fillSprite.alpha = alpha;
             fillSprite.visible = true;
@@ -212,8 +323,8 @@ export const CutsceneRenderer = {
 
             const innerR = Math.max(0, b.r - outlineWidth);
             const eraseSprite = this._ballEraseSprites[i];
-            if (eraseSprite.texture !== fillBucket.texture) eraseSprite.texture = fillBucket.texture;
-            eraseSprite.scale.set(innerR / fillBucket.radius);
+            if (eraseSprite.texture !== fillTexture) eraseSprite.texture = fillTexture;
+            eraseSprite.scale.set(innerR * fillScaleToR);
             eraseSprite.x = sx; eraseSprite.y = sy;
             eraseSprite.alpha = alpha;
             eraseSprite.visible = innerR > 0;
@@ -432,7 +543,7 @@ export const CutsceneRenderer = {
                 s.width = trailTexture.width * KNIGHT_TRAIL_SCALE;
                 s.height = trailTexture.height * KNIGHT_TRAIL_SCALE;
                 s.scale.x = -Math.abs(s.scale.x); // ctx.scale(-1,1) mirror
-                s.x = t.x; s.y = t.y;
+                s.x = t.x - i * KNIGHT_TRAIL_DRIFT; s.y = t.y;
                 s.alpha = Math.max(0, Math.min(1, t.alpha));
             } else {
                 s.visible = false;

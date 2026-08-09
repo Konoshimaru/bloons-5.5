@@ -66,7 +66,8 @@ export const LEAK_FLASH_COLOR = 0xe74c3c;
 export const LEAK_FLASH_LINE_WIDTH = 10;
 
 export const KNIGHT_SCALE = 1.65;         // knightRenderer.js: knightScale
-export const KNIGHT_TRAIL_SCALE = 1.21;   // knightRenderer.js: trailScale
+export const KNIGHT_TRAIL_SCALE = 1.45;   // knightRenderer.js: trailScale
+export const KNIGHT_TRAIL_DRIFT = 1.5;    // px of leftward drift per trail ghost (older ghosts drift further)
 export const KNIGHT_SWORD_SCALE = 1.5;    // knightRenderer.js: swordScale
 export const KNIGHT_SLASH_COLOR = 'rgba(231, 76, 60, 0.8)';
 export const KNIGHT_SLASH_EDGE_COLOR = 'rgba(255, 255, 255, 0.9)';

@@ -13,6 +13,7 @@ import { MenuRenderer } from './renderMenu.js';
 import { BuffIconsRenderer } from './renderBuffIcons.js';
 import { TowerStats } from '../towers/index.js';
 import { HeroRegistry } from '../heroes/index.js';
+import { Maps } from '../data.js';
 
 export const PixiRenderer = {
     _bgSprite: null,
@@ -68,6 +69,16 @@ export const PixiRenderer = {
         for (let i = 1; i <= 14; i++) keys.push(`effect_slash_${i}`);
         for (let i = 0; i <= 14; i++) keys.push(`effect_stun_${i}`);
         keys.push('effect_stun', 'enemy_knight_front', 'enemy_knight_back', 'proj_slash', 'proj_knightsword', 'proj_squid', 'proj_worm');
+        // Map backgrounds (and their night variants) — the canvas path preloads
+        // these so the first frame isn't a fallback flash; the WebGL path would
+        // otherwise show a transparent background for a frame or two on game
+        // start while the map texture loads lazily. Iterates the live map list
+        // so newly added maps preload automatically too.
+        for (const mapData of Maps) {
+            if (!mapData || !mapData.image) continue;
+            keys.push(`map_${mapData.image}`);
+            keys.push(mapData.imageNight ? `map_${mapData.imageNight}` : `map_${mapData.image}_night`);
+        }
         PixiAssets.preloadManifest(keys).catch(() => {});
     },
 

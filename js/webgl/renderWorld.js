@@ -1,8 +1,9 @@
 // js/webgl/renderWorld.js
-import { Sprite, Container, Graphics, Text } from 'pixi.js';
+import { Sprite, Container, Graphics, Text, Texture } from 'pixi.js';
 import { PixiApp } from './pixiApp.js';
 import { PixiAssets } from './pixiAssets.js';
 import { CanvasGraphicsAdapter } from './canvasGraphicsAdapter.js';
+import { MapRenderCore } from '../mapRenderCore.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
 import * as Const from './rendererConstants.js';
 
@@ -23,6 +24,52 @@ export const WorldRenderer = {
         let w = CANVAS_WIDTH * scale; let h = CANVAS_HEIGHT * scale;
         if (map.data.imageMaintainRatio && texture.width > 0) { h = w * (texture.height / texture.width); }
         this._bgSprite.x = offX; this._bgSprite.y = offY; this._bgSprite.width = w; this._bgSprite.height = h;
+
+        // Night map overlay — mirrors map.js draw()'s lines 140-148, which the
+        // Canvas2D renderer applies but this file never did (a real, verified
+        // visual gap): when a night variant of the map image exists and
+        // engine.nightAlpha > 0, draw it over the day image at nightAlpha.
+        // Uses map.data.imageNight when set, else `${image}_night` — the same
+        // fallback map.js's _initBackground uses.
+        const nightName = map.data.imageNight || `${map.data.image}_night`;
+        const nightTexture = PixiAssets.get(`map_${nightName}`);
+        if (nightTexture !== Texture.EMPTY && engine.nightAlpha > 0) {
+            if (!this._bgNightSprite) { this._bgNightSprite = new Sprite(nightTexture); PixiApp.layer('background').addChild(this._bgNightSprite); }
+            if (this._bgNightSprite.texture !== nightTexture) this._bgNightSprite.texture = nightTexture;
+            let nh = h;
+            if (map.data.imageMaintainRatio && nightTexture.width > 0) { nh = w * (nightTexture.height / nightTexture.width); }
+            this._bgNightSprite.x = offX; this._bgNightSprite.y = offY; this._bgNightSprite.width = w; this._bgNightSprite.height = nh;
+            this._bgNightSprite.alpha = engine.nightAlpha;
+            this._bgNightSprite.visible = true;
+        } else if (this._bgNightSprite) {
+            this._bgNightSprite.visible = false;
+        }
+
+        this._drawMapDecorations(map);
+    },
+
+    // Port of map.js's drawToCache() (the static overlay canvas the Canvas2D
+    // renderer draws on top of the map image every frame): water brushes (when
+    // waterVisible !== false) and visible paths. Props stay skipped — the
+    // original has them commented out in drawToCache too. Drawn once per map
+    // into a shared Graphics on the 'path' layer (above 'background', matching
+    // drawImage(cacheCanvas) coming after the night overlay), reusing the
+    // exact canvas functions via CanvasGraphicsAdapter so the shapes match.
+    _drawMapDecorations(map) {
+        if (this._mapDecoCacheMap === map) return;
+        this._mapDecoCacheMap = map;
+        if (this._mapDecoGfx) { this._mapDecoGfx.destroy(); this._mapDecoGfx = null; }
+        this._mapDecoAdapter = null;
+
+        const hasWater = map.data.waterVisible !== false && Array.isArray(map.waterBrushes) && map.waterBrushes.length > 0;
+        const hasVisiblePaths = Array.isArray(map.data.paths) && map.data.paths.some(p => p && Array.isArray(p.waypoints) && p.visible !== false);
+        if (!hasWater && !hasVisiblePaths) return;
+
+        this._mapDecoGfx = new Graphics();
+        PixiApp.layer('path').addChild(this._mapDecoGfx);
+        this._mapDecoAdapter = new CanvasGraphicsAdapter(this._mapDecoGfx);
+        if (hasWater) MapRenderCore.drawWater(this._mapDecoAdapter, map.waterBrushes);
+        MapRenderCore.drawPaths(this._mapDecoAdapter, map.data.paths);
     },
 
     _drawExplosions(engine) {

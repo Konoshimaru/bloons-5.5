@@ -3,7 +3,11 @@ import Assets from '../assets.js';
 import { CANVAS_WIDTH } from '../constants.js';
 
 export const knightScale = 1.65; 
-export const trailScale = 1.21;
+export const trailScale = 1.45;
+// Matches rendererConstants.js KNIGHT_TRAIL_DRIFT — each trail ghost drifts
+// LEFT by (index * trailDrift) px, so the tail always trails toward the
+// track's left side even while the knight floats/idles.
+export const trailDrift = 1.5;
 
 const KnightRenderer = {
     draw(ctx) {
@@ -11,10 +15,11 @@ const KnightRenderer = {
         ctx.imageSmoothingEnabled = false;
 
         // Draw Trail
-        for (let t of this.knightTrail) {
+        for (let i = 0; i < this.knightTrail.length; i++) {
+            let t = this.knightTrail[i];
             ctx.save();
             ctx.globalAlpha = Math.max(0, t.alpha);
-            ctx.translate(t.x, t.y);
+            ctx.translate(t.x - i * trailDrift, t.y);
             ctx.scale(-1, 1);
             let asset = Assets.get('enemy_knight_front');
             if (asset && asset.loaded) {

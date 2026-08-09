@@ -108,6 +108,10 @@ class PixiAssetsManager {
                     this.#missing.add(key);
                     console.warn(`[pixiAssets] missing sprite for key "${key}" (${path})`);
                 }
+                // Missing tower sprites fall back to the dart-monkey base
+                // sprite so a tower with a missing texture stays visible
+                // instead of rendering as an empty/invisible placeholder.
+                if (key.startsWith(Names.PREFIXES.TOWER)) this._loadDartFallback(key);
                 return null;
             })
             .finally(() => {
@@ -119,6 +123,28 @@ class PixiAssetsManager {
 
         this.#pending.set(key, promise);
         return promise;
+    }
+
+    // Resolves a missing `tower_*` key to the dart-monkey base texture once
+    // it's available, so `get(key)` returns the dart sprite synchronously from
+    // then on. Called from _load()'s catch for every missing tower key; the
+    // dart texture is cached in the same #textures map (under the fallback
+    // key too) so future lookups are a single map hit.
+    async _loadDartFallback(key) {
+        const dartPath = this._resolvePath('tower_dart_base');
+        if (!dartPath) return;
+        try {
+            const dartTexture = await Assets.load(dartPath);
+            dartTexture.source.autoGenerateMipmaps = true;
+            this._applyScaleMode(key, dartTexture);
+            this.#textures.set('tower_dart_base', dartTexture);
+            this.#textures.set(key, dartTexture);
+        } catch {
+            if (!this.#missing.has('tower_dart_base')) {
+                this.#missing.add('tower_dart_base');
+                console.warn(`[pixiAssets] dart fallback for key "${key}" unavailable (${dartPath})`);
+            }
+        }
     }
 
     // Await-able version for preload screens (mirrors assets.js preloadManifest).

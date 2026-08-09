@@ -83,13 +83,23 @@ export const UIRenderer = {
     // texture call below, not here in the compositing step.
     _compositeWorld(engine) {
         if (!this._compositeFull) {
+            // Full-screen black backdrop, first child of compositeLayer.
+            // The original Canvas2D renderer clears the on-screen canvas to
+            // black every frame before compositing the world (renderer.js:
+            // `ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H)`), so any
+            // canvas edge exposed by the boss screen-split shows black — not
+            // the canvas element's CSS background (#8acc4d green in
+            // game-ui.css, visible here because PixiApp uses
+            // backgroundAlpha:0).
+            this._compositeBackdrop = new Graphics();
+            this._compositeBackdrop.rect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT).fill('#000');
             this._compositeFull = new Sprite(PixiApp.worldTexture);
             const topTex = new Texture({ source: PixiApp.worldTexture.source, frame: new Rectangle(0, 0, CANVAS_WIDTH, 360) });
             const bottomTex = new Texture({ source: PixiApp.worldTexture.source, frame: new Rectangle(0, 360, CANVAS_WIDTH, 360) });
             this._compositeTop = new Sprite(topTex);
             this._compositeBottom = new Sprite(bottomTex); this._compositeBottom.y = 360;
             this._compositeSplitBar = new Graphics();
-            PixiApp.compositeLayer.addChild(this._compositeFull, this._compositeTop, this._compositeBottom, this._compositeSplitBar);
+            PixiApp.compositeLayer.addChild(this._compositeBackdrop, this._compositeFull, this._compositeTop, this._compositeBottom, this._compositeSplitBar);
         }
 
         // Camera pan (CutsceneManager.cameraOffsetX) applies to everything

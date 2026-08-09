@@ -12,6 +12,14 @@ export const isMobile = {
     }
 };
 
+// Shared scale factor for the WebGL renderers: mirrors the `mobileScale`
+// term the Canvas2D renderers multiply into every size (`MobileManager.isActive
+// ? MobileManager.spriteScale : 1.0`). Single source of truth so both
+// renderer paths scale identically when togglemobile() is used.
+export function getSpriteScale() {
+    return MobileManager.isActive ? MobileManager.spriteScale : 1.0;
+}
+
 export const MobileManager = {
     isActive: false,
     spriteScale: 1.0,
