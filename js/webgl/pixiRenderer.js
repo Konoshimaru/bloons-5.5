@@ -10,6 +10,7 @@ import { UIRenderer } from './renderUI.js';
 import { HeroVFXRenderer } from './renderHeroVFX.js';
 import { CutsceneRenderer } from './renderCutscene.js';
 import { MenuRenderer } from './renderMenu.js';
+import { BuffIconsRenderer } from './renderBuffIcons.js';
 import { TowerStats } from '../towers/index.js';
 import { HeroRegistry } from '../heroes/index.js';
 
@@ -117,6 +118,7 @@ export const PixiRenderer = {
         this._safeDraw('_drawTowerEffects', engine);
         this._safeDraw('_drawHeroVFX', engine);
         this._safeDraw('_drawTowers', engine);
+        this._safeDraw('_drawBuffIcons', engine);
         this._safeDraw('_drawBeasts', engine);
         this._safeDraw('_drawSentries', engine);
         this._safeDraw('_drawProjectiles', engine);
@@ -170,4 +172,4 @@ export const PixiRenderer = {
 };
 
 // Merge all the rendering modules into the main PixiRenderer object
-Object.assign(PixiRenderer, TowersRenderer, EnemiesRenderer, ProjectilesRenderer, WorldRenderer, UIRenderer, HeroVFXRenderer, CutsceneRenderer, MenuRenderer);
+Object.assign(PixiRenderer, TowersRenderer, EnemiesRenderer, ProjectilesRenderer, WorldRenderer, UIRenderer, HeroVFXRenderer, CutsceneRenderer, MenuRenderer, BuffIconsRenderer);
