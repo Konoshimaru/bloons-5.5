@@ -104,8 +104,13 @@ export class Hero extends Tower {
     }
 
     _unlockAbilities() {
-        if (this.level >= 3) this.stats.isAbility = true;
-        if (this.level >= 10) this.stats.isAbility2 = true;
+        const unlocks = (HeroRegistry[this.type] && HeroRegistry[this.type].abilityUnlocks) || {};
+        const ab1 = unlocks[1] !== undefined ? unlocks[1] : 3;
+        const ab2 = unlocks[2] !== undefined ? unlocks[2] : 10;
+        const ab3 = unlocks[3];
+        if (this.level >= ab1) this.stats.isAbility = true;
+        if (this.level >= ab2) this.stats.isAbility2 = true;
+        if (ab3 !== undefined && this.level >= ab3) this.stats.isAbility3 = true;
     }
 
     update(dt, engine) {

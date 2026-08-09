@@ -90,6 +90,7 @@ export default {
         if (tower.stats.globalSniperBuff) {
             for (let t of GameEngine.towers) {
                 if (t && t.type === 'sniper' && t !== tower) {
+                    t.addBuff('sniper_elite', 'Elite Support', 0.5, 1, { type: 'sniper_elite' }, false);
                     t.buffedFireRate = Math.max(t.buffedFireRate, 0.33);
                 }
             }

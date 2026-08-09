@@ -294,7 +294,7 @@ export default {
         for (let t of engine.towers) {
             if (!t || t.type === 'village') continue;
             t.abilityActiveTime = Math.max(t.abilityActiveTime, duration);
-            
+            t.rapidShotMult = isHomeland ? 2 : 1.5;
             let pierceBuffAmount = (t.stats.pierce || 1) * (isHomeland ? 1.0 : 0.5);
             if (pierceBuffAmount > 0) {
                 t.addBuff('cta', 'Call to Arms', duration, 1, { type: 'cta', pierce: Math.floor(pierceBuffAmount) }, false);

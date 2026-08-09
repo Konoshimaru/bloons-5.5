@@ -63,6 +63,7 @@ export default {
             let stacks = Math.min(20, ninjaCount); 
             let speedBuff = stacks * 0.05; 
             let pierceBuff = (tower.stats.pierce || 2) * (stacks * 0.08);
+            if (stacks > 0) tower.addBuff('shinobi', 'Shinobi Tactics', 0.5, stacks, { type: 'shinobi' }, false);
             tower.buffedFireRate = (tower.buffedFireRate || 0) + speedBuff; 
             tower.buffedPierce = (tower.buffedPierce || 0) + pierceBuff;
         }

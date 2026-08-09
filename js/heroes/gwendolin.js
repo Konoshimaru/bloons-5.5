@@ -49,6 +49,7 @@ export default {
             let hiuRange = (tower.stats.heatItUpRange || 0) + Utils.getEffectiveRange(tower, GameEngine);
             for (let ot of GameEngine.towers) {
                 if (ot && Utils.withinRange(tower.x, tower.y, ot.x, ot.y, hiuRange)) {
+                    ot.addBuff('heat_it_up', 'Heat It Up', 0.5, 1, { type: 'heat_it_up' }, false);
                     ot.buffedPierce = (ot.buffedPierce || 0) + 1;
                     if (tower.level >= 17) {
                         ot.buffedDmg = (ot.buffedDmg || 0) + 1;
@@ -140,20 +141,13 @@ export default {
     fire(tower, target, damage, dmgType, isCrit, effects) {
         let count = tower.stats.projectileCount || 1;
         tower.shotCount = (tower.shotCount || 0) + 1;
-        if (tower.stats.heatItUp && tower.shotCount % 40 === 0) {
-            let hiuRange = (tower.stats.heatItUpRange || 0) + Utils.getEffectiveRange(tower, GameEngine);
-            for (let e of GameEngine.enemies) {
-                if (e.alive && Utils.withinRange(tower.x, tower.y, e.x, e.y, hiuRange)) {
-                    e.takeDamage(tower.stats.heatItUpDmg || 3, { isFire: true, canHitLead: true });
-                }
-            }
-            for (let ot of GameEngine.towers) {
-                if (ot && Utils.withinRange(tower.x, tower.y, ot.x, ot.y, hiuRange)) {
-                    ot.heatItUpTimer = 8;
-                    ot.buffedPierce = (ot.buffedPierce || 0) + 1;
-                    if (tower.level >= 17) {
-                        ot.buffedDmg = (ot.buffedDmg || 0) + 1;
-                        ot.buffedLead = true;
+        if (tower.stats.heatItUp) {
+            tower.heatItUpTimer = 8;
+            if (tower.shotCount % 40 === 0) {
+                let hiuRange = (tower.stats.heatItUpRange || 0) + Utils.getEffectiveRange(tower, GameEngine);
+                for (let e of GameEngine.enemies) {
+                    if (e.alive && Utils.withinRange(tower.x, tower.y, e.x, e.y, hiuRange)) {
+                        e.takeDamage(tower.stats.heatItUpDmg || 3, { isFire: true, canHitLead: true });
                     }
                 }
             }

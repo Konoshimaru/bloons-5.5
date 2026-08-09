@@ -174,8 +174,16 @@ export const GameEngine = {
 
     getCost(baseCost) { return Math.floor(baseCost * (this.difficulty ? this.difficulty.costMod : 1.0)); },
 
-    addCash(rawAmount) {
+    addCash(rawAmount, opts = {}) {
         if (rawAmount <= 0) return;
+        const diff = this.difficulty;
+        if (diff) {
+            if (diff.noIncome && !(opts.wave && diff.allowWaveCash)) return;
+            if (typeof diff.incomeMult === 'number' && diff.incomeMult !== 1) {
+                rawAmount = Math.floor(rawAmount * diff.incomeMult);
+                if (rawAmount <= 0) return;
+            }
+        }
         if (this.imfDebt > 0) {
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             let taxRate = 0.50;

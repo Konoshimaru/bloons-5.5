@@ -160,8 +160,12 @@ export class Tower {
             const tier = this.upgrades[p];
             for (let t = 0; t < tier; t++) {
                 const upgradeData = Upgrades[this.type][p + 1][t];
-                if (upgradeData && upgradeData.cooldownMult) {
+                if (!upgradeData) continue;
+                if (upgradeData.cooldownMult) {
                     this._cooldownMult *= upgradeData.cooldownMult;
+                }
+                if (upgradeData.extraMods && typeof upgradeData.extraMods.cooldownMult === 'number') {
+                    this._cooldownMult *= upgradeData.extraMods.cooldownMult;
                 }
             }
         }

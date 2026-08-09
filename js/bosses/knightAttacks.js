@@ -250,7 +250,7 @@ const KnightAttacks = {
             GameEngine.log("Sword Strike! " + tower.stats.name + " was sold!");
             AudioEngine.playSfx('cash');
             let resaleRate = 0.50;
-            GameEngine.addCash(Math.floor(tower.totalSpent * resaleRate));
+            GameEngine.cash += Math.floor(tower.totalSpent * resaleRate);
             const idx = GameEngine.towers.indexOf(tower);
             if (idx > -1) GameEngine.towers.splice(idx, 1);
             if (GameEngine.selectedPlacedTower === tower) GameEngine.deselectAll();

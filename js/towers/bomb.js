@@ -73,7 +73,7 @@ export default {
         
         // MOAB Assassin / Eliminator
         if (name === "Assassinate" || name === "Assassinate 2") {
-            engine.log("MOAB Assassin!");
+            engine.log(name === "Assassinate 2" ? "MOAB Eliminator!" : "MOAB Assassin!");
             let target = null; let maxHp = 0;
             for (const e of engine.enemies) {
                 if (!e || !e.alive || !e.data.isMoab) continue;

@@ -79,7 +79,7 @@ const GameSession = {
         Config.data.savedRun = null; 
         Config.save();
         
-        const rewardsEl = document.getElementById('go-rewards');
+        const rewardsEl = document.getElementById(this.gameState === 'victory' ? 'vic-rewards' : 'go-rewards');
         if (rewardsEl) rewardsEl.innerHTML = `+${xpEarned} XP<br>+${mmEarned} Monkey Money`;
         
         UI.updateMetaStats();

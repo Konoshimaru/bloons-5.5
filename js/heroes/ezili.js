@@ -40,7 +40,18 @@ export default {
         20: [{ stat: "dotDmg", amount: 2 }, { stat: "hexDmg", amount: 0.9 }] // Lvl 20 Hex instakills
     },
     update(tower, dt) {
-        // Ezili doesn't need custom update
+        if (tower.totemTimer !== undefined && tower.totemTimer > 0) {
+            tower.totemTimer -= dt;
+            if (tower.totemTimer > 0) {
+                for (let t of GameEngine.towers) {
+                    if (t && !t.isMinion) {
+                        t.buffedCamo = true;
+                        t.buffedLead = true;
+                        t.buffedPierce = Math.max(t.buffedPierce || 0, 2);
+                    }
+                }
+            }
+        }
     },
     draw(ctx, tower, isPreview) {
         tower.drawBaseTower(ctx, isPreview);
@@ -51,11 +62,9 @@ export default {
         for (let t of engine.towers) {
             if (t && !t.isMinion) {
                 t.addBuff('ezili_totem', 'Totem', 15.0, 1, { type: 'ezili' });
-                t.buffedCamo = true;
-                t.buffedLead = true;
-                t.buffedPierce += 2;
             }
         }
+        tower.totemTimer = 15.0;
     },
     ability2(tower, engine) {
         engine.log("Ezili: MOAB Hex!");

@@ -11,18 +11,15 @@ import Benjamin from './benjamin.js';
 import Ezili from './ezili.js';
 import PatFusty from './pat_fusty.js';
 import Adora from './adora.js';
+import Brickell from './brickell.js';
+import Etienne from './etienne.js';
+import Psi from './psi.js';
+import Geraldo from './geraldo.js';
+import Corvus from './corvus.js';
+import Rosalia from './rosalia.js';
+import Silas from './silas.js';
+import DanDMonke from './dan_d_monke.js';
 import { createPlaceholderHero } from './placeholder.js';
-
-const placeholderHeroes = [
-    ['brickell', 'Admiral Brickell', 750, 'Naval Commander'],
-    ['etienne', 'Etienne', 850, 'Drone Operator'],
-    ['psi', 'Psi', 1000, 'Psionic Monkey'],
-    ['geraldo', 'Geraldo', 1400, 'Mystic Shopkeeper'],
-    ['corvus', 'Corvus', 1600, 'Spirit Walker'],
-    ['rosalia', 'Rosalia', 1000, 'Tinkerer'],
-    ['silas', 'Silas', 1100, 'Ice Shaper'],
-    ['dan_d_monke', "Dan D'Monke", 800, 'Courtly Monkey']
-];
 
 export const HeroRegistry = {
     quincy: Quincy,
@@ -36,13 +33,16 @@ export const HeroRegistry = {
     benjamin: Benjamin,
     ezili: Ezili,
     pat_fusty: PatFusty,
-    adora: Adora
+    adora: Adora,
+    brickell: Brickell,
+    etienne: Etienne,
+    psi: Psi,
+    geraldo: Geraldo,
+    corvus: Corvus,
+    rosalia: Rosalia,
+    silas: Silas,
+    dan_d_monke: DanDMonke
 };
-
-// Inject all placeholders into the registry
-placeholderHeroes.forEach(([key, name, cost, desc]) => {
-    HeroRegistry[key] = createPlaceholderHero(name, cost, desc);
-});
 
 // Automatically generate stats and levels exports
 export const HeroStats = {};

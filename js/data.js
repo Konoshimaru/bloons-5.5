@@ -2,9 +2,11 @@
 import { deepFreeze } from './utils.js';
 import { EnemyTypesData } from './bloons.js';
 import { WavesData } from './waves.js';
+import { AbrWavesData } from './abrWaves.js';
 
 export const EnemyTypes = deepFreeze(EnemyTypesData);
 export const Waves = deepFreeze(WavesData);
+export const AbrWaves = deepFreeze(AbrWavesData);
 
 let _maps = [
     {

@@ -41,7 +41,7 @@ export default {
             {name:"Ultravision", cost:1200, stat:"canSeeCamo", amount:true, desc:"Enables Super Monkey to shoot slightly further, see and do more damage to Camo Bloons.", extraMods:{range:3, camoDmg:1}},
             {name:"Dark Knight", cost:5600, stat:"dmgType", amount:'plasma', desc:"Dark blades increase knockback and pierce and deal extra damage to MOAB-class Bloons. Gains Darkshift ability.", extraMods:{projectileType:'dark_blade', moabDmg:2, pierce:3, slow:0.1, slowDuration:0.5, isAbility:true, abilityName:"Darkshift", abilityCd:15}},
             {name:"Dark Champion", cost:55555, stat:"damage", amount:1, desc:"Champion dark blades excel at puncturing and ruining all Bloon types. Darkshift ability extends mapwide.", extraMods:{camoDmg:1, moabDmg:1, ceramicDmg:2, cooldownMult:0.5, pierce:4, canHitLead:true}},
-            {name:"Legend of the Night", cost:165650, stat:"damage", amount:8, desc:"We turn to him, when all hope is lost... Unlocks Portal ability.", extraMods:{pierce:15, moabDmg:16, ceramicDmg:2, camoDmg:2, isAbility2:true, abilityName:"Portal", abilityCd2:90}}
+            {name:"Legend of the Night", cost:165650, stat:"damage", amount:8, desc:"We turn to him, when all hope is lost... Unlocks Portal ability.", extraMods:{pierce:15, moabDmg:16, ceramicDmg:2, camoDmg:2, isAbility2:true, ability2Name:"Portal", ability2Cd:90}}
         ]
     },
 
@@ -179,6 +179,7 @@ export default {
             const range = Utils.getEffectiveRange(tower, engine);
             for (const t of engine.towers) {
                 if (t !== tower && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
+                    t.addBuff('sun_buff', 'Sun God', 0.5, 1, { type: 'sun_buff' }, false);
                     t.buffedDmg = Math.max(t.buffedDmg || 0, tower.supBuff.dmg);
                     t.buffedPierce = Math.max(t.buffedPierce || 0, tower.supBuff.pierce);
                     t.buffedRange = Math.max(t.buffedRange || 0, tower.supBuff.rangeMult - 1);

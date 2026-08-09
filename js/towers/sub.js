@@ -49,6 +49,7 @@ export default {
             for (const t of engine.towers) {
                 if (t && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < effRange * effRange) {
                     t.buffedCamo = true;
+                    t.addBuff('sub_reveal', 'Reveal Camo', 0.5, 1, { type: 'sub_reveal' }, false);
                 }
             }
             
@@ -130,6 +131,7 @@ export default {
             const effRange = Utils.getEffectiveRange(tower, engine);
             for (const t of engine.towers) {
                 if (t && t.type === 'sub' && t !== tower && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < effRange * effRange) {
+                    t.addBuff('sub_commander', 'Sub Commander', 0.5, 1, { type: 'sub_commander' }, false);
                     t.buffedDmg = Math.max(t.buffedDmg || 0, 2);
                     t.buffedPierce = Math.max(t.buffedPierce || 0, 5);
                 }

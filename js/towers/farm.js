@@ -45,6 +45,7 @@ export default {
             for (let t of GameEngine.towers) {
                 if (t === tower) continue;
                 if (t && t.type === 'farm' && t.upgrades[0] === 4) {
+                    t.addBuff('wall_street', 'Wall Street', 0.5, 1, { type: 'wall_street' }, false);
                     t.buffedValueMult = 0.25;
                 }
             }

@@ -124,7 +124,7 @@ export default {
         
         for (let t of engine.towers) {
             if (t && !t.isMinion && Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
-                t.addBuff('pat_rally', 'Rally', duration, 1, { type: 'dmg', amount: dmgBuff });
+                t.addBuff('pat_rally', 'Rally', duration, 1, { type: 'pat_rally', amount: dmgBuff });
             }
         }
     },

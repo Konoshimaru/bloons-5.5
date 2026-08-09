@@ -64,6 +64,7 @@ export default {
             const range = Utils.getEffectiveRange(tower, engine);
             for (const t of engine.towers) {
                 if (t && t.type === 'druid' && t !== tower && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
+                    t.addBuff('poplust', 'Poplust', 0.5, 1, { type: 'poplust' }, false);
                     t.buffedFireRate = Math.max(t.buffedFireRate || 0, 0.15); // +15% atk speed
                     t.buffedPierce = Math.max(t.buffedPierce || 0, 1);
                 }

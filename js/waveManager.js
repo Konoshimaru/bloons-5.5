@@ -1,8 +1,9 @@
 // waveManager.js
-import { Waves } from './data.js';
+import { Waves, AbrWaves } from './data.js';
 import { Enemy } from './enemy.js';
 import { GameEngine } from './engine.js';
 import { UI } from './ui.js';
+import { AudioEngine } from './audio.js';
 import { updateShopPrices } from './dragManager.js';
 
 const SPAWN_INTERVAL_DEFAULT = 0.35;
@@ -45,7 +46,8 @@ export class WaveManager {
     }
 
     _getWaveData(waveNum) {
-        const waveData = Waves[waveNum - 1];
+        const table = (GameEngine.difficulty && GameEngine.difficulty.isABR) ? AbrWaves : Waves;
+        const waveData = table[waveNum - 1];
         if (waveData) return waveData;
         return this._generateEndlessWave(waveNum);
     }
@@ -153,9 +155,20 @@ export class WaveManager {
     _completeWave() {
         this.waveActive = false;
 
+        // VICTORY: the final wave of the difficulty has been cleared
+        if (!GameEngine.isSandbox && GameEngine.difficulty && GameEngine.difficulty.maxRound && this.currentWave >= GameEngine.difficulty.maxRound) {
+            AudioEngine.pause();
+            GameEngine.deselectAll();
+            GameEngine.gameState = 'victory';
+            GameEngine.giveRewards();
+            UI.toggleMenus('victory-menu');
+            document.getElementById('vic-wave-stat').innerText = `You beat Wave ${this.currentWave} on ${GameEngine.difficulty.name}!`;
+            return;
+        }
+
         if (!GameEngine.difficulty || !GameEngine.difficulty.noIncome || GameEngine.difficulty.allowWaveCash) {
             const cashEarned = 100 + this.currentWave;
-            GameEngine.addCash(cashEarned);
+            GameEngine.addCash(cashEarned, { wave: true });
             GameEngine.log(`Wave ${this.currentWave} Complete! +$${cashEarned}`);
 
             this._processTowerEndOfRound();

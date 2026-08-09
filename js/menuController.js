@@ -240,9 +240,9 @@ export const menuController = {
         grid.innerHTML = '';
 
         const categories = {
-            'Easy': ['easy'],
+            'Easy': ['easy', 'deflation'],
             'Medium': ['medium'],
-            'Hard': ['hard', 'impoppable', 'chimps'],
+            'Hard': ['hard', 'halfcash', 'dhm', 'abr', 'impoppable', 'chimps'],
             'Post CHIMPS': ['postchimps']
         };
 
@@ -332,6 +332,18 @@ export const menuController = {
         dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => UI.toggleMenus(e.target.dataset.target)));
         dom.settingsBackBtn?.addEventListener('click', () => UI.toggleMenus(GameEngine.lastMenu));
         dom.goMenuBtn?.addEventListener('click', () => {
+            UI.toggleMenus(null);
+            GameEngine.deselectAll();
+            GameEngine.gameState = 'menu';
+            GameEngine.map = null;
+            this.showMainMenuUI(true);
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('top-ui-left').classList.add('hidden');
+            document.getElementById('top-ui-right').classList.add('hidden');
+            AudioEngine.playMenuMusic();
+            updateShopPrices();
+        });
+        dom.vicMenuBtn?.addEventListener('click', () => {
             UI.toggleMenus(null);
             GameEngine.deselectAll();
             GameEngine.gameState = 'menu';

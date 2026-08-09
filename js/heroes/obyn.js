@@ -50,6 +50,7 @@ export default {
             if (t === tower) continue;
             if (Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
                 if (t.stats.category === 'Magic') {
+                    t.addBuff('obyn_magic', 'Magic Buff', 0.5, 1, { type: 'obyn_magic' }, false);
                     t.buffedDmg = Math.max(t.buffedDmg, tower.stats.magicDmgBuff);
                     t.buffedPierce = Math.max(t.buffedPierce, tower.stats.magicPierceBuff);
                 }

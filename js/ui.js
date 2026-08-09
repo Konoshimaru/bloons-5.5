@@ -11,7 +11,7 @@ function el(id) {
     return elements[id];
 }
 
-const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu'];
+const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'victory-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu'];
 const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 
 export const UI = {

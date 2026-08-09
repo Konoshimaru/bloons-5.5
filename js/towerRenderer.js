@@ -250,7 +250,7 @@ export default {
         const buffsToDraw = [];
         
         // Legacy buffs
-        if (this.alchBuff && (!this.alchBuff.isPerm || this.alchBuff.shotsLeft > 0)) {
+        if (this.alchBuff) {
             buffsToDraw.push({ type: 'alch', stacks: this.alchBuff.shotsLeft > 0 ? this.alchBuff.shotsLeft : '', name: 'Alchemist Buff' });
         }
         if (this.overclockTimer > 0) {
@@ -309,17 +309,34 @@ export default {
         
         ctx.translate(16, 16); // Center drawing
 
-        let bgColor = '#2ecc71'; // generic green
-        if (type === 'alch') bgColor = '#9b59b6'; // purple
-        if (type === 'oc') bgColor = '#e74c3c'; // red
-        if (type === 'village') bgColor = '#3498db'; // blue
-        if (type === 'jd') bgColor = '#27ae60'; // green
-        if (type === 'ptr') bgColor = '#f1c40f'; // yellow
-        if (type === 'pm') bgColor = '#e67e22'; // orange
-        if (type === 'pe') bgColor = '#c0392b'; // dark red
-        if (type === 'cta') bgColor = '#9b59b6'; // purple (Call to Arms)
-        if (type === 'radar') bgColor = '#16a085'; // teal
-        if (type === 'mib') bgColor = '#34495e'; // dark blue/grey
+        let bgColor;
+        const colorTable = {
+            alch: '#9b59b6', // purple brew
+            alch_dip: '#1abc9c', // teal acid dip
+            oc: '#e74c3c', // red overclock
+            village: '#3498db', // blue village
+            jd: '#27ae60', // green jungle drums
+            ptr: '#f1c40f', // yellow primary training
+            pm: '#e67e22', // orange primary mentoring
+            pe: '#c0392b', // dark red primary expertise
+            cta: '#9b59b6', // purple call to arms
+            radar: '#16a085', // teal radar
+            mib: '#34495e', // dark blue/grey MIB
+            pat_rally: '#f39c12', // orange rally
+            adora: '#ffd700', // gold long arm
+            ezili: '#8e44ad', // purple totem
+            skywarden: '#7f8c8d', // grey skywarden
+            heat_it_up: '#e67e22', // orange heat it up
+            rabble: '#d35400', // burnt orange rabble
+            reposition: '#2ecc71', // green reposition
+            flight_boost: '#3498db' // blue flight boost
+        };
+        bgColor = colorTable[type];
+        if (!bgColor) {
+            let h = 0;
+            for (let i = 0; i < type.length; i++) h = (h * 31 + type.charCodeAt(i)) >>> 0;
+            bgColor = `hsl(${h % 360}, 55%, 50%)`;
+        }
 
         // Draw background circle
         ctx.fillStyle = bgColor;
@@ -426,6 +443,88 @@ export default {
             ctx.lineTo(0, 7 * GS * sizeScale);
             ctx.lineTo(-4 * GS * sizeScale, 4 * GS * sizeScale);
             ctx.lineTo(-5 * GS * sizeScale, -4 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+        } else if (type === 'alch_dip') {
+            ctx.beginPath();
+            ctx.moveTo(-3 * GS * sizeScale, -6 * GS * sizeScale);
+            ctx.quadraticCurveTo(5 * GS * sizeScale, -2 * GS * sizeScale, 4 * GS * sizeScale, 3 * GS * sizeScale);
+            ctx.quadraticCurveTo(0, 6 * GS * sizeScale, -4 * GS * sizeScale, 3 * GS * sizeScale);
+            ctx.quadraticCurveTo(-5 * GS * sizeScale, -2 * GS * sizeScale, -3 * GS * sizeScale, -6 * GS * sizeScale);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 4 * GS * sizeScale, 1.5 * GS * sizeScale, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'pat_rally') {
+            ctx.fillRect(-1 * GS * sizeScale, -7 * GS * sizeScale, 2 * GS * sizeScale, 12 * GS * sizeScale);
+            ctx.beginPath();
+            ctx.moveTo(1 * GS * sizeScale, -7 * GS * sizeScale);
+            ctx.lineTo(7 * GS * sizeScale, -4 * GS * sizeScale);
+            ctx.lineTo(1 * GS * sizeScale, -1 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+        } else if (type === 'adora') {
+            ctx.beginPath();
+            ctx.arc(0, 0, 3.5 * GS * sizeScale, 0, Math.PI * 2);
+            ctx.fill();
+            for (let i = 0; i < 8; i++) {
+                const a = (i * Math.PI) / 4;
+                ctx.fillRect(Math.cos(a) * 4.5 * GS * sizeScale - 1 * GS * sizeScale, Math.sin(a) * 4.5 * GS * sizeScale - 1 * GS * sizeScale, 2 * GS * sizeScale, 2 * GS * sizeScale);
+            }
+        } else if (type === 'ezili') {
+            ctx.beginPath();
+            ctx.moveTo(0, 5 * GS * sizeScale);
+            ctx.bezierCurveTo(-7 * GS * sizeScale, -1 * GS * sizeScale, -3 * GS * sizeScale, -6 * GS * sizeScale, 0, -1 * GS * sizeScale);
+            ctx.bezierCurveTo(3 * GS * sizeScale, -6 * GS * sizeScale, 7 * GS * sizeScale, -1 * GS * sizeScale, 0, 5 * GS * sizeScale);
+            ctx.fill();
+        } else if (type === 'skywarden') {
+            ctx.beginPath();
+            ctx.moveTo(-7 * GS * sizeScale, -3 * GS * sizeScale);
+            ctx.quadraticCurveTo(0, -6 * GS * sizeScale, 7 * GS * sizeScale, -3 * GS * sizeScale);
+            ctx.quadraticCurveTo(0, 0, -7 * GS * sizeScale, -3 * GS * sizeScale);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(0, 2 * GS * sizeScale, 1.5 * GS * sizeScale, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (type === 'heat_it_up') {
+            ctx.beginPath();
+            ctx.moveTo(0, -7 * GS * sizeScale);
+            ctx.quadraticCurveTo(5 * GS * sizeScale, -1 * GS * sizeScale, 3 * GS * sizeScale, 3 * GS * sizeScale);
+            ctx.quadraticCurveTo(0, 6 * GS * sizeScale, -3 * GS * sizeScale, 3 * GS * sizeScale);
+            ctx.quadraticCurveTo(-5 * GS * sizeScale, -1 * GS * sizeScale, 0, -7 * GS * sizeScale);
+            ctx.fill();
+        } else if (type === 'rabble') {
+            ctx.beginPath();
+            ctx.moveTo(-6 * GS * sizeScale, 1 * GS * sizeScale);
+            ctx.lineTo(0, -4 * GS * sizeScale);
+            ctx.lineTo(6 * GS * sizeScale, 1 * GS * sizeScale);
+            ctx.lineTo(6 * GS * sizeScale, 3 * GS * sizeScale);
+            ctx.lineTo(0, -2 * GS * sizeScale);
+            ctx.lineTo(-6 * GS * sizeScale, 3 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+        } else if (type === 'reposition') {
+            ctx.beginPath();
+            ctx.moveTo(7 * GS * sizeScale, 0);
+            ctx.lineTo(2 * GS * sizeScale, -4 * GS * sizeScale);
+            ctx.lineTo(2 * GS * sizeScale, 4 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(-7 * GS * sizeScale, 0);
+            ctx.lineTo(-2 * GS * sizeScale, -4 * GS * sizeScale);
+            ctx.lineTo(-2 * GS * sizeScale, 4 * GS * sizeScale);
+            ctx.closePath();
+            ctx.fill();
+        } else if (type === 'flight_boost') {
+            ctx.beginPath();
+            ctx.moveTo(0, -7 * GS * sizeScale);
+            ctx.lineTo(7 * GS * sizeScale, 1 * GS * sizeScale);
+            ctx.lineTo(3 * GS * sizeScale, 1 * GS * sizeScale);
+            ctx.lineTo(3 * GS * sizeScale, 5 * GS * sizeScale);
+            ctx.lineTo(-3 * GS * sizeScale, 5 * GS * sizeScale);
+            ctx.lineTo(-3 * GS * sizeScale, 1 * GS * sizeScale);
+            ctx.lineTo(-7 * GS * sizeScale, 1 * GS * sizeScale);
             ctx.closePath();
             ctx.fill();
         } else {

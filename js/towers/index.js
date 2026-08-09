@@ -25,6 +25,7 @@ import heli from './heli.js';
 import dartling from './dartling.js';
 import ace from './ace.js';
 import desperado from './desperado.js';
+import skywarden from './skywarden.js';
 import { createPlaceholderTower } from './placeholder.js';
 
 const placeholderTowers = [
@@ -32,7 +33,7 @@ const placeholderTowers = [
 
 export const TowerRegistry = {
     dart, boomerang, tack, ninja, sniper, ice, glue, bomb, spike, farm, village, heli, ace, desperado,
-    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer, mermonkey, beast, dartling, druid
+    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer, mermonkey, beast, dartling, druid, skywarden
 };
 
 placeholderTowers.forEach(([key, name, cost, desc]) => {
@@ -48,7 +49,7 @@ export const TOWER_CATEGORIES = {
     heli: 'Military', mortar: 'Military', dartling: 'Military',
     // Magic
     wizard: 'Magic', super: 'Magic', ninja: 'Magic', alchemist: 'Magic', 
-    druid: 'Magic', mermonkey: 'Magic',
+    druid: 'Magic', mermonkey: 'Magic', skywarden: 'Magic',
     // Support
     farm: 'Support', spike: 'Support', village: 'Support', engineer: 'Support', 
     beast: 'Support', farmer: 'Support'

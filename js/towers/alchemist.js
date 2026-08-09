@@ -42,9 +42,8 @@ export default {
         ]
     },
     update(tower, dt) {
-        // 1. Transforming Tonic Monster Mode
+        // 1. Transforming Tonic Monster Mode (monsterTimer ticks down globally in towerBehavior)
         if (tower.isMonster) {
-            tower.monsterTimer -= dt;
             if (tower.monsterTimer <= 0) {
                 tower.isMonster = false;
             } else {
@@ -113,7 +112,7 @@ export default {
                             shotsLeft: tower.stats.brewShots ? tower.stats.brewShots : 10,
                             isPerm: tower.stats.isPermBrew || false
                         };
-                        targetTower.addBuff('alch_dip', 'Acid Dip', duration, 1, { type: 'alch' }, false); // Use same icon
+                        targetTower.addBuff('alch_dip', 'Acid Dip', duration, 1, { type: 'alch_dip' }, false);
                     }
                     
                     // Spawn visual potion

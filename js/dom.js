@@ -49,6 +49,7 @@ export const dom = {
     heroSelector: document.getElementById('hero-selector'),
     settingsBackBtn: document.getElementById('settings-back-btn'),
     goMenuBtn: document.getElementById('go-menu-btn'),
+    vicMenuBtn: document.getElementById('vic-menu-btn'),
     backBtns: document.querySelectorAll('.back-btn[data-target]'),
     volumeSlider: document.getElementById('volume-slider'),
     volDisplay: document.getElementById('vol-display'),

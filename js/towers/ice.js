@@ -52,6 +52,7 @@ export default {
         if (tower.stats.absoluteZero) {
             for (let t of GameEngine.towers) {
                 if (t && t.type === 'ice' && t !== tower) {
+                    t.addBuff('ice_support', 'Arctic Wind', 0.5, 1, { type: 'ice_support' }, false);
                     t.buffedFireRate = Math.max(t.buffedFireRate, 0.10);
                     if (tower.absZeroActiveBuff > 0) {
                         t.buffedFireRate = Math.max(t.buffedFireRate, 0.50); 

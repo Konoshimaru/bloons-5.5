@@ -52,6 +52,7 @@ export default {
             const range = Utils.getEffectiveRange(tower, engine);
             for (const t of engine.towers) {
                 if (t && (t.stats.waterOnly || t.type === 'ace') && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
+                    t.addBuff('flagship', 'Carrier Flagship', 0.5, 1, { type: 'flagship' }, false);
                     t.buffedFireRate = Math.max(t.buffedFireRate || 0, 0.15); // +15% attack speed
                 }
             }

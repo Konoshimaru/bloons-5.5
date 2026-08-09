@@ -29,7 +29,7 @@ export function getEffectiveCooldown(tower) {
     if (tower.overclockTimer > 0) finalCooldown *= 0.6;
     if (tower.ultraboostStacks > 0) finalCooldown *= Math.pow(0.96, tower.ultraboostStacks);
     
-    if (tower.abilityActiveTime > 0) finalCooldown /= (tower.stats.rapidShotMult || 3);
+    if (tower.abilityActiveTime > 0) finalCooldown /= (tower.rapidShotMult || tower.stats.rapidShotMult || (tower.stats.isHero ? 3 : 1));
     
     if (tower.buffedFireRate > 0) finalCooldown /= (1 + tower.buffedFireRate);
     
@@ -55,7 +55,14 @@ function _updateTimers(tower, dt, engine) {
     if (tower.abilityCooldown > 0) tower.abilityCooldown -= dt;
     if (tower.ability2Cooldown > 0) tower.ability2Cooldown -= dt;
     if (tower.ability3Cooldown > 0) tower.ability3Cooldown -= dt; 
-    if (tower.abilityActiveTime > 0) tower.abilityActiveTime -= dt;
+    if (tower.abilityActiveTime > 0) {
+        tower.abilityActiveTime -= dt;
+        if (tower.abilityActiveTime <= 0 && tower.rapidShotMult) tower.rapidShotMult = 0;
+    }
+    if (tower.isMonster) {
+        tower.monsterTimer = (tower.monsterTimer || 0) - dt;
+        if (tower.monsterTimer <= 0) { tower.isMonster = false; tower.monsterTimer = 0; }
+    }
     if (tower.fanClubBuffTimer > 0) tower.fanClubBuffTimer -= dt;
     if (tower.overclockTimer > 0) tower.overclockTimer -= dt; 
     if (tower.stunTimer > 0) tower.stunTimer -= dt; 

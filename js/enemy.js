@@ -179,6 +179,9 @@ export class Enemy {
         if (this.hpMod && this.hpMod !== 1) {
             this._maxHp = Math.max(1, Math.ceil(this._maxHp * this.hpMod));
         }
+        if (this.data.isMoab && GameEngine.difficulty && GameEngine.difficulty.moabHpMod) {
+            this._maxHp = Math.ceil(this._maxHp * GameEngine.difficulty.moabHpMod);
+        }
         this.hp = this._maxHp;
         
         if (this.data.isLead && this.isFortified) {
@@ -220,7 +223,11 @@ export class Enemy {
             this.radius = (this.data.radius || 10) * GS;
             const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
             this.data.speed *= diffSpeedMod;
-            if (this.data.isMoab) this.hp = this.data.maxHp * (this.isFortified ? 2 : 1);
+            if (this.data.isMoab) {
+                let moabHp = this.data.maxHp * (this.isFortified ? 2 : 1);
+                if (GameEngine.difficulty && GameEngine.difficulty.moabHpMod) moabHp *= GameEngine.difficulty.moabHpMod;
+                this.hp = moabHp;
+            }
             if (this.data.isCeramic) this.hp = this.data.maxHp * (this.isFortified ? 2 : 1);
             this._updateSpriteCache();
         }

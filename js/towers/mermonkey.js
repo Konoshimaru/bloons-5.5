@@ -131,6 +131,7 @@ export default {
             for (const t of engine.towers) {
                 if (t === tower || !t) continue;
                 if (Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
+                    t.addBuff('mermonkey_pierce', 'Abyssal Pierce', 0.5, 1, { type: 'mermonkey_pierce' }, false);
                     t.buffedPierce = Math.max(t.buffedPierce || 0, Math.ceil((t.stats.pierce || 1) * buffMult));
                 }
             }
@@ -145,10 +146,12 @@ export default {
                 if (t === tower || !t) continue;
                 if (Utils.distanceSq(cx, cy, t.x, t.y) < range * range) {
                     if (t.stats.isHero) {
+                        t.addBuff('final_harmonic', 'Final Harmonic', 0.5, 1, { type: 'final_harmonic' }, false);
                         t.buffedRange = Math.max(t.buffedRange || 0, 0.15);
                         t.abilityCdMult = Math.min(t.abilityCdMult || 1.0, 0.85);
                     }
                     if (t.stats.category === 'Magic') {
+                        t.addBuff('final_harmonic', 'Final Harmonic', 0.5, 1, { type: 'final_harmonic' }, false);
                         t.buffedPierce = Math.max(t.buffedPierce || 0, 3);
                     }
                 }

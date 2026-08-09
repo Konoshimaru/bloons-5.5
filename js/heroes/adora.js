@@ -40,7 +40,13 @@ export default {
         20: [{ stat: "damage", amount: 5 }, { stat: "canSeeCamo", amount: true }] // Lvl 20 sees camo
     },
     update(tower, dt) {
-        // Adora doesn't need custom update
+        if (tower.longarmTimer !== undefined && tower.longarmTimer > 0) {
+            tower.longarmTimer -= dt;
+            if (tower.longarmTimer > 0) {
+                tower.buffedRange = Math.max(tower.buffedRange || 0, 0.25); // 25% range buff
+                tower.buffedPierce = Math.max(tower.buffedPierce || 0, 10);
+            }
+        }
     },
     draw(ctx, tower, isPreview) {
         tower.drawBaseTower(ctx, isPreview);
@@ -48,8 +54,7 @@ export default {
     ability(tower, engine) {
         engine.log("Adora: Long Arm of Light!");
         tower.addBuff('adora_longarm', 'Long Arm', 15.0, 1, { type: 'adora' });
-        tower.buffedRange += 0.25; // 25% range buff
-        tower.buffedPierce += 10;
+        tower.longarmTimer = 15.0;
     },
     ability2(tower, engine) {
         engine.log("Adora: Blood Sacrifice!");

@@ -90,17 +90,25 @@ const uiTowerPanel = {
             if (!t || t.isMinion) continue; 
             if (t.stats.isHero) {
                 this._collectHeroAbilities(t, abilities);
-            } else if (t.stats.isAbility) {
-                const towerCd = t.stats.abilityCd || 45;
-                const towerName = t.stats.abilityName || "Ability";
-                
-                let cd = t.abilityCooldown || 0;
+            } else if (t.stats.isAbility || t.stats.isAbility2 || t.stats.isAbility3) {
                 const behavior = getBehavior(t.type);
-                if (behavior?.getAbilityTarget) {
-                    let target = behavior.getAbilityTarget(t, 1);
-                    if (target) cd = target.abilityCooldown || 0;
+                if (t.stats.isAbility) {
+                    const towerCd = t.stats.abilityCd || 45;
+                    const towerName = t.stats.abilityName || "Ability";
+                    
+                    let cd = t.abilityCooldown || 0;
+                    if (behavior?.getAbilityTarget) {
+                        let target = behavior.getAbilityTarget(t, 1);
+                        if (target) cd = target.abilityCooldown || 0;
+                    }
+                    abilities.push({ tower: t, slot: 1, cd: cd, maxCd: towerCd, name: towerName });
                 }
-                abilities.push({ tower: t, slot: 1, cd: cd, maxCd: towerCd, name: towerName });
+                if (t.stats.isAbility2) {
+                    abilities.push({ tower: t, slot: 2, cd: t.ability2Cooldown || 0, maxCd: t.stats.ability2Cd || 70, name: t.stats.ability2Name || "Ability 2" });
+                }
+                if (t.stats.isAbility3) {
+                    abilities.push({ tower: t, slot: 3, cd: t.ability3Cooldown || 0, maxCd: t.stats.ability3Cd || 120, name: t.stats.ability3Name || "Ability 3" });
+                }
             }
         }
         return abilities;

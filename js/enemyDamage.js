@@ -22,6 +22,10 @@ const EnemyDamage = {
         
         if (this._isImmune(dmgType, effects)) return -1;
         
+        if (effects && typeof effects.onHit === 'function') {
+            effects.onHit(this, dmgType, effects);
+        }
+        
         if (this.brittle) damage += this.brittleBonus;
         
         if (dmgType.moabDmg && this.data.isMoab) damage += (dmgType.moabDmg || 0);
