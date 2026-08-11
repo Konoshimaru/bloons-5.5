@@ -3,6 +3,7 @@
 
 export const ProjectileTypeConfig = {
     bomb:             { isExplosive: true, explosionColor: '#e67e22' },
+    missile:          { isExplosive: true, explosionColor: '#e67e22' },
     mortar_shell:     { isExplosive: true, explosionColor: '#e67e22' },
     potion:           { isExplosive: true, explosionColor: '#9b59b6', isAcid: true },
     flash_bomb:       { isExplosive: true, explosionColor: '#e67e22' },

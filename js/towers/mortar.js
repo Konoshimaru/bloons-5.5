@@ -43,7 +43,7 @@ export default {
         // Bombardment Ability Active Effect
         if (tower.bombardmentActive > 0) {
             tower.bombardmentActive -= dt;
-            tower.buffedFireRate = Math.max(tower.buffedFireRate || 0, 8.0); 
+            tower.buffedFireRate = Math.max(tower.buffedFireRate || 0, 1.0); 
         }
     },
 

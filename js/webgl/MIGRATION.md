@@ -16,10 +16,13 @@ Game logic (`engine.js`, `simulationLoop.js`, `towerBehavior.js`,
 rendering-layer swap only. State stays the single source of truth; the new
 renderer just reads from it, same as the old one does.
 
-**Nothing here is live for normal players.** The new renderer is only
-reachable via a `?webgl=1` URL debug flag, wired in `js/engine.js`. Normal
-gameplay is 100% unaffected — the Canvas2D path is untouched and still what
-everyone actually plays on.
+**Status: WebGL is now the DEFAULT renderer.** Wired in `js/engine.js`
+(`useWebGL = params.get('webgl') === '1' || params.get('canvas') !== '1'`):
+normal gameplay renders through Pixi unless you opt back into the old path
+with `?canvas=1`. The Canvas2D files are still imported and shipped as the
+fallback **and** as the reference the port is checked against — deleting
+them is the final planned step, gated on browser verification of the
+default path.
 
 ## Latest verified status (2026-08) — read this first, the sections below are a log
 
@@ -65,11 +68,18 @@ real source and are fictional — those subsystems don't exist on the canvas
 side (`isSubmerged` is attack logic only; `arrow`/`laser` are ordinary
 projectile types already handled via `projectileDrawers.js`).
 
-**Remaining real work** is verification-only: the `dragManager.js`
-drag-and-drop click flow, HiDPI displays (resolution is pinned to 1 by
-design — see the comment in `pixiApp.js`), and the `?webgl=1` toggle default.
-The switch to make WebGL the default renderer + delete the Canvas2D path is
-still the end state but hasn't been done.
+**Remaining real work:**
+1. **Browser verification of the now-default WebGL path** — still the single
+   most valuable thing anyone can do (most of this migration has only ever
+   been read, never run). Priority targets: the `dragManager.js`
+   drag-and-drop click flow (coordinate-math root cause fixed, flow never
+   exercised), the render-loop change from the screen-split round
+   (world→texture→composite) plus the cutscene work, and HiDPI displays
+   (resolution is pinned to 1 by design — see the comment in `pixiApp.js`).
+2. **Delete the Canvas2D path** — the documented end-state. Once
+   verification passes, remove `renderer.js`, `towerRenderer.js`,
+   `enemyRenderer.js`, `projectileDrawers.js`, the Image-based half of
+   `assets.js`, and the `?canvas=1` fallback branch.
 
 ## How to try it
 
@@ -77,8 +87,10 @@ still the end state but hasn't been done.
 npm install
 npm run dev
 ```
-Open the dev URL, add `?webgl=1` to it, start a game. Check the browser
-console for `[webgl debug]` log lines (confirms Pixi loaded) and any errors.
+Open the dev URL and start a game — WebGL/Pixi is the default renderer.
+Check the browser console for `[webgl debug]` log lines (confirms Pixi
+loaded) and any errors. Add `?canvas=1` to the URL to run the old Canvas2D
+path side-by-side for comparison/A-B checking.
 
 ## Current state, honestly
 
@@ -1154,5 +1166,30 @@ absolute radius passed in, which isn't true in general and doesn't
 extend to linear gradients or to radial gradients with differing
 center/outerCenter, so this isn't a rule of thumb to carry forward
 without re-deriving it for whatever the next shape actually is.
+
+### Round: WebGL becomes the default renderer (+ game-logic audit pass)
+Owner asked to flip the renderer default and to clean up a batch of
+non-rendering bugs at the same time.
+
+- **`js/engine.js` — WebGL is now the default.** `useWebGL` is true unless
+  `?canvas=1` forces the old path (`?webgl=1` no longer needed). The
+  Canvas2D files are intentionally still shipped — they're the fallback
+  AND the reference the port is diffed against. Deleting them stays gated
+  on browser verification of the default path (see "Remaining real work"
+  at the top of this doc).
+- **Game-logic bug fixes landed alongside (not part of the renderer
+  swap):** Benjamin's level-7 `fireRate: 1.0` fake-firing bug (level now
+  reduces his cash-skim interval via a `cashInterval` stat instead); Ace
+  Sky Shredder projectile speed `60*GS → 600*GS`; mortar Bombardment
+  `buffedFireRate 8.0 → 1.0`; Gojo's reverse-well DPS `5000*dt → 500*dt`;
+  Pat Fusty's Rallying Roar now actually applies `buffedDmg` via a new
+  `updateSupport` hook; added the `missile` entry to
+  `projectileTypeConfig.js` (Missile Launcher shells were silently losing
+  their explosive behavior).
+- **Verification status unchanged:** none of this has been eyeballed in a
+  browser since the owner's earlier shadow-rotation / tower-scale reports.
+  The default-switch is the highest-stakes change in the whole file — the
+  render every player now sees has never been confirmed against the canvas
+  reference beyond those two spot-checks.
 
 </details>

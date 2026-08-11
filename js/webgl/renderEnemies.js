@@ -133,7 +133,9 @@ export const EnemiesRenderer = {
                 if (stunTexture === Texture.EMPTY) stunTexture = PixiAssets.get('effect_stun');
                 if (stunTexture !== Texture.EMPTY) {
                     const s = (enemy.data?.size || 40) * GLOBAL_SCALE * 0.8 * mscale;
-                    stun.texture = stunTexture; stun.width = s; stun.height = s; stun.x = 0; stun.y = -enemy.radius * 0.6 - s / 2; stun.rotation = t * 5; stun.visible = true;
+                    const rot = enemy.tier >= 13 ? (enemy.angle + Math.PI / 2) : 0;
+                    const d = enemy.radius * 0.6 * mscale + s / 2;
+                    stun.texture = stunTexture; stun.width = s; stun.height = s; stun.x = -d * Math.sin(rot); stun.y = -d * Math.cos(rot); stun.rotation = t * 5 - rot; stun.visible = true;
                 }
             }
 

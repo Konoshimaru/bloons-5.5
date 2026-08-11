@@ -122,9 +122,26 @@ export default {
         const dmgBuff = tower.level >= 14 ? 3 : (tower.level >= 9 ? 2 : 1);
         const duration = tower.level >= 14 ? 10 : 8;
         
+        tower.rallyTimer = duration;
+        tower.rallyDmg = dmgBuff;
+        
         for (let t of engine.towers) {
             if (t && !t.isMinion && Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
                 t.addBuff('pat_rally', 'Rally', duration, 1, { type: 'pat_rally', amount: dmgBuff });
+            }
+        }
+    },
+    // Applies the rally damage buff each frame while Rallying Roar is active.
+    // updateSupport() runs before any tower fires (simulationLoop), so the
+    // buffedDmg set here is in effect for the whole frame.
+    updateSupport(tower, dt) {
+        if (!tower.rallyTimer || tower.rallyTimer <= 0) return;
+        tower.rallyTimer -= dt;
+        const effRange = Utils.getEffectiveRange(tower, GameEngine);
+        const dmg = tower.rallyDmg || 1;
+        for (let t of GameEngine.towers) {
+            if (t && !t.isMinion && Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
+                t.buffedDmg = Math.max(t.buffedDmg || 0, dmg);
             }
         }
     },

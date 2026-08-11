@@ -24,26 +24,26 @@ export default {
         4: [{ stat: "passiveCash", amount: 50 }], 
         5: [{ stat: "range", amount: 20 }, { stat: "isAbility2", amount: true }], // Lvl 5 Trojan
         6: [{ stat: "passiveCash", amount: 100 }], 
-        7: [{ stat: "fireRate", amount: 1.0 }], // Skims cash faster
+        7: [{ stat: "cashInterval", amount: 4.0 }], // Skims cash faster
         8: [{ stat: "passiveCash", amount: 100 }], 
         9: [{ stat: "range", amount: 10 }], 
         10: [{ stat: "passiveCash", amount: 150 }], 
-        11: [{ stat: "fireRate", amount: -0.2 }], 
+        11: [{ stat: "cashInterval", amount: -1.0 }], 
         12: [{ stat: "passiveCash", amount: 150 }], 
         13: [{ stat: "range", amount: 10 }], 
         14: [{ stat: "passiveCash", amount: 200 }], 
-        15: [{ stat: "fireRate", amount: -0.2 }], 
+        15: [{ stat: "cashInterval", amount: -0.5 }], 
         16: [{ stat: "passiveCash", amount: 200 }], 
         17: [{ stat: "range", amount: 10 }], 
         18: [{ stat: "passiveCash", amount: 250 }], 
-        19: [{ stat: "fireRate", amount: -0.2 }], 
+        19: [{ stat: "cashInterval", amount: -0.5 }], 
         20: [{ stat: "passiveCash", amount: 500 }]
     },
     update(tower, dt, engine) {
         // Skims cash every 6 seconds
         tower.cashTimer = (tower.cashTimer || 0) - dt;
         if (tower.cashTimer <= 0) {
-            tower.cashTimer = 6.0;
+            tower.cashTimer = tower.stats.cashInterval || 6.0;
             engine.addCash(tower.stats.passiveCash);
             tower.cashGenerated = (tower.cashGenerated || 0) + tower.stats.passiveCash;
         }

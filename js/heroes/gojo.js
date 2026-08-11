@@ -118,7 +118,7 @@ export default {
                     e.offsetX *= 0.5; e.offsetY *= 0.5;
                 }
                 if (Utils.withinRange(tower.reverseWell.x, tower.reverseWell.y, e.x, e.y, 150)) {
-                    let dmg = e.takeDamage(5000 * dt, { isMagic: true, canHitLead: true });
+                    let dmg = e.takeDamage(500 * dt, { isMagic: true, canHitLead: true });
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
                 }
             }

@@ -30,7 +30,7 @@ export default {
             {name:"Lots More Darts", cost:550, stat:"projectileCount", amount:4, desc:"Shoots 12 darts at a time."},
             {name:"Fighter Plane", cost:1000, stat:"moabDmg", amount:5, desc:"Flies fast and launches anti-MOAB missiles.", extraMods:{missileCd: 3.0, missileDmg: 18, aceSpeedMult: 1.25}},
             {name:"Operation: Dart Storm", cost:3300, stat:"projectileCount", amount:4, desc:"Shoots 16 darts per volley, and twice as fast.", extraMods:{cooldownMult: 0.5, missileCd: -1.5, missileDmg: 6}},
-            {name:"Sky Shredder", cost:42500, stat:"projectileCount", amount:16, desc:"The Bloons will wish they had never come.", extraMods:{pierce: 3, damage: 2, cooldownMult: 0.5, missileDmg: 126, projectileSpeed: 60 * GS, dmgType: 'normal', ceramicDmg: 2}}
+            {name:"Sky Shredder", cost:42500, stat:"projectileCount", amount:16, desc:"The Bloons will wish they had never come.", extraMods:{pierce: 3, damage: 2, cooldownMult: 0.5, missileDmg: 126, projectileSpeed: 150 * GS, dmgType: 'normal', ceramicDmg: 2}}
         ],
         2: [
             {name:"Exploding Pineapple", cost:200, desc:"Drops pineapples to the ground that explode violently after a few seconds.", extraMods:{pineappleCd: 1.6, pineappleDmg: 1, pineapplePierce: 20, explosionRadius: 35}},
