@@ -1,6 +1,7 @@
 // js/dom.js
 export const dom = {
     pauseBtn: document.getElementById('pause-btn'),
+    levelBarToggle: document.getElementById('level-bar-toggle'),
     resumeBtn: document.getElementById('resume-btn'),
     pauseSettingsBtn: document.getElementById('pause-settings-btn'),
     quitBtn: document.getElementById('quit-btn'),

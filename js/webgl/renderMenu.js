@@ -22,6 +22,13 @@ import { PixiApp } from './pixiApp.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants.js';
 
 export const MenuRenderer = {
+    // The sky gradient only changes between the four day phases, but the
+    // original code allocated a new FillGradient every frame — and each new
+    // instance uploads a fresh 256x256 texture to the GPU (see
+    // FillGradient.styleKey, which is uid-based and never deduped). Cache one
+    // gradient per phase instead; the menu stays fully static otherwise.
+    _skyGradients: {},
+
     _drawMainMenuScenery(engine, rawDt) {
         if (!this._menuGfx) {
             this._menuGfx = new Graphics();
@@ -47,21 +54,26 @@ export const MenuRenderer = {
         else if (phase === 'day') skyStops = [{ offset: 0, color: '#4facfe' }, { offset: 1, color: '#00f2fe' }];
         else if (phase === 'dusk') skyStops = [{ offset: 0, color: '#355C7D' }, { offset: 0.5, color: '#6C5B7B' }, { offset: 1, color: '#C06C84' }];
         else skyStops = [{ offset: 0, color: '#0F2027' }, { offset: 1, color: '#203A43' }];
-        g.rect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT).fill({ fill: new FillGradient({
-            type: 'linear', start: { x: 0, y: 0 }, end: { x: 0, y: CANVAS_HEIGHT }, colorStops: skyStops,
-            // 'global' means these coordinates are literal world-space
-            // pixels (unlike 'local', which normalizes to the filled
-            // shape's own 0-1 bounding box and would need start/end
-            // re-derived as fractions instead of the 0/720 pixel values
-            // above) — sidesteps having to hand-verify the local-space
-            // transform math for a case (linear, non-square shape) this
-            // codebase hadn't exercised yet. Every radial gradient
-            // elsewhere in this migration uses 'local' successfully
-            // because center==outerCenter makes it self-normalizing
-            // regardless of the absolute radius chosen; that shortcut
-            // doesn't apply here since start != end.
-            textureSpace: 'global',
-        }) });
+        let skyGrad = this._skyGradients[phase];
+        if (!skyGrad) {
+            skyGrad = new FillGradient({
+                type: 'linear', start: { x: 0, y: 0 }, end: { x: 0, y: CANVAS_HEIGHT }, colorStops: skyStops,
+                // 'global' means these coordinates are literal world-space
+                // pixels (unlike 'local', which normalizes to the filled
+                // shape's own 0-1 bounding box and would need start/end
+                // re-derived as fractions instead of the 0/720 pixel values
+                // above) — sidesteps having to hand-verify the local-space
+                // transform math for a case (linear, non-square shape) this
+                // codebase hadn't exercised yet. Every radial gradient
+                // elsewhere in this migration uses 'local' successfully
+                // because center==outerCenter makes it self-normalizing
+                // regardless of the absolute radius chosen; that shortcut
+                // doesn't apply here since start != end.
+                textureSpace: 'global',
+            });
+            this._skyGradients[phase] = skyGrad;
+        }
+        g.rect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT).fill({ fill: skyGrad });
 
         // Stars
         if (phase === 'night' || phase === 'dusk') {

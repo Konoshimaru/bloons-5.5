@@ -101,11 +101,15 @@ export class Sentry {
         if (this.cooldown <= 0) {
             const target = this._findTarget(engine);
             if (target) {
+                const parent = this.parentTower;
+                const canHitLead = this.stats.effects.canHitLead || (parent && (parent.stats.canHitLead || parent.buffedLead || parent.alchDip)) || false;
+                const canHitMoab = this.stats.effects.canHitMoab;
                 let sDmgType = createDmgType(resolveDmgType(this.stats.dmgType), {
-                    moabDmg: (this.parentTower.stats.moabDmg || 0) + (this.stats.moabDmg || 0),
-                    fortifiedDmg: this.parentTower.stats.fortifiedDmg || 0,
+                    moabDmg: (parent && parent.stats.moabDmg || 0) + (this.stats.moabDmg || 0),
+                    fortifiedDmg: (parent && parent.stats.fortifiedDmg) || 0,
                     ceramicDmg: this.stats.ceramicDmg || 0,
-                    canHitLead: this.stats.effects.canHitLead || false
+                    canHitLead: canHitLead,
+                    canHitMoab: canHitMoab
                 });
                 
                 let count = this.stats.projCount || 1;

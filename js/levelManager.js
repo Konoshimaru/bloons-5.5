@@ -6,18 +6,28 @@ import { HeroStats } from './heroes/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { UI } from './ui.js';
 import { updateShopPrices } from './dragManager.js';
+import { GameEngine } from './engine.js';
 
 export const LevelManager = {
-    addXP(amount) {
+    // Queue of player levels reached but not yet presented (each may need an
+    // interactive "pick a tower" screen). Drained one at a time so multiple
+    // simultaneous level-ups pause the game sequentially instead of stacking
+    // DOM overlays on top of each other.
+    _pendingLevels: [],
+    _levelUpActive: false,
+    _pausedForLevelUp: false,
+    _prevGameState: null,
+
+    addXP(amount, opts = {}) {
         Config.data.playerXP += amount;
-        
+
         while (Config.data.playerXP >= Config.data.playerXPToNext) {
             Config.data.playerXP -= Config.data.playerXPToNext;
             Config.data.playerLevel++;
-            
+
             const nextLevelData = LevelProgression[Config.data.playerLevel + 1];
             const currentLevelData = LevelProgression[Config.data.playerLevel];
-            
+
             if (currentLevelData) {
                 Config.data.playerXPToNext = currentLevelData.xpFromPrev;
             }
@@ -25,11 +35,73 @@ export const LevelManager = {
                 Config.data.playerXPToNext = nextLevelData.xpFromPrev;
             }
 
-            this._processLevelUp(Config.data.playerLevel);
+            this._pendingLevels.push(Config.data.playerLevel);
         }
-        
+
         Config.save();
         UI.updateMetaStats();
+        if (this._pendingLevels.length > 0) this._drainPendingLevels(opts);
+    },
+
+    // Presents each queued level-up in order. Non-interactive levels are
+    // granted silently; category levels show the tower-choice screen (pausing
+    // the game if we're mid-round). Falls back to auto-granting everything for
+    // reconcile-style calls.
+    _drainPendingLevels(opts = {}) {
+        if (this._levelUpActive) return;
+        this._levelUpActive = true;
+        try {
+            while (this._pendingLevels.length > 0) {
+                const level = this._pendingLevels[0];
+                if (Config.data.claimedLevels.includes(level)) { this._pendingLevels.shift(); continue; }
+                const category = this._categoryOfLevel(level);
+                if (category && !opts.autoGrantCategory) {
+                    this._pauseForLevelUp();
+                    this._showSelectionScreen(category, level, () => {
+                        this._levelUpActive = false;
+                        this._drainPendingLevels(opts);
+                    });
+                    return;
+                }
+                this._pendingLevels.shift();
+                this._processLevelUp(level, { autoGrantCategory: !!opts.autoGrantCategory });
+            }
+            this._levelUpActive = false;
+            this._resumeFromLevelUp();
+        } catch (e) {
+            this._levelUpActive = false;
+            console.error('[LevelManager] level-up queue error:', e);
+            this._resumeFromLevelUp();
+        }
+    },
+
+    _categoryOfLevel(level) {
+        const unlockText = (LevelProgression[level] || {}).unlocks || '';
+        if (unlockText.includes("Primary tower")) return 'Primary';
+        if (unlockText.includes("Military tower")) return 'Military';
+        if (unlockText.includes("Magic tower")) return 'Magic';
+        if (unlockText.includes("Support tower")) return 'Support';
+        return null;
+    },
+
+    // Freezes the simulation (gameState 'levelup') while a level-up screen is
+    // open during an active run. The loop only updates on 'playing', so this
+    // pauses the round without showing the pause menu. No-op at game over.
+    _pauseForLevelUp() {
+        if (GameEngine.gameState === 'playing') {
+            this._prevGameState = GameEngine.gameState;
+            GameEngine.gameState = 'levelup';
+            this._pausedForLevelUp = true;
+        }
+    },
+
+    _resumeFromLevelUp() {
+        if (this._pausedForLevelUp) {
+            GameEngine.gameState = this._prevGameState || 'playing';
+            this._pausedForLevelUp = false;
+            this._prevGameState = null;
+            UI.updateMetaStats();
+        }
     },
 
     _processLevelUp(level, opts = {}) {
@@ -39,28 +111,55 @@ export const LevelManager = {
 
         const unlockText = data.unlocks;
         const autoGrantCategory = !!opts.autoGrantCategory;
-        
-        
+        const excluded = this._excludedNames(unlockText);
+
         let category = null;
         if (unlockText.includes("Primary tower")) category = 'Primary';
         else if (unlockText.includes("Military tower")) category = 'Military';
         else if (unlockText.includes("Magic tower")) category = 'Magic';
         else if (unlockText.includes("Support tower")) category = 'Support';
 
-        if (category) {
-            if (autoGrantCategory) {
-                // Reconciliation mode: no interactive choice, just grant everything missed.
-                for (const type in TowerStats) {
-                    const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
-                    if (cat === category && !Config.data.unlockedTowers.includes(type)) {
-                        Config.data.unlockedTowers.push(type);
-                    }
-                }
-            } else {
-                this._showSelectionScreen(category, level);
+        if (category && autoGrantCategory) {
+            // Reconciliation mode: no interactive choice, just grant everything missed.
+            for (const type in TowerStats) {
+                const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
+                if (cat !== category) continue;
+                if (Config.data.unlockedTowers.includes(type)) continue;
+                if (excluded.includes((TowerStats[type] || {}).name)) continue;
+                Config.data.unlockedTowers.push(type);
             }
+        } else if (category) {
+            // Interactive category choice: the queue shows the selection screen
+            // and applies this via _grantLevelRewards when the player picks.
+            return;
         }
-        
+
+        this._grantLevelRewards(level, unlockText);
+    },
+
+    // Names to exclude from a category unlock (e.g. "Primary tower (except
+    // Desperado)"). These towers are only obtainable through other means
+    // (Gift Box) and must never be offered or auto-granted by the category pick.
+    _excludedNames(text) {
+        const names = [];
+        if (!text) return names;
+        const m = text.match(/except\s+([^)]*)\)?/i);
+        if (!m) return names;
+        m[1].split(',').forEach(part => {
+            const t = part.trim();
+            if (t) names.push(t);
+        });
+        return names;
+    },
+
+    // Applies the non-category rewards for a level (money, knowledge, gift box,
+    // named towers/heroes) and marks the level claimed. Shared by both the
+    // auto-grant path and the interactive selection screen's completion.
+    _grantLevelRewards(level, unlockText) {
+        const data = LevelProgression[level];
+        if (!data || !data.unlocks) return;
+        if (!unlockText) unlockText = data.unlocks;
+
         if (unlockText.includes("Monkey Money 50")) {
             Config.data.monkeyMoney += 50;
         }
@@ -78,17 +177,12 @@ export const LevelManager = {
             });
             updateShopPrices();
         }
-        
+
         // Always attempt to unlock specific heroes/towers by name
-        this._unlockSpecificByName(unlockText);
+        this._unlockSpecificByName(unlockText, this._excludedNames(unlockText));
         updateShopPrices();
 
-        // Only mark claimed once there's no pending interactive choice left for the player to make.
-        if (category && !autoGrantCategory) {
-            // The selection screen itself marks this level claimed once the player picks/continues.
-        } else {
-            Config.data.claimedLevels.push(level);
-        }
+        if (!Config.data.claimedLevels.includes(level)) Config.data.claimedLevels.push(level);
     },
 
     // Scans every level up to the player's current level and grants any rewards
@@ -114,11 +208,13 @@ export const LevelManager = {
         };
     },
 
-    _unlockSpecificByName(text) {
+    _unlockSpecificByName(text, excluded = []) {
         const allKeys = [...Object.keys(TowerStats), ...Object.keys(HeroRegistry)];
         for (const key of allKeys) {
             const stats = TowerStats[key] || HeroRegistry[key];
-            if (stats && text.includes(stats.name)) {
+            if (!stats) continue;
+            if (excluded.includes(stats.name)) continue;
+            if (text.includes(stats.name)) {
                 if (!Config.data.unlockedTowers.includes(key)) {
                     Config.data.unlockedTowers.push(key);
                 }
@@ -126,7 +222,7 @@ export const LevelManager = {
         }
     },
 
-    _showSelectionScreen(category, level) {
+    _showSelectionScreen(category, level, onDone) {
         const existingOverlay = document.getElementById('level-up-select-menu');
         if (existingOverlay) existingOverlay.remove();
 
@@ -134,6 +230,14 @@ export const LevelManager = {
         overlay.id = 'level-up-select-menu';
         overlay.className = 'overlay';
         overlay.style.zIndex = 100;
+
+        const finish = () => {
+            this._grantLevelRewards(level);
+            Config.save();
+            overlay.remove();
+            updateShopPrices();
+            if (typeof onDone === 'function') onDone();
+        };
 
         const content = document.createElement('div');
         content.className = 'menu-content';
@@ -145,6 +249,7 @@ export const LevelManager = {
         grid.style.gap = '15px';
         grid.style.marginTop = '20px';
 
+        const excluded = this._excludedNames(LevelProgression[level]?.unlocks || '');
         const options = [];
         for (const type in TowerStats) {
             const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
@@ -156,10 +261,12 @@ export const LevelManager = {
         let availableOptions = [];
 
         options.forEach(type => {
-            if (!Config.data.unlockedTowers.includes(type)) {
+            const stats = TowerStats[type] || HeroStats[type];
+            if (!stats) return;
+            if (Config.data.unlockedTowers.includes(type)) return;
+            if (excluded.includes(stats.name)) return;
+            {
                 availableOptions.push(type);
-                const stats = TowerStats[type] || HeroStats[type];
-                if (!stats) return;
 
                 const card = document.createElement('div');
                 card.style.background = '#34495e';
@@ -187,10 +294,7 @@ export const LevelManager = {
 
                 card.addEventListener('click', () => {
                     Config.data.unlockedTowers.push(type);
-                    if (!Config.data.claimedLevels.includes(level)) Config.data.claimedLevels.push(level);
-                    Config.save();
-                    overlay.remove();
-                    updateShopPrices();
+                    finish();
                 });
 
                 grid.appendChild(card);
@@ -206,12 +310,7 @@ export const LevelManager = {
             continueBtn.textContent = 'Continue';
             continueBtn.className = 'back-btn';
             continueBtn.style.marginTop = '15px';
-            continueBtn.addEventListener('click', () => {
-                if (!Config.data.claimedLevels.includes(level)) Config.data.claimedLevels.push(level);
-                Config.save();
-                overlay.remove();
-                updateShopPrices();
-            });
+            continueBtn.addEventListener('click', finish);
             content.appendChild(continueBtn);
         } else {
             content.appendChild(grid);

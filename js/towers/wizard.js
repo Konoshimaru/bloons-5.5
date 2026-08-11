@@ -5,6 +5,33 @@ import { Utils } from '../utils.js';
 const _wizAuraScratch = [];
 const _wizWellScratch = [];
 const _wizFireScratch = [];
+const _wizTargetScratch = [];
+
+// Target selection matching towerBehavior._findTarget: queries the enemy grid
+// within effective range, respects camo detection and the tower's targeting
+// mode (First/Last/Strong/Close). Fireball/Necromancer/Phoenix must not pick
+// a random enemy anywhere on the map.
+function _findWizardTarget(tower, engine) {
+    const effRange = Utils.getEffectiveRange(tower, engine);
+    const candidates = engine.enemyGrid.query(tower.x, tower.y, effRange, _wizTargetScratch);
+    const mode = tower.targetingMode || 'First';
+    let best = null;
+    let bestVal = (mode === 'First' || mode === 'Strong') ? -Infinity : Infinity;
+    const isBetter = (v, o) => (mode === 'First' || mode === 'Strong') ? v > o : v < o;
+
+    for (const e of candidates) {
+        if (!e.alive) continue;
+        if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
+        const eRad = e.radius || 10;
+        if (Utils.distanceSq(tower.x, tower.y, e.x, e.y) > (effRange + eRad) * (effRange + eRad)) continue;
+        let val;
+        if (mode === 'First' || mode === 'Last') val = e.distanceTraveled;
+        else if (mode === 'Strong') val = e.data.rbe;
+        else val = Math.sqrt(Utils.distanceSq(tower.x, tower.y, e.x, e.y));
+        if (isBetter(val, bestVal)) { bestVal = val; best = e; }
+    }
+    return best;
+}
 
 export default {
     stats: { 
@@ -77,12 +104,10 @@ export default {
             tower.fireballTimer = (tower.fireballTimer || 0) - dt;
             if (tower.fireballTimer <= 0) {
                 tower.fireballTimer = tower.stats.fireballCd;
-                if (engine.enemies.length > 0) {
-                    let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
-                    if (target && target.alive) {
-                        let p = engine.projectilePool.get();
-                        p.init(tower.x, tower.y - 10, tower.stats.fireballDmg, target, 'bomb', 500, 1, 1.0, null, { isExplosive: true, explosionRadius: tower.stats.explosionRadius, explosionDamage: tower.stats.fireballDmg, explosionPierce: tower.stats.explosionPierce, canHitLead: true }, 0, tower, { isFire: true, isExplosion: true, canHitLead: true });
-                    }
+                let target = _findWizardTarget(tower, engine);
+                if (target) {
+                    let p = engine.projectilePool.get();
+                    p.init(tower.x, tower.y - 10, tower.stats.fireballDmg, target, 'bomb', 500, 1, 1.0, null, { isExplosive: true, explosionRadius: tower.stats.explosionRadius, explosionDamage: tower.stats.fireballDmg, explosionPierce: tower.stats.explosionPierce, canHitLead: true }, 0, tower, { isFire: true, isExplosion: true, canHitLead: true });
                 }
             }
         }
@@ -110,12 +135,10 @@ export default {
                 tower.necroTimer = tower.stats.necroCd;
                 // Spawn 3 homing projectiles
                 for (let i = 0; i < 3; i++) {
-                    if (engine.enemies.length > 0) {
-                        let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
-                        if (target && target.alive) {
-                            let p = engine.projectilePool.get();
-                            p.init(tower.x, tower.y, tower.stats.necroDmg, target, 'wizard_bolt', 800, 5, 2.0, null, { canHitLead: true, canHitMoab: true }, 0, tower, { isMagic: true, canHitLead: true });
-                        }
+                    let target = _findWizardTarget(tower, engine);
+                    if (target) {
+                        let p = engine.projectilePool.get();
+                        p.init(tower.x, tower.y, tower.stats.necroDmg, target, 'wizard_bolt', 800, 5, 2.0, null, { canHitLead: true, canHitMoab: true }, 0, tower, { isMagic: true, canHitLead: true });
                     }
                 }
             }
@@ -127,13 +150,11 @@ export default {
             tower.phoenixTimer = (tower.phoenixTimer || 0) - dt;
             if (tower.phoenixTimer <= 0) {
                 tower.phoenixTimer = 0.1; // Fire 10 times a second
-                if (engine.enemies.length > 0) {
-                    let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
-                    if (target && target.alive) {
-                        let p = engine.projectilePool.get();
-                        let dmg = tower.upgrades[1] >= 5 ? 20 : 10;
-                        p.init(tower.x, tower.y - 20, dmg, target, 'bomb', 1000, 100, 2.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: dmg, explosionPierce: 50, canHitLead: true }, 0, tower, { isFire: true, isExplosion: true, canHitLead: true });
-                    }
+                let target = _findWizardTarget(tower, engine);
+                if (target) {
+                    let p = engine.projectilePool.get();
+                    let dmg = tower.upgrades[1] >= 5 ? 20 : 10;
+                    p.init(tower.x, tower.y - 20, dmg, target, 'bomb', 1000, 100, 2.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: dmg, explosionPierce: 50, canHitLead: true }, 0, tower, { isFire: true, isExplosion: true, canHitLead: true });
                 }
             }
         }

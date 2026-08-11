@@ -31,8 +31,19 @@ function rotScale(px, py, ang, s) {
     return [(px * c - py * sn) * s, (px * sn + py * c) * s];
 }
 
+// Module-level cache for radialGrad: each FillGradient uploads a fresh
+// 256x256 texture (see FillGradient.styleKey's uid-based key), so identical
+// per-frame gradients are reused instead of re-rasterized. Keyed by rounded
+// radius + serialized stops; bounded so animated radii evict stale entries
+// while static per-hero gradients (22/11/12px etc.) persist.
+const _gradCache = new Map();
+const _gradCacheMax = 256;
+
 function radialGrad(outerR, stops) {
-    return new FillGradient({
+    const key = Math.round(outerR * 10) + ':' + stops.map(s => s.offset + ':' + s.color).join(',');
+    let grad = _gradCache.get(key);
+    if (grad) return grad;
+    grad = new FillGradient({
         type: 'radial', center: { x: 0, y: 0 }, innerRadius: 0,
         outerCenter: { x: 0, y: 0 }, outerRadius: Math.max(1, outerR),
         // 'global' (not 'local'): Pixi v8's local-space radial gradients
@@ -40,6 +51,11 @@ function radialGrad(outerR, stops) {
         // the texture's fade onto the exact circle radius.
         colorStops: stops, textureSpace: 'global',
     });
+    if (_gradCache.size >= _gradCacheMax) {
+        _gradCache.delete(_gradCache.keys().next().value);
+    }
+    _gradCache.set(key, grad);
+    return grad;
 }
 
 // A rotated/scaled "wobbly blob" outline: same point-generation loop as the

@@ -6,9 +6,18 @@ export const isMobile = {
     iOS: function() { return navigator.userAgent.match(/iPhone|iPad|iPod/i); },
     Opera: function() { return navigator.userAgent.match(/Opera Mini/i); },
     Windows: function() { return navigator.userAgent.match(/IEMobile/i); },
+    _pointer(type) {
+        try { return !!(window.matchMedia && window.matchMedia(`(pointer: ${type})`).matches); }
+        catch (e) { return false; }
+    },
     any: function() {
-        const isMacTouch = navigator.userAgent.match(/Macintosh/i) && (navigator.maxTouchPoints > 1);
-        return (this.Android() || this.iOS() || this.Opera() || this.Windows() || isMacTouch);
+        if (this.Android() || this.iOS() || this.Opera() || this.Windows()) return true;
+        // Touchscreen laptops/desktops have maxTouchPoints > 1 but a fine
+        // (mouse/trackpad) primary pointer, so they must NOT count as mobile.
+        // Only devices whose PRIMARY input is a coarse touch pointer are.
+        const coarse = this._pointer('coarse');
+        const fine = this._pointer('fine');
+        return coarse && !fine;
     }
 };
 

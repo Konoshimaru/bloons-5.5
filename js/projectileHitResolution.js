@@ -49,7 +49,7 @@ const ProjectileHitResolution = {
 
     hit(enemy) {
         if (this._isExplosive()) {
-            this._handleExplosiveHit();
+            this._handleExplosiveHit(enemy);
         } else if (enemy) {
             this._handleStandardHit(enemy);
         }
@@ -60,12 +60,22 @@ const ProjectileHitResolution = {
         return !!cfg.isExplosive || (this.effects && this.effects.isExplosive);
     },
 
-    _handleExplosiveHit() {
+    _handleExplosiveHit(primaryEnemy) {
         const expRadius = this._getExplosionRadius();
         const expColor = this._getExplosionColor();
         GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.3, maxLife: 0.3, color: expColor });
         
         const bombDmgType = this._createBombDmgType();
+        
+        // Effects-based explosives (Quincy explosive arrows, wizard fireballs,
+        // sentries) also deal their own direct damage to the collided enemy;
+        // inherently explosive projectile types (bomb, mortar_shell, etc.)
+        // fold all their damage into the blast itself, matching BTD5.
+        const cfg = ProjectileTypeConfig[this.type] || {};
+        if (primaryEnemy && !cfg.isExplosive) {
+            this._applyDirectHit(primaryEnemy);
+        }
+        
         const nearby = GameEngine.enemyGrid.query(this.x, this.y, expRadius, _explosionScratch);
         const maxPierce = this._getExplosionPierce();
         
@@ -77,13 +87,18 @@ const ProjectileHitResolution = {
             // FIX: Big Squeeze immunity
             if (e.untargetable || e.damageImmune || e.collisionImmune) continue;
             
-            if (e.data.blocksDamageType && e.data.blocksDamageType(bombDmgType)) continue;
-            
             if (e.isCamo && !(this.effects && this.effects.canSeeCamo) && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
-            if (e.data.isLead && !(this.effects && this.effects.canHitLead) && !(bombDmgType.canHitLead)) continue;
-            if (e.data.isMoab && !(this.effects && this.effects.canHitMoab)) continue;
+            if (e.data.isLead && !bombDmgType.canHitLead) continue;
+            if (e.data.isMoab && !bombDmgType.canHitMoab) continue;
             
             if (Utils.withinRange(this.x, this.y, e.x, e.y, expRadius)) {
+                // Effects (freeze/permafrost) apply BEFORE the damage block
+                // check, so Cold Sentry freezes Black/Zebra/DDT even though
+                // their explosion damage is blocked.
+                this._applyExplosionEffects(e);
+                
+                if (e.data.blocksDamageType && e.data.blocksDamageType(bombDmgType)) continue;
+                
                 const expDmg = this._getExplosionDamage();
                 const dmg = e.takeDamage(expDmg, bombDmgType, this.effects, this.tower);
                 if (dmg === -1) continue;
@@ -105,26 +120,6 @@ const ProjectileHitResolution = {
                     });
                 }
                 
-                if (this.effects && this.effects.freeze) {
-                    if (e.data.isMoab) {
-                        if (this.effects.superBrittle) {
-                            e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0; e.isCamo = false;
-                        } else if (this.effects.embrittlement) {
-                            e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 4.0; e.isCamo = false;
-                        }
-                    } else {
-                        if (!e.isFrozen || this.effects.reFreeze) {
-                            if (!(e.data.isWhite || e.data.isZebra)) {
-                                e.applySlow(0.0, this.effects.freezeDuration || 1.5, true);
-                            }
-                        }
-                    }
-                }
-                
-                if (this.effects && this.effects.permafrost) {
-                    e.permafrostSlow = 0.5;
-                }
-                
                 hits++;
             }
         }
@@ -144,7 +139,6 @@ const ProjectileHitResolution = {
             }
         }
 
-        const cfg = ProjectileTypeConfig[this.type] || {};
         if (cfg.decrementsPierceOnExplosion) {
             this.pierce--;
             if (this.pierce <= 0) this.alive = false;
@@ -166,15 +160,75 @@ const ProjectileHitResolution = {
 
     _createBombDmgType() {
         const cfg = ProjectileTypeConfig[this.type] || {};
-        const bombCanHitLead = this.tower ? (this.tower.stats.canHitLead || this.tower.buffedLead || (this.effects && this.effects.canHitLead)) : true;
         const dt = this.dmgType || {};
+        const tower = this.tower;
+        const bombCanHitLead = dt.canHitLead || (tower && (tower.stats.canHitLead || tower.buffedLead)) || (this.effects && this.effects.canHitLead);
+        const bombCanHitMoab = dt.canHitMoab || (tower && tower.stats.canHitMoab) || (this.effects && this.effects.canHitMoab);
         return createDmgType(DamageType.EXPLOSION, {
             isFire: dt.isFire || false,
             isAcid: !!cfg.isAcid,
             moabDmg: dt.moabDmg || 0,
             fortifiedDmg: dt.fortifiedDmg || 0,
-            canHitLead: bombCanHitLead
+            canHitLead: bombCanHitLead,
+            canHitMoab: bombCanHitMoab
         });
+    },
+
+    _applySlowEffect(enemy) {
+        if (!this.effects || !this.effects.slow) return;
+        let factor = this.effects.slow;
+        if (enemy.data.isMoab && this.effects.moabSlow) {
+            factor = Math.max(factor, this.effects.moabSlow);
+        }
+        enemy.applySlow(factor, this.effects.slowDuration, this.type === 'ice');
+    },
+
+    _applyDirectHit(enemy) {
+        if (!enemy || !enemy.alive) return;
+        this.hitEnemies.add(enemy);
+        
+        let dmg = this.damage;
+        if (this.bonusCeramic && enemy.data.isCeramic) dmg += this.bonusCeramic;
+        if (this.effects && this.effects.camoDmg && enemy.isCamo) dmg += this.effects.camoDmg;
+        if (this.effects && this.effects.ceramicDmg && enemy.data.isCeramic) dmg += this.effects.ceramicDmg;
+        
+        this._applySlowEffect(enemy);
+        
+        const actualDmg = enemy.takeDamage(dmg, this.dmgType, this.effects, this.tower);
+        if (actualDmg === -1 || isNaN(actualDmg)) return;
+        
+        if (this.tower) {
+            this.tower.damageDealt += actualDmg;
+            if (this.tower.parentTower) this.tower.parentTower.damageDealt += actualDmg;
+        }
+    },
+
+    // Freeze/permafrost/stun-like hit effects shared by explosive blasts.
+    // Kept independent of damage immunity so ice effects still land on
+    // explosion-blocking bloons (Black/Zebra/DDT) — see _handleExplosiveHit.
+    _applyExplosionEffects(e) {
+        if (!this.effects) return;
+        if (this.effects.freeze) {
+            if (e.data.isMoab) {
+                if (this.effects.superBrittle) {
+                    e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0; e.isCamo = false;
+                } else if (this.effects.embrittlement) {
+                    e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 4.0; e.isCamo = false;
+                }
+            } else {
+                if (!e.isFrozen || this.effects.reFreeze) {
+                    if (!(e.data.isWhite || e.data.isZebra)) {
+                        e.applySlow(0.0, this.effects.freezeDuration || this.effects.freeze || 1.5, true);
+                    }
+                }
+            }
+        }
+        
+        if (this.effects.permafrost) {
+            e.permafrostSlow = 0.5;
+        }
+        
+        this._applySlowEffect(e);
     },
 
     _getExplosionPierce() {
@@ -220,7 +274,7 @@ const ProjectileHitResolution = {
         if (this.effects && this.effects.freeze) {
             if (enemy.data.isMoab) {
                 if (!enemy.data.isBAD) {
-                    enemy.applySlow(0.0, this.effects.freezeDuration || 2.0, false); 
+                    enemy.applySlow(0.0, this.effects.freezeDuration || this.effects.freeze || 2.0, false); 
                 }
                 if (this.effects.superBrittle) {
                     enemy.brittle = true; enemy.brittleBonus = 5; enemy.brittleTimer = 4.0; enemy.isCamo = false;
@@ -230,7 +284,7 @@ const ProjectileHitResolution = {
             } else {
                 if (!(enemy.data.isWhite || enemy.data.isZebra)) {
                     if (!enemy.isFrozen || this.effects.reFreeze) {
-                        enemy.applySlow(0.0, this.effects.freezeDuration || 1.5, true);
+                        enemy.applySlow(0.0, this.effects.freezeDuration || this.effects.freeze || 1.5, true);
                     }
                 }
             }
@@ -240,9 +294,7 @@ const ProjectileHitResolution = {
             enemy.permafrostSlow = 0.5;
         }
         
-        if (this.effects && this.effects.slow) {
-            enemy.applySlow(this.effects.slow, this.effects.slowDuration, this.type === 'ice');
-        }
+        this._applySlowEffect(enemy);
         
         if (this.type === 'ninja' && this.target === enemy) {
             this.target = null;

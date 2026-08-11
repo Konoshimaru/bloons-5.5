@@ -270,9 +270,9 @@ export default {
         // 7. Arctic Knight / Popseidon Ability Active Effect
         if (tower.iceJetActive > 0) {
             tower.iceJetActive -= dt;
-            tower.cooldown -= dt; 
-            if (tower.cooldown <= 0) {
-                tower.cooldown = 0.05; 
+            tower._iceJetCd = (tower._iceJetCd || 0) - dt; 
+            if (tower._iceJetCd <= 0) {
+                tower._iceJetCd = 0.05; 
                 let targetAngle = Utils.angle(tower.x, tower.y, GameEngine.mouse.x, GameEngine.mouse.y);
                 let spread = 30 * Math.PI / 180; 
                 if (tower.upgrades[2] >= 1) spread = 10 * Math.PI / 180; 

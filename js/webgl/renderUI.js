@@ -57,7 +57,8 @@ export const UIRenderer = {
         if (!t) return;
         if (t.stats.range < 9999) {
             const effRange = Math.max(1, Utils.getEffectiveRange(t, engine));
-            g.circle(t.x, t.y, effRange).stroke({ width: 4, color: '#ffffff' });
+            // Slightly thicker, more opaque ring for a solid, clearly visible border
+            g.circle(t.x, t.y, effRange).stroke({ width: 6, color: '#ffffff', alpha: 0.95 });
         }
     },
 
@@ -108,16 +109,45 @@ export const UIRenderer = {
         // Must be set before the render-to-texture capture below.
         PixiApp.pannedContainer.x = CutsceneManager.cameraOffsetX || 0;
 
-        // Capture this frame's world-space content. Must happen after every
-        // other _draw*/_drawHeroVFX call has updated the world layers for
-        // this frame, and before this method's own compositing below reads
-        // from the texture it just wrote — pixiRenderer.js's render() calls
-        // this last for exactly that reason.
-        PixiApp.app.renderer.render({ container: PixiApp.worldContainer, target: PixiApp.worldTexture });
-
         const boss = BossHealthBarHandler.activeBosses.length > 0 ? BossHealthBarHandler.activeBosses[0].enemy : null;
         const split = boss && (boss.screenSplitActive || boss.currentOffset !== 0);
         const warning = boss && boss.warningLineActive;
+
+        if (!warning && !split) {
+            // Fast path: no boss screen effect this frame, so skip the
+            // 4x-MSAA render-to-texture pass entirely and draw the world
+            // layers straight to the stage. worldContainer is a child of
+            // app.stage (see pixiApp.js); the composite sprites/backdrop
+            // that would normally display the texture are hidden so the
+            // world shows through once, not twice.
+            PixiApp.worldContainer.visible = true;
+            this._compositeBackdrop.visible = false;
+            this._compositeFull.visible = false;
+            this._compositeTop.visible = false; this._compositeBottom.visible = false;
+            this._compositeSplitBar.visible = false;
+            PixiApp.app.renderer.render(PixiApp.app.stage);
+            return;
+        }
+
+        // Boss screen effect active: capture this frame's world-space
+        // content into worldTexture, then composite it (whole, split, or
+        // under the warning line). Must happen after every other
+        // _draw*/_drawHeroVFX call has updated the world layers for this
+        // frame, and before this method's own compositing below reads from
+        // the texture it just wrote — pixiRenderer.js's render() calls this
+        // last for exactly that reason.
+        //
+        // renderer.render() bails out early when the root container's
+        // `visible` is false (AbstractRenderer.mjs:97), so it must be
+        // explicitly trueed here even though a previous split frame hid it.
+        PixiApp.worldContainer.visible = true;
+        PixiApp.app.renderer.render({ container: PixiApp.worldContainer, target: PixiApp.worldTexture });
+
+        // Hide the world layers before the stage pass so the direct render
+        // doesn't double-draw.
+        PixiApp.worldContainer.visible = false;
+        this._compositeBackdrop.visible = true;
+        this._compositeSplitBar.visible = true;
 
         this._compositeSplitBar.clear();
 

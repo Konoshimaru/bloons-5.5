@@ -356,11 +356,16 @@ export class Enemy {
         }
 
         const layerCash = Math.max(1, Math.floor((this.data.rbe - childRbeTotal) * CASH_REWARD_MODIFIER * cashMult));
-        GameEngine.addCash(layerCash);
+        GameEngine.addCash(layerCash, { pop: true });
         if (!canSpawn && childRbeTotal > 0) {
             const childCash = Math.max(1, Math.floor(childRbeTotal * CASH_REWARD_MODIFIER * cashMult));
-            GameEngine.addCash(childCash);
+            GameEngine.addCash(childCash, { pop: true });
         }
+
+        // Per-pop player XP: award the bloon's own layer value (RBE minus
+        // children, which give their own XP when they pop). Summed over a full
+        // clear this equals the run's total RBE, matching the BTD6 level table.
+        GameEngine.addSessionXp(Math.max(1, this.data.rbe - childRbeTotal));
     }
 
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {

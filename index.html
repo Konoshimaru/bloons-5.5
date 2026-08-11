@@ -36,6 +36,16 @@
                 <button id="pause-btn">⏸️ Pause</button>
             </div>
 
+            <!-- Collapsible In-Game Level Display (bottom-right) -->
+            <div id="level-bar" class="hidden">
+                <button id="level-bar-toggle" title="Toggle level panel">⬆</button>
+                <div id="level-bar-body">
+                    <div id="level-bar-header">Level <span id="level-bar-level">1</span></div>
+                    <div class="exp-bar-container"><div id="level-bar-xp-fill" class="exp-bar-fill"></div></div>
+                    <div id="level-bar-xp-text">0 / 0 XP</div>
+                </div>
+            </div>
+
             <div id="ability-bar" class="hidden"></div>
             <button id="cancel-btn" class="hidden">✖</button>
 
@@ -122,6 +132,7 @@
         <div id="title-screen" class="full-screen-overlay">
             <img src="sprites/menu/logo.png" alt="Game Logo" class="game-logo" onerror="this.style.display='none'">
             <button id="title-play-btn" class="large-btn">PLAY</button>
+            <div id="title-meta"></div>
         </div>
 
         <!-- Loading Screen -->

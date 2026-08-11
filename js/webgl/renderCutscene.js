@@ -34,7 +34,7 @@
 // beat to land, so this was judged not worth the extra capture pass —
 // worth revisiting if it looks visibly wrong.
 
-import { Container, Graphics, Sprite, Texture, RenderTexture, ColorMatrixFilter } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture, RenderTexture, ColorMatrixFilter, Particle, ParticleContainer } from 'pixi.js';
 import { PixiApp } from './pixiApp.js';
 import { PixiAssets } from './pixiAssets.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
@@ -94,12 +94,10 @@ export const CutsceneRenderer = {
     _ballsRingGroup: null,
     // Perf: the storm is slow (balls jitter ±10px on 1-3 rad/s sin/cos,
     // drifters crawl at ~60-110 px/s) and the canvas original redraws all
-    // ~2000 arcs every frame, so we redraw every frame too for parity — but
-    // into HALF-resolution RenderTextures (see _ballsFillRT / the 0.5-scaled
-    // source containers), which cuts the GPU fill ~4x. The composites are
-    // scaled back up 2x, and since the storm is a soft black blob with white
-    // rings, the upscale is invisible. A full-rate redraw of 6390 sprites at
-    // half-res costs ~3ms/frame, vs ~12ms at full res.
+    // ~2000 arcs every frame, so we redraw every frame too for parity. The
+    // fill + ring/erase passes render into FULL-resolution RenderTextures so
+    // the fill silhouette edge and ring band share one pixel grid (any
+    // downscale/upscale mismatch shows as stray pixels around the ring).
     _ballPoolBudget: 800,
     // Max ball textures baked per cutscene frame while warming up.
     _ballBakeBudget: 6,
@@ -120,7 +118,9 @@ export const CutsceneRenderer = {
         if (!this._ballFillTexture) {
             const g = new Graphics();
             g.circle(0, 0, this._ballFillRadius).fill({ color: '#000000' });
-            this._ballFillTexture = PixiApp.app.renderer.generateTexture({ target: g, resolution: 1 });
+            // textureSourceOptions sets the sampler to nearest AT CREATION, so
+            // it can't be lost to the silent-no-op on post-upload assignment.
+            this._ballFillTexture = PixiApp.app.renderer.generateTexture({ target: g, resolution: 1, textureSourceOptions: { scaleMode: 'nearest' } });
             g.destroy();
         }
         return this._ballFillTexture;
@@ -152,7 +152,10 @@ export const CutsceneRenderer = {
             inner.blendMode = 'erase';
             const c = new Container();
             c.addChild(outer, inner);
-            texture = PixiApp.app.renderer.generateTexture({ target: c, resolution: 1 });
+            texture = PixiApp.app.renderer.generateTexture({ target: c, resolution: 2, textureSourceOptions: { scaleMode: 'nearest' } });
+            // resolution 2 bakes the 4px outline band to 8 texels, so the
+            // nearest-sampled downscale to each ball's radius keeps the band
+            // edge crisp instead of dropping texels into stray speckles.
             c.destroy({ children: true });
             this._ballRingTextures.set(textureKey, texture);
         }
@@ -193,16 +196,27 @@ export const CutsceneRenderer = {
     // Grows the three sprite pools toward `target`, creating at most `budget`
     // new sprites per call (spread across frames) so the first fight frame
     // doesn't allocate 6390 sprites synchronously. Returns the count created.
+    //
+    // Fill and erase are plain Particles (lightweight records, not display
+    // objects) in ParticleContainers — both passes only ever use the single
+    // shared black disc, so texture is set once here and never changes, and
+    // the particles just write position/scale/alpha straight into a shared
+    // GPU buffer each frame. The ring pool stays as Sprites because its
+    // texture is picked per radius bucket and can change at runtime (drifter
+    // balls cross bucket boundaries as they shrink).
     _growBallSprites(target, budget) {
         let created = 0;
+        const fillTexture = this._getBallFillTexture();
         while (this._ballFillSprites.length < target && created < budget) {
-            const s = new Sprite(); s.anchor.set(0.5); this._ballsFillContainer.addChild(s); this._ballFillSprites.push(s); created++;
+            const p = new Particle({ texture: fillTexture, anchorX: 0.5, anchorY: 0.5 });
+            this._ballsFillContainer.addParticle(p); this._ballFillSprites.push(p); created++;
         }
         while (this._ballRingSprites.length < target && created < budget) {
             const s = new Sprite(); s.anchor.set(0.5); this._ballsRingContainer.addChild(s); this._ballRingSprites.push(s); created++;
         }
         while (this._ballEraseSprites.length < target && created < budget) {
-            const s = new Sprite(); s.anchor.set(0.5); s.blendMode = 'erase'; this._ballsEraseContainer.addChild(s); this._ballEraseSprites.push(s); created++;
+            const p = new Particle({ texture: fillTexture, anchorX: 0.5, anchorY: 0.5 });
+            this._ballsEraseContainer.addParticle(p); this._ballEraseSprites.push(p); created++;
         }
         return created;
     },
@@ -216,28 +230,47 @@ export const CutsceneRenderer = {
         const active = CutsceneManager.state === 'knight_floating';
 
         if (!this._ballsFillRT) {
-            this._ballsFillRT = RenderTexture.create({ width: CANVAS_WIDTH / 2, height: CANVAS_HEIGHT / 2 });
-            this._ballsRingRT = RenderTexture.create({ width: CANVAS_WIDTH / 2, height: CANVAS_HEIGHT / 2 });
+            // BOTH render textures are FULL resolution so the fill silhouette
+            // edge and the ring band land on the same pixel grid. Splitting
+            // them (0.75 fill vs 1.0 ring) made the chunky upscaled fill edge
+            // round outward past the crisp ring edge, leaving stray black
+            // specks on the ring's outer border. scaleMode is set natively in
+            // the create options so nearest sampling is guaranteed from the
+            // very first upload (no post-upload no-op to worry about).
+            this._ballsFillRT = RenderTexture.create({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, scaleMode: 'nearest' });
+            this._ballsRingRT = RenderTexture.create({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT, scaleMode: 'nearest' });
         }
         if (!this._ballsFillComposite) {
             this._ballsFillComposite = new Sprite(this._ballsFillRT);
             this._ballsRingComposite = new Sprite(this._ballsRingRT);
-            this._ballsFillComposite.scale.set(2, 2);
-            this._ballsRingComposite.scale.set(2, 2);
+            this._ballsFillComposite.scale.set(1, 1);
+            this._ballsRingComposite.scale.set(1, 1);
             layer.addChild(this._ballsFillComposite, this._ballsRingComposite);
         }
         if (!this._ballsFillContainer) {
-            this._ballsFillContainer = new Container();
+            // Fill and erase are ParticleContainers (see _growBallSprites):
+            // position/scale/color are dynamic, everything else (vertex size,
+            // rotation, uvs) is static and computed once on add. `vertex` is
+            // dynamic here on purpose — the particle's corner offsets are
+            // baked from its scaleX/scaleY, and every ball rescales each frame.
+            const particleProps = { position: true, vertex: true, color: true, rotation: false, uvs: false };
+            this._ballsFillContainer = new ParticleContainer({ texture: this._getBallFillTexture(), dynamicProperties: particleProps });
+            this._ballsEraseContainer = new ParticleContainer({ texture: this._getBallFillTexture(), dynamicProperties: particleProps });
+            // The whole erase pass shares one blend mode; setting it on the
+            // container (once) instead of per sprite avoids 2130 blend-state
+            // changes per frame. Same rendered result — erasing an already
+            // erased pixel is idempotent.
+            this._ballsEraseContainer.blendMode = 'erase';
             this._ballsRingContainer = new Container();
-            this._ballsEraseContainer = new Container();
             this._ballsRingGroup = new Container();
             this._ballsRingGroup.addChild(this._ballsRingContainer, this._ballsEraseContainer);
             // The source containers draw in fullscreen (0,0..CANVAS_W/H)
-            // coordinates; scaling them 0.5 renders into the half-resolution
-            // RenderTextures, which the 2x composites scale back up.
-            this._ballsFillContainer.scale.set(0.5, 0.5);
-            this._ballsRingContainer.scale.set(0.5, 0.5);
-            this._ballsEraseContainer.scale.set(0.5, 0.5);
+            // coordinates. All three scale 1.0 into their full-res
+            // RenderTextures so the fill edge and ring band share one pixel
+            // grid (any downscale/upscale mismatch shows as stray edge pixels).
+            this._ballsFillContainer.scale.set(1, 1);
+            this._ballsRingContainer.scale.set(1, 1);
+            this._ballsEraseContainer.scale.set(1, 1);
         }
 
         // While the cutscene plays (but before the fight phase), bake the
@@ -248,23 +281,24 @@ export const CutsceneRenderer = {
         // Grow the sprite pool gradually (budget per frame) so the first
         // knight_floating frame doesn't allocate all 6390 sprites at once.
         this._growBallSprites(balls.length, this._ballPoolBudget);
-        while (this._ballFillSprites.length > balls.length) this._ballFillSprites.pop().destroy();
+        while (this._ballFillSprites.length > balls.length) this._ballsFillContainer.removeParticle(this._ballFillSprites.pop());
         while (this._ballRingSprites.length > balls.length) this._ballRingSprites.pop().destroy();
-        while (this._ballEraseSprites.length > balls.length) this._ballEraseSprites.pop().destroy();
+        while (this._ballEraseSprites.length > balls.length) this._ballsEraseContainer.removeParticle(this._ballEraseSprites.pop());
 
         this._ballsFillComposite.visible = active;
         this._ballsRingComposite.visible = active;
 
         if (!active) {
-            for (const s of this._ballFillSprites) s.visible = false;
+            for (const p of this._ballFillSprites) p.alpha = 0;
             for (const s of this._ballRingSprites) s.visible = false;
-            for (const s of this._ballEraseSprites) s.visible = false;
+            for (const p of this._ballEraseSprites) p.alpha = 0;
             return;
         }
 
         // Full-rate redraw: the canvas original redraws the storm every frame,
-        // and half-res RenderTextures keep each redraw ~3ms. Between frames the
-        // cached RenderTextures stay composited while the pool is still growing.
+        // so we redraw the full-res RenderTextures every frame too. Between
+        // frames the cached RenderTextures stay composited while the pool is
+        // still growing.
         const cfg = window.BallsConfig || {};
         const outlineWidth = cfg.outlineWidth ?? 4;
         const t = performance.now() / 1000;
@@ -277,23 +311,22 @@ export const CutsceneRenderer = {
         // spans a ~700x700 cloud; typically a quarter of the balls sit off-screen.
         const viewL = 0, viewR = CANVAS_WIDTH, viewT = 0, viewB = CANVAS_HEIGHT;
 
-        const fillTexture = this._getBallFillTexture();
         const fillScaleToR = 1 / this._ballFillRadius;
 
         for (let i = 0; i < drawn; i++) {
             const b = balls[i];
             if (!(b.r > 0)) {
-                this._ballFillSprites[i].visible = false;
+                this._ballFillSprites[i].alpha = 0;
                 this._ballRingSprites[i].visible = false;
-                this._ballEraseSprites[i].visible = false;
+                this._ballEraseSprites[i].alpha = 0;
                 continue;
             }
             const sx = CutsceneBalls.ballCenterX + b.ox + Math.sin(t * b.speed + b.phase) * 10;
             const sy = (CANVAS_HEIGHT / 2) + b.oy + Math.cos(t * b.speed + b.phase) * 10;
             if (sx + b.r < viewL || sx - b.r > viewR || sy + b.r < viewT || sy - b.r > viewB) {
-                this._ballFillSprites[i].visible = false;
+                this._ballFillSprites[i].alpha = 0;
                 this._ballRingSprites[i].visible = false;
-                this._ballEraseSprites[i].visible = false;
+                this._ballEraseSprites[i].alpha = 0;
                 continue;
             }
             const alpha = b.alpha !== undefined ? b.alpha : 1.0;
@@ -301,11 +334,10 @@ export const CutsceneRenderer = {
             // Fill pass: all black disks first (later balls merge into the
             // shared silhouette, exactly like ballCanvas in the original).
             const fillSprite = this._ballFillSprites[i];
-            if (fillSprite.texture !== fillTexture) fillSprite.texture = fillTexture;
-            fillSprite.scale.set(b.r * fillScaleToR);
+            fillSprite.scaleX = b.r * fillScaleToR;
+            fillSprite.scaleY = b.r * fillScaleToR;
             fillSprite.x = sx; fillSprite.y = sy;
             fillSprite.alpha = alpha;
-            fillSprite.visible = true;
 
             // Ring pass: white rings and, after them, the inner-disc erase
             // sprites (destination-out) in the SAME RenderTexture — mirroring
@@ -323,11 +355,10 @@ export const CutsceneRenderer = {
 
             const innerR = Math.max(0, b.r - outlineWidth);
             const eraseSprite = this._ballEraseSprites[i];
-            if (eraseSprite.texture !== fillTexture) eraseSprite.texture = fillTexture;
-            eraseSprite.scale.set(innerR * fillScaleToR);
+            eraseSprite.scaleX = innerR * fillScaleToR;
+            eraseSprite.scaleY = innerR * fillScaleToR;
             eraseSprite.x = sx; eraseSprite.y = sy;
-            eraseSprite.alpha = alpha;
-            eraseSprite.visible = innerR > 0;
+            eraseSprite.alpha = innerR > 0 ? alpha : 0;
         }
 
         PixiApp.app.renderer.render({ container: this._ballsFillContainer, target: this._ballsFillRT, clear: true });

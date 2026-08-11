@@ -106,6 +106,13 @@ export const PixiRenderer = {
             PixiApp.menuLayer.visible = true;
             PixiApp.compositeLayer.visible = false;
             PixiApp.cutsceneLayer.visible = false;
+            // worldContainer is a direct child of app.stage (see pixiApp.js)
+            // and is left visible=true by the gameplay fast path (renderUI.js
+            // _compositeWorld). If we don't hide it here, every leftover world
+            // sprite from the previous run (towers, enemies, projectiles,
+            // particles) keeps rendering behind the DOM menu every frame.
+            PixiApp.worldContainer.visible = false;
+            PixiApp.pannedContainer.x = 0;
             this._safeDraw('_drawMainMenuScenery', engine, rawDt);
             this._safeDraw('_drawDevOverlay', engine, rawDt);
             // Cursor/boss-bar/warning-line are meaningless outside a game
@@ -121,6 +128,7 @@ export const PixiRenderer = {
         PixiApp.menuLayer.visible = false;
         PixiApp.compositeLayer.visible = true;
         PixiApp.cutsceneLayer.visible = true;
+        PixiApp.worldContainer.visible = true;
 
         this._safeDraw('_drawBackground', engine);
         this._safeDraw('_drawAcidPools', engine);

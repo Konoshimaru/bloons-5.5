@@ -7,6 +7,8 @@ import { GLOBAL_SCALE } from '../constants.js';
 import { getSpriteScale } from '../mobile.js';
 import { ENEMY_NAMES, CRACKABLE } from './rendererConstants.js';
 
+const ENEMY_POOL_MAX = 150;
+
 export const EnemiesRenderer = {
     _drawEnemies(engine) {
         const layer = PixiApp.layer('enemies');
@@ -64,8 +66,13 @@ export const EnemiesRenderer = {
                 const frame = enemy.bladeFrame || 0;
                 let bladeTexture = PixiAssets.get(`enemy_${baseName}_blades_${stage}_${frame}`);
                 if (bladeTexture === Texture.EMPTY && stage === 0) bladeTexture = PixiAssets.get(`enemy_${baseName}_blades_${frame}`);
-                if (bladeTexture === Texture.EMPTY) bladeTexture = PixiAssets.get(`enemy_${baseName}_blades_${stage}_0`);
-                if (bladeTexture === Texture.EMPTY && stage === 0) bladeTexture = PixiAssets.get(`enemy_${baseName}_blades_0`);
+                if (bladeTexture === Texture.EMPTY) {
+                    // Mirror canvas: reset the animation and retry from frame 0
+                    // at the current damage stage, then any-stage fallbacks.
+                    if (enemy.bladeFrame !== 0) enemy.bladeFrame = 0;
+                    bladeTexture = PixiAssets.get(`enemy_${baseName}_blades_${stage}_0`);
+                    if (bladeTexture === Texture.EMPTY) bladeTexture = PixiAssets.get(`enemy_${baseName}_blades_0`);
+                }
                 if (bladeTexture !== Texture.EMPTY) {
                     blade.texture = bladeTexture; this._sizeUniform(blade, bladeTexture, targetSize);
                     blade.x = enemy.data?.spriteOffsetX || 0; blade.y = enemy.data?.spriteOffsetY || 0; blade.visible = true;
@@ -143,9 +150,18 @@ export const EnemiesRenderer = {
 
         for (const [enemy, entry] of this._enemySprites) {
             if (!seen.has(enemy)) {
-                entry.container.visible = false;
                 this._enemySprites.delete(enemy);
-                this._enemySpritePool.push(entry);
+                // Cap the reuse pool so a single big pop burst (MOAB/BFB/ZOMG
+                // splitting into dozens of children) can't permanently bloat
+                // the 'enemies' layer — pooled entries stay in the scene graph
+                // (just hidden), so uncapped they grow that layer forever and
+                // every frame's transform walk gets slower the longer you play.
+                if (this._enemySpritePool.length < ENEMY_POOL_MAX) {
+                    entry.container.visible = false;
+                    this._enemySpritePool.push(entry);
+                } else {
+                    entry.container.destroy({ children: true });
+                }
             }
         }
     },

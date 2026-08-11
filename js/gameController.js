@@ -13,6 +13,9 @@ export const gameController = {
         document.getElementById('sidebar').classList.remove('hidden');
         document.getElementById('top-ui-left').classList.remove('hidden');
         document.getElementById('top-ui-right').classList.remove('hidden');
+        document.getElementById('level-bar').classList.remove('hidden');
+        UI.toggleLevelBar(false);
+        UI.updateMetaStats();
         const sandboxControls = document.getElementById('sandbox-controls');
         const normControls = document.getElementById('norm-controls');
         if (isSandbox) {
@@ -40,6 +43,7 @@ export const gameController = {
 
     setupGameListeners() {
         dom.pauseBtn?.addEventListener('click', () => GameEngine.pauseGame());
+        dom.levelBarToggle?.addEventListener('click', () => UI.toggleLevelBar());
         dom.resumeBtn?.addEventListener('click', () => GameEngine.resumeGame());
         dom.pauseSettingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; UI.toggleMenus('settings-menu'); });
         dom.quitBtn?.addEventListener('click', () => {
@@ -52,6 +56,7 @@ export const gameController = {
             document.getElementById('sidebar').classList.add('hidden');
             document.getElementById('top-ui-left').classList.add('hidden');
             document.getElementById('top-ui-right').classList.add('hidden');
+            document.getElementById('level-bar').classList.add('hidden');
             AudioEngine.playMenuMusic();
             updateShopPrices();
         });

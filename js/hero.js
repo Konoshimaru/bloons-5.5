@@ -98,8 +98,16 @@ export class Hero extends Tower {
         if (!levelData) return;
         
         for (const mod of levelData) {
-            const currentVal = this.stats[mod.stat] || 0;
-            this.stats[mod.stat] = currentVal + mod.amount;
+            if (mod.stat) {
+                const currentVal = this.stats[mod.stat] || 0;
+                this.stats[mod.stat] = currentVal + mod.amount;
+            }
+            // Extra non-stat mods (explosiveEvery, rapidShotMult, etc.) are
+            // written as-is rather than accumulated.
+            for (const key in mod) {
+                if (key === 'stat' || key === 'amount') continue;
+                this.stats[key] = mod[key];
+            }
         }
     }
 

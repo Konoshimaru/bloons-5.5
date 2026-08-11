@@ -68,12 +68,35 @@ export const UI = {
         if (xpEl) xpEl.innerText = `${Config.data.playerXP} / ${Config.data.playerXPToNext} XP`;
         if (expFill) expFill.style.width = `${(Config.data.playerXP / Config.data.playerXPToNext) * 100}%`;
         if (mmEl) mmEl.innerText = `?? $${Config.data.monkeyMoney}`;
-        
+
+        const barLevel = el('level-bar-level');
+        const barFill = el('level-bar-xp-fill');
+        const barText = el('level-bar-xp-text');
+        if (barLevel) barLevel.innerText = Config.data.playerLevel;
+        if (barFill) {
+            const pct = Config.data.playerXPToNext > 0
+                ? (Config.data.playerXP / Config.data.playerXPToNext) * 100
+                : 0;
+            barFill.style.width = `${Math.min(100, Math.max(0, pct))}%`;
+        }
+        if (barText) barText.innerText = `${Config.data.playerXP} / ${Config.data.playerXPToNext} XP`;
+
         const hasSave = !!Config.data.savedRun;
         const continueBtn = el('btn-continue');
         const abandonBtn = el('btn-abandon');
         if (continueBtn) continueBtn.style.display = hasSave ? 'block' : 'none';
         if (abandonBtn) abandonBtn.style.display = hasSave ? 'block' : 'none';
+    },
+
+    // Toggles the collapsible bottom-right level panel. Pass an explicit
+    // collapsed state, or flip the current one when undefined.
+    toggleLevelBar(collapsed) {
+        const bar = el('level-bar');
+        if (!bar) return;
+        const nowCollapsed = collapsed !== undefined ? collapsed : !bar.classList.contains('collapsed');
+        bar.classList.toggle('collapsed', nowCollapsed);
+        const toggle = el('level-bar-toggle');
+        if (toggle) toggle.innerText = nowCollapsed ? '⬇' : '⬆';
     },
 
     updateWaveSpeedBtn(speedState) {

@@ -113,6 +113,12 @@ export class Tower {
         this.alchBuff = null;
         this.alchDip = null;
         
+        // Alchemist timers. Must be initialized (not undefined) or
+        // `timer -= dt` yields NaN and the whole behavior block never runs.
+        this.brewTimer = 0;
+        this.shrinkTimer = 0;
+        this.monsterFireTimer = 0;
+        
         this._nightGlowGradient = null;
         this._nightGlowRadius = 0;
         this._nightGlowX = 0;

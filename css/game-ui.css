@@ -35,6 +35,28 @@
     border: 1px solid #7f8c8d;
 }
 
+/* --- COLLAPSIBLE LEVEL BAR (bottom-right) --- */
+#level-bar {
+    position: absolute; bottom: 10px; right: 10px; z-index: 12;
+    display: flex; align-items: stretch;
+}
+#level-bar-toggle {
+    background: rgba(44, 62, 80, 0.9); color: white; border: 1px solid #7f8c8d;
+    border-radius: 6px 0 0 6px; padding: 0 10px; font-weight: 900; cursor: pointer;
+    font-size: 14px; transition: background 0.2s;
+}
+#level-bar-toggle:hover { background: rgba(44, 62, 80, 1); }
+#level-bar-body {
+    background: rgba(44, 62, 80, 0.92); border: 1px solid #7f8c8d; border-left: none;
+    border-radius: 0 6px 6px 0; padding: 6px 10px; min-width: 150px;
+}
+#level-bar.collapsed #level-bar-toggle { border-radius: 6px; }
+#level-bar.collapsed #level-bar-body { display: none; }
+#level-bar-header { color: var(--gold); font-weight: 900; font-size: 14px; margin-bottom: 4px; }
+#level-bar .exp-bar-container { width: 100%; height: 10px; background: rgba(0,0,0,0.6); border-radius: 5px; overflow: hidden; margin-bottom: 3px; }
+#level-bar .exp-bar-fill { height: 100%; background: linear-gradient(90deg, #f1c40f, #e67e22); border-radius: 5px; transition: width 0.3s; }
+#level-bar-xp-text { font-size: 11px; color: #bdc3c7; font-weight: 700; white-space: nowrap; }
+
 #flavor-text { 
     position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%); 
     background: rgba(0,0,0,0.8); padding: 5px 15px; border-radius: 5px; 

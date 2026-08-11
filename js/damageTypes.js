@@ -18,7 +18,8 @@ export const DamageType = deepFreeze({
 });
 
 export function resolveDmgType(str) {
-    if (!str) return DamageType.SHARP;
+    if (str === undefined || str === null) return DamageType.SHARP;
+    const s = String(str).toLowerCase();
     const map = {
         sharp: DamageType.SHARP,
         explosion: DamageType.EXPLOSION,
@@ -33,10 +34,20 @@ export function resolveDmgType(str) {
         frigid: DamageType.FRIGID,
         glue: DamageType.SHARP
     };
-    return map[str.toLowerCase()] || DamageType.NONE;
+    return map[s] || DamageType.NONE;
 }
+
+// Ability flags granted inherently by a base type. Mods can only ADD these,
+// never remove them: e.g. FIRE always pops lead even if a caller passes
+// canHitLead: false, so towers that upgrade to fire never silently lose the
+// type's lead-popping property (Red Hot Rangs bug).
+const ADDITIVE_ABILITY_FLAGS = ['canHitLead', 'canHitMoab', 'canHitPurple'];
 
 export function createDmgType(base, mods = {}) {
     if (!base) return { ...mods };
-    return { ...base, ...mods };
+    const merged = { ...base, ...mods };
+    for (const flag of ADDITIVE_ABILITY_FLAGS) {
+        if (base[flag]) merged[flag] = true;
+    }
+    return merged;
 }

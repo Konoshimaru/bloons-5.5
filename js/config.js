@@ -18,7 +18,7 @@ const migrations = {
     },
     12: (data) => {
         if (!Array.isArray(data.unlockedTowers)) {
-            data.unlockedTowers = ['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue', 'desperado', 'sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling', 'wizard', 'super', 'ninja', 'alchemist', 'druid', 'mermonkey', 'farm', 'spike', 'village', 'engineer', 'beast', 'quincy', 'gwendolin', 'sauda', 'gojo', 'geto'];
+            data.unlockedTowers = ['dart', 'boomerang', 'bomb', 'tack', 'ice', 'glue', 'desperado', 'sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling', 'super', 'ninja', 'alchemist', 'druid', 'mermonkey', 'farm', 'spike', 'village', 'engineer', 'beast', 'quincy', 'gwendolin', 'sauda', 'gojo', 'geto'];
         }
         return data;
     },
@@ -81,7 +81,7 @@ const DEFAULT_DATA = {
         freeFirstDartMonkey: false,
         farmer: false
     },
-    unlockedTowers: ['dart', 'wizard', 'quincy'],
+    unlockedTowers: ['dart', 'quincy'],
     stats: {
         gamesPlayed: 0,
         highestRound: 0,
@@ -111,7 +111,7 @@ export const Config = {
             if (!this.data.monkeyKnowledge) this.data.monkeyKnowledge = {};
             if (!Array.isArray(this.data.unlockedPerks)) this.data.unlockedPerks = [];
             if (!Array.isArray(this.data.claimedLevels)) this.data.claimedLevels = [];
-            if (!Array.isArray(this.data.unlockedTowers)) this.data.unlockedTowers = ['dart', 'wizard', 'quincy'];
+            if (!Array.isArray(this.data.unlockedTowers)) this.data.unlockedTowers = ['dart', 'quincy'];
             if (!this.data.stats) this.data.stats = { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
             if (!this.data.playerName) this.data.playerName = "";
             if (this.data.unlocks.farmer === undefined) this.data.unlocks.farmer = false;

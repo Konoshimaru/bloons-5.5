@@ -176,7 +176,7 @@ export default {
                 for (let i=1; i<=3; i++) { 
                     let t = tower.upgrades[i-1]; 
                     if (t > 0) { 
-                        let ovAsset = Assets.get(`tower_dart_p${i}_t${i}_a`); 
+                        let ovAsset = Assets.get(`tower_dart_p${i}_t${t}_a`); 
                         if (ovAsset && ovAsset.loaded) { 
                             const op = getDrawParams('base'); 
                             drawImageCentered(ctx, ovAsset, op.size, op.x, op.y); 

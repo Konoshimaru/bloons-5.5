@@ -514,10 +514,12 @@ export const Renderer = {
         const t = engine.selectedPlacedTower;
         if (t.stats.range < 9999) {
             const effRange = Math.max(1, Utils.getEffectiveRange(t, engine));
-            // FIX: Solid white border
+            // FIX: Solid white border (thicker, fully opaque)
             ctx.strokeStyle = '#ffffff'; 
-            ctx.lineWidth = 4;
+            ctx.globalAlpha = 0.95;
+            ctx.lineWidth = 6;
             ctx.beginPath(); ctx.arc(t.x, t.y, effRange, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = 1;
         }
     },
 

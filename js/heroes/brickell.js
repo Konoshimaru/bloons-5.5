@@ -179,7 +179,9 @@ export default {
         tower.drawBaseTower(ctx, isPreview);
     },
     ability(tower, engine) {
-        tower.abilityActiveTime = tower.stats.navalTacticsDur || 8;
+        const dur = tower.stats.navalTacticsDur || 8;
+        tower.abilityActiveTime = dur;
+        tower.addBuff('naval_tactics', 'Naval Tactics', dur, 1, { type: 'naval_tactics' }, false);
         engine.log("Admiral Brickell: Naval Tactics!");
     },
     ability2(tower, engine) {

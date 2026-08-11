@@ -37,7 +37,7 @@ export default {
         14: [{ stat: "moabDmg", amount: 1 }], 
         15: [{ stat: "rapidShotMult", amount: 1 }, { stat: "rapidShotCd", amount: -15 }], 
         16: [{ stat: "fireRate", amount: -0.23 }], 
-        17: [{ stat: "explosiveEvery", amount: 2 }, { stat: "lifespan", amount: 0.125 }], 
+        17: [{ explosiveEvery: 2 }, { stat: "lifespan", amount: 0.125 }], 
         18: [{ stat: "fireRate", amount: -0.15 }, { stat: "stormChance", amount: 0.025 }, { stat: "stormCeramicDmg", amount: 18 }, { stat: "stormCd", amount: -15 }], 
         19: [{ stat: "projectileCount", amount: 1 }, { stat: "pierce", amount: 2 }], 
         20: [{ stat: "fireRate", amount: -0.05 }, { stat: "stormChance", amount: 0.025 }, { stat: "stormDmg", amount: 4 }, { stat: "stormMoabDmg", amount: 4 }, { stat: "stormCeramicDmg", amount: 6 }]
@@ -73,7 +73,12 @@ export default {
         }
         tower.drawBaseTower(ctx, isPreview);
     },
-    ability(tower, engine) { tower.abilityActiveTime = tower.stats.rapidShotDur || 8; engine.log("Quincy: Rapid Shot!"); },
+    ability(tower, engine) {
+        const dur = tower.stats.rapidShotDur || 8;
+        tower.abilityActiveTime = dur;
+        tower.addBuff('rapid_shot', 'Rapid Shot', dur, 1, { type: 'rapid_shot' }, false);
+        engine.log("Quincy: Rapid Shot!");
+    },
     ability2(tower, engine) {
         tower.ability2Cooldown = tower.stats.stormCd || 70;
         let target = null; 
@@ -113,7 +118,7 @@ export default {
             let p = GameEngine.projectilePool.get();
             p.init(tower.x, tower.y, damage, target, 'arrow', tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, null, null, 5 * (i - (count-1)/2), tower, dmgType);
             p.isCrit = isCrit;
-            if (isExplosive) { p.effects = p.effects || {}; p.effects.isExplosive = true; p.effects.explosionRadius = 80; p.effects.explosionDamage = 1; p.effects.explosionPierce = 10; }
+            if (isExplosive) { p.effects = p.effects || {}; p.effects.isExplosive = true; p.effects.explosionRadius = 80; p.effects.explosionDamage = damage; p.effects.explosionPierce = 10; p.effects.canHitLead = true; p.effects.canHitMoab = true; }
         }
     }
 };

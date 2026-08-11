@@ -424,15 +424,18 @@ export default {
             const lifespan = stats.lifespan;
             const pierce = tower._iceboreT > 0 ? Math.ceil(stats.pierce * 1.5) : stats.pierce;
             for (let i = q.length - 1; i >= 0; i--) {
-                q[i].delay -= dt;
-                if (q[i].delay > 0) continue;
-                const tgt = q[i].target;
+                const entry = q[i];
+                entry.delay -= dt;
+                if (entry.delay > 0) continue;
+                const tgt = entry.target;
+                const dmg = entry.dmg;
+                const dmgType = entry.dmgType;
                 q.splice(i, 1);
                 if (!tgt || !tgt.alive) continue;
                 const spread = (stats.spread || 6) * (stats.spreadMult || 1);
                 const angle = (Math.random() - 0.5) * spread * Math.PI / 180;
                 const p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, q[i].dmg, tgt, stats.projectileType, speed, pierce, lifespan, null, { onHit: (e) => skyOnHit(tower, e) }, angle, tower, q[i].dmgType);
+                p.init(tower.x, tower.y, dmg, tgt, stats.projectileType, speed, pierce, lifespan, null, { onHit: (e) => skyOnHit(tower, e) }, angle, tower, dmgType);
             }
         }
     },

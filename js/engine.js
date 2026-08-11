@@ -87,6 +87,11 @@ export const GameEngine = {
     frames: 0,
     fps: 0,
     lastFpsUpdate: 0,
+
+    // Player XP earned from popping bloons this run, banked and flushed to
+    // LevelManager in batches so per-pop adds never touch localStorage.
+    sessionXp: 0,
+    sessionXpFlushTimer: 0,
     
     difficulty: null,
     hero: null,
@@ -117,25 +122,28 @@ export const GameEngine = {
         this.runInBackground = Config.data.runInBackground;
         this.canvas = document.getElementById('gameCanvas');
 
-        // DEBUG TOGGLE (not part of normal gameplay): ?webgl=1 in the URL
-        // switches rendering to the in-progress PixiJS renderer instead of
-        // Canvas2D. A <canvas> element can only have ONE context type for
-        // its lifetime, so when this is active we skip getContext('2d')
-        // entirely rather than grabbing both. Dynamic import so the webgl/
-        // module graph isn't even fetched for normal players. Everything
-        // else (game logic, input, UI) is completely untouched by this flag.
-        this.useWebGLDebug = new URLSearchParams(location.search).get('webgl') === '1';
+        // RENDERER SELECTION. WebGL (PixiJS) is the default renderer. Append
+        // ?canvas=1 to the URL to force the legacy Canvas2D renderer instead
+        // (?webgl=1 also still works as an explicit override). A <canvas>
+        // element can only have ONE context type for its lifetime, so when
+        // WebGL is active we skip getContext('2d') entirely rather than
+        // grabbing both. Dynamic import so the webgl/ module graph isn't even
+        // fetched when the Canvas2D fallback is forced. Everything else (game
+        // logic, input, UI) is completely untouched by this flag.
+        const params = new URLSearchParams(location.search);
+        this.useWebGL = params.get('webgl') === '1' || params.get('canvas') !== '1';
         this._pixiRenderer = null;
+        this.rendererName = this.useWebGL ? 'WebGL' : 'Canvas 2D';
 
-        if (this.useWebGLDebug) {
-            console.log('[webgl debug] Loading PixiJS renderer...');
+        if (this.useWebGL) {
+            console.log('[renderer] Loading PixiJS WebGL renderer...');
             import('./webgl/pixiRenderer.js').then(({ PixiRenderer }) => {
                 return PixiRenderer.init(this.canvas).then(() => {
                     this._pixiRenderer = PixiRenderer;
-                    console.log('[webgl debug] PixiJS renderer ready.');
+                    console.log('[renderer] PixiJS WebGL renderer ready.');
                 });
             }).catch(err => {
-                console.error('[webgl debug] Failed to init PixiJS renderer, falling back to nothing being drawn:', err);
+                console.error('[renderer] Failed to init PixiJS renderer:', err);
             });
         } else {
             this.ctx = this.canvas.getContext('2d');
@@ -178,7 +186,7 @@ export const GameEngine = {
         if (rawAmount <= 0) return;
         const diff = this.difficulty;
         if (diff) {
-            if (diff.noIncome && !(opts.wave && diff.allowWaveCash)) return;
+            if (diff.noIncome && !(opts.wave && diff.allowWaveCash) && !opts.pop) return;
             if (typeof diff.incomeMult === 'number' && diff.incomeMult !== 1) {
                 rawAmount = Math.floor(rawAmount * diff.incomeMult);
                 if (rawAmount <= 0) return;
@@ -218,6 +226,7 @@ export const GameEngine = {
         this.sentries.length = 0; 
         this.acidPools.length = 0; this.menuClickables.length = 0;
         this.projectilePool.clear(); this.particlePool.clear();
+        this.sessionXp = 0; this.sessionXpFlushTimer = 0;
         if (!isSandbox && !diff.noSelling) {
             if (Config.data.unlocks.extraStartingLives) this.lives += 10;
             if (Config.data.unlocks.extraStartingCash) this.cash += 200;
@@ -252,10 +261,22 @@ export const GameEngine = {
     resumeGame() { if (this.gameState !== 'paused') return; this.gameState = 'playing'; UI.hidePause(); },
     toggleMenus(menuId) { UI.toggleMenus(menuId); },
 
+    resetCutscene() { CutsceneManager.reset(); },
+
     spawnPopEffect(x, y, color) {
         if (this.particlePool.active.length > 400) return;
         if (this.enemies.length > 600 && Math.random() > 0.2) return;
         const p = this.particlePool.get(); p.init(x, y, color);
+    },
+
+    // Banks per-pop player XP (already RBE-scaled by the caller) and flushes
+    // it to LevelManager in batches so a busy round doesn't save config per pop.
+    // flushSessionXp lives on GameSession (mixed in below) to avoid a circular
+    // import between engine.js and levelManager.js.
+    addSessionXp(amount) {
+        if (!amount || amount <= 0) return;
+        this.sessionXp += amount;
+        if (this.sessionXp >= 25) this.flushSessionXp();
     },
 
     log(msg) { UI.log(msg); },
@@ -308,9 +329,12 @@ export const GameEngine = {
                 }
                 UI.updateAbilityBar(this); this.updateUI();
             }
+            if (CutsceneManager.state !== 'idle' && this.gameState !== 'playing' && this.gameState !== 'paused' && this.gameState !== 'levelup') {
+                CutsceneManager.reset();
+            }
             if (this.gameState !== 'gameover') {
-                if (this.useWebGLDebug) {
-                    if (this._pixiRenderer) {
+            if (this.useWebGL) {
+                if (this._pixiRenderer) {
                         // FIX: Pass rawDt so the Dev Overlay can calculate FPS
                         try { this._pixiRenderer.render(this, rawDt); }
                         catch (err) { console.error('[webgl debug] PIXI RENDER ERROR:', err); }
@@ -346,6 +370,10 @@ export const GameEngine = {
 
     update(dt) {
         this._updateLimitsAndTimers(dt);
+        if (this.sessionXp > 0) {
+            this.sessionXpFlushTimer -= dt;
+            if (this.sessionXpFlushTimer <= 0) { this.sessionXpFlushTimer = 0.5; this.flushSessionXp(); }
+        }
         if (this.difficulty && this.difficulty.isPostChimps && CutsceneManager.state === 'idle') {
             let damagedMoab = this.enemies.find(e => e.alive && e.data.isMoab && e.hp < e._maxHp);
             if (damagedMoab) CutsceneManager.trigger(damagedMoab);

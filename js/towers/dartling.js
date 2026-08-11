@@ -11,7 +11,7 @@ export default {
         // ... rest of stats
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 12,
         spread: 23, // Degrees of random spread
-        category: 'Military' 
+        category: 'Military', manualFire: true
     },
     upgrades: {
         1: [

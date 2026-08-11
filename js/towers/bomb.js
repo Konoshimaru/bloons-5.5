@@ -11,7 +11,7 @@ export default {
         lifespan: 1.5, canHitLead: true, 
         desc: "Launches a powerful bomb at the Bloons. Slow rate of fire but affects a radius around the explosion.", 
         dmgType: 'explosion', projectileType: 'bomb', hitRadius: 18, 
-        isStaticRotation: true, category: 'Military',
+        category: 'Primary',
         projectileType: 'bomb' 
     },
     upgrades: {

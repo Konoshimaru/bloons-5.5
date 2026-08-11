@@ -159,6 +159,7 @@ export class WaveManager {
         if (!GameEngine.isSandbox && GameEngine.difficulty && GameEngine.difficulty.maxRound && this.currentWave >= GameEngine.difficulty.maxRound) {
             AudioEngine.pause();
             GameEngine.deselectAll();
+            GameEngine.resetCutscene();
             GameEngine.gameState = 'victory';
             GameEngine.giveRewards();
             UI.toggleMenus('victory-menu');

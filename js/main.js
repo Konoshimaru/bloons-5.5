@@ -1,4 +1,5 @@
 // js/main.js
+import pkg from '../package.json';
 import '../css/base.css';
 import '../css/game-ui.css';
 import '../css/menus.css';
@@ -59,6 +60,8 @@ function setupEventListeners() {
 
 window.addEventListener('load', () => {
     GameEngine.init();
+    const titleMeta = document.getElementById('title-meta');
+    if (titleMeta) titleMeta.innerText = `v${pkg.version} · ${GameEngine.rendererName}`;
     setupEventListeners();
     Main.applyConfigToUI();
     windowLayout.init();

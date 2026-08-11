@@ -82,6 +82,17 @@ describe('TowerRenderer buff icon rendering', () => {
     for (const type of types) {
       expect(() => TowerRenderer._getBuffIconCanvas(type)).not.toThrow();
     }
+    // Every addBuff data.type used by the game must render a distinct icon
+    // (these used to fall through to the generic star).
+    const heroAndTowerBuffs = [
+      'drone_range', 'pickles', 'obyn_magic', 'flagship', 'poplust',
+      'wall_street', 'ice_support', 'mermonkey_pierce', 'final_harmonic',
+      'shinobi', 'thunder_charge', 'sniper_elite', 'sub_reveal',
+      'sub_commander', 'sun_buff', 'rapid_shot', 'ap_shells', 'naval_tactics'
+    ];
+    for (const type of heroAndTowerBuffs) {
+      expect(() => TowerRenderer._getBuffIconCanvas(type)).not.toThrow();
+    }
     // First call should have created and cached canvases; second call returns from cache
     expect(TowerRenderer._getBuffIconCanvas('village')).toBe(TowerRenderer._getBuffIconCanvas('village'));
   });

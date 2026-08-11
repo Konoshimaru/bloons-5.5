@@ -49,8 +49,18 @@ export const ProjectilesRenderer = {
                 const scale = targetSize / maxDim;
                 sprite.width = texture.width * scale; sprite.height = texture.height * scale;
             } else {
+                // Drawers emit static per-type geometry (only `arrow` reads
+                // p.isCrit, which is fixed at spawn; position/angle live on
+                // the container). The projectile pool reuses objects across
+                // spawns — possibly as a DIFFERENT type — so redraw only
+                // when that geometry key changes instead of re-tessellating
+                // every frame.
                 const drawer = ProjectileDrawers[p.type] || ProjectileDrawers.dart;
-                graphics.clear(); adapter.reset(); drawer(adapter, p);
+                const critKey = !!(p.isCrit);
+                if (entry.lastType !== p.type || entry.lastCrit !== critKey) {
+                    graphics.clear(); adapter.reset(); drawer(adapter, p);
+                    entry.lastType = p.type; entry.lastCrit = critKey;
+                }
             }
             container.x = p.x; container.y = p.y; container.rotation = p.angle || 0;
         }

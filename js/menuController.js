@@ -9,6 +9,7 @@ import { MapEditor } from './mapEditor.js';
 import { dom } from './dom.js';
 import { updateShopPrices } from './dragManager.js';
 import { gameController } from './gameController.js';
+import selectorMenus from './selectorMenus.js';
 
 export const menuController = {
     playMenuState: {
@@ -50,6 +51,12 @@ export const menuController = {
         this.updateHeroShopCard();
         updateShopPrices();
     },
+
+    // These selectors live on selectorMenus; expose them here so applyConfigToUI
+    // works even when invoked with this = menuController (e.g. settingsMenu).
+    refreshMapSelector() { selectorMenus.refreshMapSelector(); },
+    refreshHeroSelector() { selectorMenus.refreshHeroSelector(); },
+    updateHeroShopCard() { selectorMenus.updateHeroShopCard(); },
 
     updateProfileUI() {
         const stats = Config.data.stats || { gamesPlayed: 0, highestRound: 0, totalPops: 0 };
@@ -340,6 +347,7 @@ export const menuController = {
             document.getElementById('sidebar').classList.add('hidden');
             document.getElementById('top-ui-left').classList.add('hidden');
             document.getElementById('top-ui-right').classList.add('hidden');
+            document.getElementById('level-bar').classList.add('hidden');
             AudioEngine.playMenuMusic();
             updateShopPrices();
         });
@@ -352,6 +360,7 @@ export const menuController = {
             document.getElementById('sidebar').classList.add('hidden');
             document.getElementById('top-ui-left').classList.add('hidden');
             document.getElementById('top-ui-right').classList.add('hidden');
+            document.getElementById('level-bar').classList.add('hidden');
             AudioEngine.playMenuMusic();
             updateShopPrices();
         });

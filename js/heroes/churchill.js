@@ -48,6 +48,7 @@ export default {
     ability(tower, engine) {
         engine.log("Churchill: Armor Piercing Shells!");
         tower.abilityActiveTime = 10; // Buffs fire rate and pierce via abilityActiveTime
+        tower.addBuff('ap_shells', 'Armor Piercing Shells', 10, 1, { type: 'ap_shells' }, false);
     },
     ability2(tower, engine) {
         engine.log("Churchill: MOAB Barrage!");

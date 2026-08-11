@@ -128,10 +128,13 @@ export default {
         // Standard Tacks / Blades
         let count = tower.stats.tackCount || 8;
         let projType = tower.stats.projectileType || 'tack';
+        const spawnR = (tower.stats.hitRadius || 14) * 0.6;
         for (let i = 0; i < count; i++) {
             let angle = (i / count) * Math.PI * 2;
             let p = GameEngine.projectilePool.get();
-            p.init(tower.x, tower.y, damage, null, projType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, angle, effects, 0, tower, dmgType, isCrit);
+            // Spawn from the edge of the tack's hit area, not the exact
+            // center, so projectiles don't appear inside the character.
+            p.init(tower.x + Math.cos(angle) * spawnR, tower.y + Math.sin(angle) * spawnR, damage, null, projType, tower.stats.projectileSpeed, tower.stats.pierce, tower.stats.lifespan, angle, effects, 0, tower, dmgType, isCrit);
         }
     },
 

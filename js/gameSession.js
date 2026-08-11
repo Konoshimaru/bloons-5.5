@@ -56,8 +56,24 @@ const GameSession = {
         UI.toggleMenus(null); document.getElementById('main-menu-ui').classList.remove('hidden'); UI.updateMetaStats();
     },
 
+    // Flushes per-pop player XP banked by addSessionXp() into the persistent
+    // LevelManager pipeline. Placed here (not engine.js) because GameSession
+    // already imports LevelManager; engine.js importing it would create a
+    // circular dependency (levelManager -> dragManager -> engine).
+    flushSessionXp() {
+        if (this.sessionXp <= 0) return;
+        const amount = Math.floor(this.sessionXp);
+        this.sessionXp = 0;
+        this.sessionXpFlushTimer = 0;
+        LevelManager.addXP(amount, { inGame: this.gameState === 'playing' });
+    },
+
     giveRewards() {
         const wavesSurvived = this.waveManager.currentWave;
+        // Bank any un-flushed per-pop XP first so nothing is lost at game end.
+        const sessionXp = Math.floor(this.sessionXp || 0);
+        this.sessionXp = 0; this.sessionXpFlushTimer = 0;
+        if (sessionXp > 0) LevelManager.addXP(sessionXp, { inGame: false });
         const xpEarned = wavesSurvived * 15;
         let mmEarned = Math.floor(wavesSurvived / 3) + 5;
         

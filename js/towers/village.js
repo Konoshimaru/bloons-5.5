@@ -244,9 +244,9 @@ export default {
         }
 
         if (tower.upgrades[0] >= 5 && tower.stats.fireRate > 0) {
-            tower.cooldown -= dt;
-            if (tower.cooldown <= 0) {
-                tower.cooldown = tower.stats.fireRate;
+            tower._ballistaCd = (tower._ballistaCd || 0) - dt;
+            if (tower._ballistaCd <= 0) {
+                tower._ballistaCd = tower.stats.fireRate;
                 let target = null, bestVal = -Infinity;
                 if (tower.targetingMode === 'Close') {
                     bestVal = Infinity;

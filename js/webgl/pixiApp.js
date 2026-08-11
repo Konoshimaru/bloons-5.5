@@ -155,7 +155,13 @@ export const PixiApp = {
         // the menu, matching the original).
         this.menuLayer = new Container();
         this.menuLayer.label = 'menu';
-        this.app.stage.addChild(this.menuLayer, this.compositeLayer, this.cutsceneLayer, this.screenUI);
+        // worldContainer is added to the stage so renderUI.js's
+        // _compositeWorld can render it DIRECTLY (skipping the offscreen
+        // render-to-texture pass) on frames with no boss screen effect. It
+        // sits above compositeLayer (which shows the texture) but below
+        // cutsceneLayer; its own `visible` toggles between the direct and
+        // render-to-texture paths, so the world is never drawn twice.
+        this.app.stage.addChild(this.menuLayer, this.compositeLayer, this.worldContainer, this.cutsceneLayer, this.screenUI);
 
         // Stage-level containers are NOT panned world layers, so they aren't
         // in the loop above — but renderUI.js/renderCutscene.js look several

@@ -316,15 +316,22 @@ export const TowersRenderer = {
         const attackPrefix = tower.attackPrefix || `tower_${type}_`;
         let bestTier = 0, bestPath = 0;
         for (let p = 1; p <= 3; p++) { if ((tower.upgrades?.[p - 1] || 0) > bestTier) { bestTier = tower.upgrades[p - 1]; bestPath = p; } }
+        // Use the upgrade-specific SpriteConfig key (e.g. boomerang_p1_t1) when
+        // an upgrade is bought, so its base scale (1.3 vs the plain 1.0) applies.
+        const upgradeConfigKey = bestTier > 0 ? `${type}_p${bestPath}_t${bestTier}` : null;
+        const baseConfigType = upgradeConfigKey && SpriteConfig[upgradeConfigKey] ? upgradeConfigKey : type;
         let baseKey = `tower_${type}_base`; let isCustomBase = false;
         if (bestTier > 0) {
             const customKey = `tower_${type}_p${bestPath}_t${bestTier}_base`;
-            if (PixiAssets.get(customKey) !== Texture.EMPTY) { baseKey = customKey; isCustomBase = true; }
+            if (PixiAssets.has(customKey)) { baseKey = customKey; isCustomBase = true; }
         }
         const isFullAnimActive = tower.isFullAnim && tower.attackAnimActive;
         let fullAnimTexture = Texture.EMPTY;
-        if (isFullAnimActive) fullAnimTexture = PixiAssets.get(`${attackPrefix}attack_full_${tower.attackAnimFrame}`);
-        const useFullAnim = isFullAnimActive && fullAnimTexture !== Texture.EMPTY;
+        if (isFullAnimActive) {
+            const fullAnimKey = `${attackPrefix}attack_full_${tower.attackAnimFrame}`;
+            if (PixiAssets.has(fullAnimKey)) fullAnimTexture = PixiAssets.get(fullAnimKey);
+        }
+        const useFullAnim = fullAnimTexture !== Texture.EMPTY;
         const baseTexture = useFullAnim ? fullAnimTexture : PixiAssets.get(baseKey);
         if (base.texture !== baseTexture) base.texture = baseTexture;
         const basePartKey = useFullAnim ? `attack_full_${tower.attackAnimFrame}` : 'base';
@@ -340,13 +347,24 @@ export const TowersRenderer = {
             base.x = 0;
             base.y = 0;
         } else {
-            this._applySpriteConfig(base, baseTexture, type, basePartKey, targetSize);
+            this._applySpriteConfig(base, baseTexture, baseConfigType, basePartKey, targetSize);
         }
         if (useFullAnim) { arm.visible = false; } else {
             const isAttacking = tower.attackAnimActive;
-            const armKey = isAttacking ? `${attackPrefix}attack_${tower.attackAnimFrame}` : `${attackPrefix}arm`;
-            const armPartKey = isAttacking ? `attack_${tower.attackAnimFrame}` : 'arm';
-            const armTexture = PixiAssets.get(armKey);
+            let armKey, armPartKey;
+            if (isCustomBase) {
+                // Port of getActiveAssets: a custom upgrade base replaces the
+                // plain tower, and the arm is nulled unless a matching upgrade
+                // `_arm` sprite exists. The upgrade `attack_*`/`attack_full_*`
+                // frames are full-body sprites, so drawing them on top of the
+                // custom base would stack a second tower on the first.
+                armKey = `tower_${type}_p${bestPath}_t${bestTier}_arm`;
+                armPartKey = 'arm';
+            } else {
+                armKey = isAttacking ? `${attackPrefix}attack_${tower.attackAnimFrame}` : `${attackPrefix}arm`;
+                armPartKey = isAttacking ? `attack_${tower.attackAnimFrame}` : 'arm';
+            }
+            const armTexture = PixiAssets.has(armKey) ? PixiAssets.get(armKey) : Texture.EMPTY;
             if (armTexture !== Texture.EMPTY) {
                 arm.visible = true; if (arm.texture !== armTexture) arm.texture = armTexture;
                 this._applySpriteConfig(arm, armTexture, type, armPartKey, targetSize);
@@ -358,7 +376,7 @@ export const TowersRenderer = {
                 const t = tower.upgrades?.[p - 1] || 0;
                 if (t > 0) {
                     const key = `tower_${type}_p${p}_t${t}_a`;
-                    if (PixiAssets.get(key) !== Texture.EMPTY) neededAOverlays.push({ textureKey: key, configType: `${type}_p${p}_t${t}` });
+                    if (PixiAssets.has(key)) neededAOverlays.push({ textureKey: key, configType: `${type}_p${p}_t${t}` });
                 }
             }
         }
@@ -408,9 +426,9 @@ export const TowersRenderer = {
         let baseKey = 'tower_dart_base'; let isCustomBase = false;
         if (bestTier > 0) {
             const customKey = `tower_dart_p${bestPath}_t${bestTier}_base`;
-            if (PixiAssets.get(customKey) !== Texture.EMPTY) { baseKey = customKey; isCustomBase = true; }
+            if (PixiAssets.has(customKey)) { baseKey = customKey; isCustomBase = true; }
         }
-        const catapultTexture = PixiAssets.get('tower_dart_catapult');
+        const catapultTexture = PixiAssets.has('tower_dart_catapult') ? PixiAssets.get('tower_dart_catapult') : Texture.EMPTY;
         if (tower.upgrades?.[0] >= 3 && !isCustomBase && catapultTexture !== Texture.EMPTY) {
             catapult.visible = true; catapult.texture = catapultTexture;
             this._applySpriteConfig(catapult, catapultTexture, sharedConfigType, 'base', dartFallbackSize);
@@ -422,17 +440,30 @@ export const TowersRenderer = {
         catapult.visible = false;
         const isFullAnimActive = tower.isFullAnim && tower.attackAnimActive;
         let fullAnimTexture = Texture.EMPTY;
-        if (isFullAnimActive) fullAnimTexture = PixiAssets.get(`${tower.attackPrefix}attack_full_${tower.attackAnimFrame}`);
-        const useFullAnim = isFullAnimActive && fullAnimTexture !== Texture.EMPTY;
+        if (isFullAnimActive) {
+            const fullAnimKey = `${tower.attackPrefix}attack_full_${tower.attackAnimFrame}`;
+            if (PixiAssets.has(fullAnimKey)) fullAnimTexture = PixiAssets.get(fullAnimKey);
+        }
+        const useFullAnim = fullAnimTexture !== Texture.EMPTY;
         const baseTexture = useFullAnim ? fullAnimTexture : PixiAssets.get(baseKey);
         base.texture = baseTexture;
         const basePartKey = useFullAnim ? `attack_full_${tower.attackAnimFrame}` : 'base';
         this._applySpriteConfig(base, baseTexture, sharedConfigType, basePartKey, dartFallbackSize);
         if (useFullAnim) { arm.visible = false; } else {
             const isAttacking = tower.attackAnimActive;
-            const armKey = isAttacking ? `${tower.attackPrefix}attack_${tower.attackAnimFrame}` : `${tower.attackPrefix}arm`;
-            const armPartKey = isAttacking ? `attack_${tower.attackAnimFrame}` : 'arm';
-            const armTexture = PixiAssets.get(armKey);
+            let armKey, armPartKey;
+            if (isCustomBase) {
+                // Mirror Canvas2D getActiveAssets: a custom base replaces the
+                // tower and nulls the arm unless a matching `_arm` sprite
+                // exists. dart_arm/dart_attack_N are the PLAIN monkey's parts
+                // and must not be stacked on top of the custom base.
+                armKey = `tower_dart_p${bestPath}_t${bestTier}_arm`;
+                armPartKey = 'arm';
+            } else {
+                armKey = isAttacking ? `${tower.attackPrefix}attack_${tower.attackAnimFrame}` : `${tower.attackPrefix}arm`;
+                armPartKey = isAttacking ? `attack_${tower.attackAnimFrame}` : 'arm';
+            }
+            const armTexture = PixiAssets.has(armKey) ? PixiAssets.get(armKey) : Texture.EMPTY;
             if (armTexture !== Texture.EMPTY) {
                 arm.visible = true; arm.texture = armTexture;
                 this._applySpriteConfig(arm, armTexture, sharedConfigType, armPartKey, dartFallbackSize);
@@ -443,8 +474,8 @@ export const TowersRenderer = {
             for (let i = 1; i <= 3; i++) {
                 const t = tower.upgrades?.[i - 1] || 0;
                 if (t > 0) {
-                    const key = `tower_dart_p${i}_t${i}_a`;
-                    if (PixiAssets.get(key) !== Texture.EMPTY) neededAOverlays.push({ textureKey: key, configType: sharedConfigType });
+                    const key = `tower_dart_p${i}_t${t}_a`;
+                    if (PixiAssets.has(key)) neededAOverlays.push({ textureKey: key, configType: sharedConfigType });
                 }
             }
         }
@@ -469,7 +500,7 @@ export const TowersRenderer = {
         let baseKey = 'tower_mermonkey_base';
         if (bestTier > 0) {
             const customKey = `tower_mermonkey_p${bestPath}_t${bestTier}_base`;
-            if (PixiAssets.get(customKey) !== Texture.EMPTY) baseKey = customKey;
+            if (PixiAssets.has(customKey)) baseKey = customKey;
         }
         const baseTexture = PixiAssets.get(baseKey);
         base.visible = true;
@@ -484,7 +515,13 @@ export const TowersRenderer = {
     // FIX: Hardened the SpriteConfig logic to exactly match Canvas2D getDrawParams
     _applySpriteConfig(sprite, texture, configType, partKey, defaultSize) {
         if (texture === Texture.EMPTY) return;
-        const off = SpriteConfig[configType]?.[partKey];
+        let off = SpriteConfig[configType]?.[partKey];
+        // Full-body animation frames often only have a `base` entry in the
+        // upgrade config (e.g. boomerang_p1_t1 has only `base`). Fall back to
+        // that base scale so the tower doesn't shrink while attacking.
+        if (!off && (partKey === 'base' || (typeof partKey === 'string' && partKey.startsWith('attack_full')))) {
+            off = SpriteConfig[configType]?.['base'];
+        }
         
         // If SpriteConfig provides a scale, it overrides everything completely.
         // Otherwise, we fall back to the defaultSize passed in.

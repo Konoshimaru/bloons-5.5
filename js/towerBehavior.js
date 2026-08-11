@@ -142,6 +142,8 @@ function _runCustomBehaviors(tower, dt, engine) {
 function _acquireAndFire(tower, dt, engine) {
     if (tower.isHollowCharging) return; 
     if (tower.stunTimer > 0) return; 
+    if (tower.stats.manualFire) return; 
+    if (tower.iceJetActive > 0) return; 
     
     if (tower.type === 'spike') {
         if (engine.waveManager.waveActive && tower.cooldown <= 0 && tower.attackPointTimer <= 0) {
@@ -335,6 +337,16 @@ function _getAnimationAsset(tower) {
         const upgArm = Assets.get(`${upgPrefix}attack_0`);
         if (upgFull && upgFull.loaded) { prefix = upgPrefix; isFullAnim = true; animAsset = upgFull; }
         else if (upgArm && upgArm.loaded) { prefix = upgPrefix; isFullAnim = false; animAsset = upgArm; }
+        // Some towers (e.g. boomerang) number their frames starting at 1,
+        // with no _0 file. Probe _1 as a fallback so those detect too.
+        if (!animAsset) {
+            const upgFull1 = Assets.get(`${upgPrefix}attack_full_1`);
+            if (upgFull1 && upgFull1.loaded) { prefix = upgPrefix; isFullAnim = true; animAsset = upgFull1; }
+            else {
+                const upgArm1 = Assets.get(`${upgPrefix}attack_1`);
+                if (upgArm1 && upgArm1.loaded) { prefix = upgPrefix; isFullAnim = false; animAsset = upgArm1; }
+            }
+        }
     }
 
     if (!animAsset) {
@@ -384,6 +396,7 @@ function _canHitLead(tower) {
     let canHitLead = tower.stats.canHitLead || tower.buffedLead || (tower.alchDip ? true : false);
     if (tower.stats.dmgType === 'heavy') canHitLead = true;
     if (tower.fanClubBuffTimer > 0) canHitLead = true;
+    if (resolveDmgType(tower.stats.dmgType).canHitLead) canHitLead = true;
     return canHitLead;
 }
 

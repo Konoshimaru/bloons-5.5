@@ -7,6 +7,7 @@ import { Config } from './config.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 import { KnightEnemy, getBossMusic } from './bosses/knight.js'; 
 import CutsceneBalls from './bosses/cutsceneBalls.js';
+import { BossHealthBarHandler } from './BossHealthBarHandler.js';
 
 // --- CONFIG ---
 const slashScale = 1.5;  
@@ -54,6 +55,8 @@ export const CutsceneManager = {
                 break;
             }
         }
+
+        BossHealthBarHandler.activeBosses.length = 0;
         
         const music = getBossMusic();
         music.pause();

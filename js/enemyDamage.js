@@ -95,29 +95,30 @@ const EnemyDamage = {
 
     _isImmune(dmgType, effects) {
         if (!dmgType) dmgType = {}; 
-        
-        if (this.data.isLead && (dmgType.isEnergy || dmgType.isFire) && !dmgType.canHitLead && !this.leadStripped) {
+
+        // Lead coating (or DDT, which has a lead core) blocks Sharp/Energy/Fire
+        // unless the attack can hit lead, or acid has stripped the coating.
+        if (this.data.isLead && !this.leadStripped &&
+            (dmgType.isSharp || dmgType.isEnergy || dmgType.isFire) &&
+            !dmgType.canHitLead) {
             AudioEngine.playSfx('lead_hit');
             return true;
         }
 
+        // Per-bloon immunity predicate (Black/White/Zebra/Purple/DDT explosion).
         if (this.data.blocksDamageType && this.data.blocksDamageType(dmgType)) {
+            // Acid-stripped lead loses its coating immunity (DDT still keeps its
+            // lead core, so it goes through the lead rule above before this).
             if ((this.data.isLead || this.data.isDDT) && this.leadStripped) return false;
-            
-            if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && !this.leadStripped) {
-                AudioEngine.playSfx('lead_hit');
-                return true;
-            }
             return true;
         }
-        if (this.isFrozen && dmgType.isSharp && !dmgType.canHitLead && !this.brittle) {
+
+        // Frozen bloons are immune to Sharp unless the attack can hit lead/frozen.
+        if (this.isFrozen && !this.brittle && dmgType.isSharp && !dmgType.canHitLead) {
             AudioEngine.playSfx('frozen_hit');
             return true;
         }
-        if (this.data.isLead && dmgType.isSharp && !dmgType.canHitLead && !this.leadStripped) {
-            AudioEngine.playSfx('lead_hit');
-            return true;
-        }
+
         return false;
     },
 

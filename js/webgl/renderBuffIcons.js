@@ -54,7 +54,25 @@ function _renderIconCanvas(type) {
         heat_it_up: '#e67e22', // orange heat it up
         rabble: '#d35400', // burnt orange rabble
         reposition: '#2ecc71', // green reposition
-        flight_boost: '#3498db' // blue flight boost
+        flight_boost: '#3498db', // blue flight boost
+        drone_range: '#5dade2', // light blue drone range
+        pickles: '#1e8449', // dark green pickles
+        obyn_magic: '#6c3483', // deep purple magic buff
+        flagship: '#1a5276', // navy flagship
+        poplust: '#0e6655', // dark teal poplust
+        wall_street: '#b7950b', // olive gold wall street
+        ice_support: '#85c1e9', // ice blue arctic wind
+        mermonkey_pierce: '#48c9b0', // turquoise abyssal pierce
+        final_harmonic: '#7b241c', // dark crimson final harmonic
+        shinobi: '#2e4053', // dark navy shinobi
+        thunder_charge: '#d68910', // dark yellow thunder charge
+        sniper_elite: '#784212', // brown elite support
+        sub_reveal: '#2e86c1', // medium blue reveal camo
+        sub_commander: '#154360', // deepest navy sub commander
+        sun_buff: '#d4ac0d', // golden sun god
+        rapid_shot: '#a93226', // dark red rapid shot
+        ap_shells: '#5d6d7e', // grey-blue armor piercing shells
+        naval_tactics: '#1b4f72' // deep blue naval tactics
     };
 
     let bgColor = colorTable[type];
@@ -253,6 +271,249 @@ function _renderIconCanvas(type) {
         ctx.lineTo(-3 * GS * sizeScale, 5 * GS * sizeScale);
         ctx.lineTo(-3 * GS * sizeScale, 1 * GS * sizeScale);
         ctx.lineTo(-7 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'drone_range') {
+        // Small drone: four rotor arms around a body.
+        ctx.beginPath();
+        ctx.arc(0, 0, 2 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, -2 * GS * sizeScale); ctx.lineTo(0, -6 * GS * sizeScale);
+        ctx.moveTo(0, 2 * GS * sizeScale); ctx.lineTo(0, 6 * GS * sizeScale);
+        ctx.moveTo(-2 * GS * sizeScale, 0); ctx.lineTo(-6 * GS * sizeScale, 0);
+        ctx.moveTo(2 * GS * sizeScale, 0); ctx.lineTo(6 * GS * sizeScale, 0);
+        ctx.stroke();
+        ctx.fillRect(-2.5 * GS * sizeScale, -7 * GS * sizeScale, 5 * GS * sizeScale, 1.5 * GS * sizeScale);
+        ctx.fillRect(-2.5 * GS * sizeScale, 5.5 * GS * sizeScale, 5 * GS * sizeScale, 1.5 * GS * sizeScale);
+        ctx.fillRect(-7 * GS * sizeScale, -2.5 * GS * sizeScale, 1.5 * GS * sizeScale, 5 * GS * sizeScale);
+        ctx.fillRect(5.5 * GS * sizeScale, -2.5 * GS * sizeScale, 1.5 * GS * sizeScale, 5 * GS * sizeScale);
+    } else if (type === 'pickles') {
+        // Pickle: small capsule with a wavy bump.
+        ctx.beginPath();
+        ctx.moveTo(-3 * GS * sizeScale, -6 * GS * sizeScale);
+        ctx.lineTo(3 * GS * sizeScale, -6 * GS * sizeScale);
+        ctx.quadraticCurveTo(6 * GS * sizeScale, -2 * GS * sizeScale, 5 * GS * sizeScale, 2 * GS * sizeScale);
+        ctx.quadraticCurveTo(4 * GS * sizeScale, 5 * GS * sizeScale, 0, 6 * GS * sizeScale);
+        ctx.quadraticCurveTo(-4 * GS * sizeScale, 5 * GS * sizeScale, -5 * GS * sizeScale, 2 * GS * sizeScale);
+        ctx.quadraticCurveTo(-6 * GS * sizeScale, -2 * GS * sizeScale, -3 * GS * sizeScale, -6 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'obyn_magic') {
+        // Magic circle: ring with center dot and four ticks.
+        ctx.beginPath();
+        ctx.arc(0, 0, 6 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, 2 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, -7 * GS * sizeScale); ctx.lineTo(0, -3.5 * GS * sizeScale);
+        ctx.moveTo(0, 3.5 * GS * sizeScale); ctx.lineTo(0, 7 * GS * sizeScale);
+        ctx.moveTo(-7 * GS * sizeScale, 0); ctx.lineTo(-3.5 * GS * sizeScale, 0);
+        ctx.moveTo(3.5 * GS * sizeScale, 0); ctx.lineTo(7 * GS * sizeScale, 0);
+        ctx.stroke();
+    } else if (type === 'flagship') {
+        // Flag on a pole with a wave.
+        ctx.fillRect(-1 * GS * sizeScale, -7 * GS * sizeScale, 2 * GS * sizeScale, 14 * GS * sizeScale);
+        ctx.beginPath();
+        ctx.moveTo(1 * GS * sizeScale, -6 * GS * sizeScale);
+        ctx.quadraticCurveTo(5 * GS * sizeScale, -4 * GS * sizeScale, 4 * GS * sizeScale, -2 * GS * sizeScale);
+        ctx.quadraticCurveTo(3 * GS * sizeScale, 0 * GS * sizeScale, 6 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'poplust') {
+        // Sprout: stem with two leaves.
+        ctx.beginPath();
+        ctx.arc(0, 5 * GS * sizeScale, 2 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, 3 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, -3 * GS * sizeScale);
+        ctx.lineTo(0, -1 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, -3 * GS * sizeScale);
+        ctx.lineTo(0, 3 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'wall_street') {
+        // Coin: circle with an inner ring.
+        ctx.beginPath();
+        ctx.arc(0, 0, 6 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+        ctx.lineWidth = 1.5 * GS;
+        ctx.beginPath();
+        ctx.arc(0, 0, 3 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = '#ffffff';
+        ctx.fillRect(-1 * GS * sizeScale, -4 * GS * sizeScale, 2 * GS * sizeScale, 8 * GS * sizeScale);
+    } else if (type === 'ice_support') {
+        // Snowflake: three crossing bars.
+        for (let i = 0; i < 3; i++) {
+            const a = (i * Math.PI) / 3;
+            ctx.beginPath();
+            ctx.moveTo(-Math.cos(a) * 6 * GS * sizeScale, -Math.sin(a) * 6 * GS * sizeScale);
+            ctx.lineTo(Math.cos(a) * 6 * GS * sizeScale, Math.sin(a) * 6 * GS * sizeScale);
+            ctx.stroke();
+        }
+        ctx.beginPath();
+        ctx.arc(0, 0, 1.5 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (type === 'mermonkey_pierce') {
+        // Upward trident / piercing spike.
+        ctx.fillRect(-1 * GS * sizeScale, 1 * GS * sizeScale, 2 * GS * sizeScale, 6 * GS * sizeScale);
+        ctx.beginPath();
+        ctx.moveTo(-1 * GS * sizeScale, -7 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, -7 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, -2 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, -4 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, -2 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, 0 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, 0 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, -2 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, -4 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, -2 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'final_harmonic') {
+        // Two opposing arrows (musical exchange).
+        ctx.beginPath();
+        ctx.moveTo(-6 * GS * sizeScale, -2 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, -5 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, -3 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, -3 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, -1 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, -1 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(6 * GS * sizeScale, 2 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, 5 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, 3 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, 3 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, -1 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'shinobi') {
+        // Shuriken: 4-point star.
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+            const a = (i * Math.PI) / 2 - Math.PI / 4;
+            ctx.moveTo(Math.cos(a) * 6 * GS * sizeScale, Math.sin(a) * 6 * GS * sizeScale);
+            ctx.lineTo(Math.cos(a + 0.3) * 1.5 * GS * sizeScale, Math.sin(a + 0.3) * 1.5 * GS * sizeScale);
+            ctx.lineTo(Math.cos(a + 1.4) * 1.5 * GS * sizeScale, Math.sin(a + 1.4) * 1.5 * GS * sizeScale);
+            ctx.closePath();
+        }
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, 0, 1.5 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (type === 'thunder_charge') {
+        // Lightning bolt.
+        ctx.beginPath();
+        ctx.moveTo(1 * GS * sizeScale, -7 * GS * sizeScale);
+        ctx.lineTo(-3 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.lineTo(0 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, 7 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, -2 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, -2 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'sniper_elite') {
+        // Crosshair.
+        ctx.beginPath();
+        ctx.arc(0, 0, 4 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, -7 * GS * sizeScale); ctx.lineTo(0, 7 * GS * sizeScale);
+        ctx.moveTo(-7 * GS * sizeScale, 0); ctx.lineTo(7 * GS * sizeScale, 0);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, 1.5 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (type === 'sub_reveal') {
+        // Eye.
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 6 * GS * sizeScale, 3.5 * GS * sizeScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 1.8 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+    } else if (type === 'sub_commander') {
+        // Submarine hull with conning tower.
+        ctx.beginPath();
+        ctx.ellipse(0, 2 * GS * sizeScale, 6 * GS * sizeScale, 3 * GS * sizeScale, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(-1.5 * GS * sizeScale, -3 * GS * sizeScale, 3 * GS * sizeScale, 4 * GS * sizeScale);
+        ctx.fillRect(-7 * GS * sizeScale, 3 * GS * sizeScale, 2 * GS * sizeScale, 2 * GS * sizeScale);
+        ctx.fillRect(5 * GS * sizeScale, 3 * GS * sizeScale, 2 * GS * sizeScale, 2 * GS * sizeScale);
+    } else if (type === 'sun_buff') {
+        // Sun: circle with 8 rays.
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.5 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.fill();
+        for (let i = 0; i < 8; i++) {
+            const a = (i * Math.PI) / 4;
+            ctx.fillRect(Math.cos(a) * 4.5 * GS * sizeScale - 1 * GS * sizeScale, Math.sin(a) * 4.5 * GS * sizeScale - 1 * GS * sizeScale, 2 * GS * sizeScale, 2 * GS * sizeScale);
+        }
+    } else if (type === 'rapid_shot') {
+        // Two speed chevrons pointing right.
+        ctx.beginPath();
+        ctx.moveTo(-5 * GS * sizeScale, -6 * GS * sizeScale);
+        ctx.lineTo(2 * GS * sizeScale, 0 * GS * sizeScale);
+        ctx.lineTo(-5 * GS * sizeScale, 6 * GS * sizeScale);
+        ctx.lineTo(-2 * GS * sizeScale, 6 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, 0 * GS * sizeScale);
+        ctx.lineTo(-2 * GS * sizeScale, -6 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'ap_shells') {
+        // Upward shell piercing through a horizontal bar.
+        ctx.fillRect(-5 * GS * sizeScale, -1 * GS * sizeScale, 10 * GS * sizeScale, 2 * GS * sizeScale);
+        ctx.beginPath();
+        ctx.moveTo(-2 * GS * sizeScale, -7 * GS * sizeScale);
+        ctx.lineTo(2 * GS * sizeScale, -7 * GS * sizeScale);
+        ctx.lineTo(2 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, 3 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, 6 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, 6 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, 3 * GS * sizeScale);
+        ctx.lineTo(-2 * GS * sizeScale, 1 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+    } else if (type === 'naval_tactics') {
+        // Anchor: ring, stem, flukes, crossbar.
+        ctx.beginPath();
+        ctx.arc(0, -4 * GS * sizeScale, 2.5 * GS * sizeScale, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillRect(-1 * GS * sizeScale, -1 * GS * sizeScale, 2 * GS * sizeScale, 7 * GS * sizeScale);
+        ctx.beginPath();
+        ctx.moveTo(-4 * GS * sizeScale, 0 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, 0 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, 1.5 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, 1.5 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-1 * GS * sizeScale, 5 * GS * sizeScale);
+        ctx.lineTo(-6 * GS * sizeScale, 2 * GS * sizeScale);
+        ctx.lineTo(-4 * GS * sizeScale, 4 * GS * sizeScale);
+        ctx.lineTo(-1 * GS * sizeScale, 4 * GS * sizeScale);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(1 * GS * sizeScale, 5 * GS * sizeScale);
+        ctx.lineTo(6 * GS * sizeScale, 2 * GS * sizeScale);
+        ctx.lineTo(4 * GS * sizeScale, 4 * GS * sizeScale);
+        ctx.lineTo(1 * GS * sizeScale, 4 * GS * sizeScale);
         ctx.closePath();
         ctx.fill();
     } else {
