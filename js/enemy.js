@@ -50,6 +50,11 @@ export class Enemy {
         this.x = map.paths[pathIndex].segments[0].p1.x;
         this.y = map.paths[pathIndex].segments[0].p1.y;
         this.alive = true;
+        // Monotonic per-spawn identity. Enemies are object-pooled and reused,
+        // so a tower's cached target reference can't tell a dead bloon from a
+        // recycled pool entry — this changes on every spawn and lets cached
+        // targets be invalidated safely.
+        this._spawnId = (Enemy._spawnCounter = (Enemy._spawnCounter || 0) + 1);
         this.angle = 0;
 
         this._initializeStats();

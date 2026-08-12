@@ -66,6 +66,7 @@ function _updateTimers(tower, dt, engine) {
     if (tower.fanClubBuffTimer > 0) tower.fanClubBuffTimer -= dt;
     if (tower.overclockTimer > 0) tower.overclockTimer -= dt; 
     if (tower.stunTimer > 0) tower.stunTimer -= dt; 
+    if (tower._targetRescanTimer > 0) tower._targetRescanTimer -= dt; 
     
     if (tower.alchBuff && !tower.alchBuff.isPerm) {
         tower.alchBuff.timer -= dt;
@@ -158,7 +159,7 @@ function _acquireAndFire(tower, dt, engine) {
         let target = null;
         // Spectre/Flying Fortress still need to find a target for their machine guns
         if (tower.stats.isSpectre || tower.stats.isFortress) {
-            target = _findTarget(tower, engine);
+            target = _getAcquireTarget(tower, engine);
         }
         
         if (engine.waveManager.waveActive && tower.cooldown <= 0 && tower.attackPointTimer <= 0) {
@@ -168,7 +169,7 @@ function _acquireAndFire(tower, dt, engine) {
         return; // Skip standard targeting and angle snapping
     }
 
-    const target = _findTarget(tower, engine);
+    const target = _getAcquireTarget(tower, engine);
     if (!target) return;
     
     if (!tower.stats.isStaticRotation) {
@@ -179,6 +180,42 @@ function _acquireAndFire(tower, dt, engine) {
         const effFireRate = getEffectiveCooldown(tower);
         _triggerAttack(tower, target, effFireRate, engine); 
     } 
+}
+
+// Cached target acquisition. Previously every tower re-ran _findTarget on
+// every simulation tick — a full scan of every live enemy for infinite-range
+// towers like the Sniper/Dartling/Mortar (range 9999 bypasses the spatial
+// grid). Cache the target and only re-scan when it's actually stale: no
+// target yet (and enough time has passed since the last fruitless scan), the
+// current one died/leaked or was recycled by the enemy pool, the fire
+// cooldown is ready (so each shot re-picks the then-current best target), the
+// targeting mode changed, or the cached target drifted out of range. Between
+// shots the angle still tracks the cached target's position, so barrels keep
+// sweeping like before.
+const TARGET_RESCAN_INTERVAL = 0.15; // s between fruitless scans
+
+function _getAcquireTarget(tower, engine) {
+    const firingReady = tower.cooldown <= 0 && tower.attackPointTimer <= 0;
+    const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}`;
+    const cached = tower._cachedTarget;
+
+    if (!firingReady) {
+        // A recent scan found nothing (e.g. all-camo wave, no goggles): don't
+        // re-scan every tick — wait the interval out. Fires always re-scan,
+        // so a newly-spawned valid target is still picked up on time.
+        if (!cached && tower._targetRescanTimer > 0) return null;
+        if (cached && cached.alive && cached._spawnId === tower._cachedTargetSpawnId && tower._cachedTargetingKey === targetingKey) {
+            if (tower.stats.range === 9999 || Utils.withinRange(tower.x, tower.y, cached.x, cached.y, Utils.getEffectiveRange(tower, engine) + (cached.radius || 10))) {
+                return cached;
+            }
+        }
+    }
+
+    tower._cachedTarget = _findTarget(tower, engine);
+    tower._cachedTargetSpawnId = tower._cachedTarget ? tower._cachedTarget._spawnId : null;
+    tower._cachedTargetingKey = targetingKey;
+    tower._targetRescanTimer = tower._cachedTarget ? 0 : TARGET_RESCAN_INTERVAL;
+    return tower._cachedTarget;
 }
 
 function _findTarget(tower, engine) {

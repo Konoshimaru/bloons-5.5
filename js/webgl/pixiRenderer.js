@@ -133,7 +133,6 @@ export const PixiRenderer = {
         this._safeDraw('_drawBackground', engine);
         this._safeDraw('_drawAcidPools', engine);
         this._safeDraw('_drawExplosions', engine);
-        this._safeDraw('_drawSelectionFill', engine);
         this._safeDraw('_drawTowerEffects', engine);
         this._safeDraw('_drawHeroVFX', engine);
         this._safeDraw('_drawTowers', engine);
@@ -147,7 +146,6 @@ export const PixiRenderer = {
         this._safeDraw('_drawBananas', engine);
         this._safeDraw('_drawFloatingTexts', engine);
         this._safeDraw('_drawPlacementPreview', engine);
-        this._safeDraw('_drawSelectionOutline', engine);
         this._safeDraw('_drawLeakFlash', engine);
         this._safeDraw('_drawCutsceneRevealBar', engine);
         this._safeDraw('_drawCutsceneBalls', engine);

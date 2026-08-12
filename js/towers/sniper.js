@@ -10,7 +10,7 @@ const _sniperBounceScratch = [];
 
 export default {
     stats: {
-        name: "Sniper Monkey", cost: 350, range: 999,
+        name: "Sniper Monkey", cost: 350, range: 9999,
         baseCooldown: 1.59, fireRate: 1.59,
         damage: 2, pierce: 1, projectileSpeed: 1000, hitscan: true,
         lifespan: 1.2, desc: "Shoots bloons from anywhere on the map.",

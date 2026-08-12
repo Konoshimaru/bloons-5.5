@@ -34,33 +34,9 @@ export const UIRenderer = {
         }
     },
 
-    // Port of renderer.js _drawSelectionFill: a translucent white range
-    // circle drawn BEFORE entities (sits under the towers).
-    _drawSelectionFill(engine) {
-        if (!this._selectionFillGraphics) { this._selectionFillGraphics = new Graphics(); PixiApp.layer('selectionFill').addChild(this._selectionFillGraphics); }
-        const g = this._selectionFillGraphics; g.clear();
-        const t = engine.selectedPlacedTower;
-        if (!t) return;
-        if (t.stats.range < 9999) {
-            const effRange = Math.max(1, Utils.getEffectiveRange(t, engine));
-            g.circle(t.x, t.y, effRange).fill({ color: '#ffffff', alpha: 0.3 });
-        }
-    },
-
-    // Port of renderer.js _drawSelectionOutline: a solid 4px white range
-    // border drawn AFTER entities (renderer.js:512). No hitRadius ring — the
-    // canvas version dropped it in favor of the range circle.
-    _drawSelectionOutline(engine) {
-        if (!this._selectionOutlineGraphics) { this._selectionOutlineGraphics = new Graphics(); PixiApp.layer('overlay').addChild(this._selectionOutlineGraphics); }
-        const g = this._selectionOutlineGraphics; g.clear();
-        const t = engine.selectedPlacedTower;
-        if (!t) return;
-        if (t.stats.range < 9999) {
-            const effRange = Math.max(1, Utils.getEffectiveRange(t, engine));
-            // Slightly thicker, more opaque ring for a solid, clearly visible border
-            g.circle(t.x, t.y, effRange).stroke({ width: 6, color: '#ffffff', alpha: 0.95 });
-        }
-    },
+    // Selection highlight is drawn by the tower renderer itself (a white glow
+    // around the sprite, matching the canvas drop-shadow outline) — see
+    // renderTowers.js _updateSelectionGlow. No range-circle overlay here.
 
     _drawLeakFlash(engine) {
         if (!this._leakFlashGraphics) { this._leakFlashGraphics = new Graphics(); PixiApp.layer('overlay').addChild(this._leakFlashGraphics); }

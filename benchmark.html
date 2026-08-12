@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monkey TD — WebGL Benchmark Lab</title>
+<style>
+    :root {
+        --bg: #0d0f13;
+        --panel: #151922;
+        --panel2: #1a1f2b;
+        --border: #262c3a;
+        --text: #d7dce6;
+        --muted: #7c8698;
+        --accent: #4dabf7;
+        --ok: #2ecc71;
+        --warn: #f1c40f;
+        --bad: #e74c3c;
+        --mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 13px/1.45 var(--mono);
+    }
+    h1 { font-size: 18px; margin: 0; letter-spacing: .5px; }
+    h1 small { color: var(--muted); font-weight: 400; font-size: 11px; margin-left: 8px; }
+    h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin: 0 0 10px; }
+    h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin: 14px 0 6px; }
+
+    /* Header */
+    header {
+        display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--border);
+    }
+    header .spacer { flex: 1; }
+    .pill {
+        font-size: 11px; padding: 3px 10px; border-radius: 20px;
+        background: #202636; color: var(--muted); border: 1px solid var(--border); white-space: nowrap;
+    }
+    .pill.ok { background: rgba(46,204,113,.12); color: var(--ok); border-color: rgba(46,204,113,.4); }
+    .pill.pending { background: rgba(77,171,247,.12); color: var(--accent); border-color: rgba(77,171,247,.4); }
+    .pill.bad { background: rgba(231,76,60,.15); color: var(--bad); border-color: rgba(231,76,60,.5); }
+
+    .btn {
+        background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+        padding: 5px 12px; border-radius: 6px; cursor: pointer; font: 12px var(--mono);
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #08131f; border-color: var(--accent); font-weight: 700; }
+    .btn-primary:hover { filter: brightness(1.1); color: #08131f; }
+    .btn-danger { border-color: rgba(231,76,60,.5); color: var(--bad); }
+
+    /* Layout */
+    .app {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr) 360px;
+        grid-template-rows: auto auto;
+        gap: 12px; padding: 12px; align-items: start;
+    }
+    @media (max-width: 1400px) {
+        .app { grid-template-columns: 300px minmax(0, 1fr); }
+        .right { grid-column: 1 / -1; }
+    }
+    @media (max-width: 1000px) {
+        .app { grid-template-columns: 1fr; }
+        .left, .center, .right { grid-column: 1; }
+    }
+
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .left { display: flex; flex-direction: column; gap: 12px; }
+
+    /* Settings */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .field { display: flex; flex-direction: column; gap: 3px; }
+    .field label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .field input, .field select {
+        background: #0f1219; color: var(--text); border: 1px solid var(--border);
+        border-radius: 5px; padding: 4px 6px; font: 12px var(--mono); width: 100%;
+    }
+    .field input[type="checkbox"] { width: auto; }
+    .check-row { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+    .check-row input { accent-color: var(--accent); }
+    .run-row { display: flex; gap: 8px; margin-top: 10px; }
+    .progress { height: 8px; background: #0f1219; border: 1px solid var(--border); border-radius: 6px; margin-top: 10px; overflow: hidden; }
+    .progress > div { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent), #7d5bff); transition: width .15s; }
+    .preset-row { display: flex; gap: 6px; margin-top: 8px; }
+
+    /* Scenario list */
+    #scenario-list { max-height: 520px; overflow-y: auto; padding-right: 4px; }
+    .scenario-row {
+        display: flex; gap: 8px; padding: 7px 6px; border: 1px solid var(--border);
+        border-radius: 6px; margin-bottom: 6px; background: var(--panel2); cursor: pointer;
+    }
+    .scenario-row:hover { border-color: var(--accent); }
+    .scenario-row > input[type="checkbox"] { accent-color: var(--accent); margin-top: 2px; }
+    .scenario-main { flex: 1; min-width: 0; }
+    .scenario-title { display: flex; align-items: center; gap: 6px; }
+    .scenario-name { font-weight: 700; font-size: 12px; }
+    .scenario-tag { font-size: 9px; padding: 1px 5px; border-radius: 4px; text-transform: uppercase; letter-spacing: .5px; }
+    .tag-sim { background: rgba(77,171,247,.15); color: var(--accent); }
+    .tag-render { background: rgba(46,204,113,.15); color: var(--ok); }
+    .scenario-desc { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+    .scenario-params { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .scenario-params .param { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--muted); }
+    .scenario-params .param input {
+        width: 62px; background: #0f1219; color: var(--text); border: 1px solid var(--border);
+        border-radius: 4px; padding: 2px 4px; font: 11px var(--mono);
+    }
+    .group-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* Center */
+    .center { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    #canvas-wrap { background: #000; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    #canvas-wrap canvas { display: block; width: 100%; height: auto; }
+    .charts-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; }
+    .chart-box { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+    .chart-box canvas { width: 100%; height: 100%; display: block; }
+    #line-chart { height: 150px; }
+    #hist-chart { height: 150px; }
+    #fps-gauge { height: 130px; }
+    .chart-wide { grid-column: 1 / -1; }
+    .last-line { font-size: 11.5px; color: var(--muted); padding: 8px 10px; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; min-height: 22px; }
+
+    /* Right */
+    .right { display: flex; flex-direction: column; gap: 12px; }
+    .kv { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; padding: 2px 0; border-bottom: 1px dashed var(--border); }
+    .kv span { color: var(--muted); }
+    .kv b { text-align: right; word-break: break-word; font-weight: 600; }
+
+    /* Results table */
+    .table-wrap { overflow-x: auto; }
+    table.results { border-collapse: collapse; width: 100%; font-size: 11px; }
+    table.results th {
+        text-align: left; padding: 5px 6px; color: var(--muted); font-size: 10px;
+        text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border);
+        position: sticky; top: 0; background: var(--panel);
+    }
+    table.results td { padding: 5px 6px; border-bottom: 1px solid #1d222e; white-space: nowrap; }
+    .cell-name { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: normal; }
+    .cell-sub { font-size: 9.5px; color: var(--muted); }
+    .cell-idx { color: var(--muted); }
+    .cell-ms { text-align: right; }
+    .cell-fps { text-align: right; }
+    .cell-pct { text-align: right; }
+    .cell-empty { text-align: center; color: var(--muted); padding: 16px !important; }
+    .row-ok td { background: rgba(46,204,113,.04); }
+    .row-warn td { background: rgba(241,196,15,.05); }
+    .row-bad td { background: rgba(231,76,60,.09); }
+    .cell-badge { font-weight: 700; font-size: 10px; }
+    .splitbar { height: 7px; width: 90px; border-radius: 4px; overflow: hidden; display: flex; background: #0f1219; margin-bottom: 3px; }
+    .sb-render { background: var(--accent); }
+    .sb-sim { background: #7d5bff; }
+    .export-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* Toolbox */
+    .tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tool-row { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+    .tool-row select, .tool-row input[type="number"] {
+        background: #0f1219; color: var(--text); border: 1px solid var(--border);
+        border-radius: 5px; padding: 4px 6px; font: 12px var(--mono);
+    }
+    .tool-row input[type="number"] { width: 70px; }
+    .tool-row select { flex: 1; min-width: 90px; }
+    .toggles { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .toggles label { font-size: 11px; display: flex; gap: 5px; align-items: center; }
+    .toggles input { accent-color: var(--accent); }
+
+    /* Quad probe */
+    .quad-head { display: flex; justify-content: space-between; align-items: baseline; }
+    #quad-count { color: var(--muted); font-size: 10.5px; }
+    table.quad { border-collapse: collapse; width: 100%; font-size: 10.5px; margin-top: 8px; }
+    table.quad th { text-align: left; padding: 4px 5px; color: var(--muted); font-size: 9px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    table.quad td { padding: 3px 5px; border-bottom: 1px solid #1d222e; white-space: nowrap; }
+
+    /* Log */
+    #log {
+        max-height: 180px; overflow-y: auto; font-size: 10.5px; line-height: 1.6;
+        color: #9fb0c3; background: #0b0d12; border: 1px solid var(--border); border-radius: 8px;
+        padding: 8px 10px; white-space: pre-wrap; word-break: break-word;
+    }
+    #log .bad { color: var(--bad); }
+    #log .ok { color: var(--ok); }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Monkey TD Benchmark Lab <small>WebGL renderer · js/webgl · PixiJS</small></h1>
+    <span id="status" class="pill">Booting…</span>
+    <span id="mem-used" class="pill">heap n/a</span>
+    <span class="spacer"></span>
+    <button id="btn-screenshot" class="btn">Screenshot</button>
+    <button id="btn-step" class="btn">Step 1 frame</button>
+    <button id="btn-run" class="btn btn-primary">▶ Run Benchmark</button>
+    <button id="btn-stop" class="btn btn-danger" disabled>■ Stop</button>
+</header>
+
+<div class="app">
+    <!-- ============ LEFT: scenarios + settings ============ -->
+    <div class="left">
+        <div class="panel">
+            <h2>Run settings</h2>
+            <div class="settings-grid">
+                <div class="field">
+                    <label>Mode</label>
+                    <select id="run-mode">
+                        <option value="burst" selected>Burst (no vsync)</option>
+                        <option value="vsync">Vsync (real rAF)</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Repeats</label>
+                    <input id="repeats-input" type="number" value="1" min="1" max="9">
+                </div>
+                <div class="field">
+                    <label>Frames (burst)</label>
+                    <input id="frames-input" type="number" value="300" min="30" max="20000" step="10">
+                </div>
+                <div class="field">
+                    <label>Duration ms (vsync)</label>
+                    <input id="duration-input" type="number" value="2000" min="250" max="60000" step="250">
+                </div>
+                <div class="field">
+                    <label>Warmup frames</label>
+                    <input id="warmup-input" type="number" value="20" min="0" max="200">
+                </div>
+                <div class="field">
+                    <label>&nbsp;</label>
+                    <div class="check-row"><input id="mute-console" type="checkbox" checked><span>mute console</span></div>
+                    <div class="check-row"><input id="auto-probe" type="checkbox" checked><span>auto-probe sprites</span></div>
+                </div>
+            </div>
+            <div class="progress" id="progress-wrap"><div id="progress-fill"></div></div>
+        </div>
+
+        <div class="panel">
+            <div class="quad-head">
+                <h2>Scenarios</h2>
+            </div>
+            <div class="group-btns">
+                <button id="btn-select-all" class="btn">All</button>
+                <button id="btn-deselect-all" class="btn">None</button>
+                <button id="btn-save-preset" class="btn">Save preset</button>
+                <button id="btn-reset-preset" class="btn">Reset preset</button>
+            </div>
+            <div id="scenario-list"></div>
+        </div>
+    </div>
+
+    <!-- ============ CENTER: canvas + charts ============ -->
+    <div class="center">
+        <div id="canvas-wrap">
+            <canvas id="gameCanvas" width="1280" height="720"></canvas>
+        </div>
+        <div class="charts-row">
+            <div class="chart-box"><canvas id="fps-gauge"></canvas></div>
+            <div class="chart-box"><canvas id="line-chart"></canvas></div>
+            <div class="chart-box chart-wide"><canvas id="hist-chart"></canvas></div>
+        </div>
+        <div class="last-line" id="last-line">Press Run to begin.</div>
+    </div>
+
+    <!-- ============ RIGHT: results + probes + tools ============ -->
+    <div class="right">
+        <div class="panel">
+            <h2>Results</h2>
+            <div class="table-wrap">
+                <table class="results">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Scenario</th>
+                            <th>FPS</th>
+                            <th>Avg ms</th>
+                            <th>p50</th>
+                            <th>p95</th>
+                            <th>p99</th>
+                            <th>Max</th>
+                            <th>Sim / Render</th>
+                            <th>&gt;33ms</th>
+                            <th>Verdict</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-tbody"></tbody>
+                </table>
+            </div>
+            <div class="export-row">
+                <button id="btn-csv" class="btn">CSV</button>
+                <button id="btn-json" class="btn">JSON</button>
+                <button id="btn-md" class="btn">Markdown</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>GPU / Context</h2>
+            <div id="gpu-rows"></div>
+            <div class="kv"><span>GPU</span><b id="gpu-name">…</b></div>
+        </div>
+
+        <div class="panel">
+            <h2>Sprite quad probe</h2>
+            <div class="quad-head">
+                <span id="quad-count">0 sprite(s)</span>
+                <button id="btn-probe" class="btn">Refresh</button>
+            </div>
+            <table class="quad">
+                <thead>
+                    <tr><th>tower</th><th>source px</th><th>rendered px</th><th>aspect</th><th>downscale</th><th>filter</th><th>mips</th><th>state</th></tr>
+                </thead>
+                <tbody id="quad-tbody"></tbody>
+            </table>
+        </div>
+
+        <div class="panel">
+            <h2>Interactive toolbox</h2>
+            <div class="tool-grid">
+                <div class="tool-row">
+                    <select id="tool-type"></select>
+                    <input id="tool-count" type="number" value="8" min="1" max="500">
+                    <button id="btn-place" class="btn">Place</button>
+                </div>
+                <div class="tool-row">
+                    <input id="tool-tier" type="number" value="1" min="1" max="18">
+                    <input id="tool-bloons" type="number" value="40" min="1" max="2000">
+                    <button id="btn-bloons" class="btn">Spawn bloons</button>
+                </div>
+            </div>
+            <div class="tool-row">
+                <button id="btn-clear" class="btn">Clear scene</button>
+                <button id="btn-select1" class="btn">Select #1</button>
+            </div>
+            <div class="toggles">
+                <label><input id="tg-mipmaps" type="checkbox" checked> mipmaps</label>
+                <label><input id="tg-smoothing" type="checkbox" checked> smoothing</label>
+                <label><input id="tg-night" type="checkbox"> night mode</label>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Log</h2>
+            <div id="log"></div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="./js/benchmark/app.js"></script>
+</body>
+</html>

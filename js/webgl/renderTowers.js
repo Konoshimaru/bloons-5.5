@@ -1,5 +1,5 @@
 // js/webgl/renderTowers.js
-import { Sprite, Container, Texture, Graphics, FillGradient, Text } from 'pixi.js';
+import { Sprite, Container, Texture, Graphics, FillGradient, Text, BlurFilter, ColorMatrixFilter } from 'pixi.js';
 import { PixiApp } from './pixiApp.js';
 import { PixiAssets } from './pixiAssets.js';
 import { CanvasGraphicsAdapter } from './canvasGraphicsAdapter.js';
@@ -23,12 +23,13 @@ export const TowersRenderer = {
                 const container = new Container();
                 const nightGlow = new Graphics();
                 const shadow = new Graphics();
+                const glow = new Sprite(); glow.anchor.set(0.5); glow.visible = false;
                 const arm = new Sprite(); arm.anchor.set(0.5);
                 const aOverlayLayer = new Container();
                 const base = new Sprite(); base.anchor.set(0.5);
                 const overlayLayer = new Container();
                 const catapult = new Sprite(); catapult.anchor.set(0.5); catapult.visible = false;
-                container.addChild(nightGlow, shadow, arm, aOverlayLayer, base, overlayLayer, catapult);
+                container.addChild(nightGlow, shadow, glow, arm, aOverlayLayer, base, overlayLayer, catapult);
                 layer.addChild(container);
                 // Stun overlay lives on the world layer (not inside the rotated
                 // container) so the stun sprite stays world-aligned, matching the
@@ -36,11 +37,15 @@ export const TowersRenderer = {
                 const stun = new Sprite();
                 stun.anchor.set(0.5);
                 layer.addChild(stun);
-                entry = { container, nightGlow, shadow, arm, aOverlayLayer, base, overlayLayer, catapult, stun, aOverlays: [], overlays: [] };
+                entry = { container, nightGlow, shadow, glow, arm, aOverlayLayer, base, overlayLayer, catapult, stun, aOverlays: [], overlays: [] };
                 this._towerSprites.set(tower, entry);
             }
 
             this._updateTowerVisual(tower, entry);
+
+            // White selection glow (after the visual update so glow tracks the
+            // base sprite's current texture/size).
+            this._updateSelectionGlow(engine, tower, entry);
 
             // Shadow must stay flat/world-aligned (matches Canvas2D drawShadow,
             // which draws in world space before any rotation transform).
@@ -108,6 +113,51 @@ export const TowersRenderer = {
         for (const [tower, entry] of this._towerSprites) {
             if (!seen.has(tower)) { entry.container.destroy({ children: true }); entry.stun?.destroy(); this._towerSprites.delete(tower); }
         }
+    },
+
+    _getSelectionGlowFilters() {
+        if (!this._selectionGlowWhite) {
+            this._selectionGlowWhite = new ColorMatrixFilter();
+            // Map every non-transparent texel to solid white while keeping the
+            // original alpha: R=G=B=1, A=A. Matches the canvas renderer's
+            // `drop-shadow(0 0 3px #fff)` stack around the selected sprite.
+            this._selectionGlowWhite.matrix = [
+                0, 0, 0, 0, 1,
+                0, 0, 0, 0, 1,
+                0, 0, 0, 0, 1,
+                0, 0, 0, 1, 0
+            ];
+            this._selectionGlowBlur = new BlurFilter({ strength: 2.5, quality: 3 });
+        }
+        return [this._selectionGlowWhite, this._selectionGlowBlur];
+    },
+
+    // White glow around the selected tower's sprite, porting towerRenderer.js
+    // draw()'s `drop-shadow(0 0 3px #fff) x4` selection highlight. A slightly
+    // enlarged, blurred, solid-white copy of the base sprite sits behind it.
+    // Only one tower can be selected, so at most one filtered sprite renders
+    // per frame.
+    _updateSelectionGlow(engine, tower, entry) {
+        const isSelected = engine.selectedPlacedTower === tower;
+        const glow = entry.glow;
+        if (!isSelected) {
+            if (glow.visible) { glow.visible = false; glow.filters = null; }
+            return;
+        }
+        const base = entry.base;
+        if (!base.visible || base.texture === Texture.EMPTY) {
+            glow.visible = false;
+            glow.filters = null;
+            return;
+        }
+        if (glow.texture !== base.texture) glow.texture = base.texture;
+        const gscale = Const.TOWER_SELECTION_GLOW_SCALE;
+        glow.width = base.width * gscale;
+        glow.height = base.height * gscale;
+        glow.x = base.x;
+        glow.y = base.y;
+        if (!glow.filters) glow.filters = this._getSelectionGlowFilters();
+        glow.visible = true;
     },
 
     _drawTowerEffects(engine) {

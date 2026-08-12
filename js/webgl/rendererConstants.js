@@ -58,6 +58,7 @@ export const TOWER_SELECTION_LINE_WIDTH = 3;
 export const TOWER_SELECTION_RING_COLOR = 0xe67e22;
 export const TOWER_RANGE_FILL_COLOR = 0xe67e22;
 export const TOWER_SELECTION_FILL_ALPHA = 0.15;
+export const TOWER_SELECTION_GLOW_SCALE = 1.08;
 export const ACID_POOL_COLOR = 0x2ecc71;
 export const ACID_FOAM_COLOR = 0xecf0f1;
 export const ACID_POOL_LIFE_DIVISOR = 2.0;

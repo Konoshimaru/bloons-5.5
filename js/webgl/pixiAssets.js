@@ -63,6 +63,23 @@ class PixiAssetsManager {
         for (const [key, texture] of this.#textures) this._applyScaleMode(key, texture);
     }
 
+    // Live hook toggling the mipmap chain for every already-loaded texture
+    // (used by benchmark.html to A/B the "tall texture shimmer" hypothesis and
+    // potentially by the settings menu later). Mirrors setSmoothing: iterates
+    // the cache, flips autoGenerateMipmaps, then forces a re-upload so the
+    // change actually takes effect on the GPU (the mip chain is generated at
+    // upload time, so toggling the flag alone does nothing on existing
+    // textures). Idempotent; safe to call repeatedly.
+    setMipmaps(enabled) {
+        for (const [, texture] of this.#textures) {
+            if (!texture || !texture.source) continue;
+            if (texture.source.autoGenerateMipmaps !== enabled) {
+                texture.source.autoGenerateMipmaps = enabled;
+                texture.source.update();
+            }
+        }
+    }
+
     // Forces nearest sampling for specific pixel-art sprites (knight, slash,
     // thrown sword) regardless of the smoothing option. Idempotent; safe to
     // call every frame while the texture is still loading (no-op on EMPTY).
