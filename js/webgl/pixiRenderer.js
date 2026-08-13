@@ -57,6 +57,26 @@ export const PixiRenderer = {
         const keys = [];
         for (const type of Object.keys(TowerStats)) keys.push(`tower_${type}_base`, `tower_${type}_arm`);
         for (const type of Object.keys(HeroRegistry)) keys.push(`tower_${type}_base`, `tower_${type}_arm`);
+        // Attack/full-body animation frames. The base/arm loop above can't
+        // include them (not every tower has an attack sprite), but firing
+        // towers swap into these on every attack and PixiAssets loads on first
+        // use. Without preloading, the first shot of a Sniper (23 frames of
+        // 507x1665px sprites), ninja/spike/tack/wizard or dart monkey kicked
+        // off a late decode + GPU upload mid-round — the "place a few snipers
+        // and the game hitches/freezes" behaviour. Preload exactly the frames
+        // that exist so no mid-game load is triggered.
+        const ANIM_FRAME_COUNTS = Object.freeze({
+            sniper: { full: 23, attack: 0 },
+            ninja: { full: 10, attack: 0 },
+            spike: { full: 7, attack: 0 },
+            tack: { full: 9, attack: 0 },
+            wizard: { full: 14, attack: 0 },
+            dart: { full: 0, attack: 10 },
+        });
+        for (const [tower, counts] of Object.entries(ANIM_FRAME_COUNTS)) {
+            for (let i = 0; i < counts.full; i++) keys.push(`tower_${tower}_attack_full_${i}`);
+            for (let i = 0; i < counts.attack; i++) keys.push(`tower_${tower}_attack_${i}`);
+        }
         const enemyNames = ['red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
         for (const name of enemyNames) keys.push(`enemy_${name}`, `enemy_${name}_camo`, `enemy_${name}_regen`, `enemy_${name}_regen_camo`);
         for (const name of ['ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad']) for (let s = 1; s <= 3; s++) keys.push(`enemy_${name}_${s}`);

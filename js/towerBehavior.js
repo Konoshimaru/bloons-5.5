@@ -52,6 +52,7 @@ export function update(tower, dt, engine) {
 
 function _updateTimers(tower, dt, engine) {
     tower.cooldown -= dt;
+    if (tower.cooldown < -1) tower.cooldown = -1; // don't let it drift indefinitely
     if (tower.abilityCooldown > 0) tower.abilityCooldown -= dt;
     if (tower.ability2Cooldown > 0) tower.ability2Cooldown -= dt;
     if (tower.ability3Cooldown > 0) tower.ability3Cooldown -= dt; 
@@ -214,7 +215,16 @@ function _getAcquireTarget(tower, engine) {
     tower._cachedTarget = _findTarget(tower, engine);
     tower._cachedTargetSpawnId = tower._cachedTarget ? tower._cachedTarget._spawnId : null;
     tower._cachedTargetingKey = targetingKey;
-    tower._targetRescanTimer = tower._cachedTarget ? 0 : TARGET_RESCAN_INTERVAL;
+    if (tower._cachedTarget) {
+        tower._targetRescanTimer = 0;
+    } else {
+        tower._targetRescanTimer = TARGET_RESCAN_INTERVAL;
+        // Park the cooldown so firingReady is false for the whole throttle
+        // window. Without this an idle tower (cooldown stays <= 0 because
+        // nothing ever resets it on a fruitless scan) never enters the
+        // `!firingReady` branch above and re-scans on every single tick.
+        tower.cooldown = Math.max(tower.cooldown, TARGET_RESCAN_INTERVAL);
+    }
     return tower._cachedTarget;
 }
 
@@ -288,13 +298,16 @@ function _getTargetValue(tower, enemy, dist, targetingMode) {
 function _hasLineOfSight(tower, e, engine) {
     if (tower.stats.range === 9999 || !engine.map || engine.map.props.length === 0) return true;
     
-    if (!tower._losBlockers) {
-        tower._losBlockers = engine.map.props.filter(p => p.type === 'tree' || p.type === 'rock');
+    // Blockers are static map data shared by every tower — compute the
+    // filtered list once on the map instead of per-tower copies.
+    if (!engine.map._losBlockers) {
+        engine.map._losBlockers = engine.map.props.filter(p => p.type === 'tree' || p.type === 'rock');
     }
     
-    if (tower._losBlockers.length === 0) return true;
+    const blockers = engine.map._losBlockers;
+    if (blockers.length === 0) return true;
     
-    for (const p of tower._losBlockers) {
+    for (const p of blockers) {
         if (Utils.distToSegment(p.x, p.y, tower.x, tower.y, e.x, e.y) < 18) {
             return false;
         }

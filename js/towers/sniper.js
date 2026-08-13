@@ -88,9 +88,20 @@ export default {
     },
     updateSupport(tower, dt) {
         if (tower.stats.globalSniperBuff) {
+            // Refresh the buff-list entry at a low frequency instead of every
+            // tick — the effect is already 1s long, so 2-3 refreshes/sec is
+            // functionally identical and avoids churning activeBuffs 60x/sec
+            // per sniper pair (find + push, GC pressure). The buffedFireRate
+            // scalar is still re-applied every frame, so the buff is never
+            // dropped between refreshes.
+            tower._eliteBuffTimer = (tower._eliteBuffTimer || 0) - dt;
+            const refresh = tower._eliteBuffTimer <= 0;
+            if (refresh) tower._eliteBuffTimer = 0.4;
             for (let t of GameEngine.towers) {
                 if (t && t.type === 'sniper' && t !== tower) {
-                    t.addBuff('sniper_elite', 'Elite Support', 0.5, 1, { type: 'sniper_elite' }, false);
+                    if (refresh) {
+                        t.addBuff('sniper_elite', 'Elite Support', 0.5, 1, { type: 'sniper_elite' }, false);
+                    }
                     t.buffedFireRate = Math.max(t.buffedFireRate, 0.33);
                 }
             }
