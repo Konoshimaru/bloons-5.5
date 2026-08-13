@@ -54,11 +54,20 @@ export const TowersRenderer = {
             entry.shadow.rotation = -entry.container.rotation;
 
             const shadowR = Const.TOWER_SHADOW_SCALE * (tower.stats?.scale || 1.0) * GLOBAL_SCALE * mscale;
-            entry.shadow.clear();
-            entry.shadow.ellipse(0, shadowR * Const.SHADOW_Y_OFFSET, shadowR, shadowR * Const.SHADOW_SQUASH)
-                .fill({ color: Const.SHADOW_COLOR, alpha: Const.SHADOW_ALPHA });
+            // Shadow + night glow are static geometry per tower — shadowR only
+            // depends on tower.stats.scale and the mobile scale factor, both
+            // fixed after placement. Rebuilding them every frame (Graphics
+            // clear() + fill() tears down and recreates the vertex/index
+            // buffers in Pixi v8) is real per-frame CPU for visually static
+            // shapes, and scales with tower count — the "lags just from
+            // existing" symptom. Dirty-check instead.
+            if (entry._shadowR !== shadowR) {
+                entry.shadow.clear();
+                entry.shadow.ellipse(0, shadowR * Const.SHADOW_Y_OFFSET, shadowR, shadowR * Const.SHADOW_SQUASH)
+                    .fill({ color: Const.SHADOW_COLOR, alpha: Const.SHADOW_ALPHA });
+                entry._shadowR = shadowR;
+            }
 
-            entry.nightGlow.clear();
             if (engine.nightAlpha > 0) {
                 const glowR = Const.NIGHT_GLOW_RADIUS * GLOBAL_SCALE * mscale;
                 if (!entry.nightGlowGradient || entry.nightGlowGradientR !== glowR) {
@@ -78,7 +87,15 @@ export const TowersRenderer = {
                     });
                     entry.nightGlowGradientR = glowR;
                 }
-                entry.nightGlow.circle(0, 0, glowR).fill({ fill: entry.nightGlowGradient, alpha: engine.nightAlpha * 0.5 });
+                if (entry._nightGlowR !== glowR || entry._nightAlpha !== engine.nightAlpha) {
+                    entry.nightGlow.clear();
+                    entry.nightGlow.circle(0, 0, glowR).fill({ fill: entry.nightGlowGradient, alpha: engine.nightAlpha * 0.5 });
+                    entry._nightGlowR = glowR;
+                    entry._nightAlpha = engine.nightAlpha;
+                }
+            } else if (entry._nightAlpha !== 0) {
+                entry.nightGlow.clear();
+                entry._nightAlpha = 0;
             }
 
             // Stun overlay (port of towerRenderer.js _drawStunOverlay: a

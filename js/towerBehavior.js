@@ -247,23 +247,34 @@ function _findTarget(tower, engine) {
     };
 
     const minRange = tower.stats.minRange ? (tower.stats.minRange * RANGE_SCALE * GS) : 0;
-    
+
+    // Global-range towers (range === 9999) never filter by distance, so the
+    // distanceSq / range math below is pure waste for them — except when the
+    // targeting mode is 'Close' (needs the distance for its value) or the
+    // tower has a minRange. (Note: routing them through the spatial grid at a
+    // huge radius would be far worse — the grid query would iterate every cell
+    // in the map — so they keep scanning the live enemies array.)
+    const isGlobal = tower.stats.range === 9999;
+    const needDist = !isGlobal || currentTargeting === 'Close' || minRange > 0;
+
     for (const e of candidates) {
         if (!e.alive) continue;
         if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
         if (tower.type === 'glue' && e.data.isMoab) continue; 
         
-        const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
-        const eRad = e.radius || 10;
-        
-        const effRangeWithRad = effRange + eRad;
-        const effRangeWithRadSq = effRangeWithRad * effRangeWithRad;
-        
-        if (tower.stats.range !== 9999 && distSq > effRangeWithRadSq) continue;
-        
-        if (minRange > 0) {
-            const minRangeWithRad = Math.max(0, minRange - eRad);
-            if (distSq < minRangeWithRad * minRangeWithRad) continue; 
+        let distSq = 0;
+        if (needDist) {
+            distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
+            if (!isGlobal) {
+                const eRad = e.radius || 10;
+                const effRangeWithRad = effRange + eRad;
+                if (distSq > effRangeWithRad * effRangeWithRad) continue;
+            }
+            if (minRange > 0) {
+                const eRad = e.radius || 10;
+                const minRangeWithRad = Math.max(0, minRange - eRad);
+                if (distSq < minRangeWithRad * minRangeWithRad) continue; 
+            }
         }
 
         const val = _getTargetValue(tower, e, (currentTargeting === 'Close' ? Math.sqrt(distSq) : 0), currentTargeting);
@@ -369,6 +380,17 @@ function _executeFire(tower, target, engine) {
 }
 
 function _getAnimationAsset(tower) {
+    // The tower's type + upgrade tiers fully determine which sprites exist, so
+    // this resolution is constant until the tower is upgraded. Cache the result
+    // keyed on the upgrade values — the key changes on upgrade, so it
+    // auto-invalidates without touching the purchase path. Only cache a
+    // RESOLVED asset: a null / not-yet-loaded result is retried next shot so a
+    // tower starts animating the moment its frames finish loading.
+    const upgradeKey = `${tower.upgrades[0]},${tower.upgrades[1]},${tower.upgrades[2]}`;
+    if (tower._animAssetCacheKey === upgradeKey && tower._animAssetCache) {
+        return tower._animAssetCache;
+    }
+
     let prefix = `tower_${tower.type}_`;
     let isFullAnim = false;
     let animAsset = null;
@@ -409,6 +431,8 @@ function _getAnimationAsset(tower) {
     if (animAsset) {
         tower.isFullAnim = isFullAnim;
         tower.attackPrefix = prefix;
+        tower._animAssetCache = animAsset;
+        tower._animAssetCacheKey = upgradeKey;
     }
     
     return animAsset;
