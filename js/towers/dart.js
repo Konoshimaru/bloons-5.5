@@ -29,15 +29,15 @@ export default {
             {name:"Quick Shots", cost:100, desc:"Shoots 15% faster.", cooldownMult: 0.85},
             {name:"Very Quick Shots", cost:190, desc:"Shoots 33% faster!", cooldownMult: 0.7882},
             {name:"Triple Darts", cost:450, desc:"Throws 3 darts at a time.", cooldownMult: 0.75, extraMods: { projectileCount: 2 }},
-            {name:"Super Monkey Fan Club", cost:7200, desc:"Ability: Converts up to 10 nearby Dart Monkeys into Super Monkeys.", cooldownMult: 0.5, extraMods: { unlocksAbility: true, abilityName: "Fan Club", abilityCd: 50 }},
-            {name:"Plasma Monkey Fan Club", cost:45000, desc:"Ability: Transforms up to 21 Dart Monkeys into Plasma Monkeys.", extraMods: { unlocksAbility: true, abilityName: "Plasma Club", abilityCd: 50 }}
+            {name:"Super Monkey Fan Club", cost:7200, desc:"Ability: Converts up to 10 nearby Dart Monkeys into Super Monkeys.", cooldownMult: 0.5, extraMods: { unlocksAbility: true, abilityName: "Fan Club", abilityCd: 60 }},
+            {name:"Plasma Monkey Fan Club", cost:45000, desc:"Ability: Transforms up to 21 Dart Monkeys into Plasma Monkeys.", extraMods: { unlocksAbility: true, abilityName: "Plasma Club", abilityCd: 60 }}
         ],
         3: [
             {name:"Long Range Darts", cost:90, stat:"range", amount:8, desc:"Shoots further than normal.", extraMods:{lifespan:0.3375}},
             {name:"Enhanced Eyesight", cost:200, stat:"canSeeCamo", amount:true, desc:"Shoots even further and detects Camo.", extraMods:{range:8, lifespan:0.3616, projectileSpeed:1100}},
             {name:"Crossbow", cost:575, stat:"damage", amount:2, desc:"Pops 3 layers of Bloon per hit.", extraMods:{pierce:2, range:12, projectileSpeed:1200, lifespan:0.3164, projectileType:"arrow"}},
-            {name:"Sharp Shooter", cost:2050, desc:"Attacks faster and does powerful Crit shots.", cooldownMult: 0.5, extraMods: { damage: 3, critChance: 0.1, critDmg: 50, projectileSpeed: 2000, lifespan: 0.2109 }},
-            {name:"Crossbow Master", cost:21500, desc:"Devastates most Bloon types with ease.", cooldownMult: 0.5, extraMods: { damage: 2, pierce: 4, range: 20, critChance: 0.2, critDmg: 80, dmgType: 'normal', projectileSpeed: 2000, lifespan: 0.2109 }}
+            {name:"Sharp Shooter", cost:2050, desc:"Attacks faster and does powerful Crit shots.", cooldownMult: 0.5, extraMods: { damage: 3, critEvery: 10, critDmg: 50, projectileSpeed: 2000, lifespan: 0.2109 }},
+            {name:"Crossbow Master", cost:21500, desc:"Devastates most Bloon types with ease.", cooldownMult: 0.5, extraMods: { damage: 2, pierce: 4, range: 20, critEvery: 5, critDmg: 80, dmgType: 'normal', projectileSpeed: 2000, lifespan: 0.2109 }}
         ]
     },
     

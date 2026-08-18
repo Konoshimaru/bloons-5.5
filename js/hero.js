@@ -41,6 +41,9 @@ export class Hero extends Tower {
         }
         amount *= mult;
 
+        // Energizer (T5 Monkey Sub) boosts Hero XP by 50% while in radius
+        if (this.heroXpMult > 1) amount *= this.heroXpMult;
+
         this.xp += amount;
         
         while (this.level < MAX_LEVEL && this.xp >= this.xpToNext) {

@@ -110,8 +110,12 @@ export default {
             projType = 'flash_bomb'; projDamage = 1; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true };
             ninjaEffects.stun = 1.0; ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = 30; ninjaEffects.explosionRadius = 60; ninjaEffects.explosionDamage = 1;
         } else if (tower.stats.stickyBomb && target.data.isMoab && shotCount % 3 === 0) {
-            projType = 'sticky_bomb'; projDamage = tower.stats.damage * 10; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true, moabDmg: 50 };
-            ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = 1; ninjaEffects.explosionRadius = 60; ninjaEffects.explosionDamage = projDamage;
+            const isMaster = tower.upgrades[2] === 5;
+            projType = 'sticky_bomb'; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true };
+            // BTD6 Sticky Bomb 450 dmg (T4) / Master Bomber 3000 dmg (T5) + 600 AoE
+            projDamage = isMaster ? 3000 : 450;
+            ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = isMaster ? 20 : 10; ninjaEffects.explosionRadius = 40; ninjaEffects.explosionDamage = projDamage;
+            if (isMaster) ninjaEffects.stun = 1.0;
         }
         let spread = count > 2 ? 20 : 15;
         for(let i=0; i<count; i++) {
@@ -123,6 +127,7 @@ export default {
     },
     ability(tower, engine) {
         engine.log("Bloon Sabotage Activated!");
-        for (let e of engine.enemies) { if (!e.alive) continue; e.applySlow(0.5, 15.0, false); }
+        const dur = tower.upgrades[1] === 5 ? 30.0 : 15.0;
+        for (let e of engine.enemies) { if (!e.alive) continue; e.applySlow(0.5, dur, false); }
     }
 };

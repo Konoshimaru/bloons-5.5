@@ -6,7 +6,7 @@ export const DamageType = deepFreeze({
     EXPLOSION:  { isExplosion: true, canHitLead: true },
     ICE:        { isIce: true, canHitLead: false },
     PLASMA:     { isPlasma: true, canHitLead: true },
-    ENERGY:     { isEnergy: true, canHitLead: true },
+    ENERGY:     { isEnergy: true, canHitLead: false },
     FIRE:       { isFire: true, canHitLead: true },
     MAGIC:      { isMagic: true, canHitLead: false },
     ACID:       { isAcid: true, canHitLead: true },

@@ -17,11 +17,17 @@ export const windowLayout = {
         const MIN_PLAYABLE_SCALE = 0.3; 
         if (scale < MIN_PLAYABLE_SCALE) {
             container.style.visibility = 'hidden';
-            tooSmallOverlay?.classList.remove('hidden');
+            if (tooSmallOverlay) {
+                tooSmallOverlay.classList.remove('hidden');
+                tooSmallOverlay.style.display = 'flex';
+            }
             return;
         }
         container.style.visibility = 'visible';
-        tooSmallOverlay?.classList.add('hidden');
+        if (tooSmallOverlay) {
+            tooSmallOverlay.classList.add('hidden');
+            tooSmallOverlay.style.display = 'none';
+        }
         container.style.transformOrigin = 'top left';
         container.style.transform = `scale(${scale})`;
         const scaledWidth = CANVAS_WIDTH * scale;

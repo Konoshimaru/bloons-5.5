@@ -1,0 +1,87 @@
+{"frames": {
+
+"boomerang_p2_t3_attack_full_1.png":
+{
+	"frame": {"x":1,"y":1,"w":699,"h":790},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":44,"y":0,"w":699,"h":790},
+	"sourceSize": {"w":790,"h":816}
+},
+"boomerang_p2_t3_attack_full_2.png":
+{
+	"frame": {"x":661,"y":1440,"w":658,"h":606},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":47,"y":184,"w":658,"h":606},
+	"sourceSize": {"w":790,"h":816}
+},
+"boomerang_p2_t3_attack_full_3.png":
+{
+	"frame": {"x":1321,"y":1440,"w":604,"h":566},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":83,"y":184,"w":604,"h":566},
+	"sourceSize": {"w":790,"h":816}
+},
+"boomerang_p2_t3_attack_full_4.png":
+{
+	"frame": {"x":1,"y":1443,"w":631,"h":601},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":63,"y":170,"w":631,"h":601},
+	"sourceSize": {"w":790,"h":816}
+},
+"boomerang_p2_t3_attack_full_5.png":
+{
+	"frame": {"x":1403,"y":1,"w":632,"h":610},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":64,"y":161,"w":632,"h":610},
+	"sourceSize": {"w":790,"h":816}
+},
+"boomerang_p2_t3_attack_full_6.png":
+{
+	"frame": {"x":661,"y":793,"w":658,"h":645},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":45,"y":145,"w":658,"h":645},
+	"sourceSize": {"w":790,"h":816}
+},
+"boomerang_p2_t3_attack_full_7.png":
+{
+	"frame": {"x":1321,"y":793,"w":658,"h":645},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":45,"y":145,"w":658,"h":645},
+	"sourceSize": {"w":790,"h":816}
+},
+"boomerang_p2_t3_attack_full_8.png":
+{
+	"frame": {"x":1,"y":793,"w":658,"h":648},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":45,"y":141,"w":658,"h":648},
+	"sourceSize": {"w":790,"h":816}
+},
+"boomerang_p2_t3_attack_full_9.png":
+{
+	"frame": {"x":702,"y":1,"w":699,"h":790},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":44,"y":0,"w":699,"h":790},
+	"sourceSize": {"w":790,"h":816}
+}},
+"animations": {
+	"boomerang_p2_t3_attack_full": ["boomerang_p2_t3_attack_full_1.png","boomerang_p2_t3_attack_full_2.png","boomerang_p2_t3_attack_full_3.png","boomerang_p2_t3_attack_full_4.png","boomerang_p2_t3_attack_full_5.png","boomerang_p2_t3_attack_full_6.png","boomerang_p2_t3_attack_full_7.png","boomerang_p2_t3_attack_full_8.png","boomerang_p2_t3_attack_full_9.png"]
+},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.1",
+	"image": "boomerang_p2_t3_attack.png",
+	"format": "RGBA8888",
+	"size": {"w":2036,"h":2047},
+	"scale": "0.776",
+	"smartupdate": "$TexturePacker:SmartUpdate:3ffea4cb183b9f08f80afbce79914e06:93ded56f5143656172fca04d96dd219f:2b26b5a52a8724a30f2a547b1c002860$"
+}
+}

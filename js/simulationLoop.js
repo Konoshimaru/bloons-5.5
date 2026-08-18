@@ -74,6 +74,18 @@ const SimulationLoop = {
     },
 
     _updateEnemies(dt) {
+        // Leak detection folds into this pass (it used to be a second full
+        // scan of every enemy inside _updateTowers, once per substep). Same
+        // predicate as before: any alive enemy past 75% of the path is
+        // "leaking". Compute the threshold once; the flag is read by tower
+        // targeting (Elite mode) which runs later in the same step.
+        let leakThreshold = 0;
+        if (this.map) {
+            const totalLen = this.map.getTotalLength();
+            if (totalLen > 0) leakThreshold = totalLen * 0.75;
+        }
+        this.hasLeakingEnemy = false;
+
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const e = this.enemies[i];
             if (!e) continue;
@@ -84,6 +96,9 @@ const SimulationLoop = {
             // reset(), not the swap-remove below, so skipping is safe.
             if (e.tier === 99) continue;
             e.update(dt);
+            if (!this.hasLeakingEnemy && e.alive && leakThreshold > 0 && e.distanceTraveled > leakThreshold) {
+                this.hasLeakingEnemy = true;
+            }
             if (!e.alive) {
                 const last = this.enemies.pop();
                 if (i < this.enemies.length) { this.enemies[i] = last; }
@@ -97,17 +112,11 @@ const SimulationLoop = {
             if (!t) continue;
             t.buffedRange = 0; t.buffedFireRate = 0; t.buffedCamo = false; t.buffedLead = false;
             t.discount = 0; t.buffedDmg = 0; t.buffedPierce = 0; t.buffedValueMult = 0;
+            t.freeTier1 = false; t.freeTier2 = false;
             t.buffedProjSpeed = 1.0; 
             t.abilityCdMult = 1.0;
         }
-        this.hasIceShardTower = false; this.hasLeakingEnemy = false;
-        if (this.map) {
-            const totalLen = this.map.getTotalLength();
-            if (totalLen > 0) {
-                const leakThreshold = totalLen * 0.75;
-                for (const e of this.enemies) { if (e.alive && e.distanceTraveled > leakThreshold) { this.hasLeakingEnemy = true; break; } }
-            }
-        }
+        this.hasIceShardTower = false;
         this.towerGrid.clear();
         for (const t of this.towers) { if (t) this.towerGrid.insert(t); }
         for (const t of this.towers) {

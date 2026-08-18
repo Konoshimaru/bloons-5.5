@@ -26,7 +26,7 @@ export default {
             { name: "Faster Reload", cost: 250, desc: "Reloads faster.", extraMods:{cooldownMult: 0.8} }, 
             { name: "Missile Launcher", cost: 400, desc: "Fires missiles, faster fire rate, flight speed, and range.", extraMods:{cooldownMult: 0.8, projectileSpeed: 200, range: 4, projectileType: 'missile'}},
             { name: "MOAB Mauler", cost: 1000, stat:"moabDmg", amount: 10, desc: "MOAB Maulers do much more damage to MOAB-Class Bloons." }, 
-            { name: "MOAB Assassin", cost: 3450, stat:"moabDmg", amount: 15, desc: "Assassinate MOAB Ability. Increased MOAB damage.", extraMods:{isAbility: true, abilityName: "Assassinate", abilityCd: 30} }, 
+            { name: "MOAB Assassin", cost: 3450, stat:"moabDmg", amount: 15, desc: "Assassinate MOAB Ability. Increased MOAB damage.", extraMods:{isAbility: true, abilityName: "Assassinate", abilityCd: 25} }, 
             { name: "MOAB Eliminator", cost: 26000, stat:"moabDmg", amount: 25, desc: "Massive damage to MOABs. Ability deals 6x damage.", extraMods:{isAbility: true, abilityName: "Assassinate 2", abilityCd: 10} }
         ],
         3: [
@@ -34,7 +34,7 @@ export default {
             { name: "Frag Bombs", cost: 300, desc: "Explosions throw out sharp fragments.", extraMods:{fragCount: 6, fragDamage: 1} }, 
             { name: "Cluster Bombs", cost: 700, desc: "Throws out secondary bombs instead of frags.", extraMods:{fragCount: 0, clusterCount: 4, clusterDamage: 1} }, 
             { name: "Recursive Cluster", cost: 2500, desc: "Every second shot sends out more cluster bombs.", extraMods:{clusterCount: 8} }, 
-            { name: "Bomb Blitz", cost: 30000, stat:"explosionDamage", amount: 5, desc: "Much more damage. Gains Bomb Storm Ability.", extraMods:{isAbility: true, abilityName: "Bomb Storm", abilityCd: 20} }
+            { name: "Bomb Blitz", cost: 30000, stat:"explosionDamage", amount: 5, desc: "Much more damage. Bloons that leak trigger a massive Bomb Blitz.", extraMods:{bombBlitz: true} }
         ]
     },
     
@@ -43,6 +43,19 @@ export default {
         if (tower.bombardmentActive > 0) {
             tower.bombardmentActive -= dt;
             tower.buffedFireRate = Math.max(tower.buffedFireRate || 0, 8.0); 
+        }
+        
+        // Bomb Blitz (T5): passive — a bloon leaking through triggers a screen-wide
+        // blast. Internal 60s cooldown (BTD6).
+        if (tower.stats.bombBlitz) {
+            if (tower._lastLives !== undefined && engine.lives < tower._lastLives && (tower.blitzCd || 0) <= 0) {
+                tower.blitzCd = 60.0;
+                Utils.applyAoeDamage(engine, 640, 360, 1500, 1500, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 1000});
+                engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1500, life: 1.0, maxLife: 1.0, color: '#e67e22' });
+                engine.log("Bomb Blitz!");
+            }
+            tower._lastLives = engine.lives;
+            if (tower.blitzCd > 0) tower.blitzCd -= dt;
         }
     },
 
@@ -80,17 +93,10 @@ export default {
                 if (e.hp > maxHp) { maxHp = e.hp; target = e; }
             }
             if (target) {
-                let dmg = name === "Assassinate 2" ? 3000 : 750;
+                let dmg = name === "Assassinate 2" ? 4500 : 750;
                 target.takeDamage(dmg, {isExplosion: true, canHitLead: true}, {}, tower);
                 engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: 80, life: 0.5, maxLife: 0.5, color: '#e67e22' });
             }
-        }
-        
-        // Bomb Blitz (Bomb Storm)
-        if (name === "Bomb Storm") {
-            engine.log("Bomb Storm!");
-            Utils.applyAoeDamage(engine, 640, 360, 1500, 100, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 1000});
-            engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1500, life: 1.0, maxLife: 1.0, color: '#e67e22' });
         }
     }
 };

@@ -191,9 +191,13 @@ export function setupShopListeners() {
 
             const tier = parseInt(enemyType, 10);
             let isCamo = sandboxCamoOn || tier === 16;
-            let e = GameEngine.enemyPool.get();
-            e.init(tier, GameEngine.map, isCamo, sandboxRegenOn, tier, sandboxFortifiedOn, null, 0, false);
-            GameEngine.enemies.push(e);
+            const sbCount = document.getElementById('sb-count');
+            const sbSpacing = document.getElementById('sb-spacing');
+            const qty = Math.max(1, parseInt(sbCount?.value, 10) || 1);
+            const spacing = Math.max(0, parseFloat(sbSpacing?.value) || 0);
+            // Spacing is a per-bloon time gap (seconds), like a normal round:
+            // bloons enter at the start of the track, later ones appear later.
+            GameEngine.waveManager.spawnSandboxBatch(tier, qty, spacing, isCamo, sandboxRegenOn, sandboxFortifiedOn);
         });
     });
 

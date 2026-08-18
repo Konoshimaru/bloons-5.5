@@ -101,7 +101,10 @@ export const UIRenderer = {
             this._compositeFull.visible = false;
             this._compositeTop.visible = false; this._compositeBottom.visible = false;
             this._compositeSplitBar.visible = false;
+            const _stageT0 = performance.now();
             PixiApp.app.renderer.render(PixiApp.app.stage);
+            engine._frameMs = engine._frameMs || {};
+            engine._frameMs.stage = performance.now() - _stageT0;
             return;
         }
 
@@ -147,11 +150,14 @@ export const UIRenderer = {
             this._compositeTop.visible = false; this._compositeBottom.visible = false;
         }
 
-        // Manual render, replacing Pixi's own autoStart ticker (disabled in
+// Manual render, replacing Pixi's own autoStart ticker (disabled in
         // pixiApp.js) — see the comment there for why. This must be the
         // last thing that happens each frame, after every layer (world AND
         // screenUI) has been updated.
+        const _stageT0 = performance.now();
         PixiApp.app.renderer.render(PixiApp.app.stage);
+        engine._frameMs = engine._frameMs || {};
+        engine._frameMs.stage = performance.now() - _stageT0;
     },
 
 
@@ -257,7 +263,10 @@ export const UIRenderer = {
 
         const isOverlapping = (px, py) => { for (const t of engine.towers) { if (t && Utils.withinRange(px, py, t.x, t.y, t.hitRadius + placementRadius)) return true; } return false; };
         let invalid;
-        if (stats.waterOnly) invalid = !onWater || onPath; else if (stats.canPlaceOnWater) invalid = onPath; else invalid = !validLandPlacement;
+        if (stats.waterOnly) {
+            const lotaInRange = engine.towers.some(t => t && t.type === 'mermonkey' && t.upgrades[0] >= 5 && Utils.withinRange(t.x, t.y, previewX, previewY, Utils.getEffectiveRange(t, engine)));
+            invalid = (!onWater && !lotaInRange) || onPath;
+        } else if (stats.canPlaceOnWater) invalid = onPath; else invalid = !validLandPlacement;
         if (!invalid) invalid = isOverlapping(previewX, previewY);
 
         if (invalid) { radiusGraphics.circle(previewX, previewY, placementRadius).fill({ color: Const.TOWER_OVERLAP_COLOR, alpha: Const.TOWER_OVERLAP_ALPHA }); return; }
@@ -343,7 +352,7 @@ export const UIRenderer = {
                 style: { fontFamily: 'Arial', fontSize: 14, fontWeight: 'bold', fill: 0xbdc3c7 }
             });
             this._devOverlayText.x = 10;
-            this._devOverlayText.y = 20;
+            this._devOverlayText.y = 70;
             PixiApp.layer('screenUI').addChild(this._devOverlayText);
             
             // Background for text
@@ -363,8 +372,42 @@ export const UIRenderer = {
         const activeTexts = engine.floatingTexts ? engine.floatingTexts.length : 0;
         const currentWave = engine.waveManager ? engine.waveManager.currentWave : 0;
 
+        // Per-frame sim vs render breakdown (ms) — recorded by engine.loop()
+        const simMs = engine._frameMs ? engine._frameMs.sim : 0;
+        const renderMs = engine._frameMs ? engine._frameMs.render : 0;
+        const frameTotalMs = engine._frameMs ? engine._frameMs.total : 0;
+        const renderEnemiesMs = engine._frameMs ? (engine._frameMs.renderEnemies || 0) : 0;
+        const stageMs = engine._frameMs ? (engine._frameMs.stage || 0) : 0;
+
+        // Per-tower-type counts (one pass over the tower list)
+        const towerTypeCounts = {};
+        if (engine.towers) {
+            for (const t of engine.towers) {
+                if (!t) continue;
+                const k = t.type || 'unknown';
+                towerTypeCounts[k] = (towerTypeCounts[k] || 0) + 1;
+            }
+        }
+        const typeSummary = Object.keys(towerTypeCounts)
+            .map(k => `${k}x${towerTypeCounts[k]}`)
+            .sort()
+            .join(' ');
+
+        const enemyGrid = engine.enemyGrid ? engine.enemyGrid.stats() : null;
+        const towerGrid = engine.towerGrid ? engine.towerGrid.stats() : null;
+
+        // Live profiler status (F3 capture / F4 export / F5 JSON / F6 reset)
+        const prof = engine.profiler && engine.profiler.liveSummary(engine);
+        const profLine = prof
+            ? `${prof.capturing ? 'REC ' : ''}${prof.samples} | sim ${prof.sim}ms rnd ${prof.render}ms fps ${prof.fps}`
+            : '';
+
         const text = 
 `FPS: ${fps}
+Frame: ${frameTotalMs.toFixed(1)}ms
+Sim: ${simMs.toFixed(1)}ms
+Render: ${renderMs.toFixed(1)}ms
+  enemies ${renderEnemiesMs.toFixed(1)} | stage ${stageMs.toFixed(1)}
 Wave: ${currentWave}
 Towers: ${activeTowers}
 Enemies: ${activeEnemies}
@@ -372,12 +415,23 @@ Projectiles: ${activeProjectiles} / ${maxProjectiles}
 Particles: ${activeParticles}
 Explosions: ${activeExplosions}
 Float Texts: ${activeTexts}
-Cash/Lives: $${Math.floor(engine.cash || 0)} / ${engine.lives || 0}`;
+Cash/Lives: $${Math.floor(engine.cash || 0)} / ${engine.lives || 0}
+Enemy Grid: ${enemyGrid ? `${enemyGrid.cells}c/${enemyGrid.entities}e` : '-'}
+Tower Grid: ${towerGrid ? `${towerGrid.cells}c/${towerGrid.entities}e` : '-'}
+Types: ${typeSummary || '-'}
+${profLine ? 'Profiler: ' + profLine : ''}`;
 
         this._devOverlayText.text = text;
+        this._devOverlayText.style.fill = 0xbdc3c7;
 
-        // Update background
+        // Color the timing lines via individual TextStyle fill changes isn't
+        // supported per-line, so keep a single color but expose the health of
+        // the key metric in the value color via a second approach: leave the
+        // whole block neutral and rely on the numbers. (Color split would
+        // require one Text object per line — overkill for a debug HUD.)
+
+        // Update background (wider to fit the added type summary)
         this._devOverlayBg.clear();
-        this._devOverlayBg.rect(5, 15, 220, (text.split('\n').length * 18) + 10).fill({ color: 0x000000, alpha: 0.75 });
+        this._devOverlayBg.rect(5, 65, 340, (text.split('\n').length * 18) + 10).fill({ color: 0x000000, alpha: 0.75 });
     }
 };

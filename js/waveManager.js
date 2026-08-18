@@ -98,6 +98,26 @@ export class WaveManager {
         this.spawnQueue.sort((a, b) => a.time - b.time);
     }
 
+    // Sandbox "spawn bloon" helper. Spacing is a per-bloon TIME gap (seconds),
+    // matching how normal rounds stagger spawns: every bloon enters at the
+    // start of the track, later ones simply appear later — never ahead along
+    // the path. Reuses the same queue/timing machinery as real waves.
+    spawnSandboxBatch(tier, qty, spacingSec, camo, regen, fort) {
+        if (qty <= 0) return;
+        if (!this.waveActive) this.waveActive = true;
+        for (let i = 0; i < qty; i++) {
+            this.spawnQueue.push({
+                time: this.waveTime + i * spacingSec,
+                tier,
+                camo,
+                regen,
+                fort,
+                hpMod: null,
+            });
+        }
+        this.spawnQueue.sort((a, b) => a.time - b.time);
+    }
+
     update(dt) {
         if (this.nextWaveTimer > 0) {
             this.nextWaveTimer -= dt;

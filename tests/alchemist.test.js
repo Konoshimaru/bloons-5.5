@@ -33,7 +33,6 @@ vi.mock('../js/mobile.js', () => ({ MobileManager: { spriteScale: 1, isActive: f
 vi.mock('../js/audio.js', () => ({ AudioEngine: { playSfx: vi.fn() } }));
 vi.mock('../js/config.js', () => ({ RANGE_SCALE: 1, Maps: [], Config: { data: {} } }));
 vi.mock('../js/data.js', () => ({ EnemyTypes: {} }));
-vi.mock('../js/towerRenderer.js', () => ({ default: {} }));
 vi.mock('../js/towerEconomy.js', () => ({ default: {} }));
 
 import { GameEngine } from '../js/engine.js';

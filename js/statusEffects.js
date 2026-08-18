@@ -35,7 +35,7 @@ export const TimedEffects = [
         id: 'dot',
         timerField: 'dotTimer',
         tickField: 'dotTick',
-        tickInterval: 1.0, // DOT_TICK_INTERVAL in enemy.js
+        tickIntervalField: 'dotTickInterval', // per-enemy tick interval set from the effect's dotTimer
         onTick(e) {
             e.takeDamage(e.dotDmg, { isAcid: true, canHitLead: true });
         }
@@ -57,7 +57,8 @@ export function updateTimedEffects(enemy, dt) {
 
         if (eff.tickField) {
             enemy[eff.tickField] += dt;
-            if (enemy[eff.tickField] >= eff.tickInterval) {
+            const interval = eff.tickIntervalField ? (enemy[eff.tickIntervalField] || 1.0) : (eff.tickInterval || 1.0);
+            if (enemy[eff.tickField] >= interval) {
                 enemy[eff.tickField] = 0;
                 if (eff.onTick) eff.onTick(enemy);
             }

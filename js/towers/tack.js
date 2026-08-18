@@ -44,7 +44,7 @@ export default {
             {name:"Even More Tacks", cost:110, stat:"tackCount", amount:2, desc:"Shoots 12 tacks per shot."},
             {name:"Tack Sprayer", cost:450, stat:"tackCount", amount:4, desc:"Sprays out 16 higher pierce tacks per volley.", extraMods:{pierce:1}},
             {name:"Overdrive", cost:3200, desc:"Shoots incredibly fast (3x attack speed).", cooldownMult: 0.3333},
-            {name:"The Tack Zone", cost:20000, stat:"tackCount", amount:16, desc:"Many, many tacks. Attacks faster.", cooldownMult: 0.6, extraMods:{range:7, moabDmg:1, projectileSpeed:80}}
+            {name:"The Tack Zone", cost:20000, stat:"tackCount", amount:16, desc:"Many, many tacks. Attacks faster.", cooldownMult: 0.2, extraMods:{range:7, moabDmg:1, projectileSpeed:80}}
         ]
     },
     
@@ -114,7 +114,7 @@ export default {
                 if (Utils.withinRange(tower.x, tower.y, e.x, e.y, expRadius)) {
                     let infernoEffects = effects;
                     if (tower.upgrades[0] >= 5) {
-                        infernoEffects = { ...effects, dot: 50, dotTimer: 4.1, dotTick: 1.0 };
+                        infernoEffects = { ...effects, dot: 4, dotTimer: 1.0, dotDuration: 3.0 };
                     }
                     let dmgDealt = e.takeDamage(damage, dmgType, infernoEffects, tower);
                     if (!isNaN(dmgDealt) && dmgDealt !== -1) {

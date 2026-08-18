@@ -1,0 +1,6203 @@
+{
+  "generated": "2026-08-14T00:08:39.620Z",
+  "towers": {
+    "ace": {
+      "name": "Monkey Ace",
+      "hero": false,
+      "base": "sprites/towers/ace_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/ace_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "ace_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ace_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ace_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ace_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "alchemist": {
+      "name": "Alchemist",
+      "hero": false,
+      "base": "sprites/towers/alchemist_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/alchemist_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "alchemist_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "alchemist_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/alchemist_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/alchemist_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "beast": {
+      "name": "Beast Handler",
+      "hero": false,
+      "base": "sprites/towers/beast_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/beast_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "beast_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "beast_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/beast_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/beast_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "bomb": {
+      "name": "Bomb Shooter",
+      "hero": false,
+      "base": "sprites/towers/bomb_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/bomb_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "bomb_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p3_t1": {
+          "base": "sprites/towers/bomb_p3_t1_base.png",
+          "frames": []
+        },
+        "bomb_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "bomb_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/bomb_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/bomb_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "boomerang": {
+      "name": "Boomerang Monkey",
+      "hero": false,
+      "base": "sprites/towers/boomerang_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/boomerang_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "boomerang_p1_t1": {
+          "base": "sprites/towers/boomerang_p1_t1_base.png",
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_1.png"
+            },
+            {
+              "frame": 2,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_2.png"
+            },
+            {
+              "frame": 3,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_3.png"
+            },
+            {
+              "frame": 4,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_4.png"
+            },
+            {
+              "frame": 5,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_5.png"
+            },
+            {
+              "frame": 6,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_6.png"
+            },
+            {
+              "frame": 7,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_7.png"
+            },
+            {
+              "frame": 8,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_8.png"
+            },
+            {
+              "frame": 9,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_9.png"
+            },
+            {
+              "frame": 10,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_10.png"
+            },
+            {
+              "frame": 11,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_11.png"
+            },
+            {
+              "frame": 12,
+              "url": "sprites/towers/boomerang_p1_t1_attack_full_12.png"
+            }
+          ]
+        },
+        "boomerang_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p2_t3": {
+          "base": "sprites/towers/boomerang_p2_t3_base.png",
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_1.png"
+            },
+            {
+              "frame": 3,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_3.png"
+            },
+            {
+              "frame": 4,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_4.png"
+            },
+            {
+              "frame": 5,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_5.png"
+            },
+            {
+              "frame": 6,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_6.png"
+            },
+            {
+              "frame": 7,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_7.png"
+            },
+            {
+              "frame": 8,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_8.png"
+            },
+            {
+              "frame": 9,
+              "url": "sprites/towers/boomerang_p2_t3_attack_full_9.png"
+            }
+          ]
+        },
+        "boomerang_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "boomerang_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/boomerang_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/boomerang_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "buccaneer": {
+      "name": "Monkey Buccaneer",
+      "hero": false,
+      "base": "sprites/towers/buccaneer_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/buccaneer_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "buccaneer_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "buccaneer_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/buccaneer_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/buccaneer_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "dart": {
+      "name": "Dart Monkey",
+      "hero": false,
+      "base": "sprites/towers/dart_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/dart_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "dart_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p1_t3": {
+          "base": "sprites/towers/dart_p1_t3_base.png",
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p1_t3_attack_full_1.png"
+            },
+            {
+              "frame": 2,
+              "url": "sprites/towers/dart_p1_t3_attack_full_2.png"
+            },
+            {
+              "frame": 3,
+              "url": "sprites/towers/dart_p1_t3_attack_full_3.png"
+            },
+            {
+              "frame": 4,
+              "url": "sprites/towers/dart_p1_t3_attack_full_4.png"
+            },
+            {
+              "frame": 5,
+              "url": "sprites/towers/dart_p1_t3_attack_full_5.png"
+            },
+            {
+              "frame": 6,
+              "url": "sprites/towers/dart_p1_t3_attack_full_6.png"
+            },
+            {
+              "frame": 7,
+              "url": "sprites/towers/dart_p1_t3_attack_full_7.png"
+            },
+            {
+              "frame": 8,
+              "url": "sprites/towers/dart_p1_t3_attack_full_8.png"
+            },
+            {
+              "frame": 9,
+              "url": "sprites/towers/dart_p1_t3_attack_full_9.png"
+            },
+            {
+              "frame": 10,
+              "url": "sprites/towers/dart_p1_t3_attack_full_10.png"
+            },
+            {
+              "frame": 11,
+              "url": "sprites/towers/dart_p1_t3_attack_full_11.png"
+            },
+            {
+              "frame": 12,
+              "url": "sprites/towers/dart_p1_t3_attack_full_12.png"
+            },
+            {
+              "frame": 13,
+              "url": "sprites/towers/dart_p1_t3_attack_full_13.png"
+            },
+            {
+              "frame": 14,
+              "url": "sprites/towers/dart_p1_t3_attack_full_14.png"
+            },
+            {
+              "frame": 15,
+              "url": "sprites/towers/dart_p1_t3_attack_full_15.png"
+            },
+            {
+              "frame": 16,
+              "url": "sprites/towers/dart_p1_t3_attack_full_16.png"
+            },
+            {
+              "frame": 17,
+              "url": "sprites/towers/dart_p1_t3_attack_full_17.png"
+            },
+            {
+              "frame": 18,
+              "url": "sprites/towers/dart_p1_t3_attack_full_18.png"
+            },
+            {
+              "frame": 19,
+              "url": "sprites/towers/dart_p1_t3_attack_full_19.png"
+            }
+          ]
+        },
+        "dart_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p3_t3": {
+          "base": "sprites/towers/dart_p3_t3_base.png",
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "dart_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dart_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dart_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "dartling": {
+      "name": "Dartling Gunner",
+      "hero": false,
+      "base": "sprites/towers/dartling_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/dartling_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "dartling_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "dartling_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/dartling_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/dartling_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "desperado": {
+      "name": "Desperado",
+      "hero": false,
+      "base": "sprites/towers/desperado_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/desperado_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "desperado_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "desperado_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/desperado_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/desperado_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "druid": {
+      "name": "Druid",
+      "hero": false,
+      "base": "sprites/towers/druid_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/druid_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "druid_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "druid_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/druid_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/druid_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "engineer": {
+      "name": "Engineer Monkey",
+      "hero": false,
+      "base": "sprites/towers/engineer_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/engineer_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "engineer_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "engineer_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/engineer_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/engineer_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "farm": {
+      "name": "Banana Farm",
+      "hero": false,
+      "base": "sprites/towers/farm_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/farm_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "farm_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "farm_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farm_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farm_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "farmer": {
+      "name": "Banana Farmer",
+      "hero": false,
+      "base": "sprites/towers/farmer_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/farmer_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "farmer_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "farmer_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/farmer_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/farmer_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "geto": {
+      "name": null,
+      "hero": true,
+      "base": "sprites/towers/geto_base.png",
+      "frames": [],
+      "upgrades": {}
+    },
+    "glue": {
+      "name": "Glue Gunner",
+      "hero": false,
+      "base": "sprites/towers/glue_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/glue_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "glue_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p1_t4": {
+          "base": "sprites/towers/glue_p1_t4_base.png",
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p1_t4_attack_full_1.png"
+            },
+            {
+              "frame": 2,
+              "url": "sprites/towers/glue_p1_t4_attack_full_2.png"
+            },
+            {
+              "frame": 3,
+              "url": "sprites/towers/glue_p1_t4_attack_full_3.png"
+            },
+            {
+              "frame": 4,
+              "url": "sprites/towers/glue_p1_t4_attack_full_4.png"
+            },
+            {
+              "frame": 5,
+              "url": "sprites/towers/glue_p1_t4_attack_full_5.png"
+            },
+            {
+              "frame": 6,
+              "url": "sprites/towers/glue_p1_t4_attack_full_6.png"
+            },
+            {
+              "frame": 7,
+              "url": "sprites/towers/glue_p1_t4_attack_full_7.png"
+            },
+            {
+              "frame": 8,
+              "url": "sprites/towers/glue_p1_t4_attack_full_8.png"
+            },
+            {
+              "frame": 9,
+              "url": "sprites/towers/glue_p1_t4_attack_full_9.png"
+            },
+            {
+              "frame": 10,
+              "url": "sprites/towers/glue_p1_t4_attack_full_10.png"
+            },
+            {
+              "frame": 11,
+              "url": "sprites/towers/glue_p1_t4_attack_full_11.png"
+            },
+            {
+              "frame": 12,
+              "url": "sprites/towers/glue_p1_t4_attack_full_12.png"
+            }
+          ]
+        },
+        "glue_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "glue_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/glue_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/glue_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "gojo": {
+      "name": null,
+      "hero": true,
+      "base": "sprites/towers/gojo_base.png",
+      "frames": [],
+      "upgrades": {}
+    },
+    "gwendolin": {
+      "name": null,
+      "hero": true,
+      "base": "sprites/towers/gwendolin_base.png",
+      "frames": [],
+      "upgrades": {}
+    },
+    "heli": {
+      "name": "Heli Pilot",
+      "hero": false,
+      "base": "sprites/towers/heli_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/heli_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "heli_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "heli_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/heli_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/heli_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "ice": {
+      "name": "Ice Monkey",
+      "hero": false,
+      "base": "sprites/towers/ice_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/ice_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "ice_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p2_t3": {
+          "base": "sprites/towers/ice_p2_t3_base.png",
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ice_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ice_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ice_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "mermonkey": {
+      "name": "Mermonkey",
+      "hero": false,
+      "base": "sprites/towers/mermonkey_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/mermonkey_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "mermonkey_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "mermonkey_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mermonkey_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mermonkey_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "mortar": {
+      "name": "Mortar Monkey",
+      "hero": false,
+      "base": "sprites/towers/mortar_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/mortar_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "mortar_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "mortar_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/mortar_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/mortar_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "ninja": {
+      "name": "Ninja Monkey",
+      "hero": false,
+      "base": "sprites/towers/ninja_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/ninja_attack_full_0.png"
+        },
+        {
+          "frame": 1,
+          "url": "sprites/towers/ninja_attack_full_1.png"
+        },
+        {
+          "frame": 2,
+          "url": "sprites/towers/ninja_attack_full_2.png"
+        },
+        {
+          "frame": 3,
+          "url": "sprites/towers/ninja_attack_full_3.png"
+        },
+        {
+          "frame": 4,
+          "url": "sprites/towers/ninja_attack_full_4.png"
+        },
+        {
+          "frame": 5,
+          "url": "sprites/towers/ninja_attack_full_5.png"
+        },
+        {
+          "frame": 6,
+          "url": "sprites/towers/ninja_attack_full_6.png"
+        },
+        {
+          "frame": 7,
+          "url": "sprites/towers/ninja_attack_full_7.png"
+        },
+        {
+          "frame": 8,
+          "url": "sprites/towers/ninja_attack_full_8.png"
+        },
+        {
+          "frame": 9,
+          "url": "sprites/towers/ninja_attack_full_9.png"
+        }
+      ],
+      "upgrades": {
+        "ninja_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "ninja_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/ninja_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/ninja_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "quincy": {
+      "name": null,
+      "hero": true,
+      "base": "sprites/towers/quincy_base.png",
+      "frames": [],
+      "upgrades": {}
+    },
+    "sauda": {
+      "name": null,
+      "hero": true,
+      "base": "sprites/towers/sauda_base.png",
+      "frames": [],
+      "upgrades": {}
+    },
+    "skywarden": {
+      "name": "Skywarden",
+      "hero": false,
+      "base": "sprites/towers/skywarden_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/skywarden_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "skywarden_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "skywarden_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/skywarden_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/skywarden_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "sniper": {
+      "name": "Sniper Monkey",
+      "hero": false,
+      "base": "sprites/towers/sniper_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/sniper_attack_full_0.png"
+        },
+        {
+          "frame": 1,
+          "url": "sprites/towers/sniper_attack_full_1.png"
+        },
+        {
+          "frame": 2,
+          "url": "sprites/towers/sniper_attack_full_2.png"
+        },
+        {
+          "frame": 3,
+          "url": "sprites/towers/sniper_attack_full_3.png"
+        },
+        {
+          "frame": 4,
+          "url": "sprites/towers/sniper_attack_full_4.png"
+        },
+        {
+          "frame": 5,
+          "url": "sprites/towers/sniper_attack_full_5.png"
+        },
+        {
+          "frame": 6,
+          "url": "sprites/towers/sniper_attack_full_6.png"
+        },
+        {
+          "frame": 7,
+          "url": "sprites/towers/sniper_attack_full_7.png"
+        },
+        {
+          "frame": 8,
+          "url": "sprites/towers/sniper_attack_full_8.png"
+        },
+        {
+          "frame": 9,
+          "url": "sprites/towers/sniper_attack_full_9.png"
+        },
+        {
+          "frame": 10,
+          "url": "sprites/towers/sniper_attack_full_10.png"
+        },
+        {
+          "frame": 11,
+          "url": "sprites/towers/sniper_attack_full_11.png"
+        },
+        {
+          "frame": 12,
+          "url": "sprites/towers/sniper_attack_full_12.png"
+        },
+        {
+          "frame": 13,
+          "url": "sprites/towers/sniper_attack_full_13.png"
+        },
+        {
+          "frame": 14,
+          "url": "sprites/towers/sniper_attack_full_14.png"
+        },
+        {
+          "frame": 15,
+          "url": "sprites/towers/sniper_attack_full_15.png"
+        },
+        {
+          "frame": 16,
+          "url": "sprites/towers/sniper_attack_full_16.png"
+        },
+        {
+          "frame": 17,
+          "url": "sprites/towers/sniper_attack_full_17.png"
+        },
+        {
+          "frame": 18,
+          "url": "sprites/towers/sniper_attack_full_18.png"
+        },
+        {
+          "frame": 19,
+          "url": "sprites/towers/sniper_attack_full_19.png"
+        },
+        {
+          "frame": 20,
+          "url": "sprites/towers/sniper_attack_full_20.png"
+        },
+        {
+          "frame": 21,
+          "url": "sprites/towers/sniper_attack_full_21.png"
+        },
+        {
+          "frame": 22,
+          "url": "sprites/towers/sniper_attack_full_22.png"
+        }
+      ],
+      "upgrades": {
+        "sniper_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "sniper_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sniper_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sniper_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "spike": {
+      "name": "Spike Factory",
+      "hero": false,
+      "base": "sprites/towers/spike_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/spike_attack_full_0.png"
+        },
+        {
+          "frame": 1,
+          "url": "sprites/towers/spike_attack_full_1.png"
+        },
+        {
+          "frame": 2,
+          "url": "sprites/towers/spike_attack_full_2.png"
+        },
+        {
+          "frame": 3,
+          "url": "sprites/towers/spike_attack_full_3.png"
+        },
+        {
+          "frame": 4,
+          "url": "sprites/towers/spike_attack_full_4.png"
+        },
+        {
+          "frame": 5,
+          "url": "sprites/towers/spike_attack_full_5.png"
+        },
+        {
+          "frame": 6,
+          "url": "sprites/towers/spike_attack_full_6.png"
+        }
+      ],
+      "upgrades": {
+        "spike_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "spike_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/spike_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/spike_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "sub": {
+      "name": "Monkey Sub",
+      "hero": false,
+      "base": "sprites/towers/sub_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/sub_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "sub_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "sub_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/sub_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/sub_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "super": {
+      "name": "Super Monkey",
+      "hero": false,
+      "base": "sprites/towers/super_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/super_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "super_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "super_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/super_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/super_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "tack": {
+      "name": "Tack Shooter",
+      "hero": false,
+      "base": "sprites/towers/tack_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/tack_attack_full_0.png"
+        },
+        {
+          "frame": 1,
+          "url": "sprites/towers/tack_attack_full_1.png"
+        },
+        {
+          "frame": 2,
+          "url": "sprites/towers/tack_attack_full_2.png"
+        },
+        {
+          "frame": 3,
+          "url": "sprites/towers/tack_attack_full_3.png"
+        },
+        {
+          "frame": 4,
+          "url": "sprites/towers/tack_attack_full_4.png"
+        },
+        {
+          "frame": 5,
+          "url": "sprites/towers/tack_attack_full_5.png"
+        },
+        {
+          "frame": 6,
+          "url": "sprites/towers/tack_attack_full_6.png"
+        },
+        {
+          "frame": 7,
+          "url": "sprites/towers/tack_attack_full_7.png"
+        },
+        {
+          "frame": 8,
+          "url": "sprites/towers/tack_attack_full_8.png"
+        }
+      ],
+      "upgrades": {
+        "tack_p1_t1": {
+          "base": "sprites/towers/tack_p1_t1_base.png",
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p1_t1_attack_full_1.png"
+            },
+            {
+              "frame": 2,
+              "url": "sprites/towers/tack_p1_t1_attack_full_2.png"
+            },
+            {
+              "frame": 3,
+              "url": "sprites/towers/tack_p1_t1_attack_full_3.png"
+            },
+            {
+              "frame": 4,
+              "url": "sprites/towers/tack_p1_t1_attack_full_4.png"
+            },
+            {
+              "frame": 5,
+              "url": "sprites/towers/tack_p1_t1_attack_full_5.png"
+            },
+            {
+              "frame": 6,
+              "url": "sprites/towers/tack_p1_t1_attack_full_6.png"
+            },
+            {
+              "frame": 7,
+              "url": "sprites/towers/tack_p1_t1_attack_full_7.png"
+            },
+            {
+              "frame": 8,
+              "url": "sprites/towers/tack_p1_t1_attack_full_8.png"
+            }
+          ]
+        },
+        "tack_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p2_t4": {
+          "base": "sprites/towers/tack_p2_t4_base.png",
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p2_t4_attack_full_1.png"
+            },
+            {
+              "frame": 2,
+              "url": "sprites/towers/tack_p2_t4_attack_full_2.png"
+            },
+            {
+              "frame": 3,
+              "url": "sprites/towers/tack_p2_t4_attack_full_3.png"
+            },
+            {
+              "frame": 4,
+              "url": "sprites/towers/tack_p2_t4_attack_full_4.png"
+            },
+            {
+              "frame": 5,
+              "url": "sprites/towers/tack_p2_t4_attack_full_5.png"
+            },
+            {
+              "frame": 6,
+              "url": "sprites/towers/tack_p2_t4_attack_full_6.png"
+            },
+            {
+              "frame": 7,
+              "url": "sprites/towers/tack_p2_t4_attack_full_7.png"
+            },
+            {
+              "frame": 8,
+              "url": "sprites/towers/tack_p2_t4_attack_full_8.png"
+            },
+            {
+              "frame": 9,
+              "url": "sprites/towers/tack_p2_t4_attack_full_9.png"
+            },
+            {
+              "frame": 10,
+              "url": "sprites/towers/tack_p2_t4_attack_full_10.png"
+            },
+            {
+              "frame": 11,
+              "url": "sprites/towers/tack_p2_t4_attack_full_11.png"
+            },
+            {
+              "frame": 12,
+              "url": "sprites/towers/tack_p2_t4_attack_full_12.png"
+            },
+            {
+              "frame": 13,
+              "url": "sprites/towers/tack_p2_t4_attack_full_13.png"
+            },
+            {
+              "frame": 14,
+              "url": "sprites/towers/tack_p2_t4_attack_full_14.png"
+            },
+            {
+              "frame": 15,
+              "url": "sprites/towers/tack_p2_t4_attack_full_15.png"
+            }
+          ]
+        },
+        "tack_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "tack_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/tack_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/tack_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "village": {
+      "name": "Monkey Village",
+      "hero": false,
+      "base": "sprites/towers/village_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/village_attack_full_0.png"
+        }
+      ],
+      "upgrades": {
+        "village_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "village_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/village_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/village_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    },
+    "wizard": {
+      "name": "Wizard Monkey",
+      "hero": false,
+      "base": "sprites/towers/wizard_base.png",
+      "frames": [
+        {
+          "frame": 0,
+          "url": "sprites/towers/wizard_attack_full_0.png"
+        },
+        {
+          "frame": 1,
+          "url": "sprites/towers/wizard_attack_full_1.png"
+        },
+        {
+          "frame": 2,
+          "url": "sprites/towers/wizard_attack_full_2.png"
+        },
+        {
+          "frame": 3,
+          "url": "sprites/towers/wizard_attack_full_3.png"
+        },
+        {
+          "frame": 4,
+          "url": "sprites/towers/wizard_attack_full_4.png"
+        },
+        {
+          "frame": 5,
+          "url": "sprites/towers/wizard_attack_full_5.png"
+        },
+        {
+          "frame": 6,
+          "url": "sprites/towers/wizard_attack_full_6.png"
+        },
+        {
+          "frame": 7,
+          "url": "sprites/towers/wizard_attack_full_7.png"
+        },
+        {
+          "frame": 8,
+          "url": "sprites/towers/wizard_attack_full_8.png"
+        },
+        {
+          "frame": 9,
+          "url": "sprites/towers/wizard_attack_full_9.png"
+        },
+        {
+          "frame": 10,
+          "url": "sprites/towers/wizard_attack_full_10.png"
+        },
+        {
+          "frame": 11,
+          "url": "sprites/towers/wizard_attack_full_11.png"
+        },
+        {
+          "frame": 12,
+          "url": "sprites/towers/wizard_attack_full_12.png"
+        },
+        {
+          "frame": 13,
+          "url": "sprites/towers/wizard_attack_full_13.png"
+        }
+      ],
+      "upgrades": {
+        "wizard_p1_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p1_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p1_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p1_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p1_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p1_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p1_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p1_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p1_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p1_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p1_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p1_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p1_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p1_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p1_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p2_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p2_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p2_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p2_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p2_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p2_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p2_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p2_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p2_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p2_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p2_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p2_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p2_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p2_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p2_t5_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p3_t1": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p3_t1_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p3_t1_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p3_t2": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p3_t2_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p3_t2_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p3_t3": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p3_t3_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p3_t3_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p3_t4": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p3_t4_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p3_t4_attack_full_1.png"
+            }
+          ]
+        },
+        "wizard_p3_t5": {
+          "base": null,
+          "frames": [
+            {
+              "frame": 0,
+              "url": "sprites/towers/wizard_p3_t5_attack_full_0.png"
+            },
+            {
+              "frame": 1,
+              "url": "sprites/towers/wizard_p3_t5_attack_full_1.png"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "sheets": [
+    {
+      "id": "bomb_p3_t1_attack",
+      "json": "sprites/sheets/bomb_p3_t1_attack/bomb_p3_t1_attack.json",
+      "png": "sprites/sheets/bomb_p3_t1_attack/bomb_p3_t1_attack.png"
+    },
+    {
+      "id": "boomerang_p1_t1_attack",
+      "json": "sprites/sheets/boomerang_p1_t1_attack/boomerang_p1_t1_attack.json",
+      "png": "sprites/sheets/boomerang_p1_t1_attack/boomerang_p1_t1_attack.png"
+    },
+    {
+      "id": "boomerang_p2_t3_attack",
+      "json": "sprites/sheets/boomerang_p2_t3_attack/boomerang_p2_t3_attack.json",
+      "png": "sprites/sheets/boomerang_p2_t3_attack/boomerang_p2_t3_attack.png"
+    },
+    {
+      "id": "dart_p1_t3_attack",
+      "json": "sprites/sheets/dart_p1_t3_attack/dart_p1_t3_attack.json",
+      "png": "sprites/sheets/dart_p1_t3_attack/dart_p1_t3_attack.png"
+    },
+    {
+      "id": "effects",
+      "json": "sprites/sheets/effects/effects.json",
+      "png": "sprites/sheets/effects/effects.png"
+    },
+    {
+      "id": "glue_p1_t4_attack",
+      "json": "sprites/sheets/glue_p1_t4_attack/glue_p1_t4_attack.json",
+      "png": "sprites/sheets/glue_p1_t4_attack/glue_p1_t4_attack.png"
+    },
+    {
+      "id": "ninja_attack",
+      "json": "sprites/sheets/ninja_attack/ninja_attack.json",
+      "png": "sprites/sheets/ninja_attack/ninja_attack.png"
+    },
+    {
+      "id": "tack_p1_t1_attack",
+      "json": "sprites/sheets/tack_p1_t1_attack/tack_p1_t1_attack.json",
+      "png": "sprites/sheets/tack_p1_t1_attack/tack_p1_t1_attack.png"
+    },
+    {
+      "id": "tack_p2_t4_attack",
+      "json": "sprites/sheets/tack_p2_t4_attack/tack_p2_t4_attack.json",
+      "png": "sprites/sheets/tack_p2_t4_attack/tack_p2_t4_attack.png"
+    },
+    {
+      "id": "wizard_attack",
+      "json": "sprites/sheets/wizard_attack/wizard_attack.json",
+      "png": "sprites/sheets/wizard_attack/wizard_attack.png"
+    }
+  ]
+}

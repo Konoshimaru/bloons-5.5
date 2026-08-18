@@ -42,8 +42,8 @@ export default {
             {name:"Grow Blocker",cost:250,desc:"Prevents Regrow Bloons from working while in the radius of the Village."},
             {name:"Radar Scanner",cost:2000,stat:"grantsCamo",amount:true,desc:"Allows all Monkeys in the radius to attack Camo Bloons."},
             {name:"Monkey Intelligence Bureau",cost:7500,stat:"grantsLead",amount:true,desc:"Allows nearby Monkeys to pop all Bloon types."},
-            {name:"Call to Arms",cost:20000,desc:"Call to Arms ability: Gives all monkeys +50% attack speed and pops for a short time.", extraMods:{unlocksAbility:true, abilityName:"Call to Arms", abilityCd:30}},
-            {name:"Homeland Defense",cost:40000,desc:"Ability now increases attack speed and pops by 100% for all Monkeys for 20 seconds.", extraMods:{unlocksAbility:true, abilityName:"Homeland Defense", abilityCd:40}}
+            {name:"Call to Arms",cost:20000,desc:"Call to Arms ability: Gives all monkeys +50% attack speed and pops for a short time.", extraMods:{unlocksAbility:true, abilityName:"Call to Arms", abilityCd:45}},
+            {name:"Homeland Defense",cost:40000,desc:"Ability now increases attack speed and pops by 100% for all Monkeys for 20 seconds.", extraMods:{unlocksAbility:true, abilityName:"Homeland Defense", abilityCd:45}}
         ],
         3: [
             {name:"Monkey Business",cost:500,stat:"discount",amount:0.1,desc:"Provides 10% discount on all Monkeys and upgrades tier 3 or less purchased in the radius."},
@@ -98,6 +98,14 @@ export default {
         const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange, _villageTowerScratch);
         const mk = GameEngine.config.data.mkActive === false ? {} : (GameEngine.config.data.monkeyKnowledge || {});
         
+        // Throttle the addBuff refreshes — each buff lasts 0.5s so refreshing a
+        // couple of times per second is functionally identical while avoiding
+        // activeBuffs churn per tick. The scalar buffs below are still
+        // re-applied every tick so the buffs never drop between refreshes.
+        tower._villageBuffTimer = (tower._villageBuffTimer || 0) - dt;
+        const refresh = tower._villageBuffTimer <= 0;
+        if (refresh) tower._villageBuffTimer = 0.4;
+        
         for (let t of nearbyTowers) {
             if (t === tower) continue;
             
@@ -117,10 +125,13 @@ export default {
                         totalRangeBuff += 0.05; 
                         totalPierceBuff += 1;   
                         abilityCdBuff = 0.9;
+                        t.freeTier1 = true; // Primary Mentoring: tier 1 upgrades free
                     }
                     if (tower.upgrades[0] >= 5) {
                         totalPierceBuff += 2;   
                         abilityCdBuff = 0.8;
+                        t.freeTier1 = true;
+                        t.freeTier2 = true; // Primary Expertise: tier 1 and 2 upgrades free
                     }
                 }
                 
@@ -148,26 +159,26 @@ export default {
                 }
 
                 if (tower.stats.rangeBuff > 0 || tower.stats.discount > 0) {
-                    t.addBuff('village', 'Village Buff', 0.5, 1, { type: 'village' }, false);
+                    if (refresh) t.addBuff('village', 'Village Buff', 0.5, 1, { type: 'village' }, false);
                 }
                 if (tower.upgrades[0] >= 2) {
-                    t.addBuff('jd', 'Jungle Drums', 0.5, 1, { type: 'jd' }, false);
+                    if (refresh) t.addBuff('jd', 'Jungle Drums', 0.5, 1, { type: 'jd' }, false);
                 }
                 if (tower.upgrades[0] >= 3 && t.stats.category === 'Primary') {
-                    t.addBuff('ptr', 'Primary Training', 0.5, 1, { type: 'ptr' }, false);
+                    if (refresh) t.addBuff('ptr', 'Primary Training', 0.5, 1, { type: 'ptr' }, false);
                 }
                 if (tower.upgrades[0] >= 4 && t.stats.category === 'Primary') {
-                    t.addBuff('pm', 'Primary Mentoring', 0.5, 1, { type: 'pm' }, false);
+                    if (refresh) t.addBuff('pm', 'Primary Mentoring', 0.5, 1, { type: 'pm' }, false);
                 }
                 if (tower.upgrades[0] >= 5 && t.stats.category === 'Primary') {
-                    t.addBuff('pe', 'Primary Expertise', 0.5, 1, { type: 'pe' }, false);
+                    if (refresh) t.addBuff('pe', 'Primary Expertise', 0.5, 1, { type: 'pe' }, false);
                 }
 
                 if (tower.upgrades[1] >= 2) {
-                    t.addBuff('radar', 'Radar Scanner', 0.5, 1, { type: 'radar' }, false);
+                    if (refresh) t.addBuff('radar', 'Radar Scanner', 0.5, 1, { type: 'radar' }, false);
                 }
                 if (tower.upgrades[1] >= 3) {
-                    t.addBuff('mib', 'MIB', 0.5, 1, { type: 'mib' }, false);
+                    if (refresh) t.addBuff('mib', 'MIB', 0.5, 1, { type: 'mib' }, false);
                 }
             }
         }

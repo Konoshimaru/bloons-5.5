@@ -7,7 +7,6 @@ import { Names } from './names.js';
 import { Utils } from './utils.js';
 import { Config } from './config.js';
 import { GLOBAL_SCALE } from './constants.js';
-import { EnemyRenderer } from './enemyRenderer.js';
 import EnemyDamage from './enemyDamage.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 import { updateTimedEffects } from './statusEffects.js';
@@ -21,6 +20,14 @@ const STORM_HIT_INTERVAL = 0.05;
 const FORTIFIED_LEAD_HP = 3;
 const LIVES_LOST_CERAMIC_BASE = 94;
 const LIVES_LOST_FORTIFIED_LEAD = 26;
+
+// Scratch results for getPositionAtDistance. The movement hot path runs once
+// per enemy per substep (3000+ × up to 10 substeps/frame), and a fresh
+// {x,y,finished} per call was ~30k allocations/frame. Two scratches are
+// needed because _updateMovement makes two lookups per MOAB — line 1 is fully
+// consumed before line 2 runs, so they never overlap.
+const _pathPosA = { x: 0, y: 0, finished: false };
+const _pathPosB = { x: 0, y: 0, finished: false };
 
 export class Enemy {
     constructor() {}
@@ -250,14 +257,14 @@ export class Enemy {
             this.distanceTraveled += this.data.speed * this.slowFactor * this.gojoSlow * this.permafrostSlow * dt;
         }
         
-        const pos = this.map.getPositionAtDistance(this.distanceTraveled, this.pathIndex);
+        const pos = this.map.getPositionAtDistance(this.distanceTraveled, this.pathIndex, _pathPosA);
         this.x = pos.x + this.offsetX;
         this.y = pos.y + this.offsetY;
         this.offsetX *= 0.9;
         this.offsetY *= 0.9;
         
         if (this.tier >= 13 && !pos.finished) {
-            const nextPos = this.map.getPositionAtDistance(this.distanceTraveled + 5, this.pathIndex);
+            const nextPos = this.map.getPositionAtDistance(this.distanceTraveled + 5, this.pathIndex, _pathPosB);
             if (nextPos && !nextPos.finished) {
                 this.angle = Utils.angle(pos.x, pos.y, nextPos.x, nextPos.y);
             }
@@ -275,7 +282,7 @@ export class Enemy {
                     GameEngine.manaShield -= absorbed;
                     lost -= absorbed;
                 }
-                if (lost > 0) GameEngine.lives -= lost;
+                if (lost > 0 && !(GameEngine.blackHoleTimer > 0)) GameEngine.lives -= lost;
             }
             GameEngine.updateUI();
         }
@@ -437,5 +444,4 @@ export class Enemy {
     }
 }
 
-Object.assign(Enemy.prototype, EnemyRenderer);
 Object.assign(Enemy.prototype, EnemyDamage);

@@ -4,6 +4,7 @@ import { Utils } from '../utils.js';
 
 const _despScratchA = [];
 const _despScratchB = [];
+const _despTowerScratch = [];
 
 export default {
     stats: { 
@@ -43,8 +44,18 @@ export default {
         
         // Quickdraw (faster if bloons are far)
         if (tower.stats.quickdraw) {
-            // Simplified: just grant a static buff for performance
-            buffMult += 0.15;
+            const effRange = Utils.getEffectiveRange(tower, engine);
+            const nearby = engine.enemyGrid.query(tower.x, tower.y, effRange, _despScratchB);
+            let farthest = 0;
+            for (const e of nearby) {
+                if (!e || !e.alive) continue;
+                const d = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
+                if (d > farthest) farthest = d;
+            }
+            if (farthest > 0) {
+                const frac = Math.sqrt(farthest) / Math.max(1, effRange);
+                buffMult += 0.3 * frac;
+            }
         }
         
         // Standoff (faster if few bloons)
@@ -55,11 +66,12 @@ export default {
         
         // Wanderer (faster if few monkeys nearby)
         if (tower.stats.wanderer) {
+            const monkeyList = engine.towerGrid.query(tower.x, tower.y, 100, _despTowerScratch);
             let monkeyCount = 0;
-            for (const t of engine.towers) {
-                if (t && t !== tower && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < 100*100) monkeyCount++;
+            for (let i = 0; i < monkeyList.length; i++) {
+                if (monkeyList[i] && monkeyList[i] !== tower) monkeyCount++;
             }
-            if (monkeyCount === 0) buffMult += 0.3;
+            buffMult += Math.max(0, 0.4 - monkeyCount * 0.1);
         }
         
         // Nomad (faster if many bloons)
@@ -109,7 +121,6 @@ export default {
                 p.effects.explosionRadius = tower.stats.explosionRadius;
                 p.effects.explosionDamage = tower.stats.explosionDamage;
                 p.effects.explosionPierce = 20;
-                p.dmgType.isExplosion = true;
             }
         }
     }

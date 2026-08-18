@@ -67,9 +67,19 @@ export default {
         }
     },
 
-    update(tower, dt) {
+    update(tower, dt, engine) {
         let spawnMod = tower.stats.sentrySpawnMod || 1;
         let sentryFireRateMod = tower.stats.sentryFireRateMod || 1;
+        
+        // Overclock/Ultraboost may only be used a limited number of times per round.
+        if (engine && engine.waveManager) {
+            if (!tower._ocWaveOn && engine.waveManager.waveActive) {
+                tower._ocWaveOn = true;
+                tower.overclockUsesThisRound = 0;
+            } else if (tower._ocWaveOn && !engine.waveManager.waveActive) {
+                tower._ocWaveOn = false;
+            }
+        }
         
         if (!tower.sentryCooldown) tower.sentryCooldown = 10;
         if (!tower.sentrySpawnIndex) tower.sentrySpawnIndex = 0;
@@ -221,7 +231,19 @@ export default {
             } 
         }
         if (target) {
-            target.overclockTimer = 60; 
+            if ((tower.overclockUsesThisRound || 0) >= 10) {
+                engine.log("Overclock used up this round!");
+                return;
+            }
+            tower.overclockUsesThisRound = (tower.overclockUsesThisRound || 0) + 1;
+            // BTD6: duration depends on the target's highest upgrade tier
+            // (60s for tier 3 and below, 45s for tier 4, 30s for tier 5).
+            if (tower.upgrades[1] === 5) {
+                target.overclockTimer = 60; // Ultraboost temporary buff lasts 60s
+            } else {
+                const topTier = Math.max(ot.upgrades[0], ot.upgrades[1], ot.upgrades[2]);
+                target.overclockTimer = topTier >= 5 ? 30 : topTier === 4 ? 45 : 60;
+            }
             if (tower.upgrades[1] === 5) {
                 target.ultraboostStacks = Math.min(10, (target.ultraboostStacks || 0) + 1);
                 engine.log("Ultraboost Activated on " + target.stats.name + "!");

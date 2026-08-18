@@ -69,6 +69,10 @@ const TowerEconomy = {
 
         let cost = engine.getCost(baseCost);
         if (this.discount > 0) cost = Math.floor(cost * (1 - this.discount));
+        // Village Primary Mentoring/Expertise: free tier 1 / tier 1+2 upgrades
+        const nextTier = this.upgrades[path - 1];
+        if (this.freeTier2 && nextTier <= 1) cost = 0;
+        else if (this.freeTier1 && nextTier === 0) cost = 0;
         if (engine.cash < cost || !this.canUpgrade(path, engine)) return false;
 
         engine.cash -= cost;

@@ -6,6 +6,7 @@ import { Utils } from '../utils.js';
 
 const _subScratchA = [];
 const _subScratchB = [];
+const _subTowerScratch = [];
 
 export default {
     stats: { 
@@ -46,10 +47,16 @@ export default {
             const effRange = Utils.getEffectiveRange(tower, engine);
             
             // T3: Reveal Camo (Grant buffedCamo to nearby towers)
-            for (const t of engine.towers) {
+            tower._revealTimer = (tower._revealTimer || 0) - dt;
+            const revealRefresh = tower._revealTimer <= 0;
+            if (revealRefresh) tower._revealTimer = 0.4;
+            const revealNearby = GameEngine.towerGrid.query(tower.x, tower.y, effRange, _subTowerScratch);
+            for (const t of revealNearby) {
                 if (t && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < effRange * effRange) {
                     t.buffedCamo = true;
-                    t.addBuff('sub_reveal', 'Reveal Camo', 0.5, 1, { type: 'sub_reveal' }, false);
+                    if (revealRefresh) {
+                        t.addBuff('sub_reveal', 'Reveal Camo', 0.5, 1, { type: 'sub_reveal' }, false);
+                    }
                 }
             }
             
@@ -78,7 +85,16 @@ export default {
                         t.abilityCdMult = Math.min(t.abilityCdMult || 1.0, 0.80);
                     }
                 }
-                if (engine.hero) engine.hero.heroXpMult = Math.max(engine.hero.heroXpMult || 1.0, 1.5);
+                if (engine.hero) {
+                    const heroInRadius = Utils.distanceSq(tower.x, tower.y, engine.hero.x, engine.hero.y) < effRange * effRange;
+                    if (heroInRadius) {
+                        engine.hero.heroXpMult = Math.max(engine.hero.heroXpMult || 1.0, 1.5);
+                        tower._heroEnergized = true;
+                    } else if (tower._heroEnergized) {
+                        engine.hero.heroXpMult = 1.0;
+                        tower._heroEnergized = false;
+                    }
+                }
             }
             
             // Prevent firing standard darts while submerged
@@ -111,17 +127,27 @@ export default {
 
         // 3. Pre-emptive Strike (Path 2 T5)
         if (tower.upgrades[1] >= 5) {
-            let spawnTarget = null;
-            for (const e of engine.enemies) {
-                if (e && e.alive && e.data.isMoab && e.distanceTraveled < 50) {
-                    spawnTarget = e;
-                    break;
+            // Global near-track-start scan (grid can't help) — refresh the
+            // spawn target a few times per second; the 1s internal cooldown
+            // already prevents spamming so per-frame scanning is wasteful.
+            tower._preemptiveScanTimer = (tower._preemptiveScanTimer || 0) - dt;
+            if (tower._preemptiveScanTimer <= 0) {
+                tower._preemptiveScanTimer = 0.3;
+                let spawnTarget = null;
+                for (const e of engine.enemies) {
+                    if (e && e.alive && e.data.isMoab && e.distanceTraveled < 50) {
+                        spawnTarget = e;
+                        break;
+                    }
                 }
+                tower._preemptiveTarget = spawnTarget;
             }
-            if (spawnTarget && (tower.preemptiveCd === undefined || tower.preemptiveCd <= 0)) {
+            if (tower._preemptiveTarget && (tower.preemptiveCd === undefined || tower.preemptiveCd <= 0)) {
                 tower.preemptiveCd = 1.0; // 1 second internal cooldown to prevent spamming one spawn
+                // 'nail' projectile type (not inherently explosive) so the direct
+                // damage is dealt to the spawn AND the blast hits around it.
                 let p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, 10, spawnTarget, 'bomb', 800, 50, 5.0, null, {isExplosive: true, explosionRadius: 60, explosionDamage: 10, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
+                p.init(tower.x, tower.y, 20000, tower._preemptiveTarget, 'nail', 800, 80, 5.0, null, {isExplosive: true, explosionRadius: 65, explosionDamage: 1000, explosionPierce: 80, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
             }
             if (tower.preemptiveCd > 0) tower.preemptiveCd -= dt;
         }
@@ -181,9 +207,11 @@ export default {
                 }
             }
             if (target) {
-                // Fire a massive, fast missile that deals 1000 direct damage + 500 splash
+                // BTD6 First Strike: 10000 direct damage + 350 splash (pierce 80, radius 65).
+                // 'nail' is not inherently explosive, so the direct damage is applied to the
+                // primary target while the splash still hits everything in radius.
                 let p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, 1000, target, 'bomb', 1000, 100, 5.0, null, {isExplosive: true, explosionRadius: 100, explosionDamage: 500, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
+                p.init(tower.x, tower.y, 10000, target, 'nail', 1000, 80, 5.0, null, {isExplosive: true, explosionRadius: 65, explosionDamage: 350, explosionPierce: 80, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
             }
         }
     }

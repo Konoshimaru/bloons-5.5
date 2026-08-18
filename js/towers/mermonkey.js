@@ -7,6 +7,7 @@ const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _mermAuraScratch = [];
 const _mermRiptideScratch = [];
+const _mermTowerScratch = [];
 
 export default {
     stats: { 
@@ -128,10 +129,16 @@ export default {
             if (tower.upgrades[0] >= 5) buffMult = 0.40;
             
             const range = Utils.getEffectiveRange(tower, engine);
-            for (const t of engine.towers) {
+            tower._abyssalTimer = (tower._abyssalTimer || 0) - dt;
+            const refresh = tower._abyssalTimer <= 0;
+            if (refresh) tower._abyssalTimer = 0.4;
+            const nearby = GameEngine.towerGrid.query(tower.x, tower.y, range, _mermTowerScratch);
+            for (const t of nearby) {
                 if (t === tower || !t) continue;
                 if (Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
-                    t.addBuff('mermonkey_pierce', 'Abyssal Pierce', 0.5, 1, { type: 'mermonkey_pierce' }, false);
+                    if (refresh) {
+                        t.addBuff('mermonkey_pierce', 'Abyssal Pierce', 0.5, 1, { type: 'mermonkey_pierce' }, false);
+                    }
                     t.buffedPierce = Math.max(t.buffedPierce || 0, Math.ceil((t.stats.pierce || 1) * buffMult));
                 }
             }
@@ -160,11 +167,11 @@ export default {
 
         // 5. Alluring Melody Trance (Path 3 T3+)
         if (tower.upgrades[2] >= 3) {
-            if (tower.tranceCooldown === undefined) tower.tranceCooldown = 12.0;
+            if (tower.tranceCooldown === undefined) tower.tranceCooldown = 4.0;
             tower.tranceCooldown -= dt;
             if (tower.tranceCooldown <= 0) {
                 tower.tranceActive = 6.0;
-                tower.tranceCooldown = (tower.upgrades[2] >= 5 ? 3.0 : 12.0);
+                tower.tranceCooldown = (tower.upgrades[2] >= 5 ? 3.0 : 4.0);
             }
             
             if (tower.tranceActive > 0) {
@@ -272,7 +279,7 @@ export default {
             tower.iceJetActive -= dt;
             tower._iceJetCd = (tower._iceJetCd || 0) - dt; 
             if (tower._iceJetCd <= 0) {
-                tower._iceJetCd = 0.05; 
+                tower._iceJetCd = 0.1; 
                 let targetAngle = Utils.angle(tower.x, tower.y, GameEngine.mouse.x, GameEngine.mouse.y);
                 let spread = 30 * Math.PI / 180; 
                 if (tower.upgrades[2] >= 1) spread = 10 * Math.PI / 180; 

@@ -69,6 +69,17 @@ export default {
             }
             if (!hasWater) { engine.log("No water nearby for fish!"); return false; }
         }
+        // T5 (path X tier 5): requires 3 additional Handlers already at tier 4 on the same path.
+        if (tower.upgrades[path-1] === 4) {
+            let handlers = 0;
+            for (const t of engine.towers) {
+                if (t && t !== tower && t.type === 'beast' && t.upgrades[path-1] >= 4) handlers++;
+            }
+            if (handlers < 3) {
+                engine.log("Requires 3 additional Beast Handlers on this path (tier 4) to control this beast!");
+                return false;
+            }
+        }
         return true;
     },
 
@@ -166,6 +177,13 @@ export default {
             } else {
                 tower.stats.isAbility = false;
             }
+            
+            // No merge system in this engine — a freshly tamed T5 beast starts at max power,
+            // standing in for the 3 merged tier-4 beasts BTD6 consumes.
+            if (tower.upgrades[path-1] === 5 && tower.beast && data.maxPower) {
+                tower.beast.beastPower = data.maxPower;
+                tower.beast.recalculateStats();
+            }
         }
     },
 
@@ -183,13 +201,23 @@ export default {
     ability(tower, engine) {
         if (tower.stats.abilityName === "T-Rex Stomp") {
             engine.log("T-Rex Stomp!");
-            Utils.applyAoeDamage(engine, tower.x, tower.y, 100, 150, {isExplosion: true, canHitLead: true}, tower, {stun: 6.0}, {maxHits: 400});
+            // Tiered stun: normal 6s / MOAB 3s / BFB 2.5s / ZOMG 2s / DDT 2s / BAD immune
+            Utils.applyAoeDamage(engine, tower.x, tower.y, 100, 150, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 400, onHit: (e) => {
+                let s = 6.0;
+                if (e.data.isMoab) s = e.data.isBAD ? 0 : (e.data.isZOMG || e.data.isDDT) ? 2.0 : e.data.isBFB ? 2.5 : 3.0;
+                if (s > 0) e.applySlow(0.0, s, false);
+            }});
             engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#e67e22' });
         }
         
         if (tower.stats.abilityName === "Giganoto Stomp") {
             engine.log("Giganotosaurus Stomp!");
-            Utils.applyAoeDamage(engine, 640, 360, 2000, 300, {isExplosion: true, canHitLead: true}, tower, {stun: 12.0}, {maxHits: 600});
+            // Tiered stun: normal 12s / MOAB 8s / BFB 6s / ZOMG 4s / DDT 4s / BAD immune
+            Utils.applyAoeDamage(engine, 640, 360, 2000, 300, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 600, onHit: (e) => {
+                let s = 12.0;
+                if (e.data.isMoab) s = e.data.isBAD ? 0 : (e.data.isZOMG || e.data.isDDT) ? 4.0 : e.data.isBFB ? 6.0 : 8.0;
+                if (s > 0) e.applySlow(0.0, s, false);
+            }});
             engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1500, life: 1.0, maxLife: 1.0, color: '#c0392b' });
         }
     }

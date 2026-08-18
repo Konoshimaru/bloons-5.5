@@ -132,12 +132,16 @@ export const AudioEngine = {
                 uniqueFiles.add(file);
             }
         }
-        
-        const promises = [];
-        for (const file of uniqueFiles) {
-            promises.push(this._fetchAndDecodeSfx(file));
+
+        // Batch the fetch + decode so the loading-screen minigame's rAF keeps
+        // getting frame time (matches the 16-per-chunk / 10ms-yield batching
+        // used by the canvas/WebGL preloads). decodeAudioData is async but
+        // decoding ~22 files at once still spikes the main thread.
+        const files = [...uniqueFiles];
+        for (let i = 0; i < files.length; i += 16) {
+            await Promise.all(files.slice(i, i + 16).map(file => this._fetchAndDecodeSfx(file)));
+            if (i + 16 < files.length) await new Promise(r => setTimeout(r, 10));
         }
-        await Promise.all(promises);
     },
 
     async _fetchAndDecodeSfx(file) {

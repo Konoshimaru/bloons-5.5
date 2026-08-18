@@ -178,7 +178,7 @@ export default {
         if (isEnhanced) {
             laserDmg = 25;
             eff.dot = 3;
-            eff.dotTimer = 9;
+            eff.dotTimer = 1.0; // enhanced laser burn ticks once per second
             if (target.rosaliaShocked) laserDmg += 25;
             target.rosaliaShocked = true;
             eff.knockback = 10;

@@ -44,7 +44,7 @@ export class Sentry {
             color: config.color
         };
 
-        this.maxLife = 25;
+        this.maxLife = config.life || 25;
         this.life = this.maxLife;
         this.cooldown = 0;
         this.alive = true;

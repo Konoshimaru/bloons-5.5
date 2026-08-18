@@ -1,0 +1,143 @@
+{"frames": {
+
+"tack_p2_t4_attack_full_0.png":
+{
+	"frame": {"x":1,"y":1,"w":252,"h":252},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":12,"y":12,"w":252,"h":252},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_1.png":
+{
+	"frame": {"x":1017,"y":1,"w":251,"h":251},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":12,"y":12,"w":251,"h":251},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_2.png":
+{
+	"frame": {"x":251,"y":255,"w":247,"h":247},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":14,"y":14,"w":247,"h":247},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_3.png":
+{
+	"frame": {"x":255,"y":1,"w":252,"h":252},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":12,"y":12,"w":252,"h":252},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_4.png":
+{
+	"frame": {"x":1775,"y":253,"w":249,"h":249},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":13,"y":13,"w":249,"h":249},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_5.png":
+{
+	"frame": {"x":1017,"y":254,"w":248,"h":248},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":14,"y":14,"w":248,"h":248},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_6.png":
+{
+	"frame": {"x":1523,"y":1,"w":250,"h":250},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":13,"y":13,"w":250,"h":250},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_7.png":
+{
+	"frame": {"x":1775,"y":1,"w":250,"h":250},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":13,"y":13,"w":250,"h":250},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_8.png":
+{
+	"frame": {"x":500,"y":255,"w":246,"h":246},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":15,"y":15,"w":246,"h":246},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_9.png":
+{
+	"frame": {"x":1270,"y":1,"w":251,"h":251},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":12,"y":12,"w":251,"h":251},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_10.png":
+{
+	"frame": {"x":1267,"y":254,"w":248,"h":248},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":14,"y":14,"w":248,"h":248},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_11.png":
+{
+	"frame": {"x":1,"y":255,"w":248,"h":248},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":14,"y":14,"w":248,"h":248},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_12.png":
+{
+	"frame": {"x":509,"y":1,"w":252,"h":252},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":12,"y":12,"w":252,"h":252},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_13.png":
+{
+	"frame": {"x":748,"y":255,"w":246,"h":246},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":15,"y":15,"w":246,"h":246},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_14.png":
+{
+	"frame": {"x":1523,"y":253,"w":250,"h":250},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":13,"y":13,"w":250,"h":250},
+	"sourceSize": {"w":276,"h":276}
+},
+"tack_p2_t4_attack_full_15.png":
+{
+	"frame": {"x":763,"y":1,"w":252,"h":252},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":12,"y":12,"w":252,"h":252},
+	"sourceSize": {"w":276,"h":276}
+}},
+"animations": {
+	"tack_p2_t4_attack_full": ["tack_p2_t4_attack_full_0.png","tack_p2_t4_attack_full_1.png","tack_p2_t4_attack_full_2.png","tack_p2_t4_attack_full_3.png","tack_p2_t4_attack_full_4.png","tack_p2_t4_attack_full_5.png","tack_p2_t4_attack_full_6.png","tack_p2_t4_attack_full_7.png","tack_p2_t4_attack_full_8.png","tack_p2_t4_attack_full_9.png","tack_p2_t4_attack_full_10.png","tack_p2_t4_attack_full_11.png","tack_p2_t4_attack_full_12.png","tack_p2_t4_attack_full_13.png","tack_p2_t4_attack_full_14.png","tack_p2_t4_attack_full_15.png"]
+},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.1",
+	"image": "tack_p2_t4_attack.png",
+	"format": "RGBA8888",
+	"size": {"w":2026,"h":504},
+	"scale": "0.98",
+	"smartupdate": "$TexturePacker:SmartUpdate:aed900f9c63f024ad873e2279b5b5107:eb290a5feb7f3280c333ab9654be6990:5c441ecf05dc0b858d456f776ded544f$"
+}
+}

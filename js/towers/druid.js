@@ -5,6 +5,7 @@ import { Utils } from '../utils.js';
 const _druidAuraScratch = [];
 const _druidStormScratch = [];
 const _druidFireScratch = [];
+const _druidTowerScratch = [];
 
 export default {
     stats: { 
@@ -17,9 +18,9 @@ export default {
     upgrades: {
         1: [ // Storm Path
             {name:"Hard Thorns", cost:350, stat:"pierce", amount:1, desc:"Hard thorns can pop 2 Bloons each and pop any Bloon type.", extraMods:{canHitLead: true, canHitFrozen: true}},
-            {name:"Heart of Thunder", cost:850, desc:"Unleashes regular blasts of forked lightning.", extraMods:{lightningCd: 2.0, lightningDmg: 3}},
+            {name:"Heart of Thunder", cost:850, desc:"Unleashes regular blasts of forked lightning.", extraMods:{lightningCd: 2.0, lightningDmg: 2}},
             {name:"Druid of the Storm", cost:1700, desc:"Gusts of wind blow Bloons off the track away from the exit.", extraMods:{tornadoCd: 4.0, knockback: 100}},
-            {name:"Ball Lightning", cost:4500, stat:"canSeeCamo", amount:true, desc:"Creates powerful balls of lightning that can freeze Bloons.", extraMods:{lightningDmg: 5, freeze: true, freezeDuration: 1.0}},
+            {name:"Ball Lightning", cost:4500, stat:"canSeeCamo", amount:true, desc:"Creates powerful balls of lightning that can freeze Bloons.", extraMods:{lightningDmg: 5, freeze: true, freezeDuration: 4.5}},
             {name:"Monarch of Storms", cost:60000, stat:"damage", amount:5, desc:"Relentless barrage of superstorms. Massive damage and blows them away.", extraMods:{lightningCd: 0.5, lightningDmg: 20, knockback: 200, pierce: 5}}
         ],
         2: [ // Jungle Path
@@ -27,7 +28,7 @@ export default {
             {name:"Heart of Oak", cost:350, desc:"Attacks convert Regrow Bloons into normal Bloons.", extraMods:{stripRegen: true}},
             {name:"Druid of the Jungle", cost:1050, desc:"Calls a vine from the ground to entangle and crush Bloons.", extraMods:{vineCd: 3.0, vineDmg: 10}},
             {name:"Jungle's Bounty", cost:4900, desc:"Generates cash and lives at the end of each round. Vine Crush Ability.", extraMods:{isAbility: true, abilityName: "Vine Crush", abilityCd: 20, income: 500}},
-            {name:"Spirit of the Forest", cost:35000, desc:"Grows thorned vines along the path that deal constant damage.", extraMods:{income: 1200, vineDmg: 50, vineCd: 1.0}}
+            {name:"Spirit of the Forest", cost:35000, desc:"Grows thorned vines along the path that deal constant damage.", extraMods:{income: 1200, vineDmg: 5, vineCd: 1.0}}
         ],
         3: [ // Wrath Path
             {name:"Druidic Reach", cost:100, stat:"range", amount:10, desc:"Increases range by a large amount."},
@@ -62,9 +63,15 @@ export default {
         // 3. Poplust Aura (Path 3 T4)
         if (tower.stats.poplust) {
             const range = Utils.getEffectiveRange(tower, engine);
-            for (const t of engine.towers) {
+            tower._poplustTimer = (tower._poplustTimer || 0) - dt;
+            const refresh = tower._poplustTimer <= 0;
+            if (refresh) tower._poplustTimer = 0.4;
+            const nearby = GameEngine.towerGrid.query(tower.x, tower.y, range, _druidTowerScratch);
+            for (const t of nearby) {
                 if (t && t.type === 'druid' && t !== tower && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
-                    t.addBuff('poplust', 'Poplust', 0.5, 1, { type: 'poplust' }, false);
+                    if (refresh) {
+                        t.addBuff('poplust', 'Poplust', 0.5, 1, { type: 'poplust' }, false);
+                    }
                     t.buffedFireRate = Math.max(t.buffedFireRate || 0, 0.15); // +15% atk speed
                     t.buffedPierce = Math.max(t.buffedPierce || 0, 1);
                 }
@@ -86,15 +93,18 @@ export default {
             tower.lightningTimer = (tower.lightningTimer || 0) - dt;
             if (tower.lightningTimer <= 0) {
                 tower.lightningTimer = tower.stats.lightningCd;
-                // Fire a homing lightning bolt at a random target
-                if (engine.enemies.length > 0) {
-                    let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
-                    if (target && target.alive) {
-                        let p = engine.projectilePool.get();
-                        let pEffects = {};
-                        if (tower.stats.freeze) { pEffects.freeze = true; pEffects.freezeDuration = tower.stats.freezeDuration; }
-                        p.init(tower.x, tower.y - 10, tower.stats.lightningDmg, target, 'wizard_bolt', 1000, 5, 0.5, null, pEffects, 0, tower, { isEnergy: true, canHitLead: true });
-                    }
+                // Fire a homing lightning bolt at a random target within range
+                const range = Utils.getEffectiveRange(tower, engine);
+                const nearby = engine.enemyGrid.query(tower.x, tower.y, range, _druidStormScratch);
+                let target = null;
+                const candidates = [];
+                for (const e of nearby) { if (e && e.alive) candidates.push(e); }
+                if (candidates.length > 0) target = candidates[Math.floor(Math.random() * candidates.length)];
+                if (target) {
+                    let p = engine.projectilePool.get();
+                    let pEffects = {};
+                    if (tower.stats.freeze) { pEffects.freeze = true; pEffects.freezeDuration = tower.stats.freezeDuration; }
+                    p.init(tower.x, tower.y - 10, tower.stats.lightningDmg, target, 'wizard_bolt', 1000, 5, 0.5, null, pEffects, 0, tower, { isEnergy: true, canHitLead: true });
                 }
             }
         }
@@ -104,13 +114,16 @@ export default {
             tower.tornadoTimer = (tower.tornadoTimer || 0) - dt;
             if (tower.tornadoTimer <= 0) {
                 tower.tornadoTimer = tower.stats.tornadoCd;
-                // Fire a tornado that pushes bloons back
-                if (engine.enemies.length > 0) {
-                    let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
-                    if (target && target.alive) {
+                // Fire a tornado that pushes bloons back, targeting within range
+                const tRange = Utils.getEffectiveRange(tower, engine);
+                const tNearby = engine.enemyGrid.query(tower.x, tower.y, tRange, _druidAuraScratch);
+                let target = null;
+                const tCandidates = [];
+                for (const e of tNearby) { if (e && e.alive) tCandidates.push(e); }
+                if (tCandidates.length > 0) target = tCandidates[Math.floor(Math.random() * tCandidates.length)];
+                if (target) {
                         let p = engine.projectilePool.get();
-                        p.init(tower.x, tower.y - 10, 0, target, 'bomb', 400, 10, 1.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: 0, knockback: tower.stats.knockback, canHitLead: true }, 0, tower, { isExplosion: true, canHitLead: true });
-                    }
+                        p.init(tower.x, tower.y - 10, 0, target, 'bomb', 400, 35, 1.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: 0, knockback: tower.stats.knockback, canHitLead: true }, 0, tower, { isExplosion: true, canHitLead: true });
                 }
             }
         }
@@ -150,7 +163,7 @@ export default {
         let count = tower.stats.projectileCount || 5;
         let spreadAngle = 25; // 25 degree spread for thorns
         let pEffects = { ...effects };
-        if (tower.stats.stripRegen) pEffects.foam = true; // Foam strips camo and regen in the engine
+        if (tower.stats.stripRegen) pEffects.stripRegen = true; // Heart of Oak strips Regrow only
 
         for (let i = 0; i < count; i++) {
             let offset = count > 1 ? (spreadAngle * (i - (count - 1) / 2)) : 0;

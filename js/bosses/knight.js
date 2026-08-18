@@ -6,8 +6,8 @@ import { BossHealthBarHandler } from '../BossHealthBarHandler.js';
 import { Config } from '../config.js';
 import { UI } from '../ui.js';
 import { AudioEngine } from '../audio.js';
+import { TUNING } from '../tuning.js';
 import { getBossMusic } from './knightMusic.js';
-import KnightRenderer from './knightRenderer.js';
 import KnightAttacks from './knightAttacks.js';
 
 export class KnightEnemy extends Enemy {
@@ -57,6 +57,15 @@ export class KnightEnemy extends Enemy {
 
         this.homeX = 200;
         this.homeY = 300;
+        this.ballTravel = null;
+        this.spriteAnimName = null;
+        this.spriteAnimFrame = 1;
+        this.spriteAnimTimer = 0;
+        this.spriteAnimReverse = false; // point ping-pongs back down after peaking
+        this.flyPhase = null;    // null | 'transition' | 'fly' (death exit)
+        this.flyElapsed = 0;     // time since the fly-away started
+        this.slashBackup = 0;    // 0..1 how far the knight has backed away while readying
+        this.slashFired = false;   // set when the spinning slashes dash (wind-up ends)
 
         BossHealthBarHandler.registerBoss(this);
     }
@@ -87,10 +96,9 @@ export class KnightEnemy extends Enemy {
                 GameEngine.spawnPopEffect(ex, ey, '#9b59b6');
             }
 
-            // Final Detonation (Only runs once!)
+            // Final Detonation (Only runs once! The knight survives this so
+            // he can play the fly-away exit before being removed.)
             if (this.stateTimer <= 0 && !this.isDyingComplete) {
-                this.isDyingComplete = true; 
-                this.alive = false;
                 getBossMusic().pause(); 
                 BossHealthBarHandler.unregisterBoss(this);
                 
@@ -101,19 +109,36 @@ export class KnightEnemy extends Enemy {
                 
                 GameEngine.log("The Black Knight has been vanquished!");
                 
-                // Safely remove self from game engine immediately
-                const idx = GameEngine.enemies.indexOf(this);
-                if (idx > -1) GameEngine.enemies.splice(idx, 1);
+                // Transition to the fly-away exit instead of disappearing.
+                this.state = 'flying_away';
+                this.alpha = 1;
+                this.flyPhase = null;
+                this.flyElapsed = 0;
+                this.knightTrail = [];
             }
             return; 
+        }
+
+        // --- FLY-AWAY (death exit) ---
+        if (this.state === 'flying_away') {
+            this._updateFlyAway(dt);
+            return;
         }
 
         // Float constantly around homeX/homeY, unless teleporting
         if (this.isCinematic) {
             this.y = 300 + Math.cos(this.time * 3) * 20;
         } else if (this.state !== 'repositioning') {
-            this.y = this.homeY + Math.cos(this.time * 3) * 20;
-            this.x = this.homeX + Math.sin(this.time * 2) * 30;
+            // Back up away from the cursor while readying the spinning
+            // slashes (wind-up pose), then step back in once they're flying.
+            const slashCfg = TUNING.bossAnim.sprites.slash;
+            const targetBackup = this.state === 'spinning_slashes' ? 1 : 0;
+            this.slashBackup += (targetBackup - this.slashBackup) * Math.min(1, dt * slashCfg.backupSpeed);
+            const bx = this.x - GameEngine.mouse.x;
+            const by = this.y - GameEngine.mouse.y;
+            const bdist = Math.max(1, Math.hypot(bx, by));
+            this.x = this.homeX + Math.sin(this.time * 2) * 30 - (bx / bdist) * slashCfg.backupDist * this.slashBackup;
+            this.y = this.homeY + Math.cos(this.time * 3) * 20 - (by / bdist) * slashCfg.backupDist * this.slashBackup;
         }
 
         // Update Trail
@@ -150,6 +175,7 @@ export class KnightEnemy extends Enemy {
 
         this._updateState(dt);
         this._updateProjectiles(dt);
+        this._updateFightSprite(dt);
     }
 
     takeDamage(damage, dmgType, effects) {
@@ -193,7 +219,6 @@ export class KnightEnemy extends Enemy {
     }
 }
 
-Object.assign(KnightEnemy.prototype, KnightRenderer);
 Object.assign(KnightEnemy.prototype, KnightAttacks);
 
 export { getBossMusic } from './knightMusic.js';

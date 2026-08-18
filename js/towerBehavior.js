@@ -260,7 +260,7 @@ function _findTarget(tower, engine) {
     for (const e of candidates) {
         if (!e.alive) continue;
         if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
-        if (tower.type === 'glue' && e.data.isMoab) continue; 
+        if (tower.type === 'glue' && e.data.isMoab && !tower.stats.canHitMoab) continue; 
         
         let distSq = 0;
         if (needDist) {
@@ -460,7 +460,15 @@ export function fire(tower, target, engine, aim = null) {
 }
 
 function _rollDamage(tower) {
-    const isCrit = !!tower.stats.critChance && Math.random() < tower.stats.critChance;
+    let isCrit = false;
+    if (tower.stats.critEvery) {
+        // BTD6-style guaranteed crit cycle (e.g. Sharp Shooter every 8th shot,
+        // Crossbow Master every 5th) instead of a random roll.
+        tower._critCount = (tower._critCount || 0) + 1;
+        isCrit = tower._critCount % tower.stats.critEvery === 0;
+    } else {
+        isCrit = !!tower.stats.critChance && Math.random() < tower.stats.critChance;
+    }
     let damage = tower.stats.damage + (tower.buffedDmg || 0) + (tower.alchBuff ? tower.alchBuff.dmg : 0);
     if (isCrit) damage = tower.stats.critDmg;
     return { damage, isCrit };

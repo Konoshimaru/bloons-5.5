@@ -290,6 +290,7 @@ export const menuController = {
         dom.btnHeroes?.addEventListener('click', () => UI.toggleMenus('hero-select-menu'));
         dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
         dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
+        dom.btnUpdateLog?.addEventListener('click', () => UI.toggleMenus('update-log-menu'));
         
         dom.btnPlay?.addEventListener('click', () => { 
             this.playMenuState.selectedMapIndex = Config.data.currentMap;

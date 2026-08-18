@@ -43,7 +43,7 @@ export const MapRenderCore = {
         if (!waterBrushes) return;
         for (let brush of waterBrushes) {
             if (!brush || !brush.points || brush.points.length === 0) continue;
-            ctx.strokeStyle = '#3498db';
+            ctx.strokeStyle = brush.color || '#3498db';
             ctx.lineWidth = brush.thickness;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';

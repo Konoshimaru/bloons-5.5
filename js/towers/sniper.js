@@ -21,7 +21,7 @@ export default {
         1: [
             {name:"Full Metal Jacket", cost:350, stat:"damage", amount:2, desc:"Deals 2 extra damage. Can pop Lead and Frozen.", extraMods:{dmgType:'heavy'}},
             {name:"Large Calibre", cost:1300, stat:"damage", amount:3, desc:"Deals 3 extra damage."},
-            {name:"Deadly Precision", cost:2200, stat:"damage", amount:13, desc:"Deals massive damage to Ceramics.", extraMods:{bonusCeramic:50}},
+            {name:"Deadly Precision", cost:2200, desc:"Deals massive damage to Ceramics.", extraMods:{bonusCeramic:13}},
             {name:"Maim MOAB", cost:6300, stat:"damage", amount:10, desc:"Stuns MOAB-class bloons.", extraMods:{stunMoab:3, stunBfb:1.5, stunZomg:0.5, stunDdt:1.5}},
             {name:"Cripple MOAB", cost:32000, stat:"damage", amount:110, desc:"Increased stun. Crippled MOABs take +5 damage from all sources.", extraMods:{stunMoab:6, stunBfb:3, stunZomg:1, stunDdt:3, crippleDebuff:true}}
         ],
@@ -47,21 +47,30 @@ export default {
         tower._waveActive = GameEngine.waveManager.waveActive;
         
         if (tower.stats.eliteDefender) {
-            if (engine.lives < (tower._lastLives || engine.lives)) {
-                tower.frenzyTimer = 4.0;
-            }
-            tower._lastLives = engine.lives;
-            if (tower.frenzyTimer > 0) {
-                tower.frenzyTimer -= dt;
-                tower.eliteDefenderSpeedMod = 0.25;
-            } else {
+            // Track-distance speed bonus is always computed (throttled to ~3x/sec).
+            tower._eliteDefTimer = (tower._eliteDefTimer || 0) - dt;
+            if (tower._eliteDefTimer <= 0) {
+                tower._eliteDefTimer = 0.3;
                 let maxDist = 0;
                 for (let e of engine.enemies) {
                     if (e.alive && e.distanceTraveled > maxDist) maxDist = e.distanceTraveled;
                 }
                 let totalLen = engine.map.getTotalLength();
                 let progress = Math.min(1, maxDist / totalLen);
-                tower.eliteDefenderSpeedMod = 1 - progress * 0.5;
+                tower._eliteTrackMod = 1 - progress * 0.5;
+            }
+            // Life-loss frenzy: 7s hyper-flurry, 10s internal cooldown.
+            if (tower._lastLives !== undefined && engine.lives < tower._lastLives && (tower._frenzyCd || 0) <= 0) {
+                tower.frenzyTimer = 7.0;
+                tower._frenzyCd = 10.0;
+            }
+            tower._lastLives = engine.lives;
+            if (tower._frenzyCd > 0) tower._frenzyCd -= dt;
+            if (tower.frenzyTimer > 0) {
+                tower.frenzyTimer -= dt;
+                tower.eliteDefenderSpeedMod = 0.25 * (tower._eliteTrackMod || 1);
+            } else {
+                tower.eliteDefenderSpeedMod = tower._eliteTrackMod || 1;
             }
         } else {
             tower.eliteDefenderSpeedMod = 1;
@@ -109,7 +118,7 @@ export default {
     },
     fire(tower, target, damage, dmgType, isCrit, effects, engine) {
         let actualDmg = damage;
-        if (tower.stats.eliteDefender && target.data.isMoab) actualDmg *= 2;
+        if (tower.stats.eliteDefender && target.data.isMoab) actualDmg += 4; // BTD6: +4 MOAB damage
         if (tower.stats.bonusCeramic && target.data.isCeramic) actualDmg += tower.stats.bonusCeramic;
         if (tower.stats.bonusCamo && target.isCamo) actualDmg += tower.stats.bonusCamo;
         if (tower.stats.crippleDebuff) {
@@ -147,7 +156,7 @@ export default {
                 hitSet.add(nextTarget);
                 currentTarget = nextTarget;
                 let bounceDmg = actualDmg;
-                if (tower.stats.eliteDefender && currentTarget.data.isMoab) bounceDmg *= 2;
+                if (tower.stats.eliteDefender && currentTarget.data.isMoab) bounceDmg += 4;
                 if (tower.stats.bonusCeramic && currentTarget.data.isCeramic) bounceDmg += tower.stats.bonusCeramic;
                 if (tower.stats.bonusCamo && currentTarget.isCamo) bounceDmg += tower.stats.bonusCamo;
                 if (tower.stats.crippleDebuff) {

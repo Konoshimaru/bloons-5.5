@@ -25,7 +25,7 @@ export default {
             {name:"Advanced Targeting", cost:250, stat:"canSeeCamo", amount:true, desc:"Allows Dartling Gunner to hit Camo Bloons."},
             {name:"Faster Barrel Spin", cost:950, desc:"Makes gun fire much faster.", extraMods:{cooldownMult: 0.5}},
             {name:"Hydra Rocket Pods", cost:4500, desc:"Shoots depleted bloontonium missiles that trigger multiple explosions.", extraMods:{projectileType: 'bomb', isExplosive: true, explosionRadius: 30, explosionDamage: 1, explosionPierce: 10, cooldownMult: 1.5, canHitLead: true}},
-            {name:"Rocket Storm", cost:5000, desc:"Rocket Storm ability: Launches a powerful storm of rockets in a wide cone.", extraMods:{isAbility: true, abilityName: "Rocket Storm", abilityCd: 40}},
+            {name:"Rocket Storm", cost:5000, desc:"Rocket Storm ability: Launches a powerful storm of rockets in a wide cone.", extraMods:{isAbility: true, abilityName: "Rocket Storm", abilityCd: 45}},
             {name:"M.A.D.", cost:65000, stat:"damage", amount:50, desc:"MOAB Assured Destroyer. Mega missiles deal extreme damage to MOAB-class.", extraMods:{cooldownMult: 1.5, moabDmg: 100, explosionRadius: 50, explosionDamage: 50, explosionPierce: 50}}
         ],
         3: [
@@ -64,7 +64,7 @@ export default {
                 tower.stormTimer = 0.05; // Fire 20 times a second
                 let fakeTarget = { x: engine.mouse.x, y: engine.mouse.y };
                 let p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, 1, fakeTarget, 'bomb', 600, 10, 2.0, null, {isExplosive: true, explosionRadius: 30, explosionDamage: 1, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true, moabDmg: tower.stats.moabDmg || 0});
+                p.init(tower.x, tower.y, 5, fakeTarget, 'bomb', 600, 10, 2.0, null, {isExplosive: true, explosionRadius: 30, explosionDamage: 5, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true, moabDmg: tower.stats.moabDmg || 0});
             }
         }
     },
@@ -101,7 +101,7 @@ export default {
     ability(tower, engine) {
         if (tower.stats.abilityName === "Rocket Storm") {
             engine.log("Rocket Storm!");
-            tower.rocketStormActive = 5.0; // 5 seconds of rocket spam
+            tower.rocketStormActive = 8.0; // 8 seconds of rocket spam
             tower.stormTimer = 0;
         }
     }

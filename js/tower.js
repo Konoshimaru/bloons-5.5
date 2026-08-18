@@ -35,7 +35,6 @@ import { RANGE_SCALE } from './config.js';
 import { getBehavior } from './registry.js'; 
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
-import TowerRenderer from './towerRenderer.js';
 import TowerEconomy from './towerEconomy.js';
 
 const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
@@ -275,6 +274,4 @@ export class Tower {
     }
 }
 
-Object.assign(Tower.prototype, TowerRenderer);
 Object.assign(Tower.prototype, TowerEconomy);
-Tower.drawPreview = TowerRenderer.drawPreview;

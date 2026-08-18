@@ -28,7 +28,7 @@ export default {
         1: [
             {name:"Rapid Fire", cost:450, desc:"Shoots faster than normal.", extraMods:{cooldownMult: 0.75}},
             {name:"Lots More Darts", cost:550, stat:"projectileCount", amount:4, desc:"Shoots 12 darts at a time."},
-            {name:"Fighter Plane", cost:1000, stat:"moabDmg", amount:5, desc:"Flies fast and launches anti-MOAB missiles.", extraMods:{missileCd: 3.0, missileDmg: 18, aceSpeedMult: 1.25}},
+            {name:"Fighter Plane", cost:1000, desc:"Flies fast and launches anti-MOAB missiles.", extraMods:{missileCd: 3.0, missileDmg: 18, aceSpeedMult: 1.25}},
             {name:"Operation: Dart Storm", cost:3300, stat:"projectileCount", amount:4, desc:"Shoots 16 darts per volley, and twice as fast.", extraMods:{cooldownMult: 0.5, missileCd: -1.5, missileDmg: 6}},
             {name:"Sky Shredder", cost:42500, stat:"projectileCount", amount:16, desc:"The Bloons will wish they had never come.", extraMods:{pierce: 3, damage: 2, cooldownMult: 0.5, missileDmg: 126, projectileSpeed: 150 * GS, dmgType: 'normal', ceramicDmg: 2}}
         ],
@@ -36,7 +36,7 @@ export default {
             {name:"Exploding Pineapple", cost:200, desc:"Drops pineapples to the ground that explode violently after a few seconds.", extraMods:{pineappleCd: 1.6, pineappleDmg: 1, pineapplePierce: 20, explosionRadius: 35}},
             {name:"Spy Plane", cost:350, stat:"canSeeCamo", amount:true, desc:"Allows Monkey Ace to hit Camo Bloons and do more damage to them.", extraMods:{camoDmg: 1}},
             {name:"Bomber Ace", cost:900, desc:"Drops a line of bombs when crossing the Bloon track.", extraMods:{bomberCd: 1.6, bomberDmg: 3, bomberPierce: 20, camoDmg: 2}},
-            {name:"Ground Zero", cost:16000, desc:"Bomb damage increased. Ground Zero Ability: Drops a huge bomb.", extraMods:{isAbility: true, abilityName: "Ground Zero", abilityCd: 35, pineappleDmg: 14, bomberDmg: 12, bomberPierce: 20, camoDmg: 12}},
+            {name:"Ground Zero", cost:16000, desc:"Bomb damage increased. Ground Zero Ability: Drops a huge bomb.", extraMods:{isAbility: true, abilityName: "Ground Zero", abilityCd: 35, pineappleDmg: 14, bomberDmg: 12, bomberPierce: 40, camoDmg: 12}},
             {name:"Tsar Bomba", cost:26000, desc:"A very, very large bomb. Someone put a stop to this craziness!", extraMods:{pineappleDmg: 5, bomberDmg: 5, ceramicDmg: 10, camoDmg: 5}}
         ],
         3: [
@@ -44,7 +44,7 @@ export default {
             {name:"Centered Path", cost:550, desc:"Unlocks Centered Path flight mode in targeting options.", extraMods:{}},
             {name:"Neva-Miss Targeting", cost:2550, desc:"Darts automatically seek out and pop Bloons by themselves.", extraMods:{homing: true, projectileSpeed: -120 * GS, lifespan: 1.93}},
             {name:"Spectre", cost:23400, desc:"Rapidly fires darts and bombs, dominating most Bloon types easily.", extraMods:{isSpectre: true, machineGunCd: 0.06, damage: 2}},
-            {name:"Flying Fortress", cost:90000, desc:"This is a BIG plane.", extraMods:{isFortress: true, machineGunCd: -0.02, damage: 3, dmgType: 'normal'}}
+            {name:"Flying Fortress", cost:90000, desc:"This is a BIG plane.", extraMods:{isFortress: true, machineGunCd: -0.02, damage: 6, dmgType: 'normal'}}
         ]
     },
 
@@ -138,7 +138,7 @@ export default {
                 }
                 if (target) {
                     let p = engine.projectilePool.get();
-                    p.init(tower.planeX, tower.planeY, tower.stats.missileDmg, target, 'bomb', 600 * GS, 5, 2.0, null, {isExplosive: true, explosionRadius: 30 * GS, explosionDamage: tower.stats.missileDmg, canHitLead: true, ceramicDmg: tower.stats.ceramicDmg || 0}, 0, tower, {isExplosion: true, canHitLead: true, moabDmg: tower.stats.moabDmg || 0});
+                    p.init(tower.planeX, tower.planeY, tower.stats.missileDmg, target, 'bomb', 600 * GS, 4, 2.0, null, {isExplosive: true, explosionRadius: 30 * GS, explosionDamage: tower.stats.missileDmg, canHitLead: true, ceramicDmg: tower.stats.ceramicDmg || 0}, 0, tower, {isExplosion: true, canHitLead: true, moabDmg: tower.stats.moabDmg || 0});
                 }
             }
         }

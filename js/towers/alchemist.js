@@ -23,7 +23,7 @@ export default {
             {name:"Larger Potions", cost:250, stat:"pierce", amount:5, desc:"Potions splash over more Bloons in a larger area.", extraMods:{explosionRadius: 20}},
             {name:"Acidic Mixture Dip", cost:350, stat:"canDip", amount:true, desc:"Throws a helpful potion at nearby Monkeys that allows them to pop Lead Bloons and do extra damage to Ceramic and MOAB-class Bloons."},
             {name:"Berserker Brew", cost:1400, stat:"canBrew", amount:true, desc:"Throws special brew to a nearby Monkey giving it increased damage, range, and attack speed briefly.", extraMods:{brewDmg:1, brewRange:0.10, brewSpeed:0.10, brewPierce:2, brewShots:25, brewTimer:5}},
-            {name:"Stronger Stimulant", cost:2850, stat:"brewDmg", amount:1, desc:"Extra strong berserker brew has even more powerful effect on the target. Lasts even longer.", extraMods:{brewRange:0.05, brewSpeed:0.076, brewPierce:1, brewShots:40, brewTimer:12}},
+            {name:"Stronger Stimulant", cost:2850, desc:"Extra strong berserker brew has even more powerful effect on the target. Lasts even longer.", extraMods:{brewRange:0.05, brewSpeed:0.076, brewPierce:1, brewShots:40, brewTimer:12}},
             {name:"Permanent Brew", cost:48000, stat:"isPermBrew", amount:true, desc:"Berserker brew becomes PERMANENT on Monkeys who drink it."}
         ],
         2: [
@@ -31,7 +31,7 @@ export default {
             {name:"Perishing Potions", cost:475, stat:"moabDmg", amount:5, desc:"Attack potions deal more damage to MOAB-class Bloons and strip Fortified off smaller Bloons. Buff potions last longer.", extraMods:{brewShots:35, brewTimer:6}},
             {name:"Unstable Concoction", cost:2800, stat:"unstableConcoction", amount:true, desc:"Coats MOAB-Class in an explosive substance that causes a large explosion when they are popped."},
             {name:"Transforming Tonic", cost:4200, stat:"isAbility", amount:true, desc:"Transformation ability: Turns Alchemist into powerful attack Monster for 20 seconds.", extraMods:{unlocksAbility:true, abilityName:"Tonic", abilityCd:40}},
-            {name:"Total Transformation", cost:45000, stat:"damage", amount:1, desc:"Transforms five Monkeys nearby into crazy attack monsters for 20 seconds."}
+            {name:"Total Transformation", cost:45000, desc:"Transforms five Monkeys nearby into crazy attack monsters for 20 seconds."}
         ],
         3: [
             {name:"Faster Throwing", cost:650, desc:"Throws potions and attacks faster.", cooldownMult: 0.8},
@@ -164,7 +164,7 @@ export default {
         if (tower.stats.moabDmg) expEffects.moabDmg = tower.stats.moabDmg;
         if (tower.stats.unstableConcoction) expEffects.unstableConcoction = true;
         if (tower.upgrades[1] >= 2) expEffects.stripFortified = true;
-        if (tower.stats.leadToGold) { expEffects.gold = 50; expEffects.leadToGold = true; expDmg += 9; }
+        if (tower.stats.leadToGold) { expEffects.leadToGold = true; }
         if (tower.stats.rubberToGold && tower.shotCount % 4 === 0) expEffects.rubberToGold = true;
         if (tower.stats.acidPool && tower.shotCount % 5 === 0) { 
             GameEngine.acidPools = GameEngine.acidPools || []; 
@@ -175,7 +175,8 @@ export default {
         expEffects.explosionDamage = expDmg; 
         expEffects.explosionPierce = tower.stats.pierce;
         expEffects.dot = 1 + (tower.stats.dot || 0); 
-        expEffects.dotTimer = 4.0; 
+        expEffects.dotTimer = 2.0; // BTD6 acid potion ticks every 2s
+        expEffects.dotDuration = 4.0; // for ~4s
         expEffects.isAcid = true;
         
         let p = engine.projectilePool.get();

@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloon Sprite Editor</title>
+    <style>
+        :root {
+            --bg: #1a1a1a; --panel: #2c3e50; --panel2: #34495e; --text: #ecf0f1;
+            --muted: #95a5a6; --accent: #e67e22; --danger: #e74c3c; --success: #27ae60;
+        }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column; margin: 0; overflow: hidden;
+        }
+        #app-row { display: flex; flex: 1; min-height: 0; }
+
+        /* ---------- Left: bloon picker ---------- */
+        #gallery {
+            background: var(--panel); width: 240px; height: 100%;
+            display: flex; flex-direction: column; flex-shrink: 0;
+            border-right: 2px solid var(--accent); overflow-y: auto;
+        }
+        #gallery header { padding: 12px 14px 4px; }
+        #gallery header h2 { margin: 0 0 4px; color: var(--accent); font-size: 18px; }
+        #gallery .hint { font-size: 11px; color: var(--muted); margin: 0 14px 8px; }
+        .b-item {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 10px 12px; background: transparent; border: 1px solid transparent;
+            color: var(--text); cursor: pointer; text-align: left; font-size: 14px; font-weight: 600;
+        }
+        .b-item:hover { background: #3e5771; }
+        .b-item.active { background: var(--accent); border-color: #d35400; color: white; }
+        .b-item .thumb {
+            width: 44px; height: 44px; flex-shrink: 0; border-radius: 3px;
+            background: #111; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 1px solid #555;
+        }
+        .b-item .thumb img { max-width: 42px; max-height: 42px; display: block; }
+        .b-item .size { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: normal; }
+        .b-item.active .size { color: rgba(255,255,255,0.8); }
+
+        /* ---------- Middle: controls ---------- */
+        #controls {
+            background: var(--panel2); padding: 14px 16px; width: 320px; height: 100%;
+            display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;
+            overflow-y: auto; border-right: 2px solid var(--accent);
+        }
+        #controls::-webkit-scrollbar { width: 8px; }
+        #controls::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+        #controls h2 { margin: 0; color: var(--accent); font-size: 17px; }
+        #controls h3 { margin: 0 0 6px; color: var(--accent); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+        hr { border: 0; border-top: 1px solid #7f8c8d; margin: 2px 0; width: 100%; }
+        label { font-size: 12px; display: block; margin-bottom: 4px; color: #bdc3c7; }
+        button {
+            padding: 8px 10px; background: #2c3e50; border: 1px solid #7f8c8d;
+            color: white; cursor: pointer; border-radius: 4px; font-weight: bold;
+            transition: background 0.2s; font-size: 13px;
+        }
+        button:hover { background: #3e5771; }
+        button.active { background: var(--accent); border-color: #d35400; }
+        .btn-group { display: flex; gap: 5px; }
+        .btn-group button { flex: 1; text-align: center; }
+        .transform-row { display: flex; align-items: center; gap: 8px; }
+        .transform-row input[type="range"] { flex: 1; }
+        .transform-row input[type="number"] { width: 76px; text-align: center; padding: 5px; }
+        .transform-row .val { width: 42px; text-align: right; font-family: monospace; font-size: 12px; color: var(--accent); }
+        .info-text { font-size: 11px; color: var(--muted); line-height: 1.4; }
+        .part-box { background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.08); border-radius: 5px; padding: 10px; }
+        textarea {
+            width: 100%; height: 90px; background: #111; color: #0f0;
+            border: 1px solid var(--accent); border-radius: 4px; padding: 8px;
+            font-family: monospace; font-size: 12px; resize: none;
+        }
+        .frame-info { text-align: center; font-size: 12px; color: var(--muted); margin-top: 4px; }
+        #statusBar {
+            position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px;
+            font-size: 12px; color: #ddd; pointer-events: none; white-space: nowrap; z-index: 5;
+        }
+
+        /* ---------- Right: canvas ---------- */
+        #canvas-wrap {
+            flex-grow: 1; display: flex; justify-content: center; align-items: center;
+            position: relative; background: #111; overflow: hidden; min-width: 200px;
+        }
+        #preview { background: #2c3e50; display: block; box-shadow: 0 0 30px rgba(0,0,0,0.5); cursor: grab; }
+        #preview:active { cursor: grabbing; }
+
+        /* ---------- Bottom bar ---------- */
+        #bottom-bar {
+            flex-shrink: 0; display: flex; align-items: center; gap: 20px;
+            padding: 8px 14px; background: var(--panel2); border-top: 2px solid var(--accent);
+        }
+        #bottom-bar h3 { margin: 0; color: var(--accent); font-size: 14px; white-space: nowrap; }
+        .bb-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .bb-field label { margin: 0; font-size: 11px; color: #bdc3c7; }
+        .bb-field input[type="range"] { width: 160px; flex: none; }
+        .bb-field input[type="number"] { width: 70px; padding: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="app-row">
+        <!-- Left: bloon picker -->
+        <div id="gallery">
+            <header><h2>Bloons</h2></header>
+            <p class="hint">MOAB-class bloons. Blades render behind the body; cracks on top.</p>
+            <div id="galleryList"></div>
+        </div>
+
+        <!-- Middle: controls -->
+        <div id="controls">
+            <h2>Bloon Sprite Editor</h2>
+
+            <div>
+                <label>Damage stage (picks the crack + blade frame set)</label>
+                <div class="btn-group" id="stageButtons">
+                    <button data-stage="0">0 None</button>
+                    <button data-stage="1">1 Light</button>
+                    <button data-stage="2">2 Heavy</button>
+                    <button data-stage="3">3 Critical</button>
+                </div>
+            </div>
+
+            <div>
+                <label>Blade frame</label>
+                <div class="btn-group">
+                    <button onclick="bladePrev()">◄ Prev</button>
+                    <button id="playBtn" onclick="togglePlay()">Play</button>
+                    <button onclick="bladeNext()">Next ►</button>
+                </div>
+                <div class="frame-info" id="frameInfo">frame 0/0</div>
+            </div>
+
+            <hr>
+            <div class="part-box">
+                <h3>Body</h3>
+                <div class="transform-row"><label>X</label>
+                    <input type="range" id="bodyXSlider" min="-200" max="200" step="0.5" value="0" oninput="updatePart('body','slider')">
+                    <input type="number" id="bodyXInput" step="0.5" value="0" oninput="updatePart('body','input')">
+                    <span class="val" id="bodyXVal">0</span>
+                </div>
+                <div class="transform-row"><label>Y</label>
+                    <input type="range" id="bodyYSlider" min="-200" max="200" step="0.5" value="0" oninput="updatePart('body','slider')">
+                    <input type="number" id="bodyYInput" step="0.5" value="0" oninput="updatePart('body','input')">
+                    <span class="val" id="bodyYVal">0</span>
+                </div>
+                <div class="transform-row"><label>Scale</label>
+                    <input type="range" id="bodyScaleSlider" min="0.1" max="4" step="0.01" value="1" oninput="updatePart('body','slider')">
+                    <input type="number" id="bodyScaleInput" step="0.01" value="1" oninput="updatePart('body','input')">
+                    <span class="val" id="bodyScaleVal">1</span>
+                </div>
+            </div>
+
+            <div class="part-box">
+                <h3>Blades</h3>
+                <div class="transform-row"><label>X</label>
+                    <input type="range" id="bladesXSlider" min="-200" max="200" step="0.5" value="0" oninput="updatePart('blades','slider')">
+                    <input type="number" id="bladesXInput" step="0.5" value="0" oninput="updatePart('blades','input')">
+                    <span class="val" id="bladesXVal">0</span>
+                </div>
+                <div class="transform-row"><label>Y</label>
+                    <input type="range" id="bladesYSlider" min="-200" max="200" step="0.5" value="0" oninput="updatePart('blades','slider')">
+                    <input type="number" id="bladesYInput" step="0.5" value="0" oninput="updatePart('blades','input')">
+                    <span class="val" id="bladesYVal">0</span>
+                </div>
+                <div class="transform-row"><label>Scale</label>
+                    <input type="range" id="bladesScaleSlider" min="0.1" max="4" step="0.01" value="1" oninput="updatePart('blades','slider')">
+                    <input type="number" id="bladesScaleInput" step="0.01" value="1" oninput="updatePart('blades','input')">
+                    <span class="val" id="bladesScaleVal">1</span>
+                </div>
+            </div>
+
+            <div class="part-box">
+                <h3>Cracks</h3>
+                <div class="transform-row"><label>X</label>
+                    <input type="range" id="cracksXSlider" min="-200" max="200" step="0.5" value="0" oninput="updatePart('cracks','slider')">
+                    <input type="number" id="cracksXInput" step="0.5" value="0" oninput="updatePart('cracks','input')">
+                    <span class="val" id="cracksXVal">0</span>
+                </div>
+                <div class="transform-row"><label>Y</label>
+                    <input type="range" id="cracksYSlider" min="-200" max="200" step="0.5" value="0" oninput="updatePart('cracks','slider')">
+                    <input type="number" id="cracksYInput" step="0.5" value="0" oninput="updatePart('cracks','input')">
+                    <span class="val" id="cracksYVal">0</span>
+                </div>
+                <div class="transform-row"><label>Scale</label>
+                    <input type="range" id="cracksScaleSlider" min="0.1" max="4" step="0.01" value="1" oninput="updatePart('cracks','slider')">
+                    <input type="number" id="cracksScaleInput" step="0.01" value="1" oninput="updatePart('cracks','input')">
+                    <span class="val" id="cracksScaleVal">1</span>
+                </div>
+            </div>
+
+            <hr>
+            <div>
+                <button onclick="resetPart('blades')" title="Reset blades to x:0 y:0 scale:1">Reset Blades</button>
+                <button onclick="resetPart('body')" title="Reset body">Reset Body</button>
+                <button onclick="resetPart('cracks')" title="Reset cracks">Reset Cracks</button>
+            </div>
+
+            <hr>
+            <h3>Display</h3>
+            <div class="btn-group">
+                <button id="circleBtn" class="active" onclick="toggleCircle()">Game Circle</button>
+            </div>
+
+            <hr>
+            <h3>Import / Export</h3>
+            <textarea id="exportText" readonly placeholder="Click Generate..."></textarea>
+            <button onclick="generateJSON()" style="background: var(--accent); border-color: #d35400; margin-top: 5px; width: 100%;">Generate JSON</button>
+            <button onclick="saveConfigToFile()" style="background: var(--success); border-color: #2ecc71; margin-top: 5px; width: 100%;">Save to js/bloonSpriteConfig.js</button>
+            <p class="info-text">Wheel to zoom, drag to pan. The preview matches the game's renderer: blade behind body, cracks on top, all scaled by the bloon's in-game size.</p>
+        </div>
+
+        <!-- Right: canvas -->
+        <div id="canvas-wrap">
+            <div id="statusBar">—</div>
+            <canvas id="preview" width="900" height="600"></canvas>
+        </div>
+    </div>
+
+    <!-- Bottom: quick blade sliders -->
+    <div id="bottom-bar">
+        <h3>Blades</h3>
+        <div class="bb-field">
+            <label>X Offset</label>
+            <div class="transform-row">
+                <input type="range" id="bladeXQuickSlider" min="-200" max="200" step="0.5" value="0" oninput="updatePart('blades','slider')">
+                <input type="number" id="bladeXQuickInput" step="0.5" value="0" oninput="updatePart('blades','input')">
+            </div>
+        </div>
+        <div class="bb-field">
+            <label>Y Offset</label>
+            <div class="transform-row">
+                <input type="range" id="bladeYQuickSlider" min="-200" max="200" step="0.5" value="0" oninput="updatePart('blades','slider')">
+                <input type="number" id="bladeYQuickInput" step="0.5" value="0" oninput="updatePart('blades','input')">
+            </div>
+        </div>
+        <div class="bb-field">
+            <label>Scale</label>
+            <div class="transform-row">
+                <input type="range" id="bladeScaleQuickSlider" min="0.1" max="4" step="0.01" value="1" oninput="updatePart('blades','slider')">
+                <input type="number" id="bladeScaleQuickInput" step="0.01" value="1" oninput="updatePart('blades','input')">
+            </div>
+        </div>
+        <div class="btn-group" style="margin-left: auto;">
+            <button onclick="centerPart('blades')" style="background: var(--danger); border-color: #c0392b;">Center Blades</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('preview');
+        const ctx = canvas.getContext('2d');
+        const GS = 1.3; // matches constants.js GLOBAL_SCALE (desktop mscale = 1)
+
+        const BLOONS = {
+            moab: { name: 'MOAB', size: 110, radius: 50, sheet: 'sprites/sheets/moab/moab.json', loose: false },
+            bfb:  { name: 'BFB',  size: 140, radius: 70, sheet: 'sprites/sheets/bfb/bfb.json', loose: false },
+            zomg: { name: 'ZOMG', size: 180, radius: 90, sheet: null, loose: true },
+        };
+
+        // config: { [bloon]: { body, blades, cracks: {x,y,scale} } }
+        let config = {};
+        for (const k of Object.keys(BLOONS)) {
+            config[k] = { body: { x: 0, y: 0, scale: 1 }, blades: { x: 0, y: 0, scale: 1 }, cracks: { x: 0, y: 0, scale: 1 } };
+        }
+
+        let currentBloon = 'moab';
+        let loaded = {};       // bloon -> { body, cracks:[null,c1,c2,c3], bladesByStage: {0:[...],1:[...],2:[...],3:[...]}, ready }
+        let currentStage = 0;
+        let bladeIdx = 0;
+        let isPlaying = false;
+        let playInterval = null;
+
+        // View state
+        let zoom = 1, panX = 0, panY = 0;
+        let showCircle = true;
+        let isDragging = false, dragStartX = 0, dragStartY = 0;
+
+        const PART_FIELDS = ['x', 'y', 'scale'];
+        const PART_LABELS = { x: 'X', y: 'Y', scale: 'Scale' };
+
+        // ---------- Asset helpers (atlas refs like spriteeditor) ----------
+        function frameSize(f) {
+            return f && f.img ? { w: f.ow, h: f.oh } : { w: f.width, h: f.height };
+        }
+        function drawFrame(ctx, f, dx, dy, dw, dh) {
+            if (f && f.img) {
+                const kx = dw / f.ow, ky = dh / f.oh;
+                ctx.drawImage(f.img, f.sx, f.sy, f.sw, f.sh, dx + f.ox * kx, dy + f.oy * ky, f.sw * kx, f.sh * ky);
+            } else {
+                ctx.drawImage(f, dx, dy, dw, dh);
+            }
+        }
+
+        function loadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('load failed: ' + url));
+                img.src = url;
+            });
+        }
+
+        // Like loadImage but resolves null on a 404, so frame probing can
+        // just walk the sequence until the first missing frame.
+        function tryLoadImage(url) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = url;
+            });
+        }
+
+        // Builds the atlas ref for one frame name.
+        function atlasRef(atlas, data) {
+            const r = data.frame || { x: 0, y: 0, w: atlas.width, h: atlas.height };
+            const sourceSize = data.sourceSize || { w: r.w, h: r.h };
+            const sss = data.spriteSourceSize || { x: 0, y: 0, w: r.w, h: r.h };
+            return { img: atlas, sx: r.x, sy: r.y, sw: r.w, sh: r.h, ox: sss.x, oy: sss.y, ow: sourceSize.w, oh: sourceSize.h };
+        }
+
+        // Probes frame names sequentially and stops at the first missing one,
+        // mirroring the game's blade animation exactly:
+        //   stage 0  -> bare frames <key>_blades_<frame>.png (0..N). The game
+        //               requests enemy_<key>_blades_<frame> (no stage) for an
+        //               undamaged bloon, so these ARE the animation frames.
+        //   stage 1-3 -> sub-frames <key>_blades_<stage>_<frame>.png when
+        //               present (bfb 1/2/3 = 5/20/20, moab 2 = 20). A stage
+        //               with no sub-frames falls back to the previous stage's
+        //               frames (moab stage 3 -> stage 2 blades).
+        function atlasBladeFrames(atlas, frames, key) {
+            const out = { 0: [], 1: [], 2: [], 3: [] };
+            const bare = [];
+            for (let f = 0; ; f++) {
+                const name = `${key}_blades_${f}.png`;
+                if (!frames[name]) break;
+                bare.push(atlasRef(atlas, frames[name]));
+            }
+            out[0] = bare;
+            for (let s = 1; s <= 3; s++) {
+                const sub = [];
+                for (let f = 0; ; f++) {
+                    const name = `${key}_blades_${s}_${f}.png`;
+                    if (!frames[name]) break;
+                    sub.push(atlasRef(atlas, frames[name]));
+                }
+                out[s] = sub.length ? sub : (out[s - 1].length ? out[s - 1] : (bare.length ? [bare[0]] : []));
+            }
+            return out;
+        }
+
+        // ---------- Load one bloon ----------
+        async function loadBloon(key) {
+            const info = BLOONS[key];
+            const data = loaded[key] = { body: null, cracks: [null, null, null, null], bladesByStage: { 0: [], 1: [], 2: [], 3: [] }, ready: false };
+
+            if (info.sheet) {
+                const jsonRes = await fetch(info.sheet);
+                if (!jsonRes.ok) throw new Error('HTTP ' + jsonRes.status + ' ' + info.sheet);
+                const json = await jsonRes.json();
+                const pngRes = await fetch(info.sheet.replace(/\.json$/, '.png'));
+                const blob = await pngRes.blob();
+                const atlas = new Image();
+                atlas.src = URL.createObjectURL(blob);
+                await atlas.decode();
+
+                const frames = json.frames || {};
+                data.body = atlasRef(atlas, frames[`${key}.png`]);
+                for (let s = 1; s <= 3; s++) {
+                    if (frames[`${key}_${s}.png`]) data.cracks[s] = atlasRef(atlas, frames[`${key}_${s}.png`]);
+                }
+                data.bladesByStage = atlasBladeFrames(atlas, frames, key);
+            } else {
+                data.body = await tryLoadImage(`sprites/enemies/${key}.png`);
+                for (let s = 1; s <= 3; s++) data.cracks[s] = await tryLoadImage(`sprites/enemies/${key}_${s}.png`);
+                const bare = [];
+                for (let f = 0; ; f++) {
+                    const img = await tryLoadImage(`sprites/enemies/${key}_blades_${f}.png`);
+                    if (!img) break;
+                    bare.push(img);
+                }
+                data.bladesByStage[0] = bare;
+                for (let s = 1; s <= 3; s++) {
+                    const sub = [];
+                    for (let f = 0; ; f++) {
+                        const img = await tryLoadImage(`sprites/enemies/${key}_blades_${s}_${f}.png`);
+                        if (!img) break;
+                        sub.push(img);
+                    }
+                    data.bladesByStage[s] = sub.length ? sub : (data.bladesByStage[s - 1].length ? data.bladesByStage[s - 1] : (bare.length ? [bare[0]] : []));
+                }
+            }
+            data.ready = true;
+        }
+
+        // ---------- Gallery ----------
+        function buildGallery() {
+            const list = document.getElementById('galleryList');
+            list.innerHTML = '';
+            for (const key of Object.keys(BLOONS)) {
+                const info = BLOONS[key];
+                const btn = document.createElement('button');
+                btn.className = 'b-item' + (key === currentBloon ? ' active' : '');
+                btn.dataset.bloon = key;
+                const thumb = document.createElement('span');
+                thumb.className = 'thumb';
+                const d = loaded[key];
+                if (d && d.body) {
+                    const img = document.createElement('img');
+                    const fs = frameSize(d.body);
+                    const scale = Math.min(40 / fs.w, 40 / fs.h);
+                    img.style.width = (fs.w * scale) + 'px';
+                    img.style.height = (fs.h * scale) + 'px';
+                    const c = document.createElement('canvas'); c.width = 40; c.height = 40;
+                    const tctx = c.getContext('2d');
+                    drawFrame(tctx, d.body, (40 - fs.w * scale) / 2, (40 - fs.h * scale) / 2, fs.w * scale, fs.h * scale);
+                    thumb.appendChild(c);
+                } else {
+                    thumb.textContent = '…';
+                }
+                btn.appendChild(thumb);
+                const label = document.createElement('span');
+                label.textContent = info.name;
+                btn.appendChild(label);
+                const size = document.createElement('span');
+                size.className = 'size';
+                size.textContent = `size ${info.size}`;
+                btn.appendChild(size);
+                btn.onclick = () => selectBloon(key);
+                list.appendChild(btn);
+            }
+        }
+
+        function selectBloon(key) {
+            currentBloon = key;
+            bladeIdx = 0;
+            document.querySelectorAll('.b-item').forEach(el => el.classList.toggle('active', el.dataset.bloon === key));
+            setStatus(BLOONS[key].name + (loaded[key]?.ready ? '' : ' — loading…'));
+            syncSliders();
+            if (!loaded[key]) {
+                loadBloon(key).then(() => { buildGallery(); syncSliders(); setStatus(BLOONS[key].name + ' loaded'); })
+                    .catch(err => { console.error(err); setStatus('Failed to load ' + BLOONS[key].name); });
+            }
+        }
+
+        function currentFrames() {
+            const d = loaded[currentBloon];
+            if (!d) return [];
+            return d.bladesByStage[currentStage] || [];
+        }
+
+        function bladeNext() {
+            const f = currentFrames();
+            if (f.length > 1) bladeIdx = (bladeIdx + 1) % f.length;
+            syncSliders();
+        }
+        function bladePrev() {
+            const f = currentFrames();
+            if (f.length > 1) bladeIdx = (bladeIdx - 1 + f.length) % f.length;
+            syncSliders();
+        }
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            document.getElementById('playBtn').innerText = isPlaying ? 'Pause' : 'Play';
+            if (isPlaying) {
+                playInterval = setInterval(() => {
+                    const f = currentFrames();
+                    if (f.length > 1) bladeIdx = (bladeIdx + 1) % f.length;
+                    syncSliders();
+                }, 100);
+            } else {
+                clearInterval(playInterval);
+            }
+        }
+
+        // ---------- Config / transforms ----------
+        function partCfg(part) {
+            return config[currentBloon][part];
+        }
+
+        // There are two slider sets for blades (controls panel + bottom bar).
+        const SLIDER_IDS = {
+            body:   { x: ['bodyXSlider'], y: ['bodyYSlider'], scale: ['bodyScaleSlider'] },
+            blades: { x: ['bladesXSlider', 'bladeXQuickSlider'], y: ['bladesYSlider', 'bladeYQuickSlider'], scale: ['bladesScaleSlider', 'bladeScaleQuickSlider'] },
+            cracks: { x: ['cracksXSlider'], y: ['cracksYSlider'], scale: ['cracksScaleSlider'] },
+        };
+        const INPUT_IDS = {
+            body:   { x: ['bodyXInput'], y: ['bodyYInput'], scale: ['bodyScaleInput'] },
+            blades: { x: ['bladesXInput', 'bladeXQuickInput'], y: ['bladesYInput', 'bladeYQuickInput'], scale: ['bladesScaleInput', 'bladeScaleQuickInput'] },
+            cracks: { x: ['cracksXInput'], y: ['cracksYInput'], scale: ['cracksScaleInput'] },
+        };
+        function valId(part, field) { return part + field.charAt(0).toUpperCase() + field.slice(1) + 'Val'; }
+
+        function updatePart(part, source) {
+            const cfg = partCfg(part);
+            let x, y, scale;
+            if (source === 'slider') {
+                x = parseFloat(document.getElementById(SLIDER_IDS[part].x[0]).value) || 0;
+                y = parseFloat(document.getElementById(SLIDER_IDS[part].y[0]).value) || 0;
+                scale = parseFloat(document.getElementById(SLIDER_IDS[part].scale[0]).value) || 1;
+                for (const id of INPUT_IDS[part].x) document.getElementById(id).value = x;
+                for (const id of INPUT_IDS[part].y) document.getElementById(id).value = y;
+                for (const id of INPUT_IDS[part].scale) document.getElementById(id).value = scale;
+            } else {
+                x = parseFloat(document.getElementById(INPUT_IDS[part].x[0]).value) || 0;
+                y = parseFloat(document.getElementById(INPUT_IDS[part].y[0]).value) || 0;
+                scale = parseFloat(document.getElementById(INPUT_IDS[part].scale[0]).value) || 1;
+                for (const id of SLIDER_IDS[part].x) document.getElementById(id).value = Math.max(-200, Math.min(200, x));
+                for (const id of SLIDER_IDS[part].y) document.getElementById(id).value = Math.max(-200, Math.min(200, y));
+                for (const id of SLIDER_IDS[part].scale) document.getElementById(id).value = Math.max(0.1, Math.min(4, scale));
+            }
+            cfg.x = x; cfg.y = y; cfg.scale = scale;
+            document.getElementById(valId(part, 'x')).innerText = fmt(x);
+            document.getElementById(valId(part, 'y')).innerText = fmt(y);
+            document.getElementById(valId(part, 'scale')).innerText = fmt(scale);
+            syncFrameInfo();
+        }
+
+        function fmt(v) { return Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100); }
+
+        function centerPart(part) {
+            const cfg = partCfg(part);
+            cfg.x = 0; cfg.y = 0; cfg.scale = 1;
+            syncSliders();
+        }
+        function resetPart(part) { centerPart(part); }
+
+        function syncSliders() {
+            const f = currentFrames();
+            if (bladeIdx >= f.length) bladeIdx = 0;
+            for (const part of ['body', 'blades', 'cracks']) {
+                const cfg = partCfg(part);
+                for (const field of PART_FIELDS) {
+                    const val = cfg[field];
+                    for (const id of SLIDER_IDS[part][field]) {
+                        const el = document.getElementById(id);
+                        if (field === 'scale') el.value = Math.max(0.1, Math.min(4, val));
+                        else el.value = Math.max(-200, Math.min(200, val));
+                    }
+                    for (const id of INPUT_IDS[part][field]) document.getElementById(id).value = val;
+                    document.getElementById(valId(part, field)).innerText = fmt(val);
+                }
+            }
+            document.querySelectorAll('#stageButtons button').forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.stage, 10) === currentStage);
+            });
+            syncFrameInfo();
+        }
+
+        function syncFrameInfo() {
+            const f = currentFrames();
+            document.getElementById('frameInfo').innerText = `frame ${f.length ? bladeIdx + 1 : 0}/${f.length} — ${BLOONS[currentBloon].name} stage ${currentStage}`;
+        }
+
+        // ---------- View controls ----------
+        function toggleCircle() {
+            showCircle = !showCircle;
+            document.getElementById('circleBtn').classList.toggle('active', showCircle);
+        }
+        function resizeCanvas() {
+            const wrap = document.getElementById('canvas-wrap');
+            const w = wrap.clientWidth - 40;
+            const h = wrap.clientHeight - 40;
+            const aspect = 900 / 600;
+            let cw = w, ch = w / aspect;
+            if (ch > h) { ch = h; cw = h * aspect; }
+            canvas.style.width = cw + 'px';
+            canvas.style.height = ch + 'px';
+        }
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            zoom = Math.max(0.2, Math.min(30, zoom + (e.deltaY > 0 ? -0.3 : 0.3)));
+        });
+        canvas.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            const rect = canvas.getBoundingClientRect();
+            dragStartX = (e.clientX - rect.left) * (canvas.width / rect.width) - panX;
+            dragStartY = (e.clientY - rect.top) * (canvas.height / rect.height) - panY;
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const rect = canvas.getBoundingClientRect();
+            panX = (e.clientX - rect.left) * (canvas.width / rect.width) - dragStartX;
+            panY = (e.clientY - rect.top) * (canvas.height / rect.height) - dragStartY;
+        });
+        window.addEventListener('mouseup', () => { isDragging = false; });
+
+        document.querySelectorAll('#stageButtons button').forEach(b => {
+            b.addEventListener('click', () => {
+                currentStage = parseInt(b.dataset.stage, 10);
+                bladeIdx = 0;
+                syncSliders();
+            });
+        });
+
+        // ---------- Render loop (WYSIWYG with the game) ----------
+        function drawPart(ctx, f, cfg, targetSize, behind) {
+            if (!f) return;
+            const size = targetSize * (cfg.scale ?? 1);
+            const fs = frameSize(f);
+            const maxDim = Math.max(fs.w, fs.h) || 1;
+            const k = size / maxDim;
+            const dw = fs.w * k, dh = fs.h * k;
+            drawFrame(ctx, f, -dw / 2 + (cfg.x || 0), -dh / 2 + (cfg.y || 0), dw, dh);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, 900, 600);
+            ctx.save();
+            ctx.translate(450 + panX, 300 + panY);
+            ctx.scale(zoom, zoom);
+
+            let gridSize = 50;
+            while (gridSize * zoom < 30) gridSize *= 2;
+            while (gridSize * zoom > 80) gridSize /= 2;
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1 / zoom;
+            for (let x = Math.ceil(-450 / gridSize) * gridSize; x <= 450; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, -300); ctx.lineTo(x, 300); ctx.stroke();
+            }
+            for (let y = Math.ceil(-300 / gridSize) * gridSize; y <= 300; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(-450, y); ctx.lineTo(450, y); ctx.stroke();
+            }
+            ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
+            ctx.lineWidth = 2 / zoom;
+            ctx.beginPath(); ctx.moveTo(0, -300); ctx.lineTo(0, 300); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-450, 0); ctx.lineTo(450, 0); ctx.stroke();
+
+            const d = loaded[currentBloon];
+            if (d && d.ready) {
+                const info = BLOONS[currentBloon];
+                const targetSize = info.size * GS;
+                const cfg = config[currentBloon];
+
+                if (showCircle) {
+                    ctx.strokeStyle = 'rgba(230, 126, 34, 0.5)';
+                    ctx.lineWidth = 2 / zoom;
+                    ctx.beginPath(); ctx.arc(0, 0, info.radius * GS, 0, Math.PI * 2); ctx.stroke();
+                }
+
+                // Blade BEHIND body (draw first)
+                const frames = d.bladesByStage[currentStage] || [];
+                const bladeFrame = frames.length ? frames[Math.min(bladeIdx, frames.length - 1)] : null;
+                drawPart(ctx, bladeFrame, cfg.blades, targetSize, true);
+
+                // Body
+                drawPart(ctx, d.body, cfg.body, targetSize, false);
+
+                // Cracks on top
+                if (currentStage > 0) drawPart(ctx, d.cracks[currentStage], cfg.cracks, targetSize, false);
+            }
+
+            ctx.restore();
+
+            ctx.fillStyle = '#fff';
+            ctx.font = '13px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(
+                `Bloon: ${BLOONS[currentBloon].name} | Stage: ${currentStage} | Zoom: ${zoom.toFixed(1)}x | in-game it rotates with travel`,
+                10, 20
+            );
+            requestAnimationFrame(draw);
+        }
+
+        // ---------- Import / Export ----------
+        function setStatus(msg) { document.getElementById('statusBar').textContent = msg; }
+
+        async function importBloonConfig() {
+            try {
+                const res = await fetch('js/bloonSpriteConfig.js');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const text = await res.text();
+                const match = text.match(/export\s+const\s+BloonSpriteConfig\s*=\s*([\s\S]*?)\n\};/);
+                if (match) {
+                    const imported = eval('(' + match[1] + '\n})');
+                    for (const k of Object.keys(BLOONS)) {
+                        if (!imported[k]) continue;
+                        for (const part of ['body', 'blades', 'cracks']) {
+                            if (imported[k][part]) {
+                                config[k][part].x = imported[k][part].x ?? 0;
+                                config[k][part].y = imported[k][part].y ?? 0;
+                                config[k][part].scale = imported[k][part].scale ?? 1;
+                            }
+                        }
+                    }
+                }
+                setStatus('Imported js/bloonSpriteConfig.js');
+            } catch (err) {
+                console.warn('Auto-import failed:', err);
+                setStatus('Could not import js/bloonSpriteConfig.js — using defaults');
+            }
+            syncSliders();
+        }
+
+        function generateJSON() {
+            document.getElementById('exportText').value = JSON.stringify(config, null, 4);
+        }
+
+        async function saveConfigToFile() {
+            if (!confirm('Write this config to js/bloonSpriteConfig.js?\n\nA backup of the previous file is kept in js/backups/.')) return;
+            try {
+                const res = await fetch('/__save-bloon-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.error || 'HTTP ' + res.status);
+                setStatus('Saved to js/bloonSpriteConfig.js');
+                alert('Saved to js/bloonSpriteConfig.js. Backups are kept in js/backups/ (last 2).');
+            } catch (err) {
+                console.error(err);
+                setStatus('Save failed — check the vite dev server is running');
+                alert('Could not save to js/bloonSpriteConfig.js.\n\n' + err.message + '\n\nThis needs the vite dev server endpoint (/__save-bloon-config).');
+            }
+        }
+
+        // ---------- Init ----------
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        draw();
+        importBloonConfig();
+        buildGallery();
+        selectBloon('moab');
+    </script>
+</body>
+</html>

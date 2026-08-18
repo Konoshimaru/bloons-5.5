@@ -1,0 +1,127 @@
+{"frames": {
+
+"wizard_attack_full_0.png":
+{
+	"frame": {"x":403,"y":964,"w":400,"h":423},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":98,"w":400,"h":423},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_1.png":
+{
+	"frame": {"x":1207,"y":480,"w":400,"h":462},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":59,"w":400,"h":462},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_2.png":
+{
+	"frame": {"x":1611,"y":1,"w":400,"h":473},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":43,"w":400,"h":473},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_3.png":
+{
+	"frame": {"x":1,"y":489,"w":400,"h":482},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":27,"w":400,"h":482},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_4.png":
+{
+	"frame": {"x":1,"y":1,"w":400,"h":486},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":23,"w":400,"h":486},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_5.png":
+{
+	"frame": {"x":403,"y":1,"w":400,"h":482},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":27,"w":400,"h":482},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_6.png":
+{
+	"frame": {"x":403,"y":485,"w":400,"h":477},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":32,"w":400,"h":477},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_7.png":
+{
+	"frame": {"x":1611,"y":476,"w":400,"h":472},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":37,"w":400,"h":472},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_8.png":
+{
+	"frame": {"x":1209,"y":1,"w":400,"h":477},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":37,"w":400,"h":477},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_9.png":
+{
+	"frame": {"x":805,"y":480,"w":400,"h":467},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":51,"w":400,"h":467},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_10.png":
+{
+	"frame": {"x":805,"y":1,"w":402,"h":447},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":74,"w":402,"h":447},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_11.png":
+{
+	"frame": {"x":805,"y":950,"w":400,"h":437},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":84,"w":400,"h":437},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_12.png":
+{
+	"frame": {"x":1207,"y":944,"w":400,"h":426},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":95,"w":400,"h":426},
+	"sourceSize": {"w":421,"h":521}
+},
+"wizard_attack_full_13.png":
+{
+	"frame": {"x":1609,"y":950,"w":400,"h":423},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":98,"w":400,"h":423},
+	"sourceSize": {"w":421,"h":521}
+}},
+"animations": {
+	"wizard_attack_full": ["wizard_attack_full_0.png","wizard_attack_full_1.png","wizard_attack_full_2.png","wizard_attack_full_3.png","wizard_attack_full_4.png","wizard_attack_full_5.png","wizard_attack_full_6.png","wizard_attack_full_7.png","wizard_attack_full_8.png","wizard_attack_full_9.png","wizard_attack_full_10.png","wizard_attack_full_11.png","wizard_attack_full_12.png","wizard_attack_full_13.png"]
+},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.1",
+	"image": "wizard_attack.png",
+	"format": "RGBA8888",
+	"size": {"w":2012,"h":1388},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:1b3fe486df513b27d3ffbef18c6b914f:64fae718c4dd58ebf1ec446b6770bdc9:eb308be372075ef7297f124cb78c36b2$"
+}
+}

@@ -1,0 +1,175 @@
+{"frames": {
+
+"dart_p1_t3_attack_full_0.png":
+{
+	"frame": {"x":1128,"y":1500,"w":373,"h":375},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":225,"w":373,"h":375},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_1.png":
+{
+	"frame": {"x":1503,"y":1500,"w":373,"h":375},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":225,"w":373,"h":375},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_2.png":
+{
+	"frame": {"x":753,"y":1123,"w":373,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":41,"w":373,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_3.png":
+{
+	"frame": {"x":1129,"y":562,"w":373,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":41,"w":373,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_4.png":
+{
+	"frame": {"x":1,"y":1,"w":374,"h":560},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":10,"w":374,"h":560},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_5.png":
+{
+	"frame": {"x":1,"y":563,"w":374,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":6,"w":374,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_6.png":
+{
+	"frame": {"x":377,"y":1,"w":374,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":1,"w":374,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_7.png":
+{
+	"frame": {"x":1,"y":1124,"w":374,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":1,"w":374,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_8.png":
+{
+	"frame": {"x":377,"y":562,"w":374,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":1,"w":374,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_9.png":
+{
+	"frame": {"x":753,"y":1,"w":374,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":1,"w":374,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_10.png":
+{
+	"frame": {"x":377,"y":1123,"w":374,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":1,"w":374,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_11.png":
+{
+	"frame": {"x":753,"y":562,"w":374,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":1,"w":374,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_12.png":
+{
+	"frame": {"x":1129,"y":1,"w":374,"h":559},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":1,"w":374,"h":559},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_13.png":
+{
+	"frame": {"x":1128,"y":1123,"w":374,"h":375},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":42,"y":199,"w":374,"h":375},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_14.png":
+{
+	"frame": {"x":1505,"y":1,"w":369,"h":372},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":46,"y":212,"w":369,"h":372},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_15.png":
+{
+	"frame": {"x":1505,"y":375,"w":364,"h":368},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":51,"y":225,"w":364,"h":368},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_16.png":
+{
+	"frame": {"x":1504,"y":745,"w":359,"h":362},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":56,"y":225,"w":359,"h":362},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_17.png":
+{
+	"frame": {"x":719,"y":1684,"w":353,"h":360},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":62,"y":225,"w":353,"h":360},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_18.png":
+{
+	"frame": {"x":363,"y":1685,"w":354,"h":360},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":61,"y":225,"w":354,"h":360},
+	"sourceSize": {"w":418,"h":638}
+},
+"dart_p1_t3_attack_full_19.png":
+{
+	"frame": {"x":1,"y":1685,"w":360,"h":360},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":55,"y":225,"w":360,"h":360},
+	"sourceSize": {"w":418,"h":638}
+}},
+"animations": {
+	"dart_p1_t3_attack_full": ["dart_p1_t3_attack_full_0.png","dart_p1_t3_attack_full_1.png","dart_p1_t3_attack_full_2.png","dart_p1_t3_attack_full_3.png","dart_p1_t3_attack_full_4.png","dart_p1_t3_attack_full_5.png","dart_p1_t3_attack_full_6.png","dart_p1_t3_attack_full_7.png","dart_p1_t3_attack_full_8.png","dart_p1_t3_attack_full_9.png","dart_p1_t3_attack_full_10.png","dart_p1_t3_attack_full_11.png","dart_p1_t3_attack_full_12.png","dart_p1_t3_attack_full_13.png","dart_p1_t3_attack_full_14.png","dart_p1_t3_attack_full_15.png","dart_p1_t3_attack_full_16.png","dart_p1_t3_attack_full_17.png","dart_p1_t3_attack_full_18.png","dart_p1_t3_attack_full_19.png"]
+},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.1",
+	"image": "dart_p1_t3_attack.png",
+	"format": "RGBA8888",
+	"size": {"w":1877,"h":2046},
+	"scale": "0.51",
+	"smartupdate": "$TexturePacker:SmartUpdate:a255ef68b91b5e97855e1f02ff9ccf99:ce5e7fe2d8f405dded7258d7c782db25:0fe8e0168e9ba3dff2aac6d629b37fc9$"
+}
+}

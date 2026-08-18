@@ -18,8 +18,8 @@ export default {
             {name:"Bigger Stacks", cost:800, stat:"pierce", amount:5, desc:"Increases pierce of piles by +5."},
             {name:"White Hot Spikes", cost:600, stat:"dmgType", amount:'heavy', desc:"Changes Damage Type to Normal. Spikes can now pop Lead and Frozen Bloons.", extraMods:{canHitLead: true}},
             {name:"Spiked Balls", cost:2300, stat:"projectileType", amount:"spike_opult", desc:"Replaces standard spikes with Spiked Balls.", extraMods:{damage: 1, pierce: 9, bonusCeramic: 1, fortifiedDmg: 1, baseCooldown: 2.2, dmgType: 'heavy'}},
-            {name:"Spiked Mines", cost:9500, stat:"projectileType", amount:"juggernaut", desc:"Replaces Spiked Balls with Spiked Mines.", extraMods:{damage: 1, pierce: 2, bonusCeramic: 1, fortifiedDmg: 1, isExplosive: true, explosionRadius: 30, explosionDamage: 10, explosionPierce: 30, dot: 2, dotTimer: 3.0}},
-            {name:"Super Mines", cost:125000, stat:"projectileType", amount:"ultra_juggernaut", desc:"Replaces Spiked Mines with giant Super Mines.", extraMods:{damage: 997, pierce: 44, baseCooldown: 4.4, isExplosive: true, explosionRadius: 60, explosionDamage: 1000, explosionPierce: 100, dot: 500, dotTimer: 4.0}}
+            {name:"Spiked Mines", cost:9500, stat:"projectileType", amount:"juggernaut", desc:"Replaces Spiked Balls with Spiked Mines.", extraMods:{damage: 1, pierce: 2, bonusCeramic: 1, fortifiedDmg: 1, isExplosive: true, explosionRadius: 30, explosionDamage: 10, explosionPierce: 30, dot: 2, dotTimer: 1.0}},
+            {name:"Super Mines", cost:125000, stat:"projectileType", amount:"ultra_juggernaut", desc:"Replaces Spiked Mines with giant Super Mines.", extraMods:{damage: 0, pierce: 1, baseCooldown: 4.4, isExplosive: true, explosionRadius: 60, explosionDamage: 1000, explosionPierce: 100}}
         ],
         2: [
             {name:"Faster Production", cost:600, desc:"Multiplies base cooldown by 0.8.", cooldownMult: 0.8},
@@ -41,11 +41,21 @@ export default {
         return !!tower.stats.smartSpikes;
     },
 
-    update(tower, dt) {
-        if (tower.stats.smartSpikes && tower.smartSpikeTimer > 0) {
-            tower.smartSpikeTimer -= dt;
-            if (tower.smartSpikeTimer <= 0) {
-                tower._cooldownMult /= 0.25;
+    update(tower, dt, engine) {
+        if (tower.stats.smartSpikes) {
+            const waveActive = !!(engine && engine.waveManager && engine.waveManager.waveActive);
+            if (waveActive && !tower._smartWaveOn) {
+                tower._smartWaveOn = true;
+                tower.smartSpikeTimer = 4.0; // Round start buff lasts 4s
+                tower._cooldownMult *= 0.25; // BTD6: Smart Spikes fire 4x faster when a round starts
+            } else if (!waveActive && tower._smartWaveOn) {
+                tower._smartWaveOn = false;
+            }
+            if (tower.smartSpikeTimer > 0) {
+                tower.smartSpikeTimer -= dt;
+                if (tower.smartSpikeTimer <= 0) {
+                    tower._cooldownMult /= 0.25;
+                }
             }
         }
         

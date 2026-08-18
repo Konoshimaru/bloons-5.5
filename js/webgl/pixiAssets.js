@@ -12,22 +12,51 @@
 import { Assets, Texture } from 'pixi.js';
 import { Names } from '../names.js';
 import { Config } from '../config.js';
+import { SPRITESHEETS } from '../spriteSheets.js';
 
 const FOLDER_MAP = Object.freeze({
     [Names.PREFIXES.ENEMY]: 'enemies',
     [Names.PREFIXES.PROJECTILE]: 'projectiles',
     [Names.PREFIXES.TOWER]: 'towers',
     [Names.PREFIXES.EFFECT]: 'effects',
-    [Names.PREFIXES.MAP]: 'maps'
+    [Names.PREFIXES.MAP]: 'maps',
+    'boss_': 'boss'
 });
 
+// Static boss sprites that live outside the loose folder layout (see
+// js/assets.js BOSS_STATIC_PATHS). Kept in sync so both asset paths resolve
+// enemy_knight_front to the same file.
+const BOSS_STATIC_PATHS = Object.freeze({
+    enemy_knight_front: 'sprites/sheets/enemies/knight_front.png',
+});
+
+// Spritesheet override: when a requested key starts with one of these prefixes,
+// the texture comes from a packed atlas (TexturePacker Pixi JSON) instead of a
+// loose PNG. `frame` is the JSON's frame name for the ORIGINAL key (which keeps
+// the game's `tower_bomb_p3_t1_attack_full_0` key scheme intact — only the
+// backing resource changes). Sheets are loaded once and cached; every frame
+// resolves through the same atlas so no per-frame HTTP request happens.
+// Shared with js/assets.js so both render paths agree on which frames exist.
 class PixiAssetsManager {
     #textures = new Map();       // key -> PIXI.Texture
     #pending = new Map();        // key -> in-flight load promise
     #missing = new Set();        // keys we've already logged a 404 for, so we don't spam console
     #pixelArt = new Set();       // keys force-sampled with nearest (pixel art) regardless of the smoothing option
+    #sheetPromises = new Map();  // sheet json url -> in-flight Assets.load promise
+
+    // Returns { sheet, frame } when `key` is served by a packed atlas, else null.
+    _resolveSheet(key) {
+        for (const entry of SPRITESHEETS) {
+            if (key.startsWith(entry.prefix)) {
+                return { sheet: entry.sheet, frame: entry.frame(key) };
+            }
+        }
+        return null;
+    }
 
     _resolvePath(key) {
+        if (BOSS_STATIC_PATHS[key]) return BOSS_STATIC_PATHS[key];
+
         const parts = key.split('_');
         const prefix = parts[0] + '_';
         const folder = FOLDER_MAP[prefix];
@@ -118,56 +147,132 @@ class PixiAssetsManager {
         return false;
     }
 
-    async _load(key) {
-        const path = this._resolvePath(key);
-        if (!path) return;
+    async _load(key, quiet = false) {
+        const sheetRes = this._resolveSheet(key);
 
-        const promise = Assets.load(path)
-            .then(texture => {
-                this.#textures.set(key, texture);
-                // Mipmaps: the sprite sheets are big (towers 510x480,
-                // upgrade overlays 820x1250, maps larger) and most get
-                // downscaled 8-9x on screen. With no mip chain, GL linear
-                // filtering only samples a 2x2 texel neighborhood at the
-                // mapped point, so the reduced image shimmers/aliases —
-                // exactly where the Canvas2D path (imageSmoothingEnabled +
-                // imageSmoothingQuality='high') looks smooth. Generating
-                // mips at upload lets scaleMode (via minFilter/mipmapFilter,
-                // both driven by _applyScaleMode) produce a smooth downscale.
-                texture.source.autoGenerateMipmaps = true;
-                this._applyScaleMode(key, texture);
-                return texture;
-            })
-            .catch(() => {
-                if (!this.#missing.has(key)) {
-                    this.#missing.add(key);
-                    console.warn(`[pixiAssets] missing sprite for key "${key}" (${path})`);
-                }
-                // Do NOT substitute a placeholder: missing keys stay absent so
-                // renderers (which check has() before drawing) treat them as
-                // non-existent, rather than silently drawing the wrong sprite.
-                return null;
-            })
-            .finally(() => {
-                // Clear the in-flight marker once settled so a transient
-                // network failure on one load can be retried by a later
-                // get() (loaded keys are served from #textures regardless).
-                if (this.#pending.get(key) === promise) this.#pending.delete(key);
-            });
+        let promise;
+        if (sheetRes) {
+            // Try the packed atlas first. If the frame isn't in that atlas
+            // (some sheets are missing a frame the game still requests, e.g.
+            // effect_stun_0 or boomerang frame 0), fall back to the loose
+            // sprites/<folder>/<name>.png instead of marking it missing.
+            promise = this._loadSheetFrame(key, sheetRes.sheet, sheetRes.frame)
+                .then(texture => {
+                    this.#textures.set(key, texture);
+                    texture.source.autoGenerateMipmaps = true;
+                    this._applyScaleMode(key, texture);
+                    return texture;
+                })
+                .catch(async () => {
+                    const fallback = this._resolvePath(key);
+                    if (fallback) {
+                        try {
+                            const texture = await Assets.load(fallback);
+                            this.#textures.set(key, texture);
+                            texture.source.autoGenerateMipmaps = true;
+                            this._applyScaleMode(key, texture);
+                            return texture;
+                        } catch (err2) {
+                            /* fall through to missing */
+                        }
+                    }
+                    if (!this.#missing.has(key)) {
+                        this.#missing.add(key);
+                        if (!quiet) console.warn(`[pixiAssets] missing sprite for key "${key}" (sheet ${sheetRes.sheet}, frame ${sheetRes.frame})`);
+                    }
+                    return null;
+                })
+                .finally(() => {
+                    if (this.#pending.get(key) === promise) this.#pending.delete(key);
+                });
+        } else {
+            const path = this._resolvePath(key);
+            if (!path) return;
+
+            promise = Assets.load(path)
+                .then(texture => {
+                    this.#textures.set(key, texture);
+                    // Mipmaps: the sprite sheets are big (towers 510x480,
+                    // upgrade overlays 820x1250, maps larger) and most get
+                    // downscaled 8-9x on screen. With no mip chain, GL linear
+                    // filtering only samples a 2x2 texel neighborhood at the
+                    // mapped point, so the reduced image shimmers/aliases —
+                    // exactly where the Canvas2D path (imageSmoothingEnabled +
+                    // imageSmoothingQuality='high') looks smooth. Generating
+                    // mips at upload lets scaleMode (via minFilter/mipmapFilter,
+                    // both driven by _applyScaleMode) produce a smooth downscale.
+                    texture.source.autoGenerateMipmaps = true;
+                    this._applyScaleMode(key, texture);
+                    return texture;
+                })
+                .catch(() => {
+                    if (!this.#missing.has(key)) {
+                        this.#missing.add(key);
+                        if (!quiet) console.warn(`[pixiAssets] missing sprite for key "${key}" (${path})`);
+                    }
+                    // Do NOT substitute a placeholder: missing keys stay absent so
+                    // renderers (which check has() before drawing) treat them as
+                    // non-existent, rather than silently drawing the wrong sprite.
+                    return null;
+                })
+                .finally(() => {
+                    // Clear the in-flight marker once settled so a transient
+                    // network failure on one load can be retried by a later
+                    // get() (loaded keys are served from #textures regardless).
+                    if (this.#pending.get(key) === promise) this.#pending.delete(key);
+                });
+        }
 
         this.#pending.set(key, promise);
         return promise;
     }
 
+    // Loads a packed atlas once, then returns the Texture for one frame inside
+    // it. Assets.load on a TexturePacker JSON returns the parsed Spritesheet
+    // (cached by URL), whose `.textures` dict is keyed by frame name — no
+    // alias/re-parse needed, and it's shared across every frame request so the
+    // image is fetched and decoded exactly once.
+    async _loadSheetFrame(key, sheet, frame) {
+        if (!this.#sheetPromises.has(sheet)) {
+            this.#sheetPromises.set(sheet, Assets.load(sheet).catch(err => {
+                this.#sheetPromises.delete(sheet);
+                throw err;
+            }));
+        }
+        const spritesheet = await this.#sheetPromises.get(sheet);
+        const texture = spritesheet?.textures?.[frame];
+        if (!texture) {
+            throw new Error(`frame not found in ${sheet}: ${frame}`);
+        }
+        return texture;
+    }
+
     // Await-able version for preload screens (mirrors assets.js preloadManifest).
-    async preloadManifest(keys, onProgress) {
+    // `quiet` suppresses the per-missing-key warnings: the generous preload
+    // lists legitimately include optional sprites (camo/regen variants, arms)
+    // that only some enemies/towers have, and those 404s are expected there.
+    async preloadManifest(keys, onProgress, quiet = false) {
         const total = keys.length;
         let loaded = 0;
-        await Promise.all(keys.map(async key => {
-            if (!this.#textures.has(key)) await this._load(key);
-            loaded++;
-            if (onProgress) onProgress(loaded / total);
-        }));
+        // Fast path: the Play-click re-preload runs over the same generous key
+        // lists the background preload already finished. If every key is cached
+        // there's nothing to do — don't burn ~50 batched sleeps re-awaiting.
+        if (keys.every(key => this.#textures.has(key))) {
+            if (onProgress) onProgress(1);
+            return;
+        }
+        // Batched (limited concurrency) so hundreds of texture uploads don't
+        // saturate the main thread and starve the loading minigame's rAF.
+        // 16-per-chunk / 10ms-yield matches js/assets.js's runBatched.
+        for (let i = 0; i < keys.length; i += 16) {
+            const chunk = keys.slice(i, i + 16);
+            await Promise.all(chunk.map(async key => {
+                if (!this.#textures.has(key)) await this._load(key, quiet);
+                loaded++;
+                if (onProgress) onProgress(loaded / total);
+            }));
+            if (i + 16 < keys.length) await new Promise(r => setTimeout(r, 10));
+        }
     }
 }
 

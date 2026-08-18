@@ -183,19 +183,28 @@ export class GameMap {
         return 0;
     }
 
-    getPositionAtDistance(distance, pathIndex = 0) {
+    getPositionAtDistance(distance, pathIndex = 0, out = null) {
+        // `out` is an optional caller-owned scratch object. The enemy hot path
+        // passes one so the ~3000×substeps-per-frame calls don't each allocate
+        // a fresh {x,y,finished}. When omitted a new object is returned (API
+        // unchanged for existing callers).
+        const reuse = out || {};
         const path = this.paths[pathIndex];
-        if (!path || path.segments.length === 0) return { x: 0, y: 0, finished: true };
-        if (distance <= 0) return { x: path.segments[0].p1.x, y: path.segments[0].p1.y, finished: false };
+        if (!path || path.segments.length === 0) { reuse.x = 0; reuse.y = 0; reuse.finished = true; return reuse; }
+        if (distance <= 0) { reuse.x = path.segments[0].p1.x; reuse.y = path.segments[0].p1.y; reuse.finished = false; return reuse; }
         if (distance >= path.totalLength) {
             const last = path.segments[path.segments.length - 1].p2;
-            return { x: last.x, y: last.y, finished: true };
+            reuse.x = last.x; reuse.y = last.y; reuse.finished = true;
+            return reuse;
         }
         const segIndex = this._findSegmentIndex(distance, path.cumulativeDistances);
         const seg = path.segments[segIndex];
         const segStartDist = path.cumulativeDistances[segIndex];
         const t = seg.dist > 0 ? (distance - segStartDist) / seg.dist : 0;
-        return { x: Utils.lerp(seg.p1.x, seg.p2.x, t), y: Utils.lerp(seg.p1.y, seg.p2.y, t), finished: false };
+        reuse.x = Utils.lerp(seg.p1.x, seg.p2.x, t);
+        reuse.y = Utils.lerp(seg.p1.y, seg.p2.y, t);
+        reuse.finished = false;
+        return reuse;
     }
 
     isOnPath(x, y) {

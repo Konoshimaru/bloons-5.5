@@ -17,14 +17,14 @@ import { SpatialGrid } from './spatialGrid.js';
 import { AudioEngine } from './audio.js';
 import Assets from './assets.js';
 import { UI } from './ui.js';
-import { Renderer } from './renderer.js';
 import { CutsceneManager } from './cutscene.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 import EngineInput from './engineInput.js';
 import GameSession from './gameSession.js';
 import SimulationLoop from './simulationLoop.js';
-import { Beast } from './beastEntity.js'; 
+import { Beast } from './beastEntity.js';
+import { Profiler } from './profiler.js'; 
 
 const MAX_SUBSTEPS = 10;
 const FIXED_TIMESTEP = 0.016;
@@ -48,7 +48,7 @@ export const GameEngine = {
     sentries: [], 
     explosions: [],
     floatingTexts: [], 
-    enemyGrid: new SpatialGrid(80),
+    enemyGrid: new SpatialGrid(40),
     towerGrid: new SpatialGrid(80), 
     beastGrid: new SpatialGrid(80), 
     sentryGrid: new SpatialGrid(80), 
@@ -106,6 +106,8 @@ export const GameEngine = {
     isMergingBeast: false,
     mergeSourceTower: null,
 
+    profiler: Profiler,
+
     init() {
         Config.load();
         if (!Array.isArray(Config.data.customMaps)) Config.data.customMaps = [];
@@ -119,37 +121,34 @@ export const GameEngine = {
             Config.save();
         }
         
+        // RENDERER SELECTION. WebGL (PixiJS) is the only renderer. The legacy
+        // Canvas2D renderer was removed entirely. A <canvas> element can only
+        // have ONE context type for its lifetime, so we never call
+        // getContext('2d'). The WebGL renderer module is dynamically imported
+        // so it loads asynchronously. Everything else (game logic, input, UI)
+        // is completely untouched by this flag.
         this.runInBackground = Config.data.runInBackground;
         this.canvas = document.getElementById('gameCanvas');
-
-        // RENDERER SELECTION. WebGL (PixiJS) is the default renderer. Append
-        // ?canvas=1 to the URL to force the legacy Canvas2D renderer instead
-        // (?webgl=1 also still works as an explicit override). A <canvas>
-        // element can only have ONE context type for its lifetime, so when
-        // WebGL is active we skip getContext('2d') entirely rather than
-        // grabbing both. Dynamic import so the webgl/ module graph isn't even
-        // fetched when the Canvas2D fallback is forced. Everything else (game
-        // logic, input, UI) is completely untouched by this flag.
-        const params = new URLSearchParams(location.search);
-        this.useWebGL = params.get('webgl') === '1' || params.get('canvas') !== '1';
+        this.useWebGL = true;
         this._pixiRenderer = null;
-        this.rendererName = this.useWebGL ? 'WebGL' : 'Canvas 2D';
+        this.rendererName = 'WebGL';
 
-        if (this.useWebGL) {
-            console.log('[renderer] Loading PixiJS WebGL renderer...');
+        console.log('[renderer] Loading PixiJS WebGL renderer...');
+        // Resolved with the PixiRenderer once init finishes (null on
+        // failure), so the loading screen can await the WebGL asset
+        // preload before showing the menu.
+        this.rendererReady = new Promise((resolve) => {
             import('./webgl/pixiRenderer.js').then(({ PixiRenderer }) => {
                 return PixiRenderer.init(this.canvas).then(() => {
                     this._pixiRenderer = PixiRenderer;
                     console.log('[renderer] PixiJS WebGL renderer ready.');
+                    resolve(PixiRenderer);
                 });
             }).catch(err => {
                 console.error('[renderer] Failed to init PixiJS renderer:', err);
+                resolve(null);
             });
-        } else {
-            this.ctx = this.canvas.getContext('2d');
-            this.ctx.imageSmoothingEnabled = Config.data.smoothingEnabled;
-            if (Config.data.smoothingEnabled) this.ctx.imageSmoothingQuality = 'high';
-        }
+        });
         
         this.waveManager.autoWaveEnabled = Config.data.autoStart; 
         Assets.preloadCracks(); 
@@ -328,33 +327,31 @@ export const GameEngine = {
                     }
                 }
                 UI.updateAbilityBar(this); this.updateUI();
+                if (!this._frameMs) this._frameMs = {};
+                this._frameMs.sim = performance.now() - updateStartTime;
+                this._frameMs.steps = steps;
+                // Clamp like targetDt so a hidden/backgrounded tab (huge rawDt)
+                // can't poison the profiler's total/fps percentiles with one
+                // bogus multi-second sample.
+                this._frameMs.total = Math.min(rawDt, 0.1) * 1000;
             }
             if (CutsceneManager.state !== 'idle' && this.gameState !== 'playing' && this.gameState !== 'paused' && this.gameState !== 'levelup') {
                 CutsceneManager.reset();
             }
             if (this.gameState !== 'gameover') {
-            if (this.useWebGL) {
-                if (this._pixiRenderer) {
-                        // FIX: Pass rawDt so the Dev Overlay can calculate FPS
-                        try { this._pixiRenderer.render(this, rawDt); }
-                        catch (err) { console.error('[webgl debug] PIXI RENDER ERROR:', err); }
-                    }
-                    // else: Pixi still loading, skip this frame's draw silently.
-                } else {
-                    try { Renderer.render(this, rawDt); } 
-                    catch (err) {
-                        console.error("FATAL RENDER ERROR:", err); 
-                        if (import.meta.env.DEV) throw err; // Fail loud in dev mode
-                        this.gameState = 'gameover';
-                        try { 
-                            UI.toggleMenus('game-over-menu'); 
-                            document.getElementById('go-wave-stat').innerText = `Render Crash: ${err.message}.`; 
-                        } catch(e) {
-                            console.error("UI also crashed during render game over:", e);
-                        }
-                    }
-                }
+            const renderStartTime = performance.now();
+            if (this._pixiRenderer) {
+                // FIX: Pass rawDt so the Dev Overlay can calculate FPS
+                try { this._pixiRenderer.render(this, rawDt); }
+                catch (err) { console.error('[webgl debug] PIXI RENDER ERROR:', err); }
             }
+            // else: Pixi still loading, skip this frame's draw silently.
+                if (!this._frameMs) this._frameMs = {};
+                this._frameMs.render = performance.now() - renderStartTime;
+            }
+            // Only sample real gameplay frames — menu/pause frames have stale
+            // or zero timing and would pollute the profiler's percentiles.
+            if (this.gameState === 'playing') Profiler.record(this, this._frameMs);
         } catch (fatalError) {
             console.error("FATAL LOOP ERROR (This caused the freeze):", fatalError);
             if (import.meta.env.DEV) throw fatalError; // Fail loud in dev mode

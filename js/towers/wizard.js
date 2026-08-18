@@ -46,16 +46,16 @@ export default {
         1: [
             {name:"Guided Magic", cost:175, desc:"Magic shots last longer and seek out the Bloons, even behind cover.", extraMods:{lifespan: 0.2, homing: true}},
             {name:"Arcane Blast", cost:450, stat:"damage", amount:1, desc:"Bigger, more powerful magic blasts pop through 2 layers of Bloon.", extraMods:{pierce: 2}},
-            {name:"Arcane Mastery", cost:1450, stat:"damage", amount:1, desc:"Faster attacks with increased range, damage, and popping power.", extraMods:{range: 10, pierce: 2, cooldownMult: 0.8}},
-            {name:"Arcane Spike", cost:10000, stat:"damage", amount:4, desc:"Faster firing magic does huge damage to most Bloon types, especially to MOABs.", extraMods:{cooldownMult: 0.8, moabDmg: 5}},
-            {name:"Archmage", cost:32000, stat:"damage", amount:10, desc:"A true master of magical wizardry. Attacks faster and does more damage to MOAB-class Bloons.", extraMods:{cooldownMult: 0.7, moabDmg: 15, pierce: 5}}
+            {name:"Arcane Mastery", cost:1450, stat:"damage", amount:1, desc:"Faster attacks with increased range, damage, and popping power.", extraMods:{range: 10, pierce: 2, cooldownMult: 0.5}},
+            {name:"Arcane Spike", cost:10000, stat:"damage", amount:3, desc:"Faster firing magic does huge damage to most Bloon types, especially to MOABs.", extraMods:{cooldownMult: 0.5, moabDmg: 10}},
+            {name:"Archmage", cost:32000, stat:"damage", amount:1, desc:"A true master of magical wizardry. Attacks faster and does more damage to MOAB-class Bloons.", extraMods:{cooldownMult: 0.5, moabDmg: 19, pierce: 8}}
         ],
         2: [
-            {name:"Fireball", cost:300, desc:"Every few seconds casts an explosive fireball spell.", extraMods:{fireballCd: 2.5, fireballDmg: 1, explosionRadius: 30, explosionPierce: 15}},
+            {name:"Fireball", cost:300, desc:"Every few seconds casts an explosive fireball spell.", extraMods:{fireballCd: 2.2, fireballDmg: 1, explosionRadius: 30, explosionPierce: 15}},
             {name:"Wall of Fire", cost:800, desc:"Creates a super hot wall of fire across the track to roast the Bloons as they pass.", extraMods:{fireWellCd: 4.0, fireWellDmg: 2}},
             {name:"Dragon's Breath", cost:3300, stat:"dmgType", amount:'fire', desc:"Spews endless flames at nearby Bloons and enhances Fireball and Wall of Fire.", extraMods:{projectileType: 'fire', cooldownMult: 0.5, explosionRadius: 50, fireWellDmg: 4, fireballDmg: 2}},
             {name:"Summon Phoenix", cost:6000, desc:"Summon Phoenix ability: Powerful phoenix wreaks Bloon havoc for 20 seconds.", extraMods:{isAbility: true, abilityName: "Summon Phoenix", abilityCd: 45}},
-            {name:"Wizard Lord Phoenix", cost:50000, stat:"damage", amount:5, desc:"Wizard Lord becomes a master of the flame, turning into a super powerful Lava Phoenix.", extraMods:{isAbility: true, abilityName: "Summon Phoenix", abilityCd: 45, moabDmg: 10}}
+            {name:"Wizard Lord Phoenix", cost:50000, stat:"damage", amount:5, desc:"Wizard Lord becomes a master of the flame, permanently transforming into a super powerful Lava Phoenix.", extraMods:{moabDmg: 10}}
         ],
         3: [
             {name:"Intense Magic", cost:300, stat:"pierce", amount:2, desc:"More powerful magic shots move faster and can pop more Bloons.", extraMods:{projectileSpeed: 200}},
@@ -145,6 +145,11 @@ export default {
         }
 
         // 5. Phoenix Ability Active Effect
+        // Wizard Lord Phoenix (T5): the phoenix is permanent, so keep it active
+        // at all times instead of requiring the ability.
+        if (tower.upgrades[1] === 5) {
+            tower.phoenixActive = Math.max(tower.phoenixActive || 0, 1.0);
+        }
         if (tower.phoenixActive > 0) {
             tower.phoenixActive -= dt;
             tower.phoenixTimer = (tower.phoenixTimer || 0) - dt;
@@ -153,8 +158,8 @@ export default {
                 let target = _findWizardTarget(tower, engine);
                 if (target) {
                     let p = engine.projectilePool.get();
-                    let dmg = tower.upgrades[1] >= 5 ? 20 : 10;
-                    p.init(tower.x, tower.y - 20, dmg, target, 'bomb', 1000, 100, 2.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: dmg, explosionPierce: 50, canHitLead: true }, 0, tower, { isFire: true, isExplosion: true, canHitLead: true });
+                    let dmg = 5;
+                    p.init(tower.x, tower.y - 20, dmg, target, 'bomb', 1000, 8, 2.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: dmg, explosionPierce: 8, canHitLead: true, moabDmg: tower.stats.moabDmg || 0 }, 0, tower, { isFire: true, isExplosion: true, canHitLead: true });
                 }
             }
         }

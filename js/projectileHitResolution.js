@@ -211,9 +211,9 @@ const ProjectileHitResolution = {
         if (this.effects.freeze) {
             if (e.data.isMoab) {
                 if (this.effects.superBrittle) {
-                    e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0; e.isCamo = false;
+                    e.brittle = true; e.brittleBonus = 4; e.brittleTimer = 3.0; e.isCamo = false;
                 } else if (this.effects.embrittlement) {
-                    e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 4.0; e.isCamo = false;
+                    e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 2.0; e.isCamo = false;
                 }
             } else {
                 if (!e.isFrozen || this.effects.reFreeze) {
@@ -277,9 +277,9 @@ const ProjectileHitResolution = {
                     enemy.applySlow(0.0, this.effects.freezeDuration || this.effects.freeze || 2.0, false); 
                 }
                 if (this.effects.superBrittle) {
-                    enemy.brittle = true; enemy.brittleBonus = 5; enemy.brittleTimer = 4.0; enemy.isCamo = false;
+                    enemy.brittle = true; enemy.brittleBonus = 4; enemy.brittleTimer = 3.0; enemy.isCamo = false;
                 } else if (this.effects.embrittlement) {
-                    enemy.brittle = true; enemy.brittleBonus = 1; enemy.brittleTimer = 4.0; enemy.isCamo = false;
+                    enemy.brittle = true; enemy.brittleBonus = 1; enemy.brittleTimer = 2.0; enemy.isCamo = false;
                 }
             } else {
                 if (!(enemy.data.isWhite || enemy.data.isZebra)) {

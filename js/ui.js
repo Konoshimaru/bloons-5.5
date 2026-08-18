@@ -11,7 +11,7 @@ function el(id) {
     return elements[id];
 }
 
-const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'victory-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu'];
+const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'victory-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu', 'update-log-menu'];
 const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 
 export const UI = {
@@ -67,7 +67,7 @@ export const UI = {
         if (levelEl) levelEl.innerText = `Level ${Config.data.playerLevel}`;
         if (xpEl) xpEl.innerText = `${Config.data.playerXP} / ${Config.data.playerXPToNext} XP`;
         if (expFill) expFill.style.width = `${(Config.data.playerXP / Config.data.playerXPToNext) * 100}%`;
-        if (mmEl) mmEl.innerText = `?? $${Config.data.monkeyMoney}`;
+        if (mmEl) mmEl.innerText = `🐵 $${Config.data.monkeyMoney}`;
 
         const barLevel = el('level-bar-level');
         const barFill = el('level-bar-xp-fill');

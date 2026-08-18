@@ -42,10 +42,19 @@ export default {
     },
     updateSupport(tower, dt) {
         if (tower.upgrades[0] === 5) {
+            // Throttle the addBuff refresh — buff lasts 0.5s, so refreshing a
+            // couple times per second is functionally identical while avoiding
+            // activeBuffs churn per tick. The scalar buffedValueMult below is
+            // still re-applied every tick so the effect never drops.
+            tower._wallStreetTimer = (tower._wallStreetTimer || 0) - dt;
+            const refresh = tower._wallStreetTimer <= 0;
+            if (refresh) tower._wallStreetTimer = 0.4;
             for (let t of GameEngine.towers) {
                 if (t === tower) continue;
                 if (t && t.type === 'farm' && t.upgrades[0] === 4) {
-                    t.addBuff('wall_street', 'Wall Street', 0.5, 1, { type: 'wall_street' }, false);
+                    if (refresh) {
+                        t.addBuff('wall_street', 'Banana Central', 0.5, 1, { type: 'wall_street' }, false);
+                    }
                     t.buffedValueMult = 0.25;
                 }
             }

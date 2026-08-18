@@ -39,8 +39,10 @@ import { PixiApp } from './pixiApp.js';
 import { PixiAssets } from './pixiAssets.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
 import { ENEMY_NAMES, KNIGHT_SCALE, KNIGHT_TRAIL_SCALE, KNIGHT_TRAIL_DRIFT, KNIGHT_SWORD_SCALE, KNIGHT_SLASH_COLOR, KNIGHT_SLASH_EDGE_COLOR, KNIGHT_AIM_TRACK_COLOR, KNIGHT_AIM_LOCK_COLOR } from './rendererConstants.js';
+import { BloonSpriteConfig } from '../bloonSpriteConfig.js';
 import { CutsceneManager } from '../cutscene.js';
 import CutsceneBalls from '../bosses/cutsceneBalls.js';
+import { TUNING } from '../tuning.js';
 
 const slashScale = 1.5;
 
@@ -72,6 +74,11 @@ export const CutsceneRenderer = {
     // two parallel sprite pools (fills first, rings on top) to reproduce the
     // canvas two-pass exactly.
     _ballBucketRadii: [8, 10, 13, 16, 20, 25, 32, 40, 50, 63, 79, 100],
+    // Last successfully-rendered knight body texture. The reveal animation
+    // swaps sprites every frame; if one frame's texture isn't ready yet
+    // (returns EMPTY) we keep drawing the previous frame instead of hiding
+    // the knight for a frame (visible "blinking").
+    _knightLastTexture: null,
     // Perf: fill/erase discs are solid black — scale-invariant — so one shared
     // texture covers every ball radius instead of per-bucket textures. That
     // kills the per-ball bucket lookup AND collapses the whole fill pass to a
@@ -390,14 +397,18 @@ export const CutsceneRenderer = {
         const targetSize = (target.data?.size || (target.radius * 2) || 20) * GLOBAL_SCALE;
         const offsetX = target.data?.spriteOffsetX || 0;
         const offsetY = target.data?.spriteOffsetY || 0;
+        const cfg = BloonSpriteConfig[baseName] || {};
+        const bodyCfg = cfg.body || {};
+        const bladeCfg = cfg.blades || {};
 
         const c = new Container();
         const baseSprite = new Sprite(baseTexture); baseSprite.anchor.set(0.5);
+        const bodySize = targetSize * (bodyCfg.scale ?? 1);
         const maxDim = Math.max(baseTexture.width, baseTexture.height) || 1;
-        const scale = targetSize / maxDim;
+        const scale = bodySize / maxDim;
         baseSprite.width = baseTexture.width * scale;
         baseSprite.height = baseTexture.height * scale;
-        baseSprite.x = offsetX; baseSprite.y = offsetY;
+        baseSprite.x = offsetX + (bodyCfg.x || 0); baseSprite.y = offsetY + (bodyCfg.y || 0);
         c.addChild(baseSprite);
 
         if (baseName === 'moab' || baseName === 'bfb' || baseName === 'zomg') {
@@ -407,12 +418,14 @@ export const CutsceneRenderer = {
             if (bladeTexture === Texture.EMPTY && frame === 0) bladeTexture = PixiAssets.get(`enemy_${baseName}_blades`);
             if (bladeTexture !== Texture.EMPTY) {
                 const blade = new Sprite(bladeTexture); blade.anchor.set(0.5);
+                const bladeSize = targetSize * (bladeCfg.scale ?? 1);
                 const maxDim2 = Math.max(bladeTexture.width, bladeTexture.height) || 1;
-                const scale2 = targetSize / maxDim2;
+                const scale2 = bladeSize / maxDim2;
                 blade.width = bladeTexture.width * scale2;
                 blade.height = bladeTexture.height * scale2;
-                blade.x = offsetX; blade.y = offsetY;
-                c.addChild(blade);
+                blade.x = offsetX + (bladeCfg.x || 0); blade.y = offsetY + (bladeCfg.y || 0);
+                // Blade behind the body (index 0), matching renderEnemies.js.
+                c.addChildAt(blade, 0);
             }
         }
 
@@ -521,7 +534,7 @@ export const CutsceneRenderer = {
         }
 
         if (state === 'slashing' && CutsceneManager.target) {
-            const progress = 1 - (CutsceneManager.timer / 0.7); // PHASE_SLASH_DURATION
+            const progress = 1 - (CutsceneManager.timer / TUNING.bossAnim.phases.slash);
             const frame = Math.min(14, Math.floor(progress * 14) + 1);
             const texture = PixiAssets.get(`effect_slash_${frame}`);
             if (texture !== Texture.EMPTY) {
@@ -543,6 +556,7 @@ export const CutsceneRenderer = {
     // screen, including the 'idle' cutscene state).
     _clearKnightEffects(e) {
         e.knight.visible = false;
+        this._knightLastTexture = null;
         for (const s of e.trailSprites) s.visible = false;
         for (const s of e.swordSprites) s.visible = false;
         e.slashGfx.clear();
@@ -556,15 +570,17 @@ export const CutsceneRenderer = {
     // renderer path as the in-game boss (knightRenderer is driven entirely
     // from this.x/this.y/knightTrail/spinningSlashes/thrownSwords).
     _drawKnightEffects(e, knight) {
-        // --- Trail ghosts: `enemy_knight_front` at trailScale, mirrored via
-        // ctx.scale(-1,1), alpha = trail alpha (fades as it ages). ---
+        // --- Trail ghosts: `knight.sprite` (the current body sprite, so the
+        // trail follows the reveal animation instead of always showing the
+        // front view) at trailScale, mirrored via ctx.scale(-1,1), alpha =
+        // trail alpha (fades as it ages). ---
         const trail = knight.knightTrail || [];
         while (e.trailSprites.length < trail.length) {
             const s = new Sprite(); s.anchor.set(0.5); e.trailLayer.addChild(s); e.trailSprites.push(s);
         }
         while (e.trailSprites.length > trail.length) e.trailSprites.pop().destroy();
-        const trailTexture = PixiAssets.get('enemy_knight_front');
-        PixiAssets.setPixelArt('enemy_knight_front');
+        const trailTexture = PixiAssets.get(knight.sprite);
+        PixiAssets.setPixelArt(knight.sprite);
         for (let i = 0; i < e.trailSprites.length; i++) {
             const s = e.trailSprites[i];
             if (i < trail.length && trailTexture !== Texture.EMPTY) {
@@ -586,11 +602,18 @@ export const CutsceneRenderer = {
         const texture = PixiAssets.get(knight.sprite);
         PixiAssets.setPixelArt(knight.sprite);
         if (texture !== Texture.EMPTY) {
+            this._knightLastTexture = texture;
             e.knight.visible = true;
             if (e.knight.texture !== texture) e.knight.texture = texture;
             e.knight.width = texture.width * KNIGHT_SCALE;
             e.knight.height = texture.height * KNIGHT_SCALE;
             e.knight.scale.x = -Math.abs(e.knight.scale.x);
+            e.knight.x = knight.x; e.knight.y = knight.y;
+            e.knight.alpha = Math.min(1, knight.alpha ?? 1);
+        } else if (this._knightLastTexture) {
+            // Frame texture not ready this frame: keep the previous frame so
+            // the knight doesn't blink out for one frame mid-reveal.
+            if (e.knight.texture !== this._knightLastTexture) e.knight.texture = this._knightLastTexture;
             e.knight.x = knight.x; e.knight.y = knight.y;
             e.knight.alpha = Math.min(1, knight.alpha ?? 1);
         } else {

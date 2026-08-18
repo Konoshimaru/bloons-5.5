@@ -6,10 +6,19 @@
     <title>Ultimate Monkey TD</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"></noscript>
+    <style>
+        /* Critical CSS applied before the JS-injected stylesheet loads (Vite
+           dev serves CSS via JS, so without this the page paints unstyled and
+           every .hidden overlay — incl. the "Screen Too Small" one — flashes
+           on screen until main.js runs). */
+        .hidden { display: none !important; }
+        body { background: #000; }
+    </style>
 </head>
 <body>
-    <div id="screen-too-small-overlay" class="hidden">
+    <div id="screen-too-small-overlay" class="hidden" style="display:none">
         <h2>Screen Too Small!</h2>
         <p>Please rotate your device to landscape mode or use a larger screen.</p>
     </div>
@@ -89,6 +98,10 @@
                 <div id="shop-view" class="tower-shop"></div>
                 <div id="enemy-view" class="tower-shop hidden">
                     <div class="sb-row" style="grid-column: 1 / -1;">
+                        <label class="sb-spawn-input">Qty<input id="sb-count" type="number" value="1" min="1" step="1"></label>
+                        <label class="sb-spawn-input">Spacing (s)<input id="sb-spacing" type="number" value="0.5" min="0" step="0.1"></label>
+                    </div>
+                    <div class="sb-row" style="grid-column: 1 / -1;">
                         <button id="sb-toggle-camo" class="sb-toggle">Camo: Off</button>
                         <button id="sb-toggle-regen" class="sb-toggle">Regen: Off</button>
                         <button id="sb-toggle-fortified" class="sb-toggle">Fortified: Off</button>
@@ -111,7 +124,7 @@
                     <div class="tower-card" data-enemy="16" style="background-image: url('sprites/enemies/ddt.png');"></div>
                     <div class="tower-card" data-enemy="17" style="background-image: url('sprites/enemies/bad.png');"></div>
                     <!-- NEW: Knight Boss Cutscene Trigger -->
-                    <div class="tower-card" data-enemy="knight" style="background-image: url('sprites/enemies/knight_front.png'); background-color: #2c3e50; background-size: contain; background-repeat: no-repeat;"></div>
+                    <div class="tower-card" data-enemy="knight" style="background-image: url('sprites/sheets/enemies/knight_front.png'); background-color: #2c3e50; background-size: contain; background-repeat: no-repeat;"></div>
                 </div>
             </div>
             <div class="sidebar-bottom">
@@ -137,12 +150,11 @@
 
         <!-- Loading Screen -->
         <div id="loading-screen" class="full-screen-overlay hidden">
-            <div class="loading-container">
-                <h2>Loading...</h2>
-                <div class="loading-bar-container">
-                    <div id="loading-bar-fill" class="loading-bar-fill"></div>
+            <canvas id="loading-minigame" class="loading-minigame"></canvas>
+                <div class="loading-container">
+                    <button id="minigame-close" class="back-btn hidden">Back</button>
+                    <div id="loading-status" class="loading-indicator">Loading...</div>
                 </div>
-            </div>
         </div>
 
         <!-- Main Menu UI Bars -->
@@ -157,6 +169,7 @@
             <div id="mm-left-bar">
                 <button id="btn-settings" title="Settings">⚙</button>
                 <button id="btn-map-editor" title="Map Editor">🗺</button>
+                <button id="btn-update-log" title="Update Log">📋</button>
             </div>
             <div id="mm-bottom-bar">
                 <button id="btn-monkeys">MONKEYS</button>
@@ -297,7 +310,62 @@
             </div>
         </div>
 
-          <!-- Map Editor Menu -->
+          <!-- Update Log Menu -->
+        <div id="update-log-menu" class="overlay hidden">
+            <div class="menu-content" style="max-width: 780px; text-align: left;">
+                <h2 style="text-align: center;">Update Log</h2>
+                <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 10px;">
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.2.0</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li>Big preload: the loading screen now warms up most of the game up front — tower/hero attack animations (including every upgrade), bloons + cracks + blades, effects, projectiles, maps and audio. No more mid-round blank squares or first-use hitches (upgraded sniper, effects, etc.).</li>
+                            <li>Fixed first-shot animation: attack frames are decoded before the first shot, so towers play their full attack animation from shot #1 instead of a stuttery/base-only few.</li>
+                            <li>Loading screen revamp: kept out of the way — a slim pulsing "Loading..." indicator sits in the corner while the game warms up (the old full logo / status-bar / tips layout was removed).</li>
+                            <li>Loading-screen minigame: click/tap/hold (or Space) to shake swords loose, Budokai Tenkaichi style — swords are scattered around the screen, each pull builds self-reinforcing momentum (bigger gains, harder budges, faster pops), the screen shakes at full power, and freed swords pop with a slide-up flash. Idle swords even work themselves out very slowly. Every 20 farmed earns a silent +1 XP. Purely optional; loading never waits on it. Run <code>forceMinigame()</code> in the devtools console to play it anytime (<code>closeMinigame()</code> to dismiss).</li>
+                            <li>Knight boss: the intro cutscene now plays a full roar (knight_back frames) then a sword-equip animation before the knight turns to face you for the fight.</li>
+                            <li>Tuning tools: <code>tuning</code> is exposed on the console (<code>window.tuning</code>) — boss cutscene pacing (phase durations + reveal fps) and minigame feel knobs can be adjusted live without a rebuild. Replay the cutscene instantly with <code>retryCutscene()</code>.</li>
+                            <li>Knight fix: the knight no longer blinks mid-reveal (the sword-equip frame 1 was loading a missing sprite; the WebGL renderer also keeps the last frame if one isn't ready yet).</li>
+                            <li>Knight fix: the shadow trail now follows the current sprite instead of always showing the front view.</li>
+                            <li>Knight: when he teleports after taking a beating he no longer just vanishes and reappears — he collapses into a ball, rolls to the new spot, then reforms.</li>
+                            <li>Knight: his attacks now animate him — spinning slashes play the slash animation, sword throws use the point animation, and when he takes a big hit he flinches to a static pose before vanishing.</li>
+                            <li>Knight: the slash wind-up now pauses at frames 2-3 while he backs up, waiting for the slash to release before swinging through.</li>
+                            <li>Knight: the sword-throw point animation now raises the sword, holds, and lowers it back down.</li>
+                            <li>Knight: when he's vanquished he no longer just explodes and fades — after the final detonation he plays the fly transition and flies away off the top of the screen.</li>
+                            <li>Minigame: momentum now slowly drains even at max, so you have to keep pulling to hold it; swords take more pulls to pop and momentum builds slower; the selection jumps to the next sword the moment one pops (no more pulling dead air); click effects scatter around the cursor — and follow it while you hold.</li>
+                            <li>Bloon sprite editor (blooneditor.html): per-bloon placement/scale for body, blades and cracks, blade-frame scrub + preview, and save straight to js/bloonSpriteConfig.js.</li>
+                            <li>MOAB now reuses its stage-2 blades for the stage-3 damage look.</li>
+                            <li>Map rework: The Ripples, The Maze, The Spiral and The Intersection now have real backgrounds (they used to be flat green with invisible obstacles) — and their old invisible trees/rocks/bushes/ponds were replaced with properly rendered obstacles that still block placement.</li>
+                            <li>5 new maps with day/night variants: Candy Lane, Winter Falls, Volcanic Ridge, Enchanted Forest and Neon Alley.</li>
+                            <li>Editor now supports colored water brushes (ice/lava etc.), and water/stars/signs on the new maps glow in night mode.</li>
+                            <li>Editor now uses the game-accurate blade frame model (stage 0 = bare blades, stages 1-3 = sub-frames).</li>
+                            <li>Removed the legacy Canvas2D renderer — WebGL (PixiJS) is now the only renderer, with no more <code>?canvas=1</code> fallback to drift out of sync.</li>
+                            <li>Loading speedup: the asset preload now starts in the background on the title screen, and the Play-click loading runs the WebGL textures, canvas images and audio in parallel instead of one after another.</li>
+                            <li>Loading speedup 2: preload batches are twice as wide with half the wait, and fully-warmed assets skip the re-await entirely — so a second Play-click is near-instant. The start screen also stops flashing "Screen Too Small" before its styles load.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.1.0</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li>New damage-over-time system: every DoT source now uses its BTD6 tick rate and duration (Corrosive Glue 2s/6s, acid, burn, bleed, melt).</li>
+                            <li>Balance pass: Druid storm/jungle values, Monkey Ace, Heli Pilot, Wizard arcane path, Buccaneer (MOAB Takedown can no longer grab ZOMG/BAD), MOAB Domination, Super Temple missile, and several ability cooldowns.</li>
+                            <li>New behaviors: Apache machine gun, orbiting Comanche mini-helicopters, and Aircraft Carrier plane squadrons + missiles.</li>
+                            <li>Bug fixes: Lead to Gold only pays out on Lead/DDT, Druid lightning/tornado respect range, Skywarden spread/attack-speed-ramp/enhance-decay, Desperado distance-scaled attacks.</li>
+                            <li>Performance: reduced spatial-grid cell size to cut collision-candidate checks.</li>
+                            <li>Fix: main menu money display emoji.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.0.0</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li>Initial BTD6-fidelity pass: glue targeting, Super crits, Tack Zone, glue stun/storm, ice brittleness, Energizer hero XP, sniper/bomb/village/farm tuning, Pre-emptive strike &amp; First Strike, Rocket Storm, mortar barrage, mermonkey, beast handlers, Overclock, Legend of the Night black hole, sticky bomb.</li>
+                        </ul>
+                    </div>
+                </div>
+                <button class="back-btn" data-target="main-menu-ui">Back</button>
+            </div>
+        </div>
+
+        <!-- Map Editor Menu -->
         <div id="map-editor-menu" class="overlay hidden">
             <div class="editor-container">
                 <div class="editor-sidebar">

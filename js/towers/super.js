@@ -11,6 +11,8 @@ const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 const _superBeamScratch = [];
 const _superExpScratch = [];
 const _superDarkScratch = [];
+const _superSecondTargetScratch = [];
+const _superTowerScratch = [];
 
 export default {
     stats: { 
@@ -32,16 +34,16 @@ export default {
         2: [
             {name:"Super Range", cost:1500, stat:"range", amount:10, desc:"Super Monkeys need Super Range.", extraMods:{pierce:1}},
             {name:"Epic Range", cost:1900, stat:"range", amount:12, desc:"Why settle for super when you can have EPIC?", extraMods:{pierce:2, projectileSpeed:600}}, // +600 to base 800 = 1400 (+75%)
-            {name:"Robo Monkey", cost:7500, stat:"projectileCount", amount:2, desc:"Half Super Monkey, half killer robot of death. Shoots from 2 guns and can crit!", extraMods:{canCrit:true, critChance:0.06, critDmg:10, pierce:2}},
+            {name:"Robo Monkey", cost:7500, stat:"projectileCount", amount:2, desc:"Half Super Monkey, half killer robot of death. Shoots from 2 guns and can crit!", extraMods:{canCrit:true, critEvery:18, critDmg:10, pierce:2}},
             {name:"Tech Terror", cost:25000, stat:"dmgType", amount:'plasma', desc:"Annihilation ability: Destroys most Bloons completely within blast radius.", extraMods:{projectileType:'plasma', pierce:3, isAbility:true, abilityName:"Annihilate", abilityCd:40}},
-            {name:"The Anti-Bloon", cost:70000, stat:"damage", amount:4, desc:"<Program Directive> <Eradicate Bloons> <INITIATE>", extraMods:{pierce:5, range:10, isAbility:true, abilityName:"Annihilate 2.0", abilityCd:30, critChance:0.07, critDmg:50, dmgType:'normal', canHitLead:true}}
+            {name:"The Anti-Bloon", cost:70000, stat:"damage", amount:4, desc:"<Program Directive> <Eradicate Bloons> <INITIATE>", extraMods:{pierce:5, range:10, isAbility:true, abilityName:"Annihilate 2.0", abilityCd:30, canCrit:true, critEvery:13, critDmg:50, dmgType:'normal', canHitLead:true}}
         ],
         3: [
             {name:"Knockback", cost:3000, stat:"dmgType", amount:'sharp', desc:"Bloons get pushed backwards or slowed after each hit.", extraMods:{knockback:25, slow:0.4, slowDuration:0.5}},
             {name:"Ultravision", cost:1200, stat:"canSeeCamo", amount:true, desc:"Enables Super Monkey to shoot slightly further, see and do more damage to Camo Bloons.", extraMods:{range:3, camoDmg:1}},
             {name:"Dark Knight", cost:5600, stat:"dmgType", amount:'plasma', desc:"Dark blades increase knockback and pierce and deal extra damage to MOAB-class Bloons. Gains Darkshift ability.", extraMods:{projectileType:'dark_blade', moabDmg:2, pierce:3, slow:0.1, slowDuration:0.5, isAbility:true, abilityName:"Darkshift", abilityCd:15}},
             {name:"Dark Champion", cost:55555, stat:"damage", amount:1, desc:"Champion dark blades excel at puncturing and ruining all Bloon types. Darkshift ability extends mapwide.", extraMods:{camoDmg:1, moabDmg:1, ceramicDmg:2, cooldownMult:0.5, pierce:4, canHitLead:true}},
-            {name:"Legend of the Night", cost:165650, stat:"damage", amount:8, desc:"We turn to him, when all hope is lost... Unlocks Portal ability.", extraMods:{pierce:15, moabDmg:16, ceramicDmg:2, camoDmg:2, isAbility2:true, ability2Name:"Portal", ability2Cd:90}}
+            {name:"Legend of the Night", cost:165650, stat:"damage", amount:8, desc:"We turn to him, when all hope is lost... Unlocks Black Hole ability.", extraMods:{pierce:15, moabDmg:16, ceramicDmg:2, camoDmg:2, isAbility2:true, ability2Name:"Black Hole", ability2Cd:180}}
         ]
     },
 
@@ -120,7 +122,7 @@ export default {
             if (amt > 50000) {
                 tower.stats.projectileSpeed *= 1.45;
                 tower.stats.pierce += 10;
-                tower.milMissile = { dmg: 1 * statMult, moabDmg: 1999 * statMult, pierce: 40, cd: 1.0, timer: 0 };
+                tower.milMissile = { dmg: 1 * statMult, moabDmg: 2000 * statMult, pierce: 40, cd: 1.0, timer: 0 };
                 tower.milSpectre = { cd: 0.15, timer: 0, count: 2 * statMult, dartDmg: 25 * statMult, bombDmg: 10 * statMult };
             } else if (amt > 30000) {
                 tower.stats.projectileSpeed *= 1.36;
@@ -164,6 +166,16 @@ export default {
     },
 
     update(tower, dt, engine) {
+        // Legend of the Night: Black Hole blocks all lives lost while active.
+        if (engine.blackHoleTimer > 0) engine.blackHoleTimer -= dt;
+        if (tower.upgrades[2] >= 5) {
+            if (!tower._waveActive && engine.waveManager.waveActive) {
+                tower._waveActive = true;
+                tower.lotnUsesThisRound = 0;
+            } else if (tower._waveActive && !engine.waveManager.waveActive) {
+                tower._waveActive = false;
+            }
+        }
         // Support Sacrifice: Generate passive income
         if (tower.supRoundCash > 0) {
             tower.supCashTimer = (tower.supCashTimer || 0) + dt;
@@ -177,9 +189,19 @@ export default {
         // Support Sacrifice: Buff nearby towers
         if (tower.supBuff) {
             const range = Utils.getEffectiveRange(tower, engine);
-            for (const t of engine.towers) {
+            // Throttle the addBuff refresh (like Sniper's updateSupport): the
+            // buff lasts 0.5s, so refreshing 2-3x/sec is functionally identical
+            // and avoids churning activeBuffs per tick. The scalar buffs below
+            // are still re-applied every tick so the effect never drops.
+            tower._supBuffTimer = (tower._supBuffTimer || 0) - dt;
+            const refresh = tower._supBuffTimer <= 0;
+            if (refresh) tower._supBuffTimer = 0.4;
+            const nearby = GameEngine.towerGrid.query(tower.x, tower.y, range, _superTowerScratch);
+            for (const t of nearby) {
                 if (t !== tower && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
-                    t.addBuff('sun_buff', 'Sun God', 0.5, 1, { type: 'sun_buff' }, false);
+                    if (refresh) {
+                        t.addBuff('sun_buff', 'Sun God', 0.5, 1, { type: 'sun_buff' }, false);
+                    }
                     t.buffedDmg = Math.max(t.buffedDmg || 0, tower.supBuff.dmg);
                     t.buffedPierce = Math.max(t.buffedPierce || 0, tower.supBuff.pierce);
                     t.buffedRange = Math.max(t.buffedRange || 0, tower.supBuff.rangeMult - 1);
@@ -312,7 +334,14 @@ export default {
         let best = null;
         let bestVal = (mode === 'First' || mode === 'Strong') ? -Infinity : Infinity;
         
-        for (const e of engine.enemies) {
+        // Robo Monkey / Anti-Bloon fires this every shot; if the tower has a
+        // finite range, query the enemy grid for candidates instead of scanning
+        // the entire enemy list. Global-range (9999) falls back to full scan.
+        const candidates = baseRange === 9999
+            ? engine.enemies
+            : engine.enemyGrid.query(tower.x, tower.y, effRange, _superSecondTargetScratch);
+        
+        for (const e of candidates) {
             if (!e.alive || e === primaryTarget) continue;
             if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
             
@@ -363,10 +392,14 @@ export default {
             let armDmg = baseDmg;
             let armCrit = false;
             
-            // Roll crit independently for this arm
-            if (tower.stats.canCrit && Math.random() < (tower.stats.critChance || 0)) {
-                armDmg = tower.stats.critDmg;
-                armCrit = true;
+            // BTD6 guaranteed crit cycle per arm (Robo ~every 18th, Anti-Bloon ~every 13th)
+            if (tower.stats.canCrit && tower.stats.critEvery) {
+                if (!tower._armCritCount) tower._armCritCount = [0, 0];
+                tower._armCritCount[i] = (tower._armCritCount[i] || 0) + 1;
+                if (tower._armCritCount[i] % tower.stats.critEvery === 0) {
+                    armDmg = tower.stats.critDmg;
+                    armCrit = true;
+                }
             }
 
             let p = engine.projectilePool.get();
@@ -436,18 +469,14 @@ export default {
     },
     
     ability2(tower, engine) {
-        const pathIdx = 0; 
-        const totalLen = engine.map.getTotalLength(pathIdx);
-        const pos = engine.map.getPositionAtDistance(totalLen - 10, pathIdx);
-        
-        const expRadius = 150;
-        engine.explosions.push({ x: pos.x, y: pos.y, radius: 0, maxRadius: expRadius, life: 2.0, maxLife: 2.0, color: '#9b59b6' });
-        
-        const nearby = engine.enemyGrid.query(pos.x, pos.y, expRadius, _superDarkScratch);
-        for (const e of nearby) {
-            if (e.alive) {
-                e.takeDamage(99999, { isExplosion: true, canHitLead: true });
-            }
+        if (tower.upgrades[2] < 5) return;
+        if ((tower.lotnUsesThisRound || 0) >= 2) {
+            engine.log("Black Hole used up this round!");
+            return;
         }
+        tower.lotnUsesThisRound = (tower.lotnUsesThisRound || 0) + 1;
+        engine.blackHoleTimer = 8.0;
+        engine.log("Black Hole! Lives are protected for 8 seconds.");
+        engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: 200, life: 2.0, maxLife: 2.0, color: '#2c3e50' });
     }
 };

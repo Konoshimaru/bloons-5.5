@@ -37,7 +37,7 @@ export default {
             {name:"Enhanced Freeze", cost:200, desc:"Attacks faster and freezes for longer.", cooldownMult: 0.75, extraMods:{freezeDuration: 1.75}},
             {name:"Deep Freeze", cost:300, stat:"pierce", amount:5, desc:"Increases pierce, freezes an extra layer and freeze lasts longer.", extraMods:{deepFreeze: true, freezeDuration: 2.2}},
             {name:"Arctic Wind", cost:2750, stat:"arcticWind", amount:true, desc:"Gains a super cold aura that slows Bloons and freezes water nearby.", extraMods:{arcticSlowFactor: 0.6}}, 
-            {name:"Snowstorm", cost:4000, stat:"range", amount:10, desc:"Snowstorm Ability: Freezes all regular Bloons on screen, briefly freezes White, Zebra, and Camo, and slows MOAB-class.", extraMods:{unlocksAbility:true, abilityName:"Snowstorm", abilityCd:30}},
+            {name:"Snowstorm", cost:4000, stat:"range", amount:10, desc:"Snowstorm Ability: Freezes all regular Bloons on screen, briefly freezes White, Zebra, and Camo, and slows MOAB-class.", extraMods:{unlocksAbility:true, abilityName:"Snowstorm", abilityCd:45}},
             {name:"Absolute Zero", cost:21000, stat:"absoluteZero", amount:true, desc:"Each attack freezes all Bloons everywhere for a short time. Snowstorm freezes all Bloon types for even longer while greatly increasing attack speed of all Ice Monkeys for the duration.", extraMods:{range: 10, pierce: 255, abilityCd: 25}} 
         ],
         3: [
@@ -50,9 +50,17 @@ export default {
     },
     updateSupport(tower, dt) {
         if (tower.stats.absoluteZero) {
+            // Throttle the addBuff refresh — the buff lasts 0.5s so 2-3
+            // refreshes/sec is functionally identical, while the scalar
+            // buffedFireRate is still re-applied every tick.
+            tower._iceSupportTimer = (tower._iceSupportTimer || 0) - dt;
+            const refresh = tower._iceSupportTimer <= 0;
+            if (refresh) tower._iceSupportTimer = 0.4;
             for (let t of GameEngine.towers) {
                 if (t && t.type === 'ice' && t !== tower) {
-                    t.addBuff('ice_support', 'Arctic Wind', 0.5, 1, { type: 'ice_support' }, false);
+                    if (refresh) {
+                        t.addBuff('ice_support', 'Arctic Wind', 0.5, 1, { type: 'ice_support' }, false);
+                    }
                     t.buffedFireRate = Math.max(t.buffedFireRate, 0.10);
                     if (tower.absZeroActiveBuff > 0) {
                         t.buffedFireRate = Math.max(t.buffedFireRate, 0.50); 
@@ -123,6 +131,21 @@ export default {
         tower.drawBaseTower(ctx, isPreview);
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {
+        // Absolute Zero (T5): every attack freezes all non-MOAB Bloons everywhere briefly
+        // and deals +1 damage / +3 ceramic damage (BTD6 v51).
+        if (tower.stats.absoluteZero) {
+            damage += 1;
+            dmgType = { ...dmgType, ceramicDmg: (dmgType.ceramicDmg || 0) + 3 };
+            const gFreezeDur = 1.0;
+            for (const e of GameEngine.enemies) {
+                if (!e.alive || e.data.isBAD) continue;
+                if (e.isCamo && !tower.stats.canSeeCamo) continue;
+                if (e.data.isLead && !tower.stats.canHitLead && !e.leadStripped) continue;
+                if (e.data.isMoab) { e.applySlow(0.5, 1.0, false); continue; } // MOABs are only slowed
+                e.applySlow(0.0, gFreezeDur, true);
+            }
+        }
+
         if (tower.stats.icicleImpale) {
             let p = GameEngine.projectilePool.get();
             let impaleDmgType = createDmgType(DamageType.ICE, { moabDmg: tower.stats.moabDmg || 50, canHitLead: true });
@@ -173,14 +196,13 @@ export default {
             
             if (e.data.isMoab) {
                 if (tower.stats.superBrittle) {
-                    if (e.data.isBAD) continue;
-                    e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0;
+                    e.brittle = true; e.brittleBonus = 4; e.brittleTimer = 3.0;
                     e.isCamo = false; e.isRegen = false;
                     e.permafrostSlow = 0.75; 
                     let moabDmg = e.takeDamage(5, { isExplosion: true, canHitLead: true }, null, tower);
                     if (!isNaN(moabDmg) && moabDmg !== -1) tower.damageDealt += moabDmg;
                 } else if (tower.stats.embrittlement) {
-                    e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 4.0;
+                    e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 2.0;
                     e.isCamo = false; e.isRegen = false;
                     if (e.data.isDDT) e.leadStripped = true;
                 } else if (tower.stats.icicles) {
@@ -203,12 +225,12 @@ export default {
                 }
                 if (tower.stats.embrittlement) {
                     e.isCamo = false; e.isRegen = false;
-                    e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 4.0;
+                    e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 2.0;
                     if (e.data.isLead) e.leadStripped = true;
                 }
                 if (tower.stats.superBrittle) {
                     e.isCamo = false; e.isRegen = false;
-                    e.brittle = true; e.brittleBonus = 5; e.brittleTimer = 4.0;
+                    e.brittle = true; e.brittleBonus = 4; e.brittleTimer = 3.0;
                     if (e.data.isLead) e.leadStripped = true;
                     let dmg = e.takeDamage(5, { isExplosion: true, canHitLead: true }, null, tower);
                     if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;

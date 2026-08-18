@@ -15,10 +15,10 @@ export default {
     upgrades: {
         1: [
             {name:"Glue Soak", cost:200, desc:"Glue soaks through all layers of Bloon.", extraMods:{soak: true}},
-            {name:"Corrosive Glue", cost:300, stat:"damage", amount:1, desc:"Glued Bloons pop one layer every few seconds.", extraMods:{dot: 1, dotTimer: 2.0}},
-            {name:"Bloon Dissolver", cost:2000, stat:"pierce", amount:1, desc:"Glues one additional Bloon and melts two layers every second.", extraMods:{dot: 2, dotTimer: 1.0}},
-            {name:"Bloon Liquefier", cost:5000, stat:"pierce", amount:1, desc:"Does 10 pops every second.", extraMods:{dot: 10, dotTimer: 1.0}},
-            {name:"The Bloon Solver", cost:22500, stat:"damage", amount:40, desc:"Bloons a problem? Here's the solution.", extraMods:{dot: 40, dotTimer: 0.5, moabDmg: 40}}
+            {name:"Corrosive Glue", cost:300, stat:"damage", amount:1, desc:"Glued Bloons pop one layer every few seconds.", extraMods:{dot: 1, dotTimer: 2.0, dotDuration: 6.0}},
+            {name:"Bloon Dissolver", cost:2000, stat:"pierce", amount:1, desc:"Glues one additional Bloon and melts two layers every second.", extraMods:{dot: 2, dotTimer: 1.0, dotDuration: 4.0}},
+            {name:"Bloon Liquefier", cost:5000, stat:"pierce", amount:1, desc:"Does 10 pops every second.", extraMods:{dot: 10, dotTimer: 1.0, dotDuration: 4.0}},
+            {name:"The Bloon Solver", cost:22500, stat:"damage", amount:40, desc:"Bloons a problem? Here's the solution.", extraMods:{dot: 10, dotTimer: 1.0, moabDmg: 40}}
         ], 
         2: [
             {name:"Bigger Globs", cost:100, stat:"pierce", amount:1, desc:"Can coat 2 Bloons per shot."},
@@ -30,9 +30,9 @@ export default {
         3: [
             {name:"Stickier Glue", cost:280, stat:"slowDuration", amount:12, desc:"Makes glue effect last much longer."},
             {name:"Stronger Glue", cost:400, stat:"slow", amount:-0.15, desc:"Slows down Bloons even more."}, // 0.5 -> 0.35
-            {name:"MOAB Glue", cost:3600, desc:"Improved glue formula allows it to stick to MOAB-Class Bloons.", extraMods:{canHitMoab: true, moabSlow: 0.75}},
+            {name:"MOAB Glue", cost:3600, desc:"Improved glue formula allows it to stick to MOAB-Class Bloons.", extraMods:{canHitMoab: true, moabSlow: 0.625}},
             {name:"Relentless Glue", cost:4000, desc:"When a glued Bloon is popped, nearby Bloons are stunned.", extraMods:{stunOnPop: 5}},
-            {name:"Super Glue", cost:24000, stat:"slow", amount:-0.35, desc:"Glue so strong it temporarily immobilizes all affected Bloons!", extraMods:{moabSlow: 0.5}} // 0.35 -> 0.0
+            {name:"Super Glue", cost:24000, stat:"slow", amount:-0.35, desc:"Glue so strong it temporarily immobilizes all affected Bloons!", extraMods:{moabSlow: 0.15}} // 0.35 -> 0.0
         ]
     },
     
@@ -42,18 +42,12 @@ export default {
             tower.glueStormActive -= dt;
             tower.stormTimer = (tower.stormTimer || 0) - dt;
             if (tower.stormTimer <= 0) {
-                tower.stormTimer = 0.1; // Fire 10 times a second
-                // Pick a random target on screen
-                if (engine.enemies.length > 0) {
-                    let target = engine.enemies[Math.floor(Math.random() * engine.enemies.length)];
-                    if (target && target.alive) {
-                        // Fire a glue projectile from the sky
-                        let p = engine.projectilePool.get();
-                        let pEffects = { slow: tower.stats.slow, slowDuration: tower.stats.slowDuration };
-                        if (tower.stats.dot) { pEffects.dot = tower.stats.dot; pEffects.dotTimer = tower.stats.dotTimer; }
-                        p.init(target.x, -20, 0, target, 'glue', 800, 1, 0.5, null, pEffects, 0, tower, { isSharp: true });
-                    }
-                }
+                tower.stormTimer = 0.5; // Glue Storm glues every bloon every 0.5s
+                const debuffDur = tower.upgrades[1] >= 1 ? 24 : 11; // Stickier Glue extends it
+                let pEffects = { slow: tower.stats.slow, slowDuration: tower.stats.slowDuration, brittleBonus: 2, brittleTimer: debuffDur };
+if (tower.stats.dot) { pEffects.dot = tower.stats.dot; pEffects.dotTimer = tower.stats.dotTimer; if (tower.stats.dotDuration) pEffects.dotDuration = tower.stats.dotDuration; }
+                if (tower.stats.canHitMoab) { pEffects.canHitMoab = true; pEffects.moabSlow = tower.stats.moabSlow; }
+                Utils.applyAoeDamage(engine, engine.width / 2, engine.height / 2, 2000, 0, {isSharp: true, canHitLead: true, canHitMoab: true}, tower, pEffects, {maxHits: 2000});
             }
         }
     },
@@ -65,6 +59,7 @@ export default {
         if (tower.stats.dot) {
             pEffects.dot = tower.stats.dot;
             pEffects.dotTimer = tower.stats.dotTimer || 1.0;
+            if (tower.stats.dotDuration) pEffects.dotDuration = tower.stats.dotDuration;
         }
         
         // Apply Path 3 Slow effects
@@ -98,8 +93,9 @@ export default {
         if (tower.stats.abilityName === "Glue Strike") {
             engine.log("Glue Strike!");
             // Apply glue to all bloons on screen
-            let pEffects = { slow: tower.stats.slow, slowDuration: 15 };
-            if (tower.stats.dot) { pEffects.dot = tower.stats.dot; pEffects.dotTimer = tower.stats.dotTimer; }
+            const debuffDur = tower.upgrades[1] >= 1 ? 24 : 11; // Stickier Glue extends it
+            let pEffects = { slow: tower.stats.slow, slowDuration: 15, brittleBonus: 2, brittleTimer: debuffDur };
+            if (tower.stats.dot) { pEffects.dot = tower.stats.dot; pEffects.dotTimer = tower.stats.dotTimer; if (tower.stats.dotDuration) pEffects.dotDuration = tower.stats.dotDuration; }
             if (tower.stats.canHitMoab) { pEffects.canHitMoab = true; pEffects.moabSlow = tower.stats.moabSlow; }
             
             Utils.applyAoeDamage(engine, 640, 360, 1500, 0, {isSharp: true, canHitLead: true, canHitMoab: true}, tower, pEffects, {maxHits: 1000});

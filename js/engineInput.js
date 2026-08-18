@@ -180,7 +180,11 @@ export default {
             if (isOverlapping) { this.log("Cannot place on top of another monkey!"); return; }
             
             let canPlace = false;
-            if (stats.waterOnly) { canPlace = this.map.isInWater(x, y); } 
+            if (stats.waterOnly) {
+                // Lord of the Abyss (Mermonkey T5) lets water towers be placed on land within its radius.
+                const lotaInRange = this.towers.some(t => t && t.type === 'mermonkey' && t.upgrades[0] >= 5 && Utils.withinRange(t.x, t.y, x, y, Utils.getEffectiveRange(t, this)));
+                canPlace = this.map.isInWater(x, y) || lotaInRange;
+            } 
             else if (stats.canPlaceOnWater) { canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < GAME_AREA_WIDTH; } 
             else {
                 const isOnFrozenWater = this.map.isOnFrozenWater(x, y, this.towers);

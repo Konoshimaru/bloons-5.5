@@ -10,3 +10,6 @@ node_modules/
 # Logs
 *.log
 npm-debug.log*
+
+# opencode personal skills (don't push to GitHub)
+.opencode/

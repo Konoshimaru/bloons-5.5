@@ -76,10 +76,14 @@ projectile types already handled via `projectileDrawers.js`).
    exercised), the render-loop change from the screen-split round
    (world→texture→composite) plus the cutscene work, and HiDPI displays
    (resolution is pinned to 1 by design — see the comment in `pixiApp.js`).
-2. **Delete the Canvas2D path** — the documented end-state. Once
-   verification passes, remove `renderer.js`, `towerRenderer.js`,
-   `enemyRenderer.js`, `projectileDrawers.js`, the Image-based half of
-   `assets.js`, and the `?canvas=1` fallback branch.
+2. **Canvas2D path DELETED (2026-08-17)** — `renderer.js`, `towerRenderer.js`,
+   `enemyRenderer.js`, and `bosses/knightRenderer.js` are gone; the
+   `?canvas=1` fallback branch and the entity `.draw()` prototype merges
+   (`Enemy.prototype`, `Tower.prototype`, `KnightEnemy.prototype`) were
+   removed, and `cutscene.js`'s canvas-only `draw`/`drawBalls` methods are
+   gone. `projectileDrawers.js` and the Image-based half of `assets.js` were
+   KEPT because the WebGL path shares them (`renderProjectiles.js`,
+   `renderWorld.js`, and the `Assets.get()` animation-decision logic).
 
 ## How to try it
 

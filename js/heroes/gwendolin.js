@@ -77,7 +77,7 @@ export default {
                                 dmg += tower.stats.cocktailMoabBurn || 0;
                             }
                             e.takeDamage(dmg, dmgType);
-                            if (tower.level >= 14 && e.data.isMoab) { e.dotTimer = 10; e.dotDmg = 5; }
+                            if (tower.level >= 14 && e.data.isMoab) { e.dotTimer = 10; e.dotDmg = 5; e.dotTickInterval = 1.0; }
                             hits++;
                         }
                     }
@@ -126,6 +126,7 @@ export default {
             e.takeDamage(dmg, dmgType);
             e.dotTimer = tower.level >= 16 ? 10.4 : 8;
             e.dotDmg = e.data.isMoab ? (tower.level >= 20 ? 30 : 15) : (tower.level >= 16 ? 10 : 2);
+            e.dotTickInterval = 1.0; // Firestorm burns once per second
         }
         for (let t of engine.towers) {
             if (!t) continue;
@@ -155,7 +156,8 @@ export default {
         let burnEffects = { ...effects };
         if (tower.stats.burnDmg) {
             burnEffects.dot = tower.stats.burnDmg;
-            burnEffects.dotTimer = tower.stats.burnDuration || 3;
+            burnEffects.dotTimer = 1.0; // burn ticks once per second
+            burnEffects.dotDuration = tower.stats.burnDuration || 2.0;
         }
         let baseAngle = Utils.angle(tower.x, tower.y, (tower._aim && tower._aim.x) || target.x, (tower._aim && tower._aim.y) || target.y);
         for(let i=0; i<count; i++) {

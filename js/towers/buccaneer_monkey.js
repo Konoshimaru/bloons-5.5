@@ -4,6 +4,8 @@
 import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 
+const _buccTowerScratch = [];
+
 export default {
     stats: { 
         name: "Monkey Buccaneer", cost: 400, range: 40, fireRate: 1.0, 
@@ -26,14 +28,14 @@ export default {
             {name:"Hot Shot", cost:500, stat:"dmgType", amount:'fire', desc:"Burning hot grape shot can pop Lead Bloons and set Bloons on fire."},
             {name:"Cannon Ship", cost:900, desc:"Adds a powerful cannon that shoots out powerful bombs.", extraMods:{isCannon: true}},
             {name:"Monkey Pirates", cost:3900, stat:"damage", amount:3, desc:"Adds 2 cannons. MOAB Takedown Ability.", extraMods:{isAbility: true, abilityName: "MOAB Takedown", abilityCd: 40, cannonCount: 3}},
-            {name:"Pirate Lord", cost:27000, stat:"damage", amount:10, desc:"Greatly improved power. Multiple grappling hooks.", extraMods:{isAbility: true, abilityName: "MOAB Takedown 2", abilityCd: 20, cannonCount: 5}}
+            {name:"Pirate Lord", cost:27000, stat:"damage", amount:10, desc:"Greatly improved power. Multiple grappling hooks.", extraMods:{isAbility: true, abilityName: "MOAB Takedown 2", abilityCd: 30, cannonCount: 5}}
         ],
         3: [
             {name:"Long Range", cost:200, stat:"range", amount:15, desc:"Much longer range, projectiles fly faster and pierce more.", extraMods:{projectileSpeed: 200, pierce: 2}},
             {name:"Crow's Nest", cost:350, stat:"canSeeCamo", amount:true, desc:"Allows the ship to hit Camo Bloons."},
-            {name:"Merchantman", cost:2400, desc:"Generates cash each round. Deals more damage when over 10k cash.", extraMods:{income: 300}},
-            {name:"Favored Trades", cost:5500, desc:"Generates lots of money. Deals more damage when over 50k cash.", extraMods:{income: 800}},
-            {name:"Trade Empire", cost:23000, desc:"Generates more cash. Grants up to 20 Merchantmen bonus damage.", extraMods:{income: 1500}}
+            {name:"Merchantman", cost:2400, desc:"Generates cash each round. Deals more damage when over 10k cash.", extraMods:{income: 125}},
+            {name:"Favored Trades", cost:5500, desc:"Generates lots of money. Deals more damage when over 50k cash.", extraMods:{income: 250}},
+            {name:"Trade Empire", cost:23000, desc:"Generates more cash. Grants up to 20 Merchantmen bonus damage.", extraMods:{income: 1000}}
         ]
     },
     
@@ -50,9 +52,15 @@ export default {
         // 2. Carrier Flagship Buff (Path 1 T5)
         if (tower.upgrades[0] >= 5) {
             const range = Utils.getEffectiveRange(tower, engine);
-            for (const t of engine.towers) {
+            tower._flagshipTimer = (tower._flagshipTimer || 0) - dt;
+            const refresh = tower._flagshipTimer <= 0;
+            if (refresh) tower._flagshipTimer = 0.4;
+            const nearby = GameEngine.towerGrid.query(tower.x, tower.y, range, _buccTowerScratch);
+            for (const t of nearby) {
                 if (t && (t.stats.waterOnly || t.type === 'ace') && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
-                    t.addBuff('flagship', 'Carrier Flagship', 0.5, 1, { type: 'flagship' }, false);
+                    if (refresh) {
+                        t.addBuff('flagship', 'Carrier Flagship', 0.5, 1, { type: 'flagship' }, false);
+                    }
                     t.buffedFireRate = Math.max(t.buffedFireRate || 0, 0.15); // +15% attack speed
                 }
             }
@@ -64,6 +72,53 @@ export default {
             if (engine.cash > 10000) bonus += 2;
             if (engine.cash > 50000) bonus += 4;
             tower.buffedDmg = Math.max(tower.buffedDmg || 0, bonus);
+        }
+
+        // 4. Aircraft Carrier / Flagship Planes (Path 1 T4+)
+        if (tower.upgrades[0] >= 4) {
+            if (!tower._planes) tower._planes = [];
+            const planeCount = tower.upgrades[0] >= 5 ? 5 : 3;
+            while (tower._planes.length < planeCount) {
+                tower._planes.push({ angle: (tower._planes.length / planeCount) * Math.PI * 2, fireTimer: Math.random() * 0.35 });
+            }
+            if (tower._planes.length > planeCount) tower._planes.length = planeCount;
+
+            const shipRange = Utils.getEffectiveRange(tower, engine) + 60;
+            for (const pl of tower._planes) {
+                pl.angle += dt * 1.5;
+                const px = tower.x + Math.cos(pl.angle) * 50;
+                const py = tower.y + Math.sin(pl.angle) * 50;
+                pl.fireTimer = (pl.fireTimer || 0) - dt;
+                if (pl.fireTimer <= 0) {
+                    pl.fireTimer = 0.35;
+                    let target = null, bestDistSq = Infinity;
+                    const nearby = engine.enemyGrid.query(px, py, shipRange, _buccTowerScratch);
+                    for (const e of nearby) {
+                        if (!e || !e.alive) continue;
+                        const dsq = Utils.distanceSq(px, py, e.x, e.y);
+                        if (dsq < bestDistSq) { bestDistSq = dsq; target = e; }
+                    }
+                    if (target) {
+                        let p = engine.projectilePool.get();
+                        p.init(px, py, 1, target, 'dart', 900, 8, 0.8, null, {}, 0, tower, { isSharp: true });
+                    }
+                }
+            }
+
+            // Carrier Missiles: every 3s a missile hits the strongest MOAB for 15 dmg
+            tower._carrierMissileTimer = (tower._carrierMissileTimer || 0) - dt;
+            if (tower._carrierMissileTimer <= 0) {
+                tower._carrierMissileTimer = 3.0;
+                let target = null, bestVal = -Infinity;
+                for (const e of engine.enemies) {
+                    if (!e || !e.alive || !e.data.isMoab) continue;
+                    if (e.data.rbe > bestVal) { bestVal = e.data.rbe; target = e; }
+                }
+                if (target) {
+                    let p = engine.projectilePool.get();
+                    p.init(tower.x, tower.y - 20, 15, target, 'bomb', 600, 20, 1.5, null, { isExplosive: true, explosionRadius: 30, explosionDamage: 15, canHitLead: true }, 0, tower, { isExplosion: true, canHitLead: true, moabDmg: 15 });
+                }
+            }
         }
     },
 
@@ -103,35 +158,36 @@ export default {
             }
         }
 
-        // Aircraft Carrier / Flagship Simulated Planes (High pierce, fast darts)
-        if (tower.upgrades[0] >= 4) {
-            let p = engine.projectilePool.get();
-            p.init(tower.x, tower.y, damage, target, 'dart', 1000, 20, 1.5, null, effects, 0, tower, dmgType, isCrit);
-        }
+        // Aircraft Carrier / Flagship planes are handled in update() as orbiting
+        // minions that fire from their own positions (see section 4).
     },
 
     ability(tower, engine) {
         if (tower.stats.abilityName === "MOAB Takedown" || tower.stats.abilityName === "MOAB Takedown 2") {
-            engine.log("MOAB Takedown!");
-            let target = null;
-            let maxHp = 0;
+            const isPirateLord = tower.stats.abilityName === "MOAB Takedown 2";
+            const grabs = isPirateLord ? 3 : 1;
+            const plunderCash = isPirateLord ? 1000 : 750;
+            engine.log(isPirateLord ? "Pirate Lord! Grappling hooks away!" : "MOAB Takedown!");
             
-            // Find the strongest MOAB-class bloon
+            // Grab the strongest MOAB-class bloons
+            const moabs = [];
             for (const e of engine.enemies) {
-                if (!e || !e.alive) continue;
-                if (e.data.isMoab && e.hp > maxHp) {
-                    maxHp = e.hp;
-                    target = e;
-                }
+                if (!e || !e.alive || !e.data.isMoab) continue;
+                if (!isPirateLord && e.tier >= 15) continue; // T4 can't grab ZOMG/BAD
+                if (isPirateLord && e.tier >= 17) continue; // Pirate Lord can't grab BAD
+                moabs.push(e);
             }
+            moabs.sort((a, b) => b.hp - a.hp);
             
-            if (target) {
-                // Instakill it and grant plunder cash
+            let grabbed = 0;
+            for (const target of moabs) {
+                if (grabbed >= grabs) break;
+                // Instakill and grant plunder cash
                 target.takeDamage(99999, {isExplosion: true, canHitLead: true}, {}, tower);
-                let plunderCash = tower.stats.abilityName === "MOAB Takedown 2" ? 1500 : 750;
                 engine.addCash(plunderCash);
                 engine.spawnPopEffect(target.x, target.y, '#f1c40f');
                 engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#e67e22' });
+                grabbed++;
             }
         }
     }

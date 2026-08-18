@@ -73,4 +73,18 @@ export class SpatialGrid {
         }
         return result;
     }
+
+    stats() {
+        // Cheap occupancy summary for the debug overlay: number of occupied
+        // cells, total entities stored, and the largest single bucket. A large
+        // maxBucket relative to total entities signals path-clustering — the
+        // grid is degrading toward a near-linear scan in that cell.
+        let entities = 0;
+        let maxBucket = 0;
+        for (const bucket of this.cells.values()) {
+            entities += bucket.length;
+            if (bucket.length > maxBucket) maxBucket = bucket.length;
+        }
+        return { cells: this.cells.size, entities, maxBucket };
+    }
 }

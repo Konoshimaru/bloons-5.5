@@ -8,6 +8,7 @@ const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 const SAFETY_LOOP_LIMIT = 100;
 
 const _enemyDmgScratch = [];
+const _glueStunScratch = [];
 
 const EnemyDamage = {
     takeDamage(damage, dmgType, effects, killerTower = null) {
@@ -41,11 +42,27 @@ const EnemyDamage = {
         }
         if (effects.gold > 0) GameEngine.addCash(effects.gold);
         if (effects.dip) this.dipped = true;
-        if (effects.dot > 0) { this.dotDmg = Math.max(this.dotDmg, effects.dot); this.dotTimer = 3.0; }
-        if (effects.moabDot > 0 && this.data.isMoab) { this.dotDmg = Math.max(this.dotDmg, effects.moabDot); this.dotTimer = 5.0; }
+        // dotTimer on the effect carries the per-tick interval (BTD6 glue acids
+        // tick once per 2s, melts once per 1s, etc.); dotDuration sets the total
+        // DoT window (defaults to 3.0s). dotTimer on the enemy stays the total
+        // duration. This fixes the old hardcoded 1s tick rate that silently
+        // ignored each tower's dotTimer (Corrosive Glue, Solver, etc.).
+        if (effects.dot > 0) { this.dotDmg = Math.max(this.dotDmg, effects.dot); this.dotTimer = effects.dotDuration || 3.0; this.dotTickInterval = Math.max(0.1, effects.dotTimer || 1.0); }
+        if (effects.moabDot > 0 && this.data.isMoab) { this.dotDmg = Math.max(this.dotDmg, effects.moabDot); this.dotTimer = effects.moabDotDuration || 5.0; this.dotTickInterval = Math.max(0.1, effects.moabDotTimer || 1.0); }
+        if (effects.brittleBonus) {
+            this.brittle = true;
+            this.brittleBonus = effects.brittleBonus;
+            this.brittleTimer = effects.brittleTimer || 3.0;
+        }
+        // Relentless Glue: remember that popping this glued bloon stuns nearby bloons.
+        if (effects.stunOnPop) this.stunOnPop = effects.stunOnPop;
         
         if (effects.stripCamo && this.isCamo) {
             this.isCamo = false;
+            this._updateSpriteCache();
+        }
+        if (effects.stripRegen && this.isRegen) {
+            this.isRegen = false;
             this._updateSpriteCache();
         }
         if (effects.foam) {
@@ -83,14 +100,37 @@ const EnemyDamage = {
         }
         if (effects.stripFortified && !this.data.isMoab) this.isFortified = false;
         if (effects.rubberToGold) this.isGoldified = true;
+        // Lead to Gold: the +9 and gold payout only apply to Lead/DDT bloons
+        if (effects.leadToGold && (this.data.isLead || this.data.isDDT)) {
+            damage += 9;
+            GameEngine.addCash(50);
+            this.isGoldified = true;
+        }
         
         const canSpawn = GameEngine.enemies.length < 3500;
 
-        if (this.data.isMoab) return this._handleMoabDamage(damage, dmgType, effects, canSpawn, killerTower);
-        if (this.data.isCeramic) return this._handleCeramicDamage(damage, dmgType, effects, canSpawn, killerTower);
-        if (this.data.isLead && this.isFortified) return this._handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn, killerTower);
-        if (this.data.splitsInto) return this._handleSplitDamage(damage, dmgType, effects, canSpawn, killerTower);
-        return this._handleStandardDamage(damage, dmgType, effects, killerTower);
+        let result;
+        if (this.data.isMoab) result = this._handleMoabDamage(damage, dmgType, effects, canSpawn, killerTower);
+        else if (this.data.isCeramic) result = this._handleCeramicDamage(damage, dmgType, effects, canSpawn, killerTower);
+        else if (this.data.isLead && this.isFortified) result = this._handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn, killerTower);
+        else if (this.data.splitsInto) result = this._handleSplitDamage(damage, dmgType, effects, canSpawn, killerTower);
+        else result = this._handleStandardDamage(damage, dmgType, effects, killerTower);
+        
+        // Relentless Glue: a glued bloon that gets popped stuns nearby bloons.
+        if (this.stunOnPop && !this.alive) this._triggerGlueStun();
+        
+        return result;
+    },
+
+    _triggerGlueStun() {
+        const dur = this.stunOnPop;
+        this.stunOnPop = 0;
+        const nearby = GameEngine.enemyGrid.query(this.x, this.y, 30, _glueStunScratch);
+        for (const e of nearby) {
+            if (!e.alive || e === this) continue;
+            const stunDur = e.data.isMoab ? Math.min(0.5, dur) : Math.min(1.0, dur);
+            e.applySlow(0.0, stunDur, false);
+        }
     },
 
     _isImmune(dmgType, effects) {

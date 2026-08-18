@@ -4,32 +4,50 @@ import { AudioEngine } from './audio.js';
 import { UI } from './ui.js';
 import Assets from './assets.js';
 import { Config } from './config.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 import { KnightEnemy, getBossMusic } from './bosses/knight.js'; 
 import CutsceneBalls from './bosses/cutsceneBalls.js';
 import { BossHealthBarHandler } from './BossHealthBarHandler.js';
+import { TUNING } from './tuning.js';
 
 // --- CONFIG ---
-const slashScale = 1.5;  
 
-const PHASE_TENSION_DURATION = 1.5; 
-const PHASE_SLASH_DURATION = 0.7;
-const PHASE_RIP_WAIT_DURATION = 0.4;
-const PHASE_RIP_DURATION = 0.8;
-const PHASE_PAN_DURATION = 1.2;
-const PHASE_REVEAL_DURATION = 1.5;
+// Cutscene pacing (phase durations + reveal animation fps) lives in
+// js/tuning.js so it can be dialed in live from the console via `window.tuning`
+// (e.g. `tuning.bossAnim.knight_back.fps = 6`). These are just aliases read at
+// use time, so console tweaks apply immediately.
+const P = TUNING.bossAnim.phases;
+const KNIGHT_ANIM = TUNING.bossAnim;
 
-
-Assets.get('enemy_knight_front');
-Assets.get('enemy_knight_back');
-for (let i = 1; i <= 14; i++) {
-    Assets.get(`effect_slash_${i}`);
+function bossFrameKey(anim, frame) {
+    // Every boss animation frame is numbered on disk (knight_back_1..19,
+    // equip_sword_1..20), so the key is always `boss_<anim>_<frame>`.
+    return `boss_${anim}_${frame}`;
 }
 
-const offscreenCanvas = document.createElement('canvas');
-offscreenCanvas.width = CANVAS_WIDTH;
-offscreenCanvas.height = CANVAS_HEIGHT;
-const offCtx = offscreenCanvas.getContext('2d');
+Assets.get('enemy_knight_front');
+for (let i = 1; i <= KNIGHT_ANIM.knight_back.frames; i++) {
+    Assets.get(`boss_knight_back_${i}`);
+}
+for (let i = 1; i <= KNIGHT_ANIM.equip_sword.frames; i++) {
+    Assets.get(`boss_equip_sword_${i}`);
+}
+for (let i = 1; i <= KNIGHT_ANIM.ball.transitionFrames; i++) {
+    Assets.get(`boss_ball_transition_${i}`);
+}
+for (let i = 1; i <= KNIGHT_ANIM.ball.ballFrames; i++) {
+    Assets.get(`boss_ball_${i}`);
+}
+for (const name of ['slash', 'point', 'static']) {
+    for (let i = 1; i <= KNIGHT_ANIM.sprites[name].frames; i++) {
+        Assets.get(`boss_${name}_${i}`);
+    }
+}
+for (let i = 1; i <= KNIGHT_ANIM.fly.transitionFrames; i++) {
+    Assets.get(`boss_fly_transition_${i}`);
+}
+for (let i = 1; i <= KNIGHT_ANIM.fly.frames; i++) {
+    Assets.get(`boss_fly_${i}`);
+}
 
 export const CutsceneManager = {
     state: 'idle',
@@ -39,6 +57,10 @@ export const CutsceneManager = {
     ripProgress: 0,
     cameraOffsetX: 0,
     cameraTargetX: 500, 
+    knightAnimName: null,
+    knightAnimFrame: 0,
+    knightAnimTimer: 0,
+    knightAnimDone: false,
 
     reset() {
         this.state = 'idle';
@@ -47,6 +69,10 @@ export const CutsceneManager = {
         this.ripProgress = 0;
         this.knightEnemy = null;
         this.cameraOffsetX = 0;
+        this.knightAnimName = null;
+        this.knightAnimFrame = 0;
+        this.knightAnimTimer = 0;
+        this.knightAnimDone = false;
         CutsceneBalls.reset();
         
         for (let i = GameEngine.enemies.length - 1; i >= 0; i--) {
@@ -74,7 +100,7 @@ export const CutsceneManager = {
         UI.updateWaveSpeedBtn(0);
         
         this.state = 'tension';
-        this.timer = PHASE_TENSION_DURATION; 
+        this.timer = P.tension; 
         this.target = moabEnemy;
     },
 
@@ -115,7 +141,7 @@ export const CutsceneManager = {
             this.target.x = pos.x;
             this.target.y = pos.y;
             
-            let progress = 1 - (this.timer / PHASE_TENSION_DURATION);
+            let progress = 1 - (this.timer / P.tension);
             let shakeAmount = progress * 25; 
             this.target.x += (Math.random() - 0.5) * shakeAmount;
             this.target.y += (Math.random() - 0.5) * shakeAmount;
@@ -123,7 +149,7 @@ export const CutsceneManager = {
             if (this.timer <= 0) {
                 AudioEngine.pause(); 
                 this.state = 'slashing';
-                this.timer = PHASE_SLASH_DURATION;
+                this.timer = P.slash;
                 
                 AudioEngine.playSfx('knight_slash_moab');
             }
@@ -135,14 +161,14 @@ export const CutsceneManager = {
                     this.target.takeDamage(99999, { isExplosion: true, canHitLead: true });
                 }
                 this.state = 'waiting_to_rip'; 
-                this.timer = PHASE_RIP_WAIT_DURATION; 
+                this.timer = P.ripWait; 
             }
         }
         else if (this.state === 'waiting_to_rip') {
             this.timer -= dt;
             if (this.timer <= 0) {
                 this.state = 'ripping';
-                this.timer = PHASE_RIP_DURATION; 
+                this.timer = P.rip; 
                 this.ripProgress = 0;
             }
         }
@@ -157,37 +183,36 @@ export const CutsceneManager = {
                 }
 
                 this.knightEnemy = new KnightEnemy(-400, 300);
-                this.knightEnemy.sprite = 'enemy_knight_back';
+                this.knightEnemy.sprite = bossFrameKey('knight_back', 1);
                 GameEngine.enemies.push(this.knightEnemy);
                 
                 this.state = 'panning_to_knight'; 
-                this.timer = PHASE_PAN_DURATION; 
+                this.timer = P.pan; 
             }
         }
         else if (this.state === 'panning_to_knight') {
             this.timer -= dt;
-            let progress = 1 - (this.timer / PHASE_PAN_DURATION); 
+            let progress = 1 - (this.timer / P.pan); 
             this.cameraOffsetX = this.cameraTargetX * progress;
             
             if (this.timer <= 0) {
                 this.cameraOffsetX = this.cameraTargetX;
                 this.state = 'knight_revealed'; 
-                this.timer = PHASE_REVEAL_DURATION; 
             }
         }
         else if (this.state === 'knight_revealed') {
-            this.timer -= dt;
-            if (this.timer < 0.75) {
+            this._advanceKnightAnim(dt);
+            if (this.knightAnimDone) {
+                // Roar -> equip-sword animation finished: turn to face the
+                // player and head into the real fight.
                 this.knightEnemy.sprite = 'enemy_knight_front';
-            }
-            if (this.timer <= 0) {
                 this.state = 'panning_back';
-                this.timer = PHASE_PAN_DURATION; 
+                this.timer = P.pan;
             }
         }
         else if (this.state === 'panning_back') {
             this.timer -= dt;
-            let progress = 1 - (this.timer / PHASE_PAN_DURATION); 
+            let progress = 1 - (this.timer / P.pan); 
             this.cameraOffsetX = this.cameraTargetX * (1 - progress);
             
             this.knightEnemy.x = -400 + (600 * progress);
@@ -208,88 +233,33 @@ export const CutsceneManager = {
         return this.state !== 'knight_floating'; 
     },
 
-    drawBalls(ctx) {
-        if (this.state === 'knight_floating') {
-            CutsceneBalls.draw(ctx);
+    _advanceKnightAnim(dt) {
+        if (this.knightAnimDone) return;
+        if (this.knightAnimName === null) {
+            this.knightAnimName = 'knight_back';
+            this.knightAnimFrame = 0;
+            this.knightAnimTimer = 0;
         }
-    },
-
-    draw(ctx) {
-        if (this.state === 'idle') return;
-
-        let originalSmoothing = ctx.imageSmoothingEnabled;
-        ctx.imageSmoothingEnabled = false;
-
-        if (['slashing', 'waiting_to_rip', 'ripping'].includes(this.state)) {
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-            if (this.target) {
-                offCtx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                offCtx.imageSmoothingEnabled = false;
-                
-                let originalMaxHp = this.target._maxHp;
-                this.target._maxHp = this.target.hp;
-                this.target.draw(offCtx);
-                this.target._maxHp = originalMaxHp;
-                
-                offCtx.globalCompositeOperation = 'source-in';
-                offCtx.fillStyle = 'white';
-                offCtx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                offCtx.globalCompositeOperation = 'source-over';
-
-                if (this.state === 'slashing' || this.state === 'waiting_to_rip') {
-                    ctx.drawImage(offscreenCanvas, 0, 0);
-                } else if (this.state === 'ripping') {
-                    let t = this.ripProgress;
-                    let drop = t * t * 1000; 
-                    let spread = t * 200;
-                    let rot = t * 6;
-
-                    ctx.save();
-                    ctx.translate(this.target.x - spread, this.target.y + drop);
-                    ctx.rotate(-rot);
-                    ctx.beginPath();
-                    ctx.rect(-200, -200, 200, 400); 
-                    ctx.clip();
-                    ctx.drawImage(offscreenCanvas, -this.target.x, -this.target.y);
-                    ctx.restore();
-
-                    ctx.save();
-                    ctx.translate(this.target.x + spread, this.target.y + drop);
-                    ctx.rotate(rot);
-                    ctx.beginPath();
-                    ctx.rect(0, -200, 200, 400); 
-                    ctx.clip();
-                    ctx.drawImage(offscreenCanvas, -this.target.x, -this.target.y);
-                    ctx.restore();
+        this.knightAnimTimer -= dt;
+        if (this.knightAnimTimer <= 0) {
+            const cfg = KNIGHT_ANIM[this.knightAnimName];
+            this.knightAnimTimer += 1 / cfg.fps;
+            this.knightAnimFrame++;
+            if (this.knightAnimFrame > cfg.frames) {
+                if (this.knightAnimName === 'knight_back') {
+                    this.knightAnimName = 'equip_sword';
+                    this.knightAnimFrame = 1;
+                } else {
+                    this.knightAnimName = null;
+                    this.knightAnimDone = true;
+                    return;
                 }
             }
         }
-
-        if (this.state === 'slashing' && this.target) {
-            let progress = 1 - (this.timer / PHASE_SLASH_DURATION); 
-            let frame = Math.min(14, Math.floor(progress * 14) + 1);
-            
-            ctx.save();
-            ctx.translate(this.target.x, this.target.y);
-            ctx.scale(-1, 1);
-            
-            let slashAsset = Assets.get(`effect_slash_${frame}`);
-            if (slashAsset && slashAsset.loaded) {
-                let w = slashAsset.width * slashScale;
-                let h = slashAsset.height * slashScale;
-                ctx.drawImage(slashAsset, -w / 2, -h / 2, w, h);
-            }
-            ctx.restore();
+        if (this.knightAnimName) {
+            this.knightEnemy.sprite = bossFrameKey(this.knightAnimName, this.knightAnimFrame);
         }
-        
-        if (this.knightEnemy) {
-            this.knightEnemy.draw(ctx);
-        }
-
-        ctx.imageSmoothingEnabled = originalSmoothing;
-    }
+    },
 };
 
 // --- DEV COMMANDS ---
@@ -312,6 +282,19 @@ window.triggerBossCutscene = function() {
     GameEngine.enemies.push(e);
     
     CutsceneManager.trigger(e);
+};
+
+window.retryCutscene = function() {
+    if (!GameEngine.map || GameEngine.gameState !== 'playing') {
+        console.error("❌ Cutscene Error: You must be in an active game (not the main menu) to retry the cutscene!");
+        return;
+    }
+
+    if (CutsceneManager.state !== 'idle') {
+        console.log("↻ Resetting current cutscene...");
+        CutsceneManager.reset();
+    }
+    triggerBossCutscene();
 };
 
 window.applyBallsConfig = function() {

@@ -3,6 +3,7 @@ import { GameEngine } from '../engine.js';
 import { Utils } from '../utils.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants.js';
 import { AudioEngine } from '../audio.js';
+import { TUNING } from '../tuning.js';
 
 const KnightAttacks = {
     _updateState(dt) {
@@ -64,10 +65,15 @@ const KnightAttacks = {
                 this.stateTimer = 4.0;
             }
         } else if (this.state === 'repositioning') {
+            // Ball-morph reposition: the knight collapses into a ball, rolls
+            // to the new spot, then reforms. Driven by _updateBallTravel.
+            this._updateBallTravel(dt);
             if (this.stateTimer <= 0) {
                 this.invulnerable = false;
                 this.state = 'idle';
                 this.stateTimer = 1.0;
+                this.ballTravel = null;
+                this.sprite = 'enemy_knight_front';
             }
         }
     },
@@ -180,6 +186,7 @@ const KnightAttacks = {
         AudioEngine.playSfx('moab_hit');
         this.state = 'spinning_slashes';
         this.stateTimer = 2.5; 
+        this.slashFired = false;
         let dir = Math.random() < 0.5 ? 1 : -1;
         
         for (let i = 0; i < 2; i++) {
@@ -202,6 +209,7 @@ const KnightAttacks = {
     },
 
     _executeSpinningSlashes() {
+        this.slashFired = true;
         for (let s of this.spinningSlashes) {
             if (s.phase === 'spin') {
                 s.phase = 'dash';
@@ -265,7 +273,7 @@ const KnightAttacks = {
     _reposition() {
         GameEngine.log("Black Knight vanishes!");
         this.state = 'repositioning';
-        this.stateTimer = 0.5; 
+        this.invulnerable = true;
         this.recentDamage = 0;
         
         this.spinningSlashes = [];
@@ -277,24 +285,268 @@ const KnightAttacks = {
         this.freezeMouse = false;
         
         let attempts = 0;
+        let nx = this.homeX;
+        let ny = this.homeY;
         while (attempts < 10) {
             let angle = Math.random() * Math.PI * 2;
             let dist = 150 + Math.random() * 200; 
-            let nx = this.homeX + Math.cos(angle) * dist;
-            let ny = this.homeY + Math.sin(angle) * dist;
+            let tx = this.homeX + Math.cos(angle) * dist;
+            let ty = this.homeY + Math.sin(angle) * dist;
             
-            nx = Math.max(200, Math.min(CANVAS_WIDTH - 330, nx));
-            ny = Math.max(120, Math.min(CANVAS_HEIGHT - 120, ny));
+            tx = Math.max(200, Math.min(CANVAS_WIDTH - 330, tx));
+            ty = Math.max(120, Math.min(CANVAS_HEIGHT - 120, ty));
             
-            if (!GameEngine.map.isOnPath(nx, ny) && !GameEngine.map.isOnProp(nx, ny)) {
-                this.homeX = nx;
-                this.homeY = ny;
-                this.x = nx;
-                this.y = ny;
+            if (!GameEngine.map.isOnPath(tx, ty) && !GameEngine.map.isOnProp(tx, ty)) {
+                nx = tx;
+                ny = ty;
                 break;
             }
             attempts++;
         }
+        
+        // Ball-morph travel instead of a hard teleport: a static flinch, then
+        // collapse knight -> ball (ball_transition played in reverse, since
+        // 1..4 is ball -> knight), roll across as ball_1..5, then reform
+        // (ball_transition forward).
+        const BALL = TUNING.bossAnim.ball;
+        const SPRITES = TUNING.bossAnim.sprites;
+        this.ballTravel = {
+            fromX: this.x,
+            fromY: this.y,
+            toX: nx,
+            toY: ny,
+            elapsed: 0,
+            duration: BALL.duration,
+            flinchTime: SPRITES.flinchTime,
+        };
+        this.homeX = nx;
+        this.homeY = ny;
+        this.stateTimer = BALL.duration + SPRITES.flinchTime;
+    },
+
+    // Advances the ball-morph reposition: collapse (reverse transition),
+    // roll (ball_1..5 loop while moving from -> to), reform (forward
+    // transition). `knight.sprite` drives both renderers' body + trail.
+_updateBallTravel(dt) {
+        const move = this.ballTravel;
+        if (!move) return;
+        const BALL = TUNING.bossAnim.ball;
+        const SPRITES = TUNING.bossAnim.sprites;
+
+        // Static flinch phase: play static_1..N while he recoils from the hit,
+        // before collapsing into the ball. Reuses the looped-anim helpers so
+        // the trail ghosts follow the static frames too.
+        if (move.flinchTime > 0) {
+            move.flinchTime -= dt;
+            if (move.flinchTime > 0) {
+                this._advanceLoopedAnim(dt, 'static');
+                this.x = move.fromX;
+                this.y = move.fromY;
+                return;
+            }
+        }
+
+        move.elapsed += dt;
+        const progress = Math.min(1, move.elapsed / move.duration);
+        const collapseEnd = BALL.collapseFrac;
+        const travelEnd = collapseEnd + BALL.travelFrac;
+
+        if (progress < collapseEnd) {
+            // Collapse: knight -> ball, play transition in reverse.
+            const k = progress / collapseEnd;
+            const frame = Math.max(1, BALL.transitionFrames - Math.floor(k * BALL.transitionFrames));
+            this.sprite = `boss_ball_transition_${frame}`;
+            this.x = move.fromX;
+            this.y = move.fromY;
+        } else if (progress < travelEnd) {
+            // Roll: ball_1..5 loop while gliding to the destination.
+            const k = (progress - collapseEnd) / (travelEnd - collapseEnd);
+            this.x = move.fromX + (move.toX - move.fromX) * k;
+            this.y = move.fromY + (move.toY - move.fromY) * k;
+            const frame = Math.floor(k * BALL.ballFrames) % BALL.ballFrames + 1;
+            this.sprite = `boss_ball_${frame}`;
+        } else {
+            // Reform: ball -> knight, play transition forward.
+            const k = (progress - travelEnd) / (1 - travelEnd);
+            const frame = Math.min(BALL.transitionFrames, 1 + Math.floor(k * BALL.transitionFrames));
+            this.sprite = `boss_ball_transition_${frame}`;
+            this.x = move.toX;
+            this.y = move.toY;
+        }
+    },
+
+    // Advances the death-exit fly-away: plays the fly transition once
+    // (fly_transition_1..17), then loops the fly frames (fly_1..4) while the
+    // knight rises off the top of the screen. When fully off-screen the death
+    // finishes: isDyingComplete + alive=false so CutsceneManager resets, then
+    // removes self. `knight.sprite` drives both renderers' body + trail.
+    _updateFlyAway(dt) {
+        const FLY = TUNING.bossAnim.fly;
+        this.flyElapsed += dt;
+
+        if (this.flyPhase === null) {
+            this.flyPhase = 'transition';
+            this.spriteAnimName = 'fly_transition';
+            this.spriteAnimFrame = 1;
+            this.spriteAnimTimer = 0;
+        }
+
+        this.spriteAnimTimer -= dt;
+        while (this.spriteAnimTimer <= 0) {
+            this.spriteAnimTimer += 1 / FLY.fps;
+            if (this.flyPhase === 'transition') {
+                this.sprite = `boss_fly_transition_${this.spriteAnimFrame}`;
+                this.spriteAnimFrame++;
+                if (this.spriteAnimFrame > FLY.transitionFrames) {
+                    this.flyPhase = 'fly';
+                    this.spriteAnimFrame = 1;
+                }
+            } else {
+                this.sprite = `boss_fly_${this.spriteAnimFrame}`;
+                this.spriteAnimFrame = (this.spriteAnimFrame % FLY.frames) + 1;
+            }
+        }
+
+        // Rise off the top of the screen with a slight sway, fading out as
+        // he leaves.
+        this.x = this.homeX + Math.sin(this.time * 3) * FLY.sway;
+        this.y -= FLY.riseSpeed * dt;
+        this.alpha = Math.min(1, Math.max(0, (this.y - FLY.exitY) / 200));
+
+        if (this.y < FLY.exitY) {
+            this.isDyingComplete = true;
+            this.alive = false;
+            const idx = GameEngine.enemies.indexOf(this);
+            if (idx > -1) GameEngine.enemies.splice(idx, 1);
+        }
+    },
+
+    // Advances a looped sprite anim (`slash`, `point`, `static`...) one frame
+    // when its timer elapses, wrapping back to frame 1. Resets when the anim
+    // name changes. The renderer draws whatever `knight.sprite` is, so this
+    // just advances that property.
+    _advanceLoopedAnim(dt, animName) {
+        if (this.spriteAnimName !== animName) {
+            this.spriteAnimName = animName;
+            this.spriteAnimFrame = 1;
+            this.spriteAnimTimer = 0;
+        }
+        const cfg = TUNING.bossAnim.sprites[animName];
+        this.spriteAnimTimer -= dt;
+        if (this.spriteAnimTimer <= 0) {
+            this.spriteAnimTimer += 1 / cfg.fps;
+            this.sprite = `boss_${animName}_${this.spriteAnimFrame}`;
+            this.spriteAnimFrame = (this.spriteAnimFrame % cfg.frames) + 1;
+        }
+    },
+
+    // Advances a sprite anim through its frames once, then plays it back
+    // down to frame 1 (a single ping-pong). Used by `point` so the knight
+    // raises his sword, holds the throw pose, then lowers it again.
+    _advanceOneShotAnim(dt, animName) {
+        if (this.spriteAnimName !== animName) {
+            this.spriteAnimName = animName;
+            this.spriteAnimFrame = 1;
+            this.spriteAnimTimer = 0;
+            this.spriteAnimReverse = false;
+        }
+        const cfg = TUNING.bossAnim.sprites[animName];
+        this.spriteAnimTimer -= dt;
+        if (this.spriteAnimTimer <= 0) {
+            this.spriteAnimTimer += 1 / cfg.fps;
+            if (!this.spriteAnimReverse) {
+                this.sprite = `boss_${animName}_${this.spriteAnimFrame}`;
+                if (this.spriteAnimFrame >= cfg.frames) {
+                    this.spriteAnimReverse = true;
+                } else {
+                    this.spriteAnimFrame++;
+                }
+            } else if (this.spriteAnimFrame > 1) {
+                this.spriteAnimFrame--;
+                this.sprite = `boss_${animName}_${this.spriteAnimFrame}`;
+            }
+        }
+    },
+
+    // Wind-up / swing slash anim for the spinning slashes: while the knight
+    // is readying (not yet fired) the animation plays up to `windupFrames`
+    // (frames 2-3) and holds there, waiting for the slash to release. Once
+    // `slashFired` is set the swing plays through the remaining frames.
+    _advanceSlashWindup(dt) {
+        const cfg = TUNING.bossAnim.sprites.slash;
+        if (this.spriteAnimName !== 'slash') {
+            this.spriteAnimName = 'slash';
+            this.spriteAnimFrame = 1;
+            this.spriteAnimTimer = 0;
+        }
+
+        if (!this.slashFired) {
+            // Readying: play up to the wind-up hold frame, then pause.
+            if (this.spriteAnimFrame < cfg.windupFrames) {
+                this.spriteAnimTimer -= dt;
+                if (this.spriteAnimTimer <= 0) {
+                    this.spriteAnimTimer += 1 / cfg.fps;
+                    this.spriteAnimFrame++;
+                }
+            }
+            this.sprite = `boss_slash_${this.spriteAnimFrame}`;
+            return;
+        }
+
+        // Slash released: swing through the remaining frames, then hold.
+        if (this.spriteAnimFrame < cfg.windupFrames + 1) {
+            this.spriteAnimFrame = cfg.windupFrames + 1;
+            this.spriteAnimTimer = 0;
+        }
+        this.spriteAnimTimer -= dt;
+        if (this.spriteAnimTimer <= 0) {
+            this.spriteAnimTimer += 1 / cfg.fps;
+            if (this.spriteAnimFrame < cfg.frames) this.spriteAnimFrame++;
+        }
+        this.sprite = `boss_slash_${this.spriteAnimFrame}`;
+    },
+
+    // Drives the knight's in-fight sprite by state: spinning slashes -> the
+    // slash wind-up (pauses at frames 2-3 until the slashes fire, then
+    // swings through), screen-split attacks -> the slash animation, sword
+    // throw -> the point animation (ping-pongs back down). The damage
+    // reposition plays a static flinch then the ball travel (which sets the
+    // sprite itself), so this skips 'repositioning' entirely. Other states
+    // fall back to the front view.
+    _updateFightSprite(dt) {
+        // The damage reposition owns the sprite (static flinch + ball travel),
+        // so leave it alone entirely — including the looped-anim bookkeeping,
+        // or the static flinch would be reset to frame 1 every frame.
+        if (this.state === 'repositioning') return;
+
+        // Keep the slash swing playing out after the state flips back to
+        // idle the moment the slashes dash.
+        if (this.state === 'spinning_slashes' || (this.slashFired && (this.spinningSlashes || []).length > 0)) {
+            this._advanceSlashWindup(dt);
+            return;
+        }
+
+        let animName = null;
+        let oneShot = false;
+        if (this.state === 'split_active') {
+            animName = 'slash';
+        } else if (this.state === 'sword_throw') {
+            animName = 'point';
+            oneShot = true;
+        }
+
+        if (!animName) {
+            if (this.spriteAnimName !== null) {
+                this.spriteAnimName = null;
+                this.spriteAnimFrame = 1;
+                this.spriteAnimTimer = 0;
+                this.sprite = 'enemy_knight_front';
+            }
+            return;
+        }
+
+        if (oneShot) this._advanceOneShotAnim(dt, animName);
+        else this._advanceLoopedAnim(dt, animName);
     }
 };
 

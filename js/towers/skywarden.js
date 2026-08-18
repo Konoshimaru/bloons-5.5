@@ -125,7 +125,7 @@ export default {
             { name: "Thundering Arc", cost: 275, desc: "Attacks become arcing bolts of lightning that explode over distance, hitting multiple Bloons and bypassing walls.", extraMods: { mortarArc: true, explosionRadius: 24, arcPierce: 6 } },
             { name: "Galvanic Conduit", cost: 1800, stat: "dmgType", amount: 'plasma', desc: "Deals Plasma damage, popping Lead. Does bonus damage to MOABs and Ceramics. Builds a Lightning Combo with powerful chain effects.", extraMods: { plasma: true, moabDmg: 3, ceramicDmg: 3, stormCombo: true } },
             { name: "Thunder's Decree", cost: 2000, desc: "The Lightning Combo can now stun ZOMGs. Gains Thunder Charge: nearby towers get faster projectiles, extra pierce, and can pop Frozen Bloons.", extraMods: { isAbility: true, abilityName: "Thunder Charge", abilityCd: 45, arcPierce: 2, stormStunZomg: true } },
-            { name: "Stormwrath Archon", cost: 35000, desc: "Huge bonuses to MOABs and Ceramics. Combo lightning deals massive damage. Attacks leave lightning rods that repeatedly zap nearby Bloons, and Thunder Charge arcs between the rods.", extraMods: { moabDmg: 6, comboLightningDmg: 50, comboStunDmg: 100, lightningRods: true, abilityCd: 30 } }
+            { name: "Stormwrath Archon", cost: 35000, desc: "Huge bonuses to MOABs and Ceramics. Combo lightning deals massive damage. Attacks leave lightning rods that repeatedly zap nearby Bloons, and Thunder Charge arcs between the rods.", extraMods: { moabDmg: 6, ceramicDmg: 6, comboLightningDmg: 50, comboStunDmg: 100, lightningRods: true, abilityCd: 30 } }
         ],
         3: [
             { name: "Shatterpoint", cost: 150, desc: "Arrows gain Shatter properties, popping Frozen and Lead Bloons. Increases pierce and accuracy.", extraMods: { dmgType: 'shatter', shatter: true, pierce: 2, spreadMult: 0.25 } },
@@ -138,6 +138,9 @@ export default {
 
     updateSupport(tower, dt) {
         if (tower.stats.rangeAura) {
+            tower._skyAuraTimer = (tower._skyAuraTimer || 0) - dt;
+            const refresh = tower._skyAuraTimer <= 0;
+            if (refresh) tower._skyAuraTimer = 0.4;
             const effRange = Utils.getEffectiveRange(tower, GameEngine);
             const near = GameEngine.towerGrid.query(tower.x, tower.y, effRange, _skyTowerScratch);
             for (const t of near) {
@@ -145,7 +148,9 @@ export default {
                 if (!Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) continue;
                 const count = skyAuraCount(t);
                 t.buffedRange = Math.max(t.buffedRange || 0, Math.min(0.2, count * 0.04));
-                t.addBuff('skywarden', 'Skywarden Aura', 0.5, 1, { type: 'skywarden' }, false);
+                if (refresh) {
+                    t.addBuff('skywarden', 'Skywarden Aura', 0.5, 1, { type: 'skywarden' }, false);
+                }
             }
         }
     },
@@ -266,8 +271,8 @@ export default {
                 if (!e || !e.alive) continue;
                 const c = e._skyC_storm;
                 if (!c) continue;
-                if (c.hits >= 1) e._skyAttract = Math.max(e._skyAttract || 0, 3.0);
                 if (c.hits >= 3) e._skyStormEnhance = Math.max(e._skyStormEnhance || 0, 4.0);
+                else e._skyStormEnhance = Math.max(0, (e._skyStormEnhance || 0) - dt);
                 if (c.hits >= 2 && !c.stage2Done) {
                     c.stage2Done = true;
                     const boltDmg = (stats.comboLightningDmg || 5) + (e.isFrozen ? 4 : 0);
@@ -409,7 +414,7 @@ export default {
                             if (n >= maxHits) break;
                             if (!e.alive) continue;
                             if (!Utils.withinRange(r.x, r.y, e.x, e.y, zapRange)) continue;
-                            e.takeDamage(40, { isEnergy: true, canHitLead: true }, {}, tower);
+                            e.takeDamage(stats.comboLightningDmg || 40, { isEnergy: true, canHitLead: true }, {}, tower);
                             n++;
                         }
                     }
@@ -433,7 +438,7 @@ export default {
                 q.splice(i, 1);
                 if (!tgt || !tgt.alive) continue;
                 const spread = (stats.spread || 6) * (stats.spreadMult || 1);
-                const angle = (Math.random() - 0.5) * spread * Math.PI / 180;
+                const angle = (Math.random() - 0.5) * spread;
                 const p = engine.projectilePool.get();
                 p.init(tower.x, tower.y, dmg, tgt, stats.projectileType, speed, pierce, lifespan, null, { onHit: (e) => skyOnHit(tower, e) }, angle, tower, dmgType);
             }
@@ -483,11 +488,11 @@ export default {
 
         const pierce = tower._iceboreT > 0 ? Math.ceil(stats.pierce * 1.5) : stats.pierce;
         const spread = (stats.spread || 6) * (stats.spreadMult || 1);
-        const angle = (Math.random() - 0.5) * spread * Math.PI / 180;
+        const angle = (Math.random() - 0.5) * spread;
 
         // Thundering Arc: mortar-style exploding bolt
         if (stats.mortarArc) {
-            const arcPierce = (stats.arcPierce || 6) + ((tower.upgrades[2] || 0) >= 1 ? 2 : 0);
+            const arcPierce = (stats.arcPierce || 6) + ((tower.upgrades[1] || 0) >= 4 ? 2 : 0);
             const p = engine.projectilePool.get();
             p.init(tower.x, tower.y, finalDmg, target, stats.projectileType, stats.projectileSpeed, 1, stats.lifespan, null, {
                 isExplosive: true,
@@ -497,7 +502,7 @@ export default {
                 canHitLead: true,
                 onHit: pEffects.onHit
             }, 0, tower, { isExplosion: true, canHitLead: true, moabDmg: stats.moabDmg || 0 }, isCrit);
-            tower._skyFiringT = 0.6;
+            tower._skyFiringT = stats.baseCooldown || 0.9;
             return;
         }
 
@@ -509,7 +514,7 @@ export default {
         if (stats.windCombo && target._skyC_wind && target._skyC_wind.hits >= 2) {
             for (let i = 0; i < 2; i++) {
                 const p2 = engine.projectilePool.get();
-                const a2 = (Math.random() - 0.5) * spread * Math.PI / 180;
+                const a2 = (Math.random() - 0.5) * spread;
                 p2.init(tower.x, tower.y, finalDmg, target, stats.projectileType, stats.projectileSpeed, pierce, stats.lifespan, null, {}, a2, tower, dmgType, isCrit);
             }
         }
@@ -522,7 +527,7 @@ export default {
             }
         }
 
-        tower._skyFiringT = 0.6;
+        tower._skyFiringT = stats.baseCooldown || 0.9;
     },
 
     ability(tower, engine) {

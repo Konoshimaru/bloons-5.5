@@ -422,8 +422,8 @@ export default {
                 let fx = { ...effects };
                 if (tower.stats.applyBleed) {
                     fx.dot = 1;
-                    fx.dotTimer = 4.0;
-                    fx.dotTick = 2.0;
+                    fx.dotTimer = 0.5; // bleed ticks twice per second
+                    fx.dotDuration = 2.0; // for 2s
                     if (e.data.isMoab) fx.moabDot = 20;
                     e.saudaBleed = true; 
                 }

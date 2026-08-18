@@ -36,6 +36,7 @@ export const dom = {
     btnSandbox: document.getElementById('btn-sandbox'),
     btnPowers: document.getElementById('btn-powers'),
     btnKnowledge: document.getElementById('btn-knowledge'),
+    btnUpdateLog: document.getElementById('btn-update-log'),
     mmTopLeft: document.getElementById('mm-top-left'),
     btnSettings: document.getElementById('btn-settings'),
     btnMapEditor: document.getElementById('btn-map-editor'),

@@ -32,7 +32,7 @@ export default {
         ],
         3: [
             {name:"Increased Accuracy", cost:200, stat:"explosionRadius", amount:5, desc:"Makes the shots more accurate."},
-            {name:"Burny Stuff", cost:400, desc:"Damaged Bloons are set ablaze momentarily with each hit.", extraMods:{dot: 1, dotTimer: 3.0}},
+            {name:"Burny Stuff", cost:400, desc:"Damaged Bloons are set ablaze momentarily with each hit.", extraMods:{dot: 1, dotTimer: 1.0}},
             {name:"Signal Flare", cost:1100, stat:"canSeeCamo", amount:true, desc:"Camo Bloons popped by flares lose their camouflage permanently.", extraMods:{stripCamo: true}},
             {name:"Shattering Shells", cost:9500, desc:"Shattering shells strip special Bloon properties off all but the biggest bloons.", extraMods:{stripFortified: true, stripCamo: true, stripRegen: true, dot: 5, dotTimer: 1.0}},
             {name:"Blooncineration", cost:40000, desc:"Superhot burny stuff that incinerates MOAB-Class Bloons with ease.", extraMods:{dot: 50, dotTimer: 1.0, moabDot: 50, moabDotTimer: 1.0}}
@@ -45,6 +45,20 @@ export default {
             tower.bombardmentActive -= dt;
             tower.buffedFireRate = Math.max(tower.buffedFireRate || 0, 1.0); 
         }
+        
+        // Pop and Awe Active Effect: 6s of explosions hitting every bloon every 0.5s
+        if (tower.popAndAweActive > 0) {
+            tower.popAndAweActive -= dt;
+            tower.popAndAweTimer = (tower.popAndAweTimer || 0) - dt;
+            if (tower.popAndAweTimer <= 0) {
+                tower.popAndAweTimer = 0.5;
+                for (const e of engine.enemies) {
+                    if (!e || !e.alive) continue;
+                    e.takeDamage(tower.stats.damage, { isExplosion: true, canHitLead: true }, { stun: 1.0 }, tower);
+                    engine.explosions.push({ x: e.x, y: e.y, radius: 0, maxRadius: 40, life: 0.3, maxLife: 0.3, color: '#e67e22' });
+                }
+            }
+        }
     },
 
     // The shared tower behavior system already handles targeting, cooldowns, and damage calculation.
@@ -54,7 +68,7 @@ export default {
         
         // Apply custom effects from upgrades
         if (tower.stats.stun) pEffects.stun = tower.stats.stun;
-        if (tower.stats.dot) { pEffects.dot = tower.stats.dot; pEffects.dotTimer = tower.stats.dotTimer || 3.0; }
+        if (tower.stats.dot) { pEffects.dot = tower.stats.dot; pEffects.dotTimer = tower.stats.dotTimer || 1.0; }
         if (tower.stats.moabDot) { pEffects.moabDot = tower.stats.moabDot; pEffects.moabDotTimer = tower.stats.moabDotTimer; }
         if (tower.stats.stripCamo) pEffects.stripCamo = true;
         if (tower.stats.stripFortified) pEffects.stripFortified = true;
@@ -79,14 +93,9 @@ export default {
         // Pop and Awe Ability
         if (tower.stats.abilityName === "Pop and Awe") {
             engine.log("Pop and Awe!");
-            // Rains explosions over the whole screen, damaging and stunning all bloons
-            for (const e of engine.enemies) {
-                if (!e || !e.alive) continue;
-                // Deal heavy damage and stun for 1 second
-                e.takeDamage(tower.stats.damage * 3, { isExplosion: true, canHitLead: true }, { stun: 1.0 }, tower);
-                // Visual explosion on every bloon
-                engine.explosions.push({ x: e.x, y: e.y, radius: 0, maxRadius: 40, life: 0.3, maxLife: 0.3, color: '#e67e22' });
-            }
+            // 6 seconds of explosions raining over the whole screen
+            tower.popAndAweActive = 6.0;
+            tower.popAndAweTimer = 0;
         }
     }
 };

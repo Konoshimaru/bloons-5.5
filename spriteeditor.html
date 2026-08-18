@@ -6,88 +6,216 @@
     <title>Sprite Offset Editor</title>
     <style>
         :root {
-            --bg: #1a1a1a; --panel: #2c3e50; --text: #ecf0f1;
-            --accent: #e67e22; --danger: #e74c3c; --success: #27ae60;
+            --bg: #1a1a1a; --panel: #2c3e50; --panel2: #34495e; --text: #ecf0f1;
+            --muted: #95a5a6; --accent: #e67e22; --danger: #e74c3c; --success: #27ae60;
         }
         * { box-sizing: border-box; }
+        html, body { height: 100%; }
         body {
             background: var(--bg); color: var(--text);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex; height: 100vh; margin: 0; overflow: hidden;
+            display: flex; flex-direction: column; margin: 0; overflow: hidden;
         }
-        
-        /* Sidebar Layout */
+        #app-row { display: flex; flex: 1; min-height: 0; }
+
+        /* ---------- Bottom bar (transforms & offsets) ---------- */
+        #bottom-bar {
+            flex-shrink: 0; display: flex; align-items: center; gap: 20px;
+            padding: 8px 14px; background: var(--panel2); border-top: 2px solid var(--accent);
+        }
+        #bottom-bar h3 { margin: 0; color: var(--accent); font-size: 14px; white-space: nowrap; }
+        .bb-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .bb-field label { margin: 0; font-size: 11px; color: #bdc3c7; }
+        .bb-field .transform-row { gap: 8px; }
+        .bb-field input[type="range"] { width: 160px; flex: none; }
+        .bb-field input[type="number"] { width: 70px; padding: 5px; }
+
+        /* ---------- Gallery (left) ---------- */
+        #gallery {
+            background: var(--panel); width: 280px; height: 100%;
+            display: flex; flex-direction: column; flex-shrink: 0;
+            border-right: 2px solid var(--accent); overflow: hidden;
+            position: relative;
+        }
+        #gallery header { padding: 12px 14px 0; }
+        #gallery header h2 { margin: 0 0 8px; color: var(--accent); font-size: 18px; }
+        #searchInput {
+            width: 100%; padding: 8px 10px; background: var(--bg); color: white;
+            border: 1px solid #7f8c8d; border-radius: 4px; font-size: 14px;
+            margin-bottom: 0;
+        }
+        #galleryList { flex: 1; overflow-y: auto; padding: 0 0 20px; }
+        #galleryList::-webkit-scrollbar { width: 8px; }
+        #galleryList::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+
+        .gallery-group {
+            display: flex; align-items: center; gap: 6px; width: 100%;
+            padding: 8px 10px; font-size: 12px; font-weight: bold;
+            color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;
+            position: sticky; top: 0; background: var(--panel); z-index: 2;
+            cursor: pointer; border: none; border-bottom: 1px solid rgba(255,255,255,0.06);
+            text-align: left; margin: 0;
+        }
+        .gallery-group:hover { background: #34495e; }
+        .gallery-group .count { margin-left: auto; color: var(--muted); font-weight: normal; }
+        .gallery-group .chevron { margin: 0; border: none; background: transparent; }
+        .gallery-group .chevron:hover { background: transparent; }
+        .g-section-body { display: block; }
+        .g-section.collapsed .g-section-body { display: none; }
+        .g-section { border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .g-item {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 6px 10px; background: transparent; border: 1px solid transparent;
+            color: var(--text); cursor: pointer; text-align: left; border-radius: 4px;
+            font-size: 13px; font-weight: normal;
+        }
+        .g-item:hover { background: #3e5771; }
+        .g-item.active { background: var(--accent); border-color: #d35400; color: white; }
+        .g-item .thumb {
+            width: 36px; height: 36px; flex-shrink: 0; border-radius: 3px;
+            background: #111; display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 1px solid #555;
+        }
+        .g-item .thumb canvas, .g-item .thumb img { max-width: 34px; max-height: 34px; display: block; }
+        .g-item .label { flex: 1; min-width: 0; }
+        .g-item .label .id { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .g-item .label .sub { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .g-item.active .label .sub { color: rgba(255,255,255,0.8); }
+        .g-item.upgrade { padding-left: 22px; }
+        .g-item.upgrade .thumb { width: 28px; height: 28px; }
+        .g-item.upgrade .thumb canvas, .g-item.upgrade .thumb img { max-width: 26px; max-height: 26px; }
+        .g-empty { padding: 16px; color: var(--muted); font-size: 13px; text-align: center; }
+
+        /* Collapsible tower groups (upgrades nested inside) */
+        .tower-group { border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .tower-header { display: flex; align-items: center; width: 100%; background: transparent; }
+        .tower-header .g-item { flex: 1; }
+        .chevron {
+            flex-shrink: 0; width: 24px; height: 24px; margin-right: 4px;
+            display: inline-flex; align-items: center; justify-content: center;
+            color: var(--accent); font-size: 11px; padding: 0; background: transparent;
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 3px; cursor: pointer;
+        }
+        .chevron:hover { background: #3e5771; }
+        .upgrades-list { display: none; background: rgba(0,0,0,0.15); padding: 2px 0; }
+        .tower-group.open .upgrades-list { display: block; }
+        .g-group-title { display: flex; align-items: center; gap: 6px; }
+
+        /* Sidebar collapse (independent toggles) */
+        #gallery { transition: width 0.2s, min-width 0.2s; }
+        #gallery.collapsed { width: 0; min-width: 0; border-right-width: 0; overflow: hidden; }
+        #controls { transition: width 0.2s, min-width 0.2s; }
+        #controls.collapsed { width: 0; min-width: 0; border-right-width: 0; overflow: hidden; }
+        #galleryToggle, #controlsToggle {
+            position: fixed; z-index: 20;
+            width: 26px; height: 26px; padding: 0; font-size: 14px; line-height: 1;
+            background: var(--accent); border-color: #d35400; border-radius: 0 4px 4px 0;
+            transition: left 0.2s;
+        }
+        #galleryToggle { top: 12px; left: 280px; }
+        #controlsToggle { top: 44px; left: 612px; }
+        #gallery.collapsed ~ #galleryToggle { left: 4px; }
+        #controls.collapsed ~ #controlsToggle { left: 282px; }
+        #gallery.collapsed ~ #controlsToggle { left: 330px; }
+        #gallery.collapsed ~ #controls.collapsed ~ #controlsToggle { left: 4px; }
+        #galleryToggle:disabled, #controlsToggle:disabled { display: none; }
+
+        /* ---------- Controls (middle) ---------- */
         #controls {
-            background: var(--panel); padding: 20px; width: 360px; height: 100%;
-            display: flex; flex-direction: column; gap: 15px; flex-shrink: 0;
-            overflow-y: auto; border-right: 3px solid var(--accent);
+            background: var(--panel2); padding: 16px 18px; width: 330px; height: 100%;
+            display: flex; flex-direction: column; gap: 13px; flex-shrink: 0;
+            overflow-y: auto; border-right: 2px solid var(--accent);
         }
         #controls::-webkit-scrollbar { width: 8px; }
-        #controls::-webkit-scrollbar-track { background: #1a1a1a; }
         #controls::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 4px; }
+        #controls h2 { margin: 0; color: var(--accent); font-size: 18px; }
+        #controls h3 { margin: 0; color: var(--accent); font-size: 14px; }
 
-        h2, h3 { margin: 0; color: var(--accent); }
-        hr { border: 0; border-top: 1px solid #7f8c8d; margin: 5px 0; width: 100%; }
-        
-        label { font-size: 13px; display: block; margin-bottom: 5px; color: #bdc3c7; }
+        hr { border: 0; border-top: 1px solid #7f8c8d; margin: 2px 0; width: 100%; }
+        label { font-size: 12px; display: block; margin-bottom: 4px; color: #bdc3c7; }
         input[type="text"], select, input[type="number"] {
             width: 100%; padding: 8px; background: var(--bg); color: white;
             border: 1px solid #7f8c8d; border-radius: 4px; font-size: 14px;
         }
         button {
-            padding: 10px; background: #34495e; border: 1px solid #7f8c8d;
+            padding: 8px 10px; background: #2c3e50; border: 1px solid #7f8c8d;
             color: white; cursor: pointer; border-radius: 4px; font-weight: bold;
-            transition: background 0.2s; font-size: 14px;
+            transition: background 0.2s; font-size: 13px;
         }
         button:hover { background: #3e5771; }
         button.active { background: var(--accent); border-color: #d35400; }
-        
         .btn-group { display: flex; gap: 5px; }
         .btn-group button { flex: 1; text-align: center; }
-        
+
         textarea {
-            width: 100%; height: 120px; background: #111; color: #0f0;
+            width: 100%; height: 110px; background: #111; color: #0f0;
             border: 1px solid var(--accent); border-radius: 4px; padding: 8px;
             font-family: monospace; font-size: 12px; resize: none;
         }
-        
         .transform-row { display: flex; align-items: center; gap: 10px; }
         .transform-row input[type="range"] { flex: 1; }
-        .transform-row input[type="number"] { width: 70px; text-align: center; padding: 6px; }
-        
-        /* Canvas Area Layout */
+        .transform-row input[type="number"] { width: 80px; text-align: center; padding: 6px; }
+        .transform-row .val { width: 42px; text-align: right; font-family: monospace; font-size: 12px; color: var(--accent); }
+        .info-text { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+        /* ---------- Canvas (right) ---------- */
         #canvas-wrap {
             flex-grow: 1; display: flex; justify-content: center; align-items: center;
-            position: relative; background: #111; overflow: hidden;
+            position: relative; background: #111; overflow: hidden; min-width: 200px;
         }
         #preview { background: #2c3e50; display: block; box-shadow: 0 0 30px rgba(0,0,0,0.5); cursor: grab; }
         #preview:active { cursor: grabbing; }
-        
-        .info-text { font-size: 12px; color: #95a5a6; line-height: 1.4; }
+        .status-bar {
+            position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 4px;
+            font-size: 12px; color: #ddd; pointer-events: none; white-space: nowrap;
+        }
+        .fetch-btn { width: 100%; margin-top: 6px; background: var(--success); border-color: #2ecc71; }
+        .fetch-btn:disabled { background: #2c3e50; border-color: #7f8c8d; color: var(--muted); cursor: default; }
+        .mini-file { font-size: 12px; padding: 5px; }
     </style>
 </head>
 <body>
 
-    <!-- Sidebar Controls -->
+    <!-- Left: Gallery menu -->
+    <div id="app-row">
+    <div id="gallery">
+        <header>
+            <h2>Sprites</h2>
+            <input type="text" id="searchInput" placeholder="Search towers, heroes, sheets..." oninput="buildGallery()">
+        </header>
+        <div id="galleryList"><div class="g-empty">Loading…</div></div>
+    </div>
+
+    <!-- Middle: Controls -->
     <div id="controls">
         <h2>Sprite Offset Editor</h2>
-        
+
         <div>
-            <label>1. Load Sprites Folder</label>
-            <input type="file" id="folderInput" webkitdirectory multiple>
-            <p class="info-text">Select your root "sprites" folder. It will automatically scan for towers and heroes.</p>
+            <label>1. Fetch from server (vite)</label>
+            <button id="fetchBtn" class="fetch-btn" onclick="fetchFromServer()">Auto-load all sprites</button>
+            <p class="info-text">Reads sprites/manifest.json and loads every tower, upgrade, hero and sheet automatically. Rebuild the manifest with: node tools/gen-manifest.mjs</p>
+        </div>
+
+        <div>
+            <label>2. Manual load (fallback)</label>
+            <input type="file" id="folderInput" webkitdirectory multiple class="mini-file">
+            <p class="info-text">Only needed if the server fetch fails. Pick the root "sprites" folder.</p>
+        </div>
+
+        <div>
+            <label>2b. Manual sprite sheet (.json + .png)</label>
+            <input type="file" id="sheetJsonInput" accept=".json" class="mini-file">
+            <input type="file" id="sheetPngInput" accept=".png" class="mini-file">
+            <button onclick="loadSpriteSheet()" style="margin-top: 4px; width: 100%;">Load Sheet into Editor</button>
         </div>
 
         <hr>
-        <h3>Select Tower</h3>
+        <h3>Selected Sprite</h3>
+        <div class="info-text">Choose a sprite from the gallery on the left. Frames load from loose files or packed sheets automatically.</div>
+
         <div>
-            <label>Discovered Towers</label>
-            <select id="towerSelect" onchange="loadTower(this.value)">
-                <option value="">-- Select a Tower --</option>
-            </select>
-        </div>
-        <div>
-            <label>Or Create New ID</label>
+            <label>Add Custom ID</label>
             <div class="btn-group">
                 <input type="text" id="manualId" placeholder="e.g., ninja">
                 <button onclick="addManualTower()" style="flex: 0 0 auto; padding: 8px 12px;">Add</button>
@@ -98,44 +226,14 @@
         <h3>Preview Mode</h3>
         <div class="btn-group">
             <button id="modeBase" class="active" onclick="setMode('base')">Base</button>
-            <button id="modeArm" onclick="setMode('arm')">Base + Arm</button>
             <button id="modeFull" onclick="setMode('full')">Full Body</button>
         </div>
-
         <div class="btn-group">
             <button onclick="prevFrame()">◄ Prev</button>
             <button id="playBtn" onclick="togglePlay()">Play</button>
             <button onclick="nextFrame()">Next ►</button>
         </div>
         <div style="text-align: center;">Frame: <span id="frameNum">0</span></div>
-
-        <hr>
-        <h3>Transform & Offsets</h3>
-        <div>
-            <label>X Offset</label>
-            <div class="transform-row">
-                <input type="range" id="xSlider" min="-50" max="50" step="0.5" value="0" oninput="updateTransform('slider')">
-                <input type="number" id="xInput" step="0.5" value="0" oninput="updateTransform('input')">
-            </div>
-        </div>
-        <div>
-            <label>Y Offset</label>
-            <div class="transform-row">
-                <input type="range" id="ySlider" min="-50" max="50" step="0.5" value="0" oninput="updateTransform('slider')">
-                <input type="number" id="yInput" step="0.5" value="0" oninput="updateTransform('input')">
-            </div>
-        </div>
-        <div>
-            <label>Sprite Scale</label>
-            <div class="transform-row">
-                <input type="range" id="scaleSlider" min="0.5" max="3" step="0.1" value="1" oninput="updateTransform('slider')">
-                <input type="number" id="scaleInput" step="0.1" value="1" oninput="updateTransform('input')">
-            </div>
-        </div>
-        
-        <div class="btn-group" style="margin-top: 5px;">
-            <button onclick="centerImage()" style="background: var(--danger); border-color: #c0392b;">Center to Grid (0,0)</button>
-        </div>
 
         <hr>
         <h3>Copy / Paste / Apply</h3>
@@ -146,50 +244,90 @@
         <div class="btn-group">
             <button onclick="applyToAllFrames()">Apply to All Frames</button>
         </div>
-        <p class="info-text">Copy/Paste works between different towers. "Apply to All" copies the current frame's values to all frames of the current tower.</p>
+        <p class="info-text">Copy/Paste works between different sprites. "Apply to All" copies the current frame's values to all frames of the current sprite.</p>
 
         <hr>
         <h3>Display Options</h3>
         <div class="btn-group" style="margin-bottom: 10px;">
-            <button id="circleBtn" onclick="toggleCircle()">Show Game Circles</button>
-            <button id="centerBtn" onclick="toggleImageCenter()">Show Image Center</button>
+            <button id="circleBtn" onclick="toggleCircle()">Game Circles</button>
+            <button id="centerBtn" onclick="toggleImageCenter()">Image Center</button>
         </div>
         <div>
-            <label>Scale Comparison Tower (Ghost)</label>
+            <label>Compare Sprite (Ghost)</label>
             <select id="compareSelect" onchange="loadCompare(this.value)">
                 <option value="">-- None --</option>
             </select>
         </div>
-        
-        <hr>
-        <h3>Canvas View</h3>
-        <p class="info-text">Tip: Use mouse wheel to zoom, click & drag to pan.</p>
 
         <hr>
-        <h3>Import Config</h3>
-        <textarea id="importText" placeholder="Paste your existing config JSON here..."></textarea>
-        <button onclick="importJSON()" style="background: var(--accent); border-color: #d35400; margin-top: 5px;">Load Config from Text</button>
-
-        <hr>
-        <h3>Export Config</h3>
-        <button onclick="exportJSON()" style="background: var(--success); border-color: #2ecc71;">Generate Global JSON</button>
+        <h3>Import / Export Config</h3>
+        <textarea id="importText" placeholder="Paste config JSON here..."></textarea>
+        <button onclick="importJSON()" style="background: var(--accent); border-color: #d35400; margin-top: 5px; width: 100%;">Load Config from Text</button>
+        <button onclick="exportJSON()" style="background: var(--success); border-color: #2ecc71; margin-top: 5px; width: 100%;">Generate Global JSON</button>
         <textarea id="exportText" readonly placeholder="Click Generate to get your config..."></textarea>
-        <button onclick="copyToClipboard()" style="margin-top: 5px;">Copy to Clipboard</button>
+        <button onclick="copyToClipboard()" style="margin-top: 5px; width: 100%;">Copy to Clipboard</button>
+        <button onclick="saveConfigToFile()" style="background: var(--success); border-color: #2ecc71; margin-top: 5px; width: 100%;" title="Writes js/spriteConfig.js (keeps 2 backups in js/backups/)">Save to js/spriteConfig.js</button>
+        <p class="info-text">Tip: Use mouse wheel to zoom, click &amp; drag to pan.</p>
     </div>
 
-    <!-- Canvas Area -->
+    <!-- Right: Canvas -->
     <div id="canvas-wrap">
+        <div class="status-bar" id="statusBar">—</div>
         <canvas id="preview" width="900" height="600"></canvas>
+    </div>
+    <button id="galleryToggle" onclick="toggleGallery()" title="Collapse / expand sprite list">◀</button>
+    <button id="controlsToggle" onclick="toggleControls()" title="Collapse / expand controls">◀</button>
+    </div>
+
+    <!-- Bottom: Transform & Offsets -->
+    <div id="bottom-bar">
+        <h3>Transform &amp; Offsets</h3>
+        <div class="bb-field">
+            <label>X Offset</label>
+            <div class="transform-row">
+                <input type="range" id="xSlider" min="-200" max="200" step="0.05" value="0" oninput="updateTransform('slider')">
+                <input type="number" id="xInput" step="0.05" value="0" oninput="updateTransform('input')">
+                <span class="val" id="xVal">0</span>
+            </div>
+        </div>
+        <div class="bb-field">
+            <label>Y Offset</label>
+            <div class="transform-row">
+                <input type="range" id="ySlider" min="-200" max="200" step="0.05" value="0" oninput="updateTransform('slider')">
+                <input type="number" id="yInput" step="0.05" value="0" oninput="updateTransform('input')">
+                <span class="val" id="yVal">0</span>
+            </div>
+        </div>
+        <div class="bb-field">
+            <label>Sprite Scale</label>
+            <div class="transform-row">
+                <input type="range" id="scaleSlider" min="0.1" max="10" step="0.05" value="1" oninput="updateTransform('slider')">
+                <input type="number" id="scaleInput" step="0.05" value="1" oninput="updateTransform('input')">
+                <span class="val" id="scaleVal">1</span>
+            </div>
+        </div>
+        <div class="btn-group" style="margin-left: auto;">
+            <button onclick="centerImage()" style="background: var(--danger); border-color: #c0392b;">Center to Grid (0,0)</button>
+        </div>
     </div>
 
     <script>
         const canvas = document.getElementById('preview');
         const ctx = canvas.getContext('2d');
-        
-        // Registry of loaded images: { dart: { base: Image, arm: [Image, Image...], full: [Image...] } }
+
+        // Registry: { id: { base: Image, full: [Image...] } }
         let registry = {};
-        
-        // Pre-loaded Config Merged from User Data
+        // Meta: { id: { name, hero, upgradeOf, frames } } used for gallery labels
+        let meta = {};
+        // Sheets discovered via manifest
+        let sheetList = [];
+
+        // Loose attack frames from the manifest are NOT eager-loaded (the
+        // editor was decoding ~1000 PNGs on startup — sheets already provide
+        // most frames). They're loaded on demand when a tower is selected.
+        let manifestFrames = {}; // id -> [{frame, url}]
+
+        // Pre-loaded Config (starting points)
         let config = {
             "ace": { "base": { "x": 0, "y": 3, "scale": 1.7 } },
             "boomerang_p1_t1": { "base": { "x": 3, "y": 3, "scale": 1.3 } },
@@ -203,7 +341,7 @@
             "gojo": { "base": { "x": 0, "y": 6, "scale": 1 } },
             "ice_p2_t3": { "base": { "x": 0, "y": 6, "scale": 1 } }
         };
-        
+
         let currentTower = '';
         let currentMode = 'base';
         let currentFrame = 0;
@@ -211,22 +349,61 @@
         let playInterval = null;
 
         // View State
-        let zoom = 1;
-        let panX = 0;
-        let panY = 0;
-        let showCircle = false;
-        let showImageCenter = false;
+        let zoom = 1, panX = 0, panY = 0;
+        let showCircle = true, showImageCenter = false;
         let compareTower = '';
-
-        // Clipboard
         let clipboard = { x: 0, y: 0, scale: 1.0 };
+        let isDragging = false, dragStartX = 0, dragStartY = 0;
+        let expandedTowers = new Set();
+        let collapsedSections = new Set();
 
-        // Drag State
-        let isDragging = false;
-        let dragStartX = 0;
-        let dragStartY = 0;
+        // Rebuilding the gallery on every image onload is the #1 lag source —
+        // hundreds of frames each trigger a full DOM rebuild (thumbs + compare
+        // dropdown). Two fixes:
+        //   1. During a bulk load (_bulkLoading) rebuilds are suppressed
+        //      entirely — we rebuild once when loading settles.
+        //   2. Otherwise coalesce to at most one rebuild per animation frame.
+        let _bulkLoading = false;
+        let _galleryDirty = false;
+        let _galleryRebuildScheduled = false;
+        let _pendingLoads = 0;
+        function scheduleGalleryRebuild() {
+            if (_bulkLoading) { _galleryDirty = true; return; }
+            if (_galleryRebuildScheduled) return;
+            _galleryRebuildScheduled = true;
+            requestAnimationFrame(() => {
+                _galleryRebuildScheduled = false;
+                buildGallery();
+            });
+        }
+        function _onLoadSettled() {
+            // Called whenever one asset finishes (or fails) loading. Bulk mode
+            // stays active until every queued asset has settled, then one final
+            // rebuild paints everything at once.
+            _pendingLoads--;
+            if (_pendingLoads <= 0 && _bulkLoading) {
+                _bulkLoading = false;
+                if (_galleryDirty) { _galleryDirty = false; buildGallery(); }
+            }
+        }
 
-        // Resize canvas to fit screen
+        // Frame entries are either an HTMLImageElement (loose file) or an
+        // atlas frame ref { img, sx, sy, sw, sh, ox, oy, ow, oh } (packed
+        // sheet). These helpers make both drawable with the same call.
+        function frameSize(f) {
+            return f && f.img
+                ? { w: f.ow, h: f.oh }
+                : { w: f.width, h: f.height };
+        }
+        function drawFrame(ctx, f, dx, dy, dw, dh) {
+            if (f && f.img) {
+                const kx = dw / f.ow, ky = dh / f.oh;
+                ctx.drawImage(f.img, f.sx, f.sy, f.sw, f.sh, dx + f.ox * kx, dy + f.oy * ky, f.sw * kx, f.sh * ky);
+            } else {
+                ctx.drawImage(f, dx, dy, dw, dh);
+            }
+        }
+
         function resizeCanvas() {
             const wrap = document.getElementById('canvas-wrap');
             const w = wrap.clientWidth - 40;
@@ -239,43 +416,174 @@
         }
         window.addEventListener('resize', resizeCanvas);
 
-        // 1. Folder Reading Logic
+        // ---------- Asset loading ----------
+
+        // 1. Server fetch via manifest
+        async function fetchFromServer() {
+            const btn = document.getElementById('fetchBtn');
+            btn.disabled = true; btn.innerText = 'Loading…';
+            try {
+                const res = await fetch('sprites/manifest.json');
+                if (!res.ok) throw new Error('manifest HTTP ' + res.status);
+                const manifest = await res.json();
+                loadManifest(manifest);
+                btn.innerText = `Loaded: ${Object.keys(registry).length} sprites, ${sheetList.length} sheets`;
+                setStatus(`Loaded ${Object.keys(registry).length} sprites from server`);
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false; btn.innerText = 'Auto-load all sprites';
+                setStatus('Server fetch failed — use manual load');
+                alert('Could not load sprites/manifest.json.\n\n' + err.message + '\n\nRun: node tools/gen-manifest.mjs (or use manual folder load below).');
+            }
+        }
+
+        function loadManifest(manifest) {
+            _bulkLoading = true;
+            _galleryDirty = false;
+            sheetList = manifest.sheets || [];
+            // Tower ids fully provided by a sheet — no point also fetching
+            // their loose manifest frames (that double-decodes them).
+            const coveredBySheet = new Set();
+            for (const sheet of sheetList) {
+                const clean = sheet.id.replace(/_(attack|base|full)$/i, '');
+                coveredBySheet.add(clean);
+            }
+
+            const towers = manifest.towers || {};
+            for (const type of Object.keys(towers)) {
+                const info = towers[type];
+                const id = type;
+                if (!registry[id]) registry[id] = { base: null, full: [] };
+                if (!config[id]) config[id] = {};
+                meta[id] = { name: info.name || id, hero: !!info.hero, upgradeOf: null, frames: info.frames?.length || 0 };
+                manifestFrames[id] = info.frames || [];
+                // Eager-load the base (needed for the gallery thumbnail).
+                if (info.base) loadImageInto(id, 'base', info.base);
+
+                for (const upKey of Object.keys(info.upgrades || {})) {
+                    const up = info.upgrades[upKey];
+                    if (!registry[upKey]) registry[upKey] = { base: null, full: [] };
+                    if (!config[upKey]) config[upKey] = {};
+                    meta[upKey] = { name: info.name || type, hero: !!info.hero, upgradeOf: type, frames: up.frames?.length || 0 };
+                    manifestFrames[upKey] = up.frames || [];
+                    // Eager-load only the first frame as the thumbnail; the
+                    // rest load lazily when this upgrade is selected.
+                    if (up.base) loadImageInto(upKey, 'base', up.base);
+                    else if (!coveredBySheet.has(upKey) && (up.frames || []).length) {
+                        loadImageInto(upKey, up.frames[0].frame, up.frames[0].url);
+                    }
+                }
+            }
+            loadSheetsIntoRegistry().finally(() => {
+                // One rebuild after the whole manifest (loose frames + sheets)
+                // has been queued/loaded, instead of one per frame onload.
+                _bulkLoading = false;
+                updateDropdowns();
+                buildGallery();
+                setStatus(`Loaded ${Object.keys(registry).length} sprites, ${sheetList.length} sheets`);
+            });
+        }
+
+        // Sheets discovered in the manifest are loaded eagerly so their frames
+        // show up in the gallery (and mirror how the game serves them).
+        async function loadSheetsIntoRegistry() {
+            await Promise.all(sheetList.map(async (sheet) => {
+                try {
+                    const jsonRes = await fetch(sheet.json);
+                    if (!jsonRes.ok) return;
+                    const json = await jsonRes.json();
+                    const pngRes = await fetch(sheet.png);
+                    const blob = await pngRes.blob();
+                    const url = URL.createObjectURL(blob);
+                    const atlas = new Image();
+                    atlas.src = url;
+                    await atlas.decode();
+                    addSheetFrames(json, atlas);
+                } catch (err) {
+                    console.warn('Sheet load failed:', sheet.id, err);
+                }
+            }));
+            updateCompareDropdown();
+        }
+
+        // Load the loose attack frames for one tower/upgrade on demand
+        // (called when it's selected). Sheet-provided frames are already in
+        // registry, so those loose files are skipped.
+        function ensureFramesLoaded(id) {
+            const frames = manifestFrames[id];
+            if (!frames) return;
+            const entry = registry[id];
+            for (const f of frames) {
+                if (entry && entry.full[f.frame]) continue;
+                loadImageInto(id, f.frame, f.url);
+            }
+        }
+
+        function addSheetFrames(json, atlas) {
+            const frames = json.frames || {};
+            for (const frameName of Object.keys(frames)) {
+                const parsed = sheetFrameKey(frameName);
+                if (!parsed) continue;
+                const data = frames[frameName];
+                const { towerId, type, frame } = parsed;
+                if (!registry[towerId]) registry[towerId] = { base: null, full: [] };
+                if (!config[towerId]) config[towerId] = {};
+                if (!meta[towerId]) meta[towerId] = { name: towerId, hero: false, upgradeOf: null, frames: 0 };
+
+                const r = data.frame || { x: 0, y: 0, w: atlas.width, h: atlas.height };
+                const sourceSize = data.sourceSize || { w: r.w, h: r.h };
+                const sss = data.spriteSourceSize || { x: 0, y: 0, w: r.w, h: r.h };
+
+                // Reference the atlas region directly instead of rasterizing a
+                // per-frame canvas → toDataURL() → new Image(). For big frames
+                // (e.g. 507×1665 Sniper) each copy was ~1MB of base64 plus a
+                // decode; hundreds of frames made loading crawl. The atlas
+                // Image stays in memory and drawFrame() blits the rect.
+                const ref = { img: atlas, sx: r.x, sy: r.y, sw: r.w, sh: r.h, ox: sss.x, oy: sss.y, ow: sourceSize.w, oh: sourceSize.h };
+
+                if (type === 'base') registry[towerId].base = ref;
+                else registry[towerId].full[frame] = ref;
+                if (meta[towerId]) meta[towerId].frames = Math.max(meta[towerId].frames, (frame + 1));
+            }
+            scheduleGalleryRebuild();
+        }
+
+        function sheetFrameKey(frameName) {
+            const clean = frameName.replace(/\.png$/i, '');
+            const baseMatch = clean.match(/^(.*?)_base$/);
+            const fullMatch = clean.match(/^(.*?)_attack_full_(\d+)$/);
+            if (baseMatch) return { towerId: baseMatch[1], type: 'base', frame: 0 };
+            if (fullMatch) return { towerId: fullMatch[1], type: 'full', frame: parseInt(fullMatch[2]) };
+            return null;
+        }
+
+        // 2. Manual folder load (fallback)
         document.getElementById('folderInput').addEventListener('change', async (e) => {
             const files = Array.from(e.target.files);
             for (const file of files) {
                 const path = file.webkitRelativePath;
-                if (!path.includes('/towers/') && !path.includes('/heroes/')) continue;
+                if (!path.includes('/towers/') && !path.includes('/heroes/') && !path.includes('/sheets/')) continue;
                 if (!file.type.startsWith('image/')) continue;
 
                 const name = file.name.replace('.png', '');
-                
                 const baseMatch = name.match(/^(.*?)_base$/);
-                const armMatch = name.match(/^(.*?)_arm$/);
-                const attackMatch = name.match(/^(.*?)_attack_(\d+)$/);
                 const fullMatch = name.match(/^(.*?)_attack_full_(\d+)$/);
+                let towerId = null, type = null, frame = 0;
 
-                let towerId = null;
-                let type = null;
-                let frame = 0;
-
-                if (baseMatch) { towerId = baseMatch[1]; type = 'base'; } 
-                else if (armMatch) { towerId = armMatch[1]; type = 'arm'; frame = 0; } 
-                else if (fullMatch) { towerId = fullMatch[1]; type = 'full'; frame = parseInt(fullMatch[2]); } 
-                else if (attackMatch) { towerId = attackMatch[1]; type = 'arm'; frame = parseInt(attackMatch[2]); }
+                if (baseMatch) { towerId = baseMatch[1]; type = 'base'; }
+                else if (fullMatch) { towerId = fullMatch[1]; type = 'full'; frame = parseInt(fullMatch[2]); }
 
                 if (towerId) {
-                    if (!registry[towerId]) registry[towerId] = { base: null, arm: [], full: [] };
-                    if (!config[towerId]) config[towerId] = {}; 
-                    
-                    // PRO FIX: Add try/catch to prevent one bad file from aborting the whole folder import
+                    if (!registry[towerId]) registry[towerId] = { base: null, full: [] };
+                    if (!config[towerId]) config[towerId] = {};
+                    if (!meta[towerId]) meta[towerId] = { name: towerId, hero: false, upgradeOf: null, frames: 0 };
                     try {
                         const img = new Image();
                         img.src = URL.createObjectURL(file);
-                        await img.decode(); 
-                        
+                        await img.decode();
                         if (type === 'base') registry[towerId].base = img;
-                        if (type === 'arm') registry[towerId].arm[frame] = img;
                         if (type === 'full') registry[towerId].full[frame] = img;
+                        meta[towerId].frames = Math.max(meta[towerId].frames, frame + 1);
                     } catch (err) {
                         console.warn(`Skipped ${file.name}: failed to decode.`, err);
                         continue;
@@ -283,31 +591,319 @@
                 }
             }
             updateDropdowns();
+            buildGallery();
+            setStatus(`Loaded folder scan: ${Object.keys(registry).length} sprites`);
         });
 
+        // Manual sheet loader (2b)
+        async function loadSpriteSheet() {
+            const jsonInput = document.getElementById('sheetJsonInput');
+            const pngInput = document.getElementById('sheetPngInput');
+            if (!jsonInput.files.length || !pngInput.files.length) {
+                return alert('Pick both the sheet .json and its matching .png.');
+            }
+            try {
+                const json = JSON.parse(await jsonInput.files[0].text());
+                const atlas = new Image();
+                atlas.src = URL.createObjectURL(pngInput.files[0]);
+                await atlas.decode();
+                addSheetFrames(json, atlas);
+                updateDropdowns();
+                buildGallery();
+                alert('Loaded sprite sheet.');
+            } catch (err) {
+                console.error(err);
+                alert('Failed to load sprite sheet: ' + err.message);
+            }
+        }
+
+        // Tracks frame URLs already requested so loose manifest frames and
+        // sheet frames never fetch the same file twice.
+        const loadedFrameUrls = new Set();
+
+        function loadImageInto(id, type, url) {
+            if (loadedFrameUrls.has(url)) return;
+            loadedFrameUrls.add(url);
+            _pendingLoads++;
+            const img = new Image();
+            img.onload = () => {
+                if (type === 'base') registry[id].base = img;
+                else { const f = type; registry[id].full[f] = img; }
+                _onLoadSettled();
+                scheduleGalleryRebuild();
+            };
+            img.onerror = () => { _onLoadSettled(); };
+            img.src = url;
+        }
+
+        // ---------- Gallery ----------
+        // Map a sheet id to the tower it belongs to, e.g. "bomb_p3_t1_attack" -> "bomb".
+        function sheetParentTower(sheetId) {
+            const clean = sheetId.replace(/_(attack|base|full)$/i, '');
+            const m = meta[clean];
+            if (m) return m.upgradeOf || clean;
+            const up = clean.match(/^(.*)_p\d+_t\d+$/);
+            if (up && meta[up[1]]) return up[1];
+            return null;
+        }
+
+        function makeSection(title, count) {
+            const collapsed = collapsedSections.has(title);
+            const root = document.createElement('div');
+            root.className = 'g-section' + (collapsed ? ' collapsed' : '');
+            const header = document.createElement('button');
+            header.className = 'gallery-group';
+            header.type = 'button';
+            const chev = document.createElement('span');
+            chev.className = 'chevron';
+            chev.textContent = collapsed ? '▶' : '▼';
+            const titleSpan = document.createElement('span');
+            titleSpan.textContent = title;
+            const countSpan = document.createElement('span');
+            countSpan.className = 'count';
+            countSpan.textContent = count;
+            header.append(chev, titleSpan, countSpan);
+            header.onclick = () => toggleSection(title, root, chev);
+            root.appendChild(header);
+            const body = document.createElement('div');
+            body.className = 'g-section-body';
+            root.appendChild(body);
+            root.body = body;
+            return root;
+        }
+
+        function toggleSection(title, root, chev) {
+            if (collapsedSections.has(title)) collapsedSections.delete(title);
+            else collapsedSections.add(title);
+            root.classList.toggle('collapsed', collapsedSections.has(title));
+            chev.textContent = collapsedSections.has(title) ? '▶' : '▼';
+        }
+
+        function buildGallery() {
+            const list = document.getElementById('galleryList');
+            const q = document.getElementById('searchInput').value.trim().toLowerCase();
+            list.innerHTML = '';
+
+            const keys = Object.keys(registry);
+            if (!keys.length) {
+                list.innerHTML = '<div class="g-empty">Nothing loaded yet.<br>Click "Auto-load all sprites" or pick the sprites folder.</div>';
+                return;
+            }
+
+            const towers = [], heroes = [];
+            for (const id of keys) {
+                const m = meta[id];
+                const isUp = m && m.upgradeOf;
+                if (isUp) continue;
+                if (m && m.hero) heroes.push(id);
+                else towers.push(id);
+            }
+            const sortKey = (a, b) => a.localeCompare(b);
+            towers.sort(sortKey); heroes.sort(sortKey);
+
+            // Index upgrades once (O(N)) instead of re-scanning every registry
+            // key per tower (O(N²) with hundreds of entries).
+            const upgradesOf = {};
+            for (const id of keys) {
+                const m = meta[id];
+                if (m && m.upgradeOf) {
+                    (upgradesOf[m.upgradeOf] = upgradesOf[m.upgradeOf] || []).push(id);
+                }
+            }
+
+            // Assign sheets to their parent tower so they collapse with it.
+            const towerSheets = {};
+            for (const s of sheetList) {
+                const parent = sheetParentTower(s.id);
+                if (parent && towers.includes(parent)) {
+                    (towerSheets[parent] = towerSheets[parent] || []).push(s);
+                } else if (parent && heroes.includes(parent)) {
+                    (towerSheets[parent] = towerSheets[parent] || []).push(s);
+                }
+            }
+
+            let rendered = 0;
+            for (const group of [
+                { title: 'Towers', ids: towers },
+                { title: 'Heroes', ids: heroes },
+            ]) {
+                const visible = group.ids.filter(id => id.toLowerCase().includes(q));
+                if (!visible.length) continue;
+                const sec = makeSection(group.title, visible.length);
+                for (const id of visible) {
+                    const entry = registry[id];
+                    const upgradeIds = (upgradesOf[id] || [])
+                        .filter(k => k.toLowerCase().includes(q))
+                        .sort(sortKey);
+                    const sheets = (towerSheets[id] || []).filter(s => s.id.toLowerCase().includes(q));
+                    if (upgradeIds.length || sheets.length) {
+                        sec.body.appendChild(makeTowerGroup(id, entry, upgradeIds, sheets));
+                    } else {
+                        sec.body.appendChild(makeGalleryItem(id, false));
+                    }
+                    rendered++;
+                }
+                list.appendChild(sec);
+            }
+            const orphanSheets = sheetList.filter(s => !sheetParentTower(s.id) || !registry[sheetParentTower(s.id)]);
+            const visibleOrphans = orphanSheets.filter(s => s.id.toLowerCase().includes(q));
+            if (visibleOrphans.length) {
+                const sec = makeSection('Sheets', visibleOrphans.length);
+                for (const s of visibleOrphans) {
+                    sec.body.appendChild(makeSheetItem(s));
+                    rendered++;
+                }
+                list.appendChild(sec);
+            }
+            if (!rendered) list.innerHTML = '<div class="g-empty">No sprites match "' + q + '".</div>';
+            updateCompareDropdown();
+        }
+
+        // Collapsible tower group: header row (the tower itself) + nested upgrades + its sheets.
+        function makeTowerGroup(id, entry, upgradeIds, sheets) {
+            const wrap = document.createElement('div');
+            wrap.className = 'tower-group' + (expandedTowers.has(id) ? ' open' : '');
+            wrap.dataset.group = id;
+
+            const header = document.createElement('div');
+            header.className = 'tower-header';
+            header.appendChild(makeGalleryItem(id, false));
+            const chevron = document.createElement('button');
+            chevron.className = 'chevron';
+            chevron.title = expandedTowers.has(id) ? 'Collapse upgrades' : 'Expand upgrades';
+            chevron.textContent = expandedTowers.has(id) ? '▼' : '▶';
+            chevron.onclick = (e) => {
+                e.stopPropagation();
+                toggleTower(id, wrap);
+            };
+            header.appendChild(chevron);
+            wrap.appendChild(header);
+
+            const list = document.createElement('div');
+            list.className = 'upgrades-list';
+            for (const upId of upgradeIds) {
+                list.appendChild(makeGalleryItem(upId, true));
+            }
+            for (const s of sheets || []) {
+                list.appendChild(makeSheetItem(s, true));
+            }
+            wrap.appendChild(list);
+            return wrap;
+        }
+
+        function toggleTower(id, wrap) {
+            if (expandedTowers.has(id)) expandedTowers.delete(id);
+            else expandedTowers.add(id);
+            const chevron = wrap.querySelector('.chevron');
+            chevron.textContent = expandedTowers.has(id) ? '▼' : '▶';
+            chevron.title = expandedTowers.has(id) ? 'Collapse upgrades' : 'Expand upgrades';
+            wrap.classList.toggle('open', expandedTowers.has(id));
+        }
+
+        function makeThumb(container, img) {
+            container.innerHTML = '';
+            if (!img) { container.textContent = '—'; return; }
+            const c = document.createElement('canvas');
+            c.width = 34; c.height = 34;
+            const tctx = c.getContext('2d');
+            const fs = frameSize(img);
+            const scale = Math.min(32 / fs.w, 32 / fs.h);
+            const w = fs.w * scale, h = fs.h * scale;
+            drawFrame(tctx, img, (34 - w) / 2, (34 - h) / 2, w, h);
+            container.appendChild(c);
+        }
+
+        function makeGalleryItem(id, isUpgrade) {
+            const btn = document.createElement('button');
+            btn.className = 'g-item' + (isUpgrade ? ' upgrade' : '') + (id === currentTower ? ' active' : '');
+            btn.dataset.id = id;
+            const thumb = document.createElement('span');
+            thumb.className = 'thumb';
+            const entry = registry[id];
+            makeThumb(thumb, entry.base || entry.full.find(Boolean) || null);
+            btn.appendChild(thumb);
+
+            const label = document.createElement('span');
+            label.className = 'label';
+            const idLine = document.createElement('div');
+            idLine.className = 'id';
+            idLine.textContent = isUpgrade ? id : (meta[id]?.name || id);
+            label.appendChild(idLine);
+            const subLine = document.createElement('div');
+            subLine.className = 'sub';
+            const frames = meta[id]?.frames || 0;
+            subLine.textContent = isUpgrade ? `upgrade · ${frames}f` : (meta[id]?.hero ? 'hero' : `${frames}f`);
+            label.appendChild(subLine);
+            btn.appendChild(label);
+
+            btn.onclick = (e) => {
+                if (e) e.stopPropagation();
+                loadTower(id);
+            };
+            return btn;
+        }
+
+        function makeSheetItem(sheet, nested) {
+            const btn = document.createElement('button');
+            btn.className = 'g-item' + (nested ? ' upgrade' : '') + (sheet.id === currentTower ? ' active' : '');
+            btn.dataset.id = sheet.id;
+            const thumb = document.createElement('span');
+            thumb.className = 'thumb';
+            const firstEntry = registry[sheet.id];
+            if (firstEntry && (firstEntry.base || firstEntry.full.find(Boolean))) {
+                makeThumb(thumb, firstEntry.base || firstEntry.full.find(Boolean));
+            } else {
+                thumb.textContent = '📦';
+            }
+            btn.appendChild(thumb);
+            const label = document.createElement('span');
+            label.className = 'label';
+            const idLine = document.createElement('div');
+            idLine.className = 'id';
+            idLine.textContent = sheet.id;
+            label.appendChild(idLine);
+            const subLine = document.createElement('div');
+            subLine.className = 'sub';
+            subLine.textContent = 'packed atlas';
+            label.appendChild(subLine);
+            btn.appendChild(label);
+            btn.onclick = async () => {
+                const res = await fetch(sheet.json);
+                const json = await res.json();
+                const pngRes = await fetch(sheet.png);
+                const blob = await pngRes.blob();
+                const atlas = new Image();
+                atlas.src = URL.createObjectURL(blob);
+                await atlas.decode();
+                addSheetFrames(json, atlas);
+                setStatus(`Loaded sheet ${sheet.id}`);
+                buildGallery();
+            };
+            return btn;
+        }
+
         function updateDropdowns() {
-            const select = document.getElementById('towerSelect');
+            updateCompareDropdown();
+        }
+
+        function updateCompareDropdown() {
             const compareSelect = document.getElementById('compareSelect');
-            
-            select.innerHTML = '<option value="">-- Select a Tower --</option>';
             compareSelect.innerHTML = '<option value="">-- None --</option>';
-            
-            for (const id in registry) {
-                let opt1 = document.createElement('option');
-                opt1.value = id; opt1.innerText = id; select.appendChild(opt1);
-                
-                let opt2 = document.createElement('option');
-                opt2.value = id; opt2.innerText = id; compareSelect.appendChild(opt2);
+            for (const id of Object.keys(registry).sort()) {
+                const opt = document.createElement('option');
+                opt.value = id; opt.innerText = id;
+                compareSelect.appendChild(opt);
             }
         }
 
         function addManualTower() {
             const id = document.getElementById('manualId').value.trim();
             if (!id) return;
-            if (!registry[id]) registry[id] = { base: null, arm: [], full: [] };
+            if (!registry[id]) registry[id] = { base: null, full: [] };
             if (!config[id]) config[id] = {};
-            updateDropdowns();
-            document.getElementById('towerSelect').value = id;
+            if (!meta[id]) meta[id] = { name: id, hero: false, upgradeOf: null, frames: 0 };
+            updateCompareDropdown();
+            buildGallery();
             loadTower(id);
         }
 
@@ -315,28 +911,37 @@
             currentTower = id;
             currentFrame = 0;
             if (!config[currentTower]) config[currentTower] = {};
+            ensureFramesLoaded(id);
+            setStatus(`${meta[currentTower]?.name || currentTower} — ${Object.keys(registry[currentTower]?.full || {}).length} frames`);
             syncSliders();
+            // highlight active item
+            document.querySelectorAll('#galleryList .g-item').forEach(el => {
+                el.classList.toggle('active', el.dataset.id === id);
+            });
         }
 
         function loadCompare(id) { compareTower = id; }
+        function setStatus(msg) {
+            const el = document.getElementById('statusBar');
+            if (el) el.textContent = msg;
+        }
 
-        // 2. Transform Logic
+        // ---------- Transform logic ----------
         function getFrameKey() {
             if (currentMode === 'base') return 'base';
-            if (currentMode === 'arm') return currentFrame === 0 ? 'arm' : `attack_${currentFrame}`;
-            if (currentMode === 'full') return `attack_full_${currentFrame}`;
+            return `attack_full_${currentFrame}`;
         }
 
         function updateTransform(source) {
             if (!currentTower) return;
             if (!config[currentTower]) config[currentTower] = {};
             const key = getFrameKey();
-            
+
             let x, y, scale;
             if (source === 'slider') {
-                x = parseFloat(document.getElementById('xSlider').value);
-                y = parseFloat(document.getElementById('ySlider').value);
-                scale = parseFloat(document.getElementById('scaleSlider').value);
+                x = parseFloat(document.getElementById('xSlider').value) || 0;
+                y = parseFloat(document.getElementById('ySlider').value) || 0;
+                scale = parseFloat(document.getElementById('scaleSlider').value) || 1;
                 document.getElementById('xInput').value = x;
                 document.getElementById('yInput').value = y;
                 document.getElementById('scaleInput').value = scale;
@@ -344,18 +949,25 @@
                 x = parseFloat(document.getElementById('xInput').value) || 0;
                 y = parseFloat(document.getElementById('yInput').value) || 0;
                 scale = parseFloat(document.getElementById('scaleInput').value) || 1;
-                document.getElementById('xSlider').value = x;
-                document.getElementById('ySlider').value = y;
-                document.getElementById('scaleSlider').value = scale;
+                document.getElementById('xSlider').value = Math.max(-200, Math.min(200, x));
+                document.getElementById('ySlider').value = Math.max(-200, Math.min(200, y));
+                document.getElementById('scaleSlider').value = Math.max(0.1, Math.min(10, scale));
             }
-            
+
             config[currentTower][key] = { x, y, scale };
-            document.getElementById('xVal').innerText = x.toFixed(1);
-            document.getElementById('yVal').innerText = y.toFixed(1);
-            document.getElementById('scaleVal').innerText = scale.toFixed(1);
+            document.getElementById('xVal').innerText = fmt(x);
+            document.getElementById('yVal').innerText = fmt(y);
+            document.getElementById('scaleVal').innerText = fmt(scale);
+        }
+
+        function fmt(v) {
+            if (Number.isInteger(v)) return String(v);
+            return String(Math.round(v * 100) / 100);
         }
 
         function centerImage() {
+            document.getElementById('xInput').value = 0;
+            document.getElementById('yInput').value = 0;
             document.getElementById('xSlider').value = 0;
             document.getElementById('ySlider').value = 0;
             updateTransform('slider');
@@ -364,7 +976,7 @@
         function copyTransform() {
             if (!currentTower) return;
             clipboard = { ...config[currentTower]?.[getFrameKey()] };
-            alert("Transform copied!");
+            setStatus('Transform copied');
         }
 
         function pasteTransform() {
@@ -372,41 +984,28 @@
             if (!config[currentTower]) config[currentTower] = {};
             config[currentTower][getFrameKey()] = { ...clipboard };
             syncSliders();
+            setStatus('Transform pasted');
         }
 
         function applyToAllFrames() {
             if (!currentTower) return;
             const off = config[currentTower]?.[getFrameKey()];
             if (!off) return alert("Set a transform first!");
-            
             if (!config[currentTower]) config[currentTower] = {};
-            
-            // Base
             config[currentTower]['base'] = { ...off };
-            
-            // Arm
-            const armCount = registry[currentTower]?.arm.length || 0;
-            for (let i = 0; i < armCount; i++) {
-                const key = i === 0 ? 'arm' : `attack_${i}`;
-                config[currentTower][key] = { ...off };
+            const entry = registry[currentTower];
+            const frameCount = entry ? Math.max(entry.full.length, meta[currentTower]?.frames || 0) : 0;
+            for (let i = 0; i < frameCount; i++) {
+                config[currentTower][`attack_full_${i}`] = { ...off };
             }
-            
-            // Full
-            const fullCount = registry[currentTower]?.full.length || 0;
-            for (let i = 0; i < fullCount; i++) {
-                const key = `attack_full_${i}`;
-                config[currentTower][key] = { ...off };
-            }
-            alert(`Applied to all frames for ${currentTower}!`);
+            setStatus(`Applied to all ${frameCount + 1} frames for ${currentTower}`);
         }
 
         function setMode(mode) {
             currentMode = mode;
             currentFrame = 0;
-            document.getElementById('modeBase').classList.remove('active');
-            document.getElementById('modeArm').classList.remove('active');
-            document.getElementById('modeFull').classList.remove('active');
-            document.getElementById('mode' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active');
+            document.getElementById('modeBase').classList.toggle('active', mode === 'base');
+            document.getElementById('modeFull').classList.toggle('active', mode === 'full');
             syncSliders();
         }
 
@@ -414,41 +1013,49 @@
             if (!currentTower) return;
             const key = getFrameKey();
             const off = config[currentTower]?.[key] || { x: 0, y: 0, scale: 1.0 };
-            
-            document.getElementById('xSlider').value = off.x;
-            document.getElementById('ySlider').value = off.y;
-            document.getElementById('scaleSlider').value = off.scale;
+            document.getElementById('xSlider').value = Math.max(-200, Math.min(200, off.x));
+            document.getElementById('ySlider').value = Math.max(-200, Math.min(200, off.y));
+            document.getElementById('scaleSlider').value = Math.max(0.1, Math.min(10, off.scale));
             document.getElementById('xInput').value = off.x;
             document.getElementById('yInput').value = off.y;
             document.getElementById('scaleInput').value = off.scale;
+            document.getElementById('xVal').innerText = fmt(off.x);
+            document.getElementById('yVal').innerText = fmt(off.y);
+            document.getElementById('scaleVal').innerText = fmt(off.scale);
             document.getElementById('frameNum').innerText = currentFrame;
+        }
+
+        function frameCount() {
+            const entry = registry[currentTower];
+            if (!entry) return 0;
+            const byMeta = meta[currentTower]?.frames || 0;
+            const byArr = entry.full.length;
+            const byKeys = Object.keys(entry.full).reduce((m, k) => Math.max(m, parseInt(k) + 1), 0);
+            return Math.max(byMeta, byArr, byKeys);
         }
 
         function prevFrame() { currentFrame = Math.max(0, currentFrame - 1); syncSliders(); }
         function nextFrame() {
-            const arr = currentMode === 'arm' ? registry[currentTower]?.arm : registry[currentTower]?.full;
-            const maxFrame = arr ? arr.length - 1 : 0;
-            currentFrame = Math.min(maxFrame, currentFrame + 1);
+            const max = Math.max(0, frameCount() - 1);
+            currentFrame = Math.min(max, currentFrame + 1);
             syncSliders();
         }
-        
         function togglePlay() {
             isPlaying = !isPlaying;
             document.getElementById('playBtn').innerText = isPlaying ? 'Pause' : 'Play';
             if (isPlaying) {
                 playInterval = setInterval(() => {
-                    nextFrame();
-                    let arr = currentMode === 'arm' ? registry[currentTower]?.arm : registry[currentTower]?.full;
-                    if (!arr || currentFrame >= arr.length) currentFrame = 0;
+                    const n = frameCount();
+                    currentFrame = (currentFrame + 1) % Math.max(1, n);
                     syncSliders();
-                }, 100); 
+                }, 100);
             } else {
                 clearInterval(playInterval);
             }
         }
 
-        // 3. View Controls
-        function adjustZoom(delta) { zoom = Math.max(0.5, Math.min(15, zoom + delta)); }
+        // ---------- View controls ----------
+        function adjustZoom(delta) { zoom = Math.max(0.2, Math.min(30, zoom + delta)); }
         function toggleCircle() {
             showCircle = !showCircle;
             document.getElementById('circleBtn').classList.toggle('active', showCircle);
@@ -457,14 +1064,24 @@
             showImageCenter = !showImageCenter;
             document.getElementById('centerBtn').classList.toggle('active', showImageCenter);
         }
+        function toggleGallery() {
+            const gallery = document.getElementById('gallery');
+            const btn = document.getElementById('galleryToggle');
+            gallery.classList.toggle('collapsed');
+            btn.innerText = gallery.classList.contains('collapsed') ? '▶' : '◀';
+        }
+        function toggleControls() {
+            const controls = document.getElementById('controls');
+            const btn = document.getElementById('controlsToggle');
+            controls.classList.toggle('collapsed');
+            btn.innerText = controls.classList.contains('collapsed') ? '▶' : '◀';
+        }
 
-        // Canvas Mouse Interactions
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            const delta = e.deltaY > 0 ? -0.2 : 0.2;
+            const delta = e.deltaY > 0 ? -0.3 : 0.3;
             adjustZoom(delta);
         });
-
         canvas.addEventListener('mousedown', (e) => {
             isDragging = true;
             const rect = canvas.getBoundingClientRect();
@@ -473,7 +1090,6 @@
             dragStartX = (e.clientX - rect.left) * scaleX - panX;
             dragStartY = (e.clientY - rect.top) * scaleY - panY;
         });
-
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             const rect = canvas.getBoundingClientRect();
@@ -482,24 +1098,44 @@
             panX = (e.clientX - rect.left) * scaleX - dragStartX;
             panY = (e.clientY - rect.top) * scaleY - dragStartY;
         });
-
         window.addEventListener('mouseup', () => { isDragging = false; });
 
-        // 4. Import / Export Logic
+        // ---------- Import / Export ----------
+        // Auto-load the real game config (js/spriteConfig.js) so sliders start at live values.
+        async function importSpriteConfig() {
+            try {
+                const res = await fetch('js/spriteConfig.js');
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const text = await res.text();
+                const match = text.match(/export\s+const\s+SpriteConfig\s*=\s*([\s\S]*?)\n\};/);
+                if (!match) throw new Error('SpriteConfig not found');
+                const imported = eval('(' + match[1] + '\n})');
+                for (const towerId in imported) {
+                    if (!config[towerId]) config[towerId] = {};
+                    for (const key in imported[towerId]) {
+                        config[towerId][key] = imported[towerId][key];
+                    }
+                }
+                setStatus('Imported SpriteConfig from js/spriteConfig.js');
+                if (currentTower) syncSliders();
+            } catch (err) {
+                console.warn('Auto-import SpriteConfig failed:', err);
+                setStatus('Could not auto-import SpriteConfig — using defaults');
+            }
+        }
+
         function importJSON() {
             try {
                 const text = document.getElementById('importText').value;
                 if (!text) return alert("Please paste a config first.");
                 const imported = JSON.parse(text);
-                
-                // Merge imported into existing config
-                for (let towerId in imported) {
+                for (const towerId in imported) {
                     if (!config[towerId]) config[towerId] = {};
-                    for (let key in imported[towerId]) {
+                    for (const key in imported[towerId]) {
                         config[towerId][key] = imported[towerId][key];
                     }
                 }
-                alert("Config imported successfully!");
+                setStatus('Config imported');
                 if (currentTower) syncSliders();
             } catch (e) {
                 alert("Invalid JSON format! Error: " + e.message);
@@ -507,11 +1143,9 @@
         }
 
         function exportJSON() {
-            let cleanConfig = {};
-            for (let t in config) {
-                if (Object.keys(config[t]).length > 0) {
-                    cleanConfig[t] = config[t];
-                }
+            const cleanConfig = {};
+            for (const t in config) {
+                if (Object.keys(config[t]).length > 0) cleanConfig[t] = config[t];
             }
             document.getElementById('exportText').value = JSON.stringify(cleanConfig, null, 4);
         }
@@ -520,126 +1154,144 @@
             const text = document.getElementById('exportText');
             text.select();
             document.execCommand('copy');
-            alert("Copied to clipboard!");
+            setStatus('Copied to clipboard');
         }
 
-        // 5. Render Loop
+        // Persists the current config back to js/spriteConfig.js via the vite
+        // dev-server endpoint. Two timestamped backups are kept per save.
+        async function saveConfigToFile() {
+            const cleanConfig = {};
+            for (const t in config) {
+                if (Object.keys(config[t]).length > 0) cleanConfig[t] = config[t];
+            }
+            if (Object.keys(cleanConfig).length === 0) {
+                return alert('Nothing to save yet — edit some offsets first.');
+            }
+            if (!confirm('Write this config to js/spriteConfig.js?\n\nA backup of the previous file is kept in js/backups/.')) return;
+            try {
+                const res = await fetch('/__save-sprite-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cleanConfig)
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) throw new Error(data.error || 'HTTP ' + res.status);
+                setStatus(`Saved ${Object.keys(cleanConfig).length} towers to js/spriteConfig.js`);
+                alert('Saved to js/spriteConfig.js. Backups are kept in js/backups/ (last 2).');
+            } catch (err) {
+                console.error(err);
+                setStatus('Save failed — check the dev server is running (vite)');
+                alert('Could not save to js/spriteConfig.js.\n\n' + err.message +
+                    '\n\nThis needs the vite dev server endpoint (/__save-sprite-config).');
+            }
+        }
+
+        // ---------- Render loop ----------
         function draw() {
             ctx.clearRect(0, 0, 900, 600);
-            
             ctx.save();
             ctx.translate(450 + panX, 300 + panY);
             ctx.scale(zoom, zoom);
 
-            // Dynamic Grid Logic
             let gridSize = 50;
             while (gridSize * zoom < 30) gridSize *= 2;
             while (gridSize * zoom > 80) gridSize /= 2;
 
             ctx.strokeStyle = 'rgba(255,255,255,0.1)';
             ctx.lineWidth = 1 / zoom;
-            for(let x = Math.ceil(-450 / gridSize) * gridSize; x <= 450; x += gridSize) { 
-                ctx.beginPath(); ctx.moveTo(x, -300); ctx.lineTo(x, 300); ctx.stroke(); 
+            for (let x = Math.ceil(-450 / gridSize) * gridSize; x <= 450; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, -300); ctx.lineTo(x, 300); ctx.stroke();
             }
-            for(let y = Math.ceil(-300 / gridSize) * gridSize; y <= 300; y += gridSize) { 
-                ctx.beginPath(); ctx.moveTo(-450, y); ctx.lineTo(450, y); ctx.stroke(); 
+            for (let y = Math.ceil(-300 / gridSize) * gridSize; y <= 300; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(-450, y); ctx.lineTo(450, y); ctx.stroke();
             }
 
-            // Crosshair
             ctx.strokeStyle = 'rgba(231, 76, 60, 0.5)';
             ctx.lineWidth = 2 / zoom;
             ctx.beginPath(); ctx.moveTo(0, -300); ctx.lineTo(0, 300); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(-450, 0); ctx.lineTo(450, 0); ctx.stroke();
 
-            // Selection Circle
             if (showCircle) {
                 ctx.strokeStyle = 'rgba(230, 126, 34, 0.3)';
                 ctx.lineWidth = 2 / zoom;
                 ctx.beginPath(); ctx.arc(0, 0, 45, 0, Math.PI * 2); ctx.stroke();
-                
                 ctx.strokeStyle = 'rgba(230, 126, 34, 0.8)';
                 ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.stroke();
             }
 
-            // Draw Comparison Tower (Ghosted)
-            if (compareTower && registry[compareTower] && registry[compareTower].base) {
-                ctx.globalAlpha = 0.3;
-                const img = registry[compareTower].base;
-                const size = 45;
-                const aspect = img.width / img.height;
-                let w = size, h = size;
-                if (aspect > 1) h = size / aspect; else w = size * aspect;
-                ctx.drawImage(img, -w/2, -h/2, w, h);
-                ctx.globalAlpha = 1.0;
+            if (compareTower && registry[compareTower]) {
+                const ghost = registry[compareTower];
+                const ghostCfg = config[compareTower] || {};
+                const ghostKey = currentMode === 'full' ? `attack_full_${currentFrame}` : 'base';
+                const ghostOff = ghostCfg[ghostKey] || ghostCfg['base'] || { x: 0, y: 0, scale: 1 };
+                const img = (currentMode === 'full' && ghost.full[currentFrame])
+                    ? ghost.full[currentFrame]
+                    : (ghost.base || ghost.full.find(Boolean));
+                if (img) {
+                    ctx.globalAlpha = 0.3;
+                    const size = 45 * (ghostOff.scale || 1);
+                    const gfs = frameSize(img);
+                    const aspect = gfs.w / gfs.h;
+                    let w = size, h = size;
+                    if (aspect > 1) h = size / aspect; else w = size * aspect;
+                    drawFrame(ctx, img, -w / 2 + ghostOff.x, -h / 2 + ghostOff.y, w, h);
+                    ctx.globalAlpha = 1.0;
+                }
             }
 
             if (currentTower && registry[currentTower]) {
                 const towerData = registry[currentTower];
                 const configData = config[currentTower] || {};
-                const baseSize = 45; 
+                const baseSize = 45;
                 let drawnImg = null;
-                let off = {x:0, y:0, scale:1};
+                let off = { x: 0, y: 0, scale: 1 };
 
-                if (towerData.base && (currentMode === 'base' || currentMode === 'arm')) {
-                    const key = 'base';
-                    off = configData[key] || {x:0, y:0, scale:1};
+                if (towerData.base && currentMode === 'base') {
+                    off = configData['base'] || { x: 0, y: 0, scale: 1 };
                     drawnImg = towerData.base;
-                    const scale = off.scale || 1;
-                    const size = baseSize * scale;
-                    const aspect = drawnImg.width / drawnImg.height;
-                    let w = size, h = size;
-                    if (aspect > 1) h = size / aspect; else w = size * aspect;
-                    ctx.drawImage(drawnImg, -w/2 + off.x, -h/2 + off.y, w, h);
-                }
-
-                if (currentMode === 'arm' && towerData.arm[currentFrame]) {
-                    drawnImg = towerData.arm[currentFrame];
-                    const key = currentFrame === 0 ? 'arm' : `attack_${currentFrame}`;
-                    off = configData[key] || {x:0, y:0, scale:1};
-                    const scale = off.scale || 1;
-                    const size = baseSize * scale;
-                    const aspect = drawnImg.width / drawnImg.height;
-                    let w = size, h = size;
-                    if (aspect > 1) h = size / aspect; else w = size * aspect;
-                    ctx.drawImage(drawnImg, -w/2 + off.x, -h/2 + off.y, w, h);
-                }
-
-                if (currentMode === 'full' && towerData.full[currentFrame]) {
+                } else if (currentMode === 'full' && towerData.full[currentFrame]) {
+                    off = configData[`attack_full_${currentFrame}`] || { x: 0, y: 0, scale: 1 };
                     drawnImg = towerData.full[currentFrame];
-                    const key = `attack_full_${currentFrame}`;
-                    off = configData[key] || {x:0, y:0, scale:1};
-                    const scale = off.scale || 1;
-                    const size = baseSize * scale;
-                    const aspect = drawnImg.width / drawnImg.height;
-                    let w = size, h = size;
-                    if (aspect > 1) h = size / aspect; else w = size * aspect;
-                    ctx.drawImage(drawnImg, -w/2 + off.x, -h/2 + off.y, w, h);
                 }
 
-                // Draw Image Center Marker
+                if (drawnImg) {
+                    const scale = off.scale || 1;
+                    const size = baseSize * scale;
+                    const dfs = frameSize(drawnImg);
+                    const aspect = dfs.w / dfs.h;
+                    let w = size, h = size;
+                    if (aspect > 1) h = size / aspect; else w = size * aspect;
+                    drawFrame(ctx, drawnImg, -w / 2 + off.x, -h / 2 + off.y, w, h);
+                }
+
                 if (showImageCenter && drawnImg) {
                     ctx.strokeStyle = '#00ff00';
                     ctx.lineWidth = 1.5 / zoom;
                     ctx.beginPath(); ctx.arc(off.x, off.y, 3 / zoom, 0, Math.PI * 2); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(off.x - 8/zoom, off.y); ctx.lineTo(off.x + 8/zoom, off.y); ctx.stroke();
-                    ctx.beginPath(); ctx.moveTo(off.x, off.y - 8/zoom); ctx.lineTo(off.x, off.y + 8/zoom); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(off.x - 8 / zoom, off.y); ctx.lineTo(off.x + 8 / zoom, off.y); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(off.x, off.y - 8 / zoom); ctx.lineTo(off.x, off.y + 8 / zoom); ctx.stroke();
                 }
             }
 
             ctx.restore();
-            
-            // UI overlay
+
             ctx.fillStyle = '#fff';
-            ctx.font = '14px Arial';
+            ctx.font = '13px Arial';
             ctx.textAlign = 'left';
-            ctx.fillText(`Tower: ${currentTower || 'None'} | Mode: ${currentMode} | Frame: ${currentFrame} | Zoom: ${zoom.toFixed(1)}x`, 10, 20);
-            
+            ctx.fillText(
+                `Sprite: ${currentTower || 'None'} | Mode: ${currentMode} | Frame: ${currentFrame} | Zoom: ${zoom.toFixed(1)}x`,
+                10, 20
+            );
             requestAnimationFrame(draw);
         }
 
-        // Initialize
+        // ---------- Init ----------
         resizeCanvas();
         draw();
+        // Game circles on by default
+        document.getElementById('circleBtn').classList.add('active');
+        importSpriteConfig();
+        fetchFromServer();
     </script>
 </body>
 </html>

@@ -2,13 +2,22 @@
 // Loads and tracks game art, sprites, and asset references used by the game.
 
 import { Names } from './names.js';
+import { sheetHasFrame } from './spriteSheets.js';
 
 const FOLDER_MAP = Object.freeze({
     [Names.PREFIXES.ENEMY]: 'enemies',
     [Names.PREFIXES.PROJECTILE]: 'projectiles',
     [Names.PREFIXES.TOWER]: 'towers',
     [Names.PREFIXES.EFFECT]: 'effects',
-    [Names.PREFIXES.MAP]: 'maps'
+    [Names.PREFIXES.MAP]: 'maps',
+    'boss_': 'boss'
+});
+
+// Boss art lives outside the standard folders: the static knight front view is
+// under sheets/enemies and the cutscene animation frames under boss/. The old
+// loose sprites/enemies/knight_*.png files were replaced by those frames.
+const BOSS_STATIC_PATHS = Object.freeze({
+    enemy_knight_front: 'sprites/sheets/enemies/knight_front.png',
 });
 
 const CRACK_NAMES = Object.freeze(['ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad']);
@@ -44,12 +53,31 @@ function awaitImageLoad(img) {
     });
 }
 
+// Limited-concurrency runner: preload can request hundreds of sprites at once;
+// firing them all simultaneously saturates the main thread with Image()/decode
+// work and starves the loading minigame's rAF. This processes `items` in small
+// batches (with a yield between batches long enough for a couple of rAF frames)
+// so the loading minigame keeps animating smoothly while loads run in parallel
+// within each batch. 16-per-chunk with a 10ms yield is the sweet spot between
+// keeping the minigame alive and not wasting seconds on sleeps.
+const PRELOAD_BATCH = 16;
+const PRELOAD_YIELD_MS = 10;
+async function runBatched(items, batch, task) {
+    for (let i = 0; i < items.length; i += batch) {
+        const chunk = items.slice(i, i + batch);
+        await Promise.all(chunk.map(item => task(item)));
+        if (i + batch < items.length) await new Promise(r => setTimeout(r, PRELOAD_YIELD_MS));
+    }
+}
+
 class AssetsManager {
     #images = new Map();
     #maxCracks = new Map();
     #folderMap = FOLDER_MAP;
 
     _resolvePath(key) {
+        if (BOSS_STATIC_PATHS[key]) return BOSS_STATIC_PATHS[key];
+
         const parts = key.split('_');
         const prefix = parts[0] + '_';
         const folder = this.#folderMap[prefix];
@@ -80,6 +108,13 @@ class AssetsManager {
     get(key) {
         if (this.#images.has(key)) {
             return this.#images.get(key);
+        }
+        
+        if (sheetHasFrame(key)) {
+            const img = new Image();
+            img.loaded = true;
+            this.#images.set(key, img);
+            return img;
         }
         
         const path = this._resolvePath(key);
@@ -119,23 +154,36 @@ class AssetsManager {
     async preloadManifest(keys, onProgress) {
         const total = keys.length;
         let loaded = 0;
-        
-        const promises = keys.map(async key => {
+        // Fast path: Play-click re-awaits the same lists the background preload
+        // already finished — skip the batched sleeps if everything's cached.
+        if (keys.every(key => {
+            const img = this.get(key);
+            return img && img.loaded;
+        })) {
+            if (onProgress) onProgress(1);
+            return;
+        }
+        await runBatched(keys, PRELOAD_BATCH, async key => {
             const img = this.get(key);
             await awaitImageLoad(img);
             loaded++;
             if (onProgress) onProgress(loaded / total);
         });
-        
-        await Promise.all(promises);
     }
 
     // This is perfect for UI assets that live in different folders (like portraits/)
     async preloadUrls(urls, onProgress) {
         const total = urls.length;
         let loaded = 0;
-        
-        const promises = urls.map(url => {
+        // Fast path: already-preloaded URLs resolve instantly on re-await.
+        if (urls.every(url => {
+            const img = this.#images.get(url);
+            return img && img.loaded;
+        })) {
+            if (onProgress) onProgress(1);
+            return;
+        }
+        await runBatched(urls, PRELOAD_BATCH, url => {
             // Use the URL as the key so it gets cached in the #images map
             if (this.#images.has(url)) {
                 const img = this.#images.get(url);
@@ -156,8 +204,6 @@ class AssetsManager {
                 img.src = url;
             });
         });
-        
-        await Promise.all(promises);
     }
 }
 

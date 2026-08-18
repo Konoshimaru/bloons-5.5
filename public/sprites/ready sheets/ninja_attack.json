@@ -1,0 +1,95 @@
+{"frames": {
+
+"ninja_attack_full_0.png":
+{
+	"frame": {"x":1,"y":518,"w":405,"h":448},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":72,"w":405,"h":448},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_1.png":
+{
+	"frame": {"x":1629,"y":1,"w":405,"h":448},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":72,"w":405,"h":448},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_2.png":
+{
+	"frame": {"x":1,"y":1,"w":405,"h":515},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":5,"w":405,"h":515},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_3.png":
+{
+	"frame": {"x":408,"y":1,"w":405,"h":499},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":21,"w":405,"h":499},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_4.png":
+{
+	"frame": {"x":815,"y":1,"w":405,"h":482},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":38,"w":405,"h":482},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_5.png":
+{
+	"frame": {"x":1222,"y":484,"w":405,"h":464},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":56,"w":405,"h":464},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_6.png":
+{
+	"frame": {"x":815,"y":485,"w":405,"h":464},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":56,"w":405,"h":464},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_7.png":
+{
+	"frame": {"x":408,"y":502,"w":405,"h":464},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":56,"w":405,"h":464},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_8.png":
+{
+	"frame": {"x":1222,"y":1,"w":405,"h":481},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":39,"w":405,"h":481},
+	"sourceSize": {"w":420,"h":520}
+},
+"ninja_attack_full_9.png":
+{
+	"frame": {"x":1629,"y":451,"w":405,"h":448},
+	"rotated": false,
+	"trimmed": true,
+	"spriteSourceSize": {"x":7,"y":72,"w":405,"h":448},
+	"sourceSize": {"w":420,"h":520}
+}},
+"animations": {
+	"ninja_attack_full": ["ninja_attack_full_0.png","ninja_attack_full_1.png","ninja_attack_full_2.png","ninja_attack_full_3.png","ninja_attack_full_4.png","ninja_attack_full_5.png","ninja_attack_full_6.png","ninja_attack_full_7.png","ninja_attack_full_8.png","ninja_attack_full_9.png"]
+},
+"meta": {
+	"app": "https://www.codeandweb.com/texturepacker",
+	"version": "1.1",
+	"image": "ninja_attack.png",
+	"format": "RGBA8888",
+	"size": {"w":2035,"h":967},
+	"scale": "1",
+	"smartupdate": "$TexturePacker:SmartUpdate:98fb2c7643811c7ab144720ed67edff5:95c6dc07b93c2bf41429e61114764054:a67621038bb6b3583b61f7e976c0464d$"
+}
+}
