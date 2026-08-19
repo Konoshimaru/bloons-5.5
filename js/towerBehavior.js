@@ -93,8 +93,15 @@ function _updateTimers(tower, dt, engine) {
     if (tower.attackPointTimer > 0) {
         tower.attackPointTimer -= dt;
         if (tower.attackPointTimer <= 0) {
-            if (tower.pendingTarget && tower.pendingTarget.alive) {
-                _executeFire(tower, tower.pendingTarget, engine);
+            const pending = tower.pendingTarget;
+            if (pending && pending.alive) {
+                _executeFire(tower, pending, engine);
+            } else if (!pending && tower.stats.fireWithoutTarget) {
+                // fireWithoutTarget towers (e.g. the base Monkey Ace's radial
+                // volley) schedule with a null pendingTarget; without this the
+                // windup never resolves into an actual shot once their attack
+                // sprites are loaded.
+                _executeFire(tower, null, engine);
             }
             tower.pendingTarget = null;
             tower.attackPointTimer = 0;

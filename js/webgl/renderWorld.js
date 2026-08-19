@@ -8,6 +8,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
 import * as Const from './rendererConstants.js';
 
 export const WorldRenderer = {
+    _frameGen: 0,
     _drawBackground(engine) {
         const map = engine.map;
         if (!map || !map.data.image) return;
@@ -87,24 +88,30 @@ export const WorldRenderer = {
     },
 
     _drawAcidPools(engine) {
-        const layer = PixiApp.layer('acidPools'); const seen = new Set();
+        const layer = PixiApp.layer('acidPools');
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
         for (const pool of engine.acidPools || []) {
-            if (!pool) continue; seen.add(pool);
+            if (!pool) continue;
             let g = this._acidPoolGraphics.get(pool);
             if (!g) { g = new Graphics(); layer.addChild(g); this._acidPoolGraphics.set(pool, g); }
+            g.gen = gen;
             g.clear();
             const alpha = Math.max(0, Math.min(1, pool.life / Const.ACID_POOL_LIFE_DIVISOR));
             g.circle(pool.x, pool.y, pool.radius).fill({ color: pool.isFoam ? Const.ACID_FOAM_COLOR : Const.ACID_POOL_COLOR, alpha });
         }
         for (const [pool, g] of this._acidPoolGraphics) {
-            if (!seen.has(pool)) { g.destroy(); this._acidPoolGraphics.delete(pool); }
+            if (g.gen !== gen) { g.destroy(); this._acidPoolGraphics.delete(pool); }
         }
     },
 
     _drawBeasts(engine) {
-        const layer = PixiApp.layer('minions'); const seen = new Set(); const beasts = engine.beasts || [];
+        const layer = PixiApp.layer('minions');
+        const beasts = engine.beasts || [];
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
         for (const beast of beasts) {
-            if (!beast) continue; seen.add(beast);
+            if (!beast) continue;
             let entry = this._beastSprites.get(beast);
             if (!entry) {
                 const container = new Container(); const ownerLine = new Graphics(); const circle = new Graphics();
@@ -112,6 +119,7 @@ export const WorldRenderer = {
                 label.anchor.set(0.5); container.addChild(ownerLine, circle, label); layer.addChild(container);
                 entry = { container, ownerLine, circle, label, lastTier: null }; this._beastSprites.set(beast, entry);
             }
+            entry.gen = gen;
             const { container, ownerLine, circle, label } = entry;
             const r = (10 + beast.tier * 2) * GLOBAL_SCALE;
             const color = Const.BEAST_COLORS[(beast.tier - 1) % Const.BEAST_COLORS.length] ?? Const.BEAST_FALLBACK_COLOR;
@@ -124,16 +132,20 @@ export const WorldRenderer = {
             container.x = beast.x; container.y = beast.y;
         }
         for (const [beast, entry] of this._beastSprites) {
-            if (!seen.has(beast)) { entry.container.destroy({ children: true }); this._beastSprites.delete(beast); }
+            if (entry.gen !== gen) { entry.container.destroy({ children: true }); this._beastSprites.delete(beast); }
         }
     },
 
     _drawSentries(engine) {
-        const layer = PixiApp.layer('minions'); const seen = new Set(); const sentries = engine.sentries || [];
+        const layer = PixiApp.layer('minions');
+        const sentries = engine.sentries || [];
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
         for (const sentry of sentries) {
-            if (!sentry) continue; seen.add(sentry);
+            if (!sentry) continue;
             let entry = this._sentrySprites.get(sentry);
             if (!entry) { const graphics = new Graphics(); layer.addChild(graphics); entry = { graphics }; this._sentrySprites.set(sentry, entry); }
+            entry.gen = gen;
             const { graphics } = entry; const gs = GLOBAL_SCALE;
             const shadowR = 15 * gs; const bodyColor = sentry.stats?.color ?? 0x000000;
             graphics.clear();
@@ -142,7 +154,7 @@ export const WorldRenderer = {
             graphics.rect(sentry.x - 3 * gs, sentry.y - 15 * gs, 6 * gs, 8 * gs).fill({ color: 0x34495e });
         }
         for (const [sentry, entry] of this._sentrySprites) {
-            if (!seen.has(sentry)) { entry.graphics.destroy(); this._sentrySprites.delete(sentry); }
+            if (entry.gen !== gen) { entry.graphics.destroy(); this._sentrySprites.delete(sentry); }
         }
     }
 };

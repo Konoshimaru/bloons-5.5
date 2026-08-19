@@ -60,53 +60,62 @@ function radialGrad(outerR, stops) {
 
 // A rotated/scaled "wobbly blob" outline: same point-generation loop as the
 // canvas version's `for (i=0; i<=points; i++) { ang = ...; rad = ...; }`.
+// Writes into a module-level scratch array instead of allocating a fresh
+// array (and a fresh 2-float array per point) every frame. Safe to share:
+// the only caller (_drawMaxBlueVFX) consumes each blob via Graphics.poly(),
+// which reads the points synchronously before the next blob is built.
+const _blobScratch = new Array(34);
+// 41 capture-curve sample points x 2 floats.
+const _captureScratch = new Array(82);
+// ceField sine-wave polyline: 101 points x 2 floats.
+const _waveScratch = new Array(202);
 function blobPoints(baseR, ampFn, rotAngle, scale) {
-    const pts = [];
     const N = 16;
+    const c = Math.cos(rotAngle), sn = Math.sin(rotAngle);
     for (let i = 0; i <= N; i++) {
         const ang = (i / N) * Math.PI * 2;
         const rad = ampFn(ang);
-        const [x, y] = rotScale(Math.cos(ang) * rad, Math.sin(ang) * rad, rotAngle, scale);
-        pts.push(x, y);
+        const px = Math.cos(ang) * rad, py = Math.sin(ang) * rad;
+        _blobScratch[i * 2] = (px * c - py * sn) * scale;
+        _blobScratch[i * 2 + 1] = (px * sn + py * c) * scale;
     }
-    return pts;
+    return _blobScratch;
 }
 
 export const HeroVFXRenderer = {
     _heroVFXEntries: new Map(),
     _saudaVFXEntries: new Map(),
     _getoVFXEntries: new Map(),
+    // Per-frame generation stamp replaces the three fresh `seen` Sets that
+    // were allocated every frame just to sweep dead hero VFX entries.
+    _frameGen: 0,
 
     _drawHeroVFX(engine) {
         const layer = PixiApp.layer('towerUnderEffects');
         const overlayLayer = PixiApp.layer('overlay');
-        const gojoSeen = new Set();
-        const saudaSeen = new Set();
-        const getoSeen = new Set();
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
 
         for (const tower of engine.towers) {
             if (!tower) continue;
 
             if (tower.type === 'gojo') {
-                gojoSeen.add(tower);
                 this._drawGojoEntry(tower, layer);
             } else if (tower.type === 'sauda') {
-                saudaSeen.add(tower);
                 this._drawSaudaEntry(tower, layer);
             } else if (tower.type === 'geto') {
-                getoSeen.add(tower);
                 this._drawGetoEntry(tower, layer, overlayLayer);
             }
         }
 
         for (const [tower, entry] of this._heroVFXEntries) {
-            if (!gojoSeen.has(tower)) { entry.container.destroy({ children: true }); this._heroVFXEntries.delete(tower); }
+            if (entry.gen !== gen) { entry.container.destroy({ children: true }); this._heroVFXEntries.delete(tower); }
         }
         for (const [tower, entry] of this._saudaVFXEntries) {
-            if (!saudaSeen.has(tower)) { entry.container.destroy({ children: true }); this._saudaVFXEntries.delete(tower); }
+            if (entry.gen !== gen) { entry.container.destroy({ children: true }); this._saudaVFXEntries.delete(tower); }
         }
         for (const [tower, entry] of this._getoVFXEntries) {
-            if (!getoSeen.has(tower)) { entry.container.destroy({ children: true }); entry.ceField.destroy(); this._getoVFXEntries.delete(tower); }
+            if (entry.gen !== gen) { entry.container.destroy({ children: true }); entry.ceField.destroy(); this._getoVFXEntries.delete(tower); }
         }
     },
 
@@ -126,6 +135,7 @@ export const HeroVFXRenderer = {
                 entry = { container, blueScreen, blueCore, redScreen, redCore, purpleScreen, purpleCore, aura, wellGfx: [] };
                 this._heroVFXEntries.set(tower, entry);
             }
+            entry.gen = this._frameGen;
 
             entry.blueScreen.clear(); entry.blueCore.clear();
             entry.redScreen.clear(); entry.redCore.clear();
@@ -165,6 +175,7 @@ export const HeroVFXRenderer = {
             entry = { container, aftersword, shadowLayer, slashLayer, shadowSprites: [], slashSprites: [] };
             this._saudaVFXEntries.set(tower, entry);
         }
+        entry.gen = this._frameGen;
 
         entry.aftersword.clear();
         if (tower.aftersword) {
@@ -243,6 +254,7 @@ export const HeroVFXRenderer = {
             entry = { container, spiritLayer, blast, hands, capture, captureBuff, squidLayer, ceField, spiritSlots: [], squidSlots: [] };
             this._getoVFXEntries.set(tower, entry);
         }
+        entry.gen = this._frameGen;
 
         entry.blast.clear(); entry.hands.clear(); entry.capture.clear(); entry.captureBuff.clear(); entry.ceField.clear();
 
@@ -268,9 +280,9 @@ export const HeroVFXRenderer = {
             entry.ceField.rect(0, 0, 1000, 700).fill({ color: 'rgb(150, 0, 255)', alpha });
             for (let i = 0; i < 5; i++) {
                 const yBase = i * 140;
-                const pts = [];
-                for (let x = 0; x <= 1000; x += 10) pts.push(x, yBase + Math.sin(x * 0.02 + t * 3 + i) * 20);
-                entry.ceField.poly(pts, false).stroke({ width: 2, color: 'rgb(200, 100, 255)', alpha: Math.min(1, alpha * 2.5) });
+                let k = 0;
+                for (let x = 0; x <= 1000; x += 10) { _waveScratch[k++] = x; _waveScratch[k++] = yBase + Math.sin(x * 0.02 + t * 3 + i) * 20; }
+                entry.ceField.poly(_waveScratch, false).stroke({ width: 2, color: 'rgb(200, 100, 255)', alpha: Math.min(1, alpha * 2.5) });
             }
         }
 
@@ -407,18 +419,20 @@ export const HeroVFXRenderer = {
         const my = (y1 + y2) / 2 + Math.cos(t * 3) * 20;
         const dashLen = 5, gapLen = 5, dashCycle = dashLen + gapLen;
         const samples = 40;
-        const pts = [];
+        // Flat scratch array (41 points x 2 floats) instead of 41 fresh
+        // {x,y} objects per frame. poly() reads it synchronously.
+        const pts = _captureScratch;
         for (let i = 0; i <= samples; i++) {
             const s = i / samples;
             const px = (1 - s) * (1 - s) * x1 + 2 * (1 - s) * s * mx + s * s * x2;
             const py = (1 - s) * (1 - s) * y1 + 2 * (1 - s) * s * my + s * s * y2;
-            pts.push({ x: px, y: py });
+            pts[i * 2] = px; pts[i * 2 + 1] = py;
         }
         let dist = -(-t * 30) % dashCycle; if (dist < 0) dist += dashCycle;
-        for (let i = 0; i < pts.length - 1; i++) {
-            const segLen = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y);
+        for (let i = 0; i < samples; i++) {
+            const segLen = Math.hypot(pts[(i + 1) * 2] - pts[i * 2], pts[(i + 1) * 2 + 1] - pts[i * 2 + 1]);
             const phase = (dist + i * (Math.hypot(x2 - x1, y2 - y1) / samples)) % dashCycle;
-            if (phase < dashLen) gfx.moveTo(pts[i].x, pts[i].y).lineTo(pts[i + 1].x, pts[i + 1].y);
+            if (phase < dashLen) gfx.moveTo(pts[i * 2], pts[i * 2 + 1]).lineTo(pts[(i + 1) * 2], pts[(i + 1) * 2 + 1]);
         }
         gfx.stroke({ width: 3, color: 'rgba(200, 100, 255, ' + progress + ')' });
         for (let i = 0; i < 4; i++) {

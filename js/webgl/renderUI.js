@@ -13,24 +13,29 @@ import { isMobile } from '../mobile.js';
 import * as Const from './rendererConstants.js';
 
 export const UIRenderer = {
+    _frameGen: 0,
+
     _drawFloatingTexts(engine) {
         if (!this._floatingTextsLayer) {
             this._floatingTextsLayer = new Container(); PixiApp.layer('overlay').addChild(this._floatingTextsLayer);
         }
-        const layer = this._floatingTextsLayer; const seen = new Set();
+        const layer = this._floatingTextsLayer;
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
         for (const ft of engine.floatingTexts || []) {
-            if (!ft) continue; seen.add(ft);
+            if (!ft) continue;
             let text = this._floatingTextSprites.get(ft);
             if (!text) {
                 text = new Text({ text: '', style: { fontFamily: 'Nunito, sans-serif', fontSize: 20 * GLOBAL_SCALE, fontWeight: 'bold', fill: Const.FLOATING_TEXT_DEFAULT_COLOR, stroke: { color: 0x000000, width: 3 } } });
                 text.anchor.set(0.5); layer.addChild(text); this._floatingTextSprites.set(ft, text);
             }
+            text.gen = gen;
             if (text.text !== ft.text) text.text = ft.text;
             if (ft.color) text.style.fill = ft.color;
             text.x = ft.x; text.y = ft.y; text.alpha = Math.max(0, Math.min(1, ft.life / ft.maxLife));
         }
         for (const [ft, text] of this._floatingTextSprites) {
-            if (!seen.has(ft)) { text.destroy(); this._floatingTextSprites.delete(ft); }
+            if (text.gen !== gen) { text.destroy(); this._floatingTextSprites.delete(ft); }
         }
     },
 
@@ -174,13 +179,16 @@ export const UIRenderer = {
         if (BossHealthBarHandler.activeBosses.length > 0) {
             BossHealthBarHandler.activeBosses = BossHealthBarHandler.activeBosses.filter(b => b.enemy && b.enemy.alive);
         }
-        const bosses = BossHealthBarHandler.activeBosses; const layer = PixiApp.layer('screenUI'); const seen = new Set();
+        const bosses = BossHealthBarHandler.activeBosses; const layer = PixiApp.layer('screenUI');
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
         bosses.forEach((boss, index) => {
-            seen.add(boss); let entry = this._bossBarEntries.get(boss);
+            let entry = this._bossBarEntries.get(boss);
             if (!entry) {
                 const graphics = new Graphics(); const label = new Text({ text: '', style: { fontSize: 14, fontWeight: 'bold', fill: 0xffffff, fontFamily: 'Arial' } });
                 label.anchor.set(0.5); layer.addChild(graphics, label); entry = { graphics, label }; this._bossBarEntries.set(boss, entry);
             }
+            entry.gen = gen;
             const { graphics, label } = entry;
             const startX = (GAME_AREA_WIDTH - Const.BOSS_BAR_WIDTH) / 2;
             const y = Const.BOSS_BAR_START_Y + index * Const.BOSS_BAR_SPACING;
@@ -198,7 +206,7 @@ export const UIRenderer = {
             label.x = startX + Const.BOSS_BAR_WIDTH / 2; label.y = y + Const.BOSS_BAR_HEIGHT / 2;
         });
         for (const [boss, entry] of this._bossBarEntries) {
-            if (!seen.has(boss)) { entry.graphics.destroy(); entry.label.destroy(); this._bossBarEntries.delete(boss); }
+            if (entry.gen !== gen) { entry.graphics.destroy(); entry.label.destroy(); this._bossBarEntries.delete(boss); }
         }
     },
 
@@ -294,9 +302,10 @@ export const UIRenderer = {
             PixiApp.layer('overlay').addChild(this._hitboxGraphics);
         }
         const g = this._hitboxGraphics;
-        g.clear();
 
         if (!Config.data.showHitboxes) return;
+
+        g.clear();
 
         // Towers
         for (const t of engine.towers) {

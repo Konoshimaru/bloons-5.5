@@ -67,6 +67,7 @@ export const EnemiesRenderer = {
             frozenSprite.visible = false; camoRegenSprite.visible = false;
             let statusRingRadius = null; let statusRingColor = null;
             let statusHasRing = false; let statusHasBrittle = false;
+            let statusRingFrozen = false;
 
             if (enemy.tier < 13) {
                 if (enemy.isFrozen) {
@@ -77,7 +78,7 @@ export const EnemiesRenderer = {
                         frozenSprite.texture = frozenTexture; this._sizeUniform(frozenSprite, frozenTexture, bodySize);
                         frozenSprite.x = bodyX; frozenSprite.y = bodyY; frozenSprite.visible = true;
                         this._ensureChild(container, frozenSprite);
-                    } else { statusRingRadius = (enemy.radius + 3) * mscale; statusRingColor = 'rgba(26, 188, 156, 0.9)'; statusHasRing = true; }
+                    } else { statusRingRadius = (enemy.radius + 3) * mscale; statusRingColor = 'rgba(26, 188, 156, 0.9)'; statusHasRing = true; statusRingFrozen = true; }
                 } else if (enemy.slowFactor < 1.0) { statusRingRadius = (enemy.radius + 3) * mscale; statusRingColor = 'rgba(241, 196, 15, 0.7)'; statusHasRing = true; }
                 let camoRegenKey = null;
                 if (enemy.isCamo && enemy.isRegen && !usedCustomModifierSprite) camoRegenKey = 'effect_camo_regen_effect';
@@ -107,7 +108,7 @@ export const EnemiesRenderer = {
             }
             if (hasStatus) this._ensureChild(container, statusGraphics);
             if (statusHasRing) {
-                statusAdapter.strokeStyle = statusRingColor; statusAdapter.lineWidth = statusRingColor.includes('26, 188, 156') ? 3 : 2;
+                statusAdapter.strokeStyle = statusRingColor; statusAdapter.lineWidth = statusRingFrozen ? 3 : 2;
                 statusAdapter.beginPath(); statusAdapter.arc(0, 0, statusRingRadius, 0, Math.PI * 2); statusAdapter.stroke();
             }
             if (statusHasBrittle) {
@@ -201,7 +202,18 @@ export const EnemiesRenderer = {
             this._sizeUniform(base, texture, bodySize);
         }
         base.x = bodyX; base.y = bodyY;
-        return { targetSize, spriteOffX, spriteOffY, usedCustomModifierSprite: cache.usedCustomModifierSprite, bodySize, bodyX, bodyY };
+        // Reuse a per-entry scratch object instead of allocating a fresh
+        // literal for every alive enemy every frame.
+        let info = entry._baseInfo;
+        if (!info) info = entry._baseInfo = {};
+        info.targetSize = targetSize;
+        info.spriteOffX = spriteOffX;
+        info.spriteOffY = spriteOffY;
+        info.usedCustomModifierSprite = cache.usedCustomModifierSprite;
+        info.bodySize = bodySize;
+        info.bodyX = bodyX;
+        info.bodyY = bodyY;
+        return info;
     },
 
     // Crack overlay: the damage stage is recomputed every frame (cheap

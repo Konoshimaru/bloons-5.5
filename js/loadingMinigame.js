@@ -44,8 +44,10 @@ let shake = 0;
 let hintAlpha = 1;
 let motes = [];
 let particles = [];
+let vignetteGradient = null;
 let imgs = {};
-let holdTimer = null;
+let holdActive = false;
+let holdTimer = 0; // hold-repeat accumulator, advanced by dt in update()
 let time = 0;
 let tapX = null;
 let tapY = null;
@@ -230,8 +232,8 @@ function onPointerDown(e) {
     tapX = e.clientX - rect.left;
     tapY = e.clientY - rect.top;
     pull();
-    clearInterval(holdTimer);
-    holdTimer = setInterval(pull, 120);
+    holdActive = true;
+    holdTimer = 0;
 }
 
 function onPointerMove(e) {
@@ -243,8 +245,8 @@ function onPointerMove(e) {
 }
 
 function onPointerEnd() {
-    clearInterval(holdTimer);
-    holdTimer = null;
+    holdActive = false;
+    holdTimer = 0;
     tapX = null;
     tapY = null;
 }
@@ -261,6 +263,20 @@ function onKeyDown(e) {
 
 function update(dt) {
     time += dt;
+    // Hold-to-repeat, driven off dt so a busy main thread (asset decode
+    // stalls during load) can never queue up a burst of pull() calls the way
+    // the old setInterval did — the browser fires every queued tick back-to-
+    // back once the thread frees up. dt is already clamped in tick(), and the
+    // guard caps catch-up regardless of that assumption.
+    if (holdActive) {
+        holdTimer += dt;
+        let guard = 0;
+        while (holdTimer >= T.holdRepeat) {
+            holdTimer -= T.holdRepeat;
+            pull();
+            if (++guard >= 5) { holdTimer = 0; break; }
+        }
+    }
     // Momentum drains, and the drain bites harder the lower it is — so low
     // momentum crumbles away while high momentum mostly holds itself up. A
     // small constant drain means even full momentum slowly decays, so max is
@@ -513,10 +529,7 @@ function draw() {
     }
     ctx.globalAlpha = 1;
 
-    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.72);
-    vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.35)');
-    ctx.fillStyle = vg;
+    ctx.fillStyle = vignetteGradient;
     ctx.fillRect(0, 0, W, H);
 }
 
@@ -530,6 +543,10 @@ function fitCanvas() {
     canvas.width = Math.max(1, Math.round(W * dpr));
     canvas.height = Math.max(1, Math.round(H * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Vignette only depends on W/H, so rebuild it just on resize.
+    vignetteGradient = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.4, W / 2, H / 2, Math.max(W, H) * 0.72);
+    vignetteGradient.addColorStop(0, 'rgba(0,0,0,0)');
+    vignetteGradient.addColorStop(1, 'rgba(0,0,0,0.35)');
 }
 
 function tick(ts) {
@@ -575,8 +592,8 @@ clicks = 0;
         if (!running) return;
         running = false;
         cancelAnimationFrame(rafId);
-        clearInterval(holdTimer);
-        holdTimer = null;
+        holdActive = false;
+        holdTimer = 0;
         window.removeEventListener('pointerdown', onPointerDown);
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerEnd);

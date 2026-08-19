@@ -19,9 +19,17 @@ export const Profiler = {
     lastSessionSeconds: 0,
 
     _tick: 0,
+    // Ring-buffer bookkeeping: `buffer` is a fixed-size array that record()
+    // overwrites in place via _head; _len is how many samples it currently
+    // holds. Replaces the old push+shift() (an O(N) reindex of the whole
+    // array every frame once at cap).
+    _head: 0,
+    _len: 0,
 
     reset() {
-        this.buffer.length = 0;
+        this.buffer = new Array(this.maxSamples);
+        this._head = 0;
+        this._len = 0;
         this.session.length = 0;
         this.capturing = false;
         this.sessionStart = 0;
@@ -46,9 +54,16 @@ export const Profiler = {
 
     // The most recent finished session (if any) stays the report source until
     // the next capture or reset, so "F3 stop → F4 export" works as expected.
+    // Otherwise the ring buffer is materialized in chronological order.
+    // Only called on report export (user-initiated), never per frame.
     _reportSamples() {
         if (this.session.length) return this.session;
-        return this.buffer;
+        const out = new Array(this._len);
+        const start = this._len < this.maxSamples ? 0 : this._head;
+        for (let i = 0; i < this._len; i++) {
+            out[i] = this.buffer[(start + i) % this.maxSamples];
+        }
+        return out;
     },
 
     // Called once per frame from engine.loop() with the frame timing plus a
@@ -72,8 +87,9 @@ export const Profiler = {
             texts: engine.floatingTexts ? engine.floatingTexts.length : 0,
             wave: engine.waveManager ? engine.waveManager.currentWave : 0,
         };
-        this.buffer.push(s);
-        if (this.buffer.length > this.maxSamples) this.buffer.shift();
+        this.buffer[this._head] = s;
+        this._head = (this._head + 1) % this.maxSamples;
+        if (this._len < this.maxSamples) this._len++;
         if (this.capturing) this.session.push(s);
         this._tick++;
     },
@@ -203,21 +219,29 @@ export const Profiler = {
         return this.buildReport(engine, this._reportSamples());
     },
 
-    // Human-readable summary (for the dev overlay / quick glance).
+    // Human-readable summary (for the dev overlay / quick glance). Reads the
+    // newest sample directly from the ring/session instead of materializing
+    // the whole window (this runs every frame while the overlay is on).
     liveSummary(engine) {
-        const samples = this._reportSamples();
-        if (!samples.length) return null;
-        const s = samples[samples.length - 1];
-        const fps = s.total > 0 ? Math.round(1000 / s.total) : 0;
+        let count, last;
+        if (this.session.length) {
+            count = this.session.length;
+            last = this.session[count - 1];
+        } else {
+            if (!this._len) return null;
+            count = this._len;
+            last = this.buffer[this._head === 0 ? this.maxSamples - 1 : this._head - 1];
+        }
+        const fps = last.total > 0 ? Math.round(1000 / last.total) : 0;
         return {
             capturing: this.capturing,
-            samples: samples.length,
+            samples: count,
             fps,
-            sim: Math.round(s.sim * 10) / 10,
-            render: Math.round(s.render * 10) / 10,
-            total: Math.round(s.total * 10) / 10,
-            enemies: s.enemies,
-            projectiles: s.projectiles,
+            sim: Math.round(last.sim * 10) / 10,
+            render: Math.round(last.render * 10) / 10,
+            total: Math.round(last.total * 10) / 10,
+            enemies: last.enemies,
+            projectiles: last.projectiles,
         };
     },
 

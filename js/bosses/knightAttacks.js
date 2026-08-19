@@ -63,6 +63,9 @@ const KnightAttacks = {
             if (this.stateTimer <= 0) {
                 this.state = 'idle';
                 this.stateTimer = 4.0;
+                // The point anim holds its peak frame during the throw, then
+                // plays back down once the attack has been released.
+                this.pointRelease = true;
             }
         } else if (this.state === 'repositioning') {
             // Ball-morph reposition: the knight collapses into a ball, rolls
@@ -232,6 +235,7 @@ const KnightAttacks = {
         this.state = 'sword_throw';
         this.stateTimer = 3.0; 
         this.waveSpawnTimers = [2.8, 1.8, 0.8];
+        this.pointRelease = false;
     },
 
     _spawnSwordWave(count) {
@@ -279,6 +283,8 @@ const KnightAttacks = {
         this.spinningSlashes = [];
         this.thrownSwords = [];
         this.waveSpawnTimers = [];
+        this.slashFired = false;
+        this.pointRelease = false;
         this.warningLineActive = false;
         this.screenSplitActive = false;
         this.targetOffset = 0;
@@ -407,11 +413,14 @@ _updateBallTravel(dt) {
             }
         }
 
-        // Rise off the top of the screen with a slight sway, fading out as
-        // he leaves.
+        // Rise off the top of the screen with a slight sway, fading back in
+        // as he ascends (from the dying sequence's fade-out), then fading
+        // out again as he leaves.
         this.x = this.homeX + Math.sin(this.time * 3) * FLY.sway;
         this.y -= FLY.riseSpeed * dt;
-        this.alpha = Math.min(1, Math.max(0, (this.y - FLY.exitY) / 200));
+        const fadeIn = Math.min(1, this.flyElapsed / FLY.fadeInTime);
+        const fadeOut = Math.min(1, Math.max(0, (this.y - FLY.exitY) / 200));
+        this.alpha = fadeIn * fadeOut;
 
         if (this.y < FLY.exitY) {
             this.isDyingComplete = true;
@@ -440,9 +449,10 @@ _updateBallTravel(dt) {
         }
     },
 
-    // Advances a sprite anim through its frames once, then plays it back
-    // down to frame 1 (a single ping-pong). Used by `point` so the knight
-    // raises his sword, holds the throw pose, then lowers it again.
+    // Advances a sprite anim through its frames once, holding the peak frame
+    // until the attack is released, then plays it back down to frame 1. Used
+    // by `point` so the knight raises his sword, holds the throw pose while
+    // the swords are out, then lowers it again once the throw ends.
     _advanceOneShotAnim(dt, animName) {
         if (this.spriteAnimName !== animName) {
             this.spriteAnimName = animName;
@@ -450,20 +460,24 @@ _updateBallTravel(dt) {
             this.spriteAnimTimer = 0;
             this.spriteAnimReverse = false;
         }
+        // The reverse only begins once the throw has been released (state
+        // exited); before that the peak frame simply holds in place.
+        if (this.pointRelease && !this.spriteAnimReverse) this.spriteAnimReverse = true;
         const cfg = TUNING.bossAnim.sprites[animName];
         this.spriteAnimTimer -= dt;
         if (this.spriteAnimTimer <= 0) {
             this.spriteAnimTimer += 1 / cfg.fps;
             if (!this.spriteAnimReverse) {
                 this.sprite = `boss_${animName}_${this.spriteAnimFrame}`;
-                if (this.spriteAnimFrame >= cfg.frames) {
-                    this.spriteAnimReverse = true;
-                } else {
-                    this.spriteAnimFrame++;
-                }
+                if (this.spriteAnimFrame < cfg.frames) this.spriteAnimFrame++;
             } else if (this.spriteAnimFrame > 1) {
                 this.spriteAnimFrame--;
                 this.sprite = `boss_${animName}_${this.spriteAnimFrame}`;
+            } else {
+                // Fully lowered: back to the front view.
+                this.spriteAnimName = null;
+                this.pointRelease = false;
+                this.sprite = 'enemy_knight_front';
             }
         }
     },
@@ -523,6 +537,13 @@ _updateBallTravel(dt) {
         // idle the moment the slashes dash.
         if (this.state === 'spinning_slashes' || (this.slashFired && (this.spinningSlashes || []).length > 0)) {
             this._advanceSlashWindup(dt);
+            return;
+        }
+
+        // Keep the sword-throw point anim playing back down after the throw
+        // state ends, until it reaches the resting frame again.
+        if (this.pointRelease && this.spriteAnimName === 'point') {
+            this._advanceOneShotAnim(dt, 'point');
             return;
         }
 

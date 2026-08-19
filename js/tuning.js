@@ -49,6 +49,7 @@ export const TUNING = {
             riseSpeed: 160, // px/sec upward during the fly loop
             sway: 40,       // horizontal sway amplitude (around homeX)
             exitY: -160,    // y below which he's off-screen and gets removed
+            fadeInTime: 0.6, // sec to fade back in after the dying fade-out
         },
         // Fixed-duration cutscene beats, in seconds.
         phases: {
@@ -76,6 +77,7 @@ export const TUNING = {
         freeTime: 0.35,         // how long a freed sword flashes as sword_out
         respawnDelay: 0.8,      // gap between a sword popping and the next one
         xpMilestone: 20,        // swords taken per onComplete call
+        holdRepeat: 0.12,       // seconds between held pulls while pointer is down
     },
 };
 

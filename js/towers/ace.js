@@ -57,6 +57,8 @@ export default {
             tower.planeY = tower.y;
             tower.planeAngle = 0;
         }
+
+        tower._aceDt = dt;
         
         let aceRadius = (tower.stats.aceRadius || 80) * GS;
         let aceSpeed = 0.75 * (tower.stats.aceSpeedMult || 1.0); 
@@ -147,13 +149,13 @@ export default {
             tower.machineGunTimer = (tower.machineGunTimer || 0) - dt;
             if (tower.machineGunTimer <= 0) {
                 tower.machineGunTimer = tower.stats.machineGunCd;
-                let t1 = this._findTargetForGun(tower, engine, 'first');
+                let t1 = this._findTargetForGun(tower, engine, 'first', dt);
                 if (t1) this._fireMachineGun(tower, t1, engine);
                 
                 if (tower.stats.isFortress) {
-                    let t2 = this._findTargetForGun(tower, engine, 'close');
+                    let t2 = this._findTargetForGun(tower, engine, 'close', dt);
                     if (t2) this._fireMachineGun(tower, t2, engine);
-                    let t3 = this._findTargetForGun(tower, engine, 'last');
+                    let t3 = this._findTargetForGun(tower, engine, 'last', dt);
                     if (t3) this._fireMachineGun(tower, t3, engine);
                 }
             }
@@ -181,18 +183,47 @@ export default {
         }
     },
 
-    _findTargetForGun(tower, engine, mode) {
+    _findTargetForGun(tower, engine, mode, dt) {
+        // 'first'/'last' rank by path progress — a global property the spatial
+        // grid can't help with, and 'close' picks the globally-nearest enemy
+        // (no range cap), so all three modes keep the full scan. Target
+        // priority changes slowly relative to fire rate, so a live cached
+        // target is reused within the refresh window instead of re-scanning
+        // every shot (same pattern as Heli's pursuit/comanche scans). But if
+        // the cached target dies — or gets recycled into a different spawn by
+        // the enemy pool — we re-acquire immediately so the machine gun never
+        // goes silent while other bloons are live. Only fruitless scans stay
+        // throttled so an idle gun doesn't re-scan every shot.
+        tower._gunTargetTimers = tower._gunTargetTimers || {};
+        tower._gunTargetCache = tower._gunTargetCache || {};
+        tower._gunTargetSpawnIds = tower._gunTargetSpawnIds || {};
+        const lastDt = dt || tower._aceDt || 0.016;
+        const cached = tower._gunTargetCache[mode];
+        const cachedValid = cached && cached.alive && cached._spawnId === tower._gunTargetSpawnIds[mode];
+
+        if (cachedValid) {
+            tower._gunTargetTimers[mode] = (tower._gunTargetTimers[mode] || 0) - lastDt;
+            if (tower._gunTargetTimers[mode] > 0) return cached;
+        }
+
+        tower._gunTargetTimers[mode] = (tower._gunTargetTimers[mode] || 0) - lastDt;
+        if (!cachedValid && !cached && tower._gunTargetTimers[mode] > 0) return null;
+
+        tower._gunTargetTimers[mode] = 0.2;
+
         let bestTarget = null;
         let bestVal = (mode === 'close') ? Infinity : -Infinity;
         for (const e of engine.enemies) {
             if (!e || !e.alive || (e.isCamo && !tower.stats.canSeeCamo)) continue;
-            const dist = Utils.distanceSq(tower.planeX, tower.planeY, e.x, e.y);
             if (mode === 'close') {
+                const dist = Utils.distanceSq(tower.planeX, tower.planeY, e.x, e.y);
                 if (dist < bestVal) { bestVal = dist; bestTarget = e; }
-            } else { 
+            } else {
                 if (e.distanceTraveled > bestVal) { bestVal = e.distanceTraveled; bestTarget = e; }
             }
         }
+        tower._gunTargetCache[mode] = bestTarget;
+        tower._gunTargetSpawnIds[mode] = bestTarget ? bestTarget._spawnId : null;
         return bestTarget;
     },
 

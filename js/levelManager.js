@@ -179,7 +179,9 @@ export const LevelManager = {
         }
 
         // Always attempt to unlock specific heroes/towers by name
-        this._unlockSpecificByName(unlockText, this._excludedNames(unlockText));
+        const newlyUnlocked = this._unlockSpecificByName(unlockText, this._excludedNames(unlockText));
+        const heroKeys = newlyUnlocked.filter(key => !!HeroRegistry[key]);
+        if (heroKeys.length > 0) this._showHeroUnlockedPopup(heroKeys);
         updateShopPrices();
 
         if (!Config.data.claimedLevels.includes(level)) Config.data.claimedLevels.push(level);
@@ -188,18 +190,47 @@ export const LevelManager = {
     // Scans every level up to the player's current level and grants any rewards
     // that were never actually applied (e.g. from the level-up screen getting stuck).
     // Safe to run repeatedly: already-claimed levels are skipped.
+    //
+    // Reward order: category towers first (all Primary, then all Military, then
+    // all Magic, then all Support — anything still locked gets unlocked, since the
+    // interactive pick screen can only hand out a few towers per category), THEN
+    // monkey knowledge. Heroes stay hardcoded by name in levelData and are granted
+    // on their own levels, which are skipped by the category pass.
     reconcileLevel() {
         const before = { mm: Config.data.monkeyMoney, mk: Config.data.knowledgePoints, towers: Config.data.unlockedTowers.length };
         let fixedLevels = 0;
+        const knowledgeLevels = [];
+        const heroUnlocks = [];
         for (let level = 2; level <= Config.data.playerLevel; level++) {
             if (Config.data.claimedLevels.includes(level)) continue;
             if (!LevelProgression[level]) continue;
-            this._processLevelUp(level, { autoGrantCategory: true });
+            const unlockText = LevelProgression[level].unlocks || '';
+            if (unlockText.includes("Monkey Knowledge Point")) knowledgeLevels.push(level);
+            // Heroes are still hardcoded by name in levelData; unlock them here.
+            const newly = this._unlockSpecificByName(unlockText, this._excludedNames(unlockText));
+            heroUnlocks.push(...newly.filter(key => !!HeroRegistry[key]));
+            if (unlockText.includes("Monkey Money 50")) Config.data.monkeyMoney += 50;
+            if (unlockText.includes("Monkey Money 200")) Config.data.monkeyMoney += 200;
+            if (unlockText.includes("Gift Box")) {
+                ['desperado', 'dartling', 'mermonkey', 'beast'].forEach(t => {
+                    if (!Config.data.unlockedTowers.includes(t)) {
+                        Config.data.unlockedTowers.push(t);
+                    }
+                });
+            }
+            Config.data.claimedLevels.push(level);
             fixedLevels++;
         }
+        // Category towers: check each category in order and unlock anything still
+        // missing. No per-level gating — if a tower in the category is locked, the
+        // player hasn't got everything they should, so grant it.
+        this._grantRemainingCategoryTowers();
+        // THEN monkey knowledge.
+        knowledgeLevels.forEach(() => { Config.data.knowledgePoints += 1; });
         Config.save();
         updateShopPrices();
         UI.updateMetaStats();
+        if (heroUnlocks.length > 0) this._showHeroUnlockedPopup([...new Set(heroUnlocks)]);
         return {
             fixedLevels,
             mmGained: Config.data.monkeyMoney - before.mm,
@@ -208,18 +239,56 @@ export const LevelManager = {
         };
     },
 
+    _grantRemainingCategoryTowers() {
+        // Check category by category, in order: Primary, Military, Magic, Support.
+        for (const cat of ['Primary', 'Military', 'Magic', 'Support']) {
+            const excluded = this._categoryExcludedNames(cat);
+            for (const type in TowerStats) {
+                const stats = TowerStats[type];
+                if (!stats) continue;
+                if ((stats.category || TOWER_CATEGORIES[type]) !== cat) continue;
+                if (Config.data.unlockedTowers.includes(type)) continue;
+                if (stats.unlockKey) continue; // money-gated (e.g. Banana Farmer)
+                if (excluded.includes(stats.name)) continue; // Gift Box towers (Desperado, Dartling, Mermonkey, Beast Handler)
+                Config.data.unlockedTowers.push(type);
+            }
+        }
+    },
+
+    // The "except X" clause for a category, taken from its pick levels in
+    // levelData (all levels of a category share the same exception).
+    _categoryExcludedNames(category) {
+        for (const key in LevelProgression) {
+            const text = LevelProgression[key].unlocks || '';
+            if (text.includes(category)) {
+                return this._excludedNames(text);
+            }
+        }
+        return [];
+    },
+
+    // Unlocks towers/heroes named in the level text. Returns the list of keys
+    // that were newly unlocked this call, so callers can surface them (e.g. the
+    // hero-unlocked popup).
     _unlockSpecificByName(text, excluded = []) {
         const allKeys = [...Object.keys(TowerStats), ...Object.keys(HeroRegistry)];
+        const unlocked = [];
         for (const key of allKeys) {
-            const stats = TowerStats[key] || HeroRegistry[key];
+            // Tower stats live flat on TowerStats[key]; hero objects keep their
+            // stats under HeroRegistry[key].stats.
+            const towerStats = TowerStats[key];
+            const heroObj = towerStats ? null : HeroRegistry[key];
+            const stats = towerStats || (heroObj ? heroObj.stats : null);
             if (!stats) continue;
             if (excluded.includes(stats.name)) continue;
             if (text.includes(stats.name)) {
                 if (!Config.data.unlockedTowers.includes(key)) {
                     Config.data.unlockedTowers.push(key);
+                    unlocked.push(key);
                 }
             }
         }
+        return unlocked;
     },
 
     _showSelectionScreen(category, level, onDone) {
@@ -318,5 +387,72 @@ export const LevelManager = {
 
         overlay.appendChild(content);
         document.getElementById('game-container').appendChild(overlay);
+    },
+
+    // Shows a popup announcing newly unlocked hero(es) (from a level-up or the
+    // reconcile fixer). Mirrors the level-up selection overlay's styling.
+    _showHeroUnlockedPopup(heroKeys) {
+        if (typeof document === 'undefined') return;
+        const existing = document.getElementById('hero-unlocked-popup');
+        if (existing) existing.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'hero-unlocked-popup';
+        overlay.className = 'overlay';
+        overlay.style.zIndex = 100;
+
+        const cards = heroKeys.map(key => {
+            const stats = (HeroRegistry[key] || {}).stats || {};
+            const name = stats.name || key;
+            return `
+                <div style="background:#34495e; border:2px solid var(--gold); border-radius:8px; padding:12px; text-align:center; min-width:120px;">
+                    <div style="width:80px; height:80px; margin:0 auto 8px; background-image:url('sprites/portraits/${key}_menuportrait.png'); background-size:cover; border-radius:8px;"></div>
+                    <div style="font-weight:900; color:white;">${name}</div>
+                </div>`;
+        }).join('');
+
+        const content = document.createElement('div');
+        content.className = 'menu-content';
+        content.innerHTML = `
+            <h2>${heroKeys.length > 1 ? 'New Heroes Unlocked!' : 'New Hero Unlocked!'}</h2>
+            <div style="display:flex; gap:15px; justify-content:center; margin-top:15px; flex-wrap:wrap;">${cards}</div>
+            <button class="back-btn" id="hero-unlocked-close" style="margin-top:18px;">Continue</button>`;
+
+        const closeBtn = content.querySelector('#hero-unlocked-close');
+        closeBtn.addEventListener('click', () => overlay.remove());
+        overlay.appendChild(content);
+        const host = document.getElementById('game-container');
+        if (host) host.appendChild(overlay);
     }
 };
+
+// Dev console helper: gain levels instantly.
+//   levelUp()   -> +1 level
+//   levelUp(5)  -> +5 levels
+//   levelUp(0)  -> no-op
+// Category towers go through the normal interactive pick screen (one tower per
+// category level); heroes/money/knowledge flow through the normal pipeline and
+// the level-up queue drains sequentially. Config is saved by addXP.
+if (typeof window !== 'undefined') {
+    window.levelUp = function (levels = 1) {
+        const n = Math.max(1, Math.floor(levels));
+        if (Config.data.playerLevel >= 155) return 'Already at max level (155).';
+
+        let xp = 0;
+        let xpNow = Config.data.playerXP;
+        let toNext = Config.data.playerXPToNext;
+        let level = Config.data.playerLevel;
+        for (let i = 0; i < n; i++) {
+            if (level >= 155) break;
+            xp += toNext - xpNow;
+            xpNow = 0;
+            level++;
+            const next = LevelProgression[level + 1];
+            toNext = next ? next.xpFromPrev : toNext;
+        }
+
+        const before = Config.data.playerLevel;
+        LevelManager.addXP(xp);
+        return `Gained ${Config.data.playerLevel - before} level(s) -> now level ${Config.data.playerLevel}.`;
+    };
+}

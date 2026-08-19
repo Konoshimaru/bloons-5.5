@@ -372,7 +372,15 @@ export const GameEngine = {
             if (this.sessionXpFlushTimer <= 0) { this.sessionXpFlushTimer = 0.5; this.flushSessionXp(); }
         }
         if (this.difficulty && this.difficulty.isPostChimps && CutsceneManager.state === 'idle') {
-            let damagedMoab = this.enemies.find(e => e.alive && e.data.isMoab && e.hp < e._maxHp);
+            // Cache the first damaged MOAB instead of scanning every enemy
+            // every frame. Re-find only when the cached target dies, heals
+            // back to full, or hasn't been set — the same MOAB would win a
+            // fresh scan anyway (damage only accumulates, order is stable).
+            let damagedMoab = this._postChimpsMoab;
+            if (!damagedMoab || !damagedMoab.alive || !damagedMoab.data?.isMoab || damagedMoab.hp >= damagedMoab._maxHp) {
+                damagedMoab = this.enemies.find(e => e.alive && e.data.isMoab && e.hp < e._maxHp);
+                this._postChimpsMoab = damagedMoab;
+            }
             if (damagedMoab) CutsceneManager.trigger(damagedMoab);
         }
         if (CutsceneManager.update(dt)) { return; }

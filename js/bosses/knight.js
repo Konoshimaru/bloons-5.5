@@ -61,7 +61,8 @@ export class KnightEnemy extends Enemy {
         this.spriteAnimName = null;
         this.spriteAnimFrame = 1;
         this.spriteAnimTimer = 0;
-        this.spriteAnimReverse = false; // point ping-pongs back down after peaking
+        this.spriteAnimReverse = false; // point lowers back down once the throw is released
+        this.pointRelease = false;      // set when sword_throw ends so the point anim reverses
         this.flyPhase = null;    // null | 'transition' | 'fly' (death exit)
         this.flyElapsed = 0;     // time since the fly-away started
         this.slashBackup = 0;    // 0..1 how far the knight has backed away while readying
@@ -110,8 +111,10 @@ export class KnightEnemy extends Enemy {
                 GameEngine.log("The Black Knight has been vanquished!");
                 
                 // Transition to the fly-away exit instead of disappearing.
+                // Start invisible (the dying sequence already faded him out)
+                // and let _updateFlyAway fade him back in as he ascends.
                 this.state = 'flying_away';
-                this.alpha = 1;
+                this.alpha = 0;
                 this.flyPhase = null;
                 this.flyElapsed = 0;
                 this.knightTrail = [];

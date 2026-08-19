@@ -9,15 +9,17 @@ import { GLOBAL_SCALE } from '../constants.js';
 import * as Const from './rendererConstants.js';
 
 export const ProjectilesRenderer = {
+    _frameGen: 0,
+
     _drawProjectiles(engine) {
         const layer = PixiApp.layer('projectiles');
         const pool = engine.projectilePool?.active;
         if (!pool) return;
-        const seen = new Set();
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
 
         for (const p of pool) {
             if (!p) continue;
-            seen.add(p);
 
             let entry = this._projectileSprites.get(p);
             if (!entry) {
@@ -28,6 +30,7 @@ export const ProjectilesRenderer = {
                 entry = { container, sprite, graphics, adapter: new CanvasGraphicsAdapter(graphics) };
                 this._projectileSprites.set(p, entry);
             }
+            entry.gen = gen;
 
             const { container, sprite, graphics, adapter } = entry;
             
@@ -66,21 +69,33 @@ export const ProjectilesRenderer = {
         }
 
         for (const [p, entry] of this._projectileSprites) {
-            if (!seen.has(p)) { entry.container.destroy({ children: true }); this._projectileSprites.delete(p); }
+            if (entry.gen !== gen) { entry.container.destroy({ children: true }); this._projectileSprites.delete(p); }
         }
     },
 
     _drawParticles(engine) {
         const layer = PixiApp.layer('effects');
-        const seen = new Set(); const particles = engine.particlePool?.active || [];
+        const particles = engine.particlePool?.active || [];
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
         for (const p of particles) {
             if (!p || p.life <= 0) continue;
-            seen.add(p);
             let sprite = this._particleSprites.get(p);
             if (!sprite) {
                 sprite = new Sprite(); sprite.anchor.set(0.5); layer.addChild(sprite); this._particleSprites.set(p, sprite);
             }
-            const texture = PixiAssets.get(Names.getPopEffect(p.popVariant));
+            sprite.gen = gen;
+            // Cache the resolved pop texture per variant (a handful of fixed
+            // values) instead of building the key string + Map lookup for
+            // every particle every frame.
+            if (!this._popTextureCache) this._popTextureCache = new Map();
+            let texture = this._popTextureCache.get(p.popVariant);
+            if (texture === undefined) {
+                texture = PixiAssets.get(Names.getPopEffect(p.popVariant));
+                // Only cache loaded textures — a not-yet-loaded one would
+                // otherwise freeze the EMPTY placeholder forever.
+                if (texture !== Texture.EMPTY) this._popTextureCache.set(p.popVariant, texture);
+            }
             if (texture === Texture.EMPTY) { sprite.visible = false; continue; }
             sprite.visible = true;
             if (sprite.texture !== texture) sprite.texture = texture;
@@ -89,7 +104,7 @@ export const ProjectilesRenderer = {
             sprite.alpha = Math.max(0, Math.min(1, p.life / p.maxLife));
         }
         for (const [p, sprite] of this._particleSprites) {
-            if (!seen.has(p)) { sprite.destroy(); this._particleSprites.delete(p); }
+            if (sprite.gen !== gen) { sprite.destroy(); this._particleSprites.delete(p); }
         }
     },
 
@@ -110,16 +125,22 @@ export const ProjectilesRenderer = {
     },
 
     _drawBananas(engine) {
-        const layer = PixiApp.layer('effects'); const seen = new Set();
+        const layer = PixiApp.layer('effects');
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
         for (const tower of engine.towers) {
             if (!tower || !tower.bananas) continue;
             for (const b of tower.bananas) {
-                if (!b) continue; seen.add(b);
+                if (!b) continue;
                 let sprite = this._bananaSprites.get(b);
                 if (!sprite) {
                     sprite = new Sprite(); sprite.anchor.set(0.5); layer.addChild(sprite); this._bananaSprites.set(b, sprite);
                 }
-                const texture = PixiAssets.get(Names.getBanana());
+                sprite.gen = gen;
+                // Banana texture is fixed; resolve once instead of every banana
+                // every frame.
+                if (!this._bananaTexture || this._bananaTexture === Texture.EMPTY) this._bananaTexture = PixiAssets.get(Names.getBanana());
+                const texture = this._bananaTexture;
                 if (texture === Texture.EMPTY) { sprite.visible = false; continue; }
                 sprite.visible = true;
                 if (sprite.texture !== texture) sprite.texture = texture;
@@ -130,7 +151,7 @@ export const ProjectilesRenderer = {
             }
         }
         for (const [b, sprite] of this._bananaSprites) {
-            if (!seen.has(b)) { sprite.destroy(); this._bananaSprites.delete(b); }
+            if (sprite.gen !== gen) { sprite.destroy(); this._bananaSprites.delete(b); }
         }
     }
 };

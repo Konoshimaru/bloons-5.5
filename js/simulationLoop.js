@@ -15,8 +15,10 @@ const SimulationLoop = {
     _updateLimitsAndTimers(dt) {
         if (this.projectilePool.active.length > MAX_PROJECTILES) this.projectilePool.removeAt(0);
         if (this.particlePool.active.length > MAX_PARTICLES) this.particlePool.removeAt(0);
-        if (this.explosions.length > MAX_EXPLOSIONS) this.explosions.shift();
-        if (this.acidPools.length > MAX_ACID_POOLS) this.acidPools.shift();
+        // Swap-remove the oldest entry (order doesn't matter for these effect
+        // pools) instead of shift(), which reindexes the whole array.
+        if (this.explosions.length > MAX_EXPLOSIONS) { this.explosions[0] = this.explosions[this.explosions.length - 1]; this.explosions.pop(); }
+        if (this.acidPools.length > MAX_ACID_POOLS) { this.acidPools[0] = this.acidPools[this.acidPools.length - 1]; this.acidPools.pop(); }
         if (this.flavorTimer > 0) this.flavorTimer -= dt;
         if (this.leakFlash > 0) this.leakFlash -= dt;
     },

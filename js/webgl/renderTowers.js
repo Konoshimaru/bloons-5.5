@@ -8,15 +8,31 @@ import { GLOBAL_SCALE } from '../constants.js';
 import { getSpriteScale } from '../mobile.js';
 import * as Const from './rendererConstants.js';
 
+// Shared empty list for overlay reconciles that need no overlays (special
+// tower states, mermonkey). _reconcileOverlayList only reads it, so sharing
+// one array across every call is safe and avoids a fresh [] per frame.
+const EMPTY_OVERLAYS = [];
+
 export const TowersRenderer = {
+    // Per-frame generation stamp replaces the fresh `seen` Set that was
+    // allocated + filled every frame just to sweep dead entries. Each entry
+    // carries the frame that touched it; the sweep reclaims stale stamps.
+    _frameGen: 0,
+    _frameGenEffects: 0,
+
     _drawTowers(engine) {
         const layer = PixiApp.layer('towers');
-        const seen = new Set();
         const mscale = getSpriteScale();
+        // Frame-cached sprite scale: every per-tower visual helper reads this
+        // instead of re-calling getSpriteScale() (a window-width lookup) 4-8
+        // times per tower. _applySpriteConfig falls back to getSpriteScale()
+        // when called outside a draw frame (e.g. the placement preview).
+        this._frameMscale = mscale;
+        this._frameGen = (this._frameGen + 1) || 1;
+        const gen = this._frameGen;
 
         for (const tower of engine.towers) {
             if (!tower) continue;
-            seen.add(tower);
 
             let entry = this._towerSprites.get(tower);
             if (!entry) {
@@ -40,6 +56,7 @@ export const TowersRenderer = {
                 entry = { container, nightGlow, shadow, glow, arm, aOverlayLayer, base, overlayLayer, catapult, stun, aOverlays: [], overlays: [] };
                 this._towerSprites.set(tower, entry);
             }
+            entry.gen = gen;
 
             this._updateTowerVisual(tower, entry);
 
@@ -128,7 +145,7 @@ export const TowersRenderer = {
         }
 
         for (const [tower, entry] of this._towerSprites) {
-            if (!seen.has(tower)) { entry.container.destroy({ children: true }); entry.stun?.destroy(); this._towerSprites.delete(tower); }
+            if (entry.gen !== gen) { entry.container.destroy({ children: true }); entry.stun?.destroy(); this._towerSprites.delete(tower); }
         }
     },
 
@@ -179,7 +196,8 @@ export const TowersRenderer = {
 
     _drawTowerEffects(engine) {
         const layer = PixiApp.layer('towerUnderEffects');
-        const seen = new Set();
+        this._frameGenEffects = (this._frameGenEffects + 1) || 1;
+        const gen = this._frameGenEffects;
 
         for (const tower of engine.towers) {
             if (!tower) continue;
@@ -200,7 +218,6 @@ export const TowersRenderer = {
                 (tower.type === 'quincy' && tower.stormOfArrows?.active);
 
             if (!hasEffect) continue;
-            seen.add(tower);
 
             let entry = this._towerEffectSprites.get(tower);
             if (!entry) {
@@ -209,6 +226,7 @@ export const TowersRenderer = {
                 entry = { graphics, adapter: new CanvasGraphicsAdapter(graphics) };
                 this._towerEffectSprites.set(tower, entry);
             }
+            entry.gen = gen;
 
             const { graphics, adapter } = entry;
             graphics.clear();
@@ -227,7 +245,7 @@ export const TowersRenderer = {
         }
 
         for (const [tower, entry] of this._towerEffectSprites) {
-            if (!seen.has(tower)) { entry.graphics.destroy(); entry.trapText?.destroy(); this._towerEffectSprites.delete(tower); }
+            if (entry.gen !== gen) { entry.graphics.destroy(); entry.trapText?.destroy(); this._towerEffectSprites.delete(tower); }
         }
     },
 
@@ -365,8 +383,8 @@ export const TowersRenderer = {
         const type = tower.type;
         if (type === 'alchemist' && tower.isMonster) {
             arm.visible = false; base.visible = false; catapult.visible = false;
-            this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, [], 0);
-            this._reconcileOverlayList(overlayLayer, entry.overlays, [], 0);
+            this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, EMPTY_OVERLAYS, 0);
+            this._reconcileOverlayList(overlayLayer, entry.overlays, EMPTY_OVERLAYS, 0);
             container.x = tower.x; container.y = tower.y; return;
         }
         // Sauda hides her own sprite entirely during Sword Charge (ability2) —
@@ -374,12 +392,12 @@ export const TowersRenderer = {
         // Original: `if (!tower.chargeLockout || tower.chargeLockout <= 0) { ...draw... }`
         if (type === 'sauda' && tower.chargeLockout > 0) {
             arm.visible = false; base.visible = false; catapult.visible = false;
-            this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, [], 0);
-            this._reconcileOverlayList(overlayLayer, entry.overlays, [], 0);
+            this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, EMPTY_OVERLAYS, 0);
+            this._reconcileOverlayList(overlayLayer, entry.overlays, EMPTY_OVERLAYS, 0);
             container.x = tower.x; container.y = tower.y; return;
         }
         arm.visible = true; base.visible = true;
-        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE * getSpriteScale();
+        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE * this._frameMscale;
         const attackPrefix = tower.attackPrefix || `tower_${type}_`;
         let bestTier = 0, bestPath = 0;
         for (let p = 1; p <= 3; p++) { if ((tower.upgrades?.[p - 1] || 0) > bestTier) { bestTier = tower.upgrades[p - 1]; bestPath = p; } }
@@ -437,25 +455,35 @@ export const TowersRenderer = {
                 this._applySpriteConfig(arm, armTexture, type, armPartKey, targetSize);
             } else { arm.visible = false; }
         }
-        const neededAOverlays = [];
-        if (!useFullAnim && !isCustomBase) {
-            for (let p = 1; p <= 3; p++) {
-                const t = tower.upgrades?.[p - 1] || 0;
-                if (t > 0) {
-                    const key = `tower_${type}_p${p}_t${t}_a`;
-                    if (PixiAssets.has(key)) neededAOverlays.push({ textureKey: key, configType: `${type}_p${p}_t${t}` });
+        // Overlay arrays only change when the upgrades (or full-anim / custom
+        // base state) change, so cache them on the entry instead of allocating
+        // fresh arrays every frame. _reconcileOverlayList still runs each frame
+        // with targetSize, so overlay sizing tracks mobile scale/resize.
+        const overlaySig = `${tower.upgrades.join(',')}|${useFullAnim}|${isCustomBase}`;
+        if (entry._overlaySig !== overlaySig) {
+            entry._overlaySig = overlaySig;
+            const neededAOverlays = [];
+            if (!useFullAnim && !isCustomBase) {
+                for (let p = 1; p <= 3; p++) {
+                    const t = tower.upgrades?.[p - 1] || 0;
+                    if (t > 0) {
+                        const key = `tower_${type}_p${p}_t${t}_a`;
+                        if (PixiAssets.has(key)) neededAOverlays.push({ textureKey: key, configType: `${type}_p${p}_t${t}` });
+                    }
                 }
             }
-        }
-        this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, neededAOverlays, targetSize);
-        const neededOverlays = [];
-        if (!isCustomBase) {
-            for (let p = 1; p <= 3; p++) {
-                const t = tower.upgrades?.[p - 1] || 0;
-                if (t > 0) neededOverlays.push({ textureKey: `tower_${type}_p${p}_t${t}`, configType: `${type}_p${p}_t${t}` });
+            entry._neededAOverlays = neededAOverlays;
+            const neededOverlays = [];
+            if (!isCustomBase) {
+                for (let p = 1; p <= 3; p++) {
+                    const t = tower.upgrades?.[p - 1] || 0;
+                    if (t > 0) neededOverlays.push({ textureKey: `tower_${type}_p${p}_t${t}`, configType: `${type}_p${p}_t${t}` });
+                }
             }
+            entry._neededOverlays = neededOverlays;
         }
-        this._reconcileOverlayList(overlayLayer, entry.overlays, neededOverlays, targetSize);
+        this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, entry._neededAOverlays, targetSize);
+        this._reconcileOverlayList(overlayLayer, entry.overlays, entry._neededOverlays, targetSize);
         if (type === 'ace' && tower.planeX !== undefined) {
             container.x = tower.planeX; container.y = tower.planeY;
             container.rotation = (tower.planeAngle ?? 0) + Math.PI / 2;
@@ -481,15 +509,15 @@ export const TowersRenderer = {
         const { container, arm, aOverlayLayer, base, overlayLayer, catapult } = entry;
         if (tower.fanClubBuffTimer > 0) {
             arm.visible = false; base.visible = false; catapult.visible = false;
-            this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, [], 0);
-            this._reconcileOverlayList(overlayLayer, entry.overlays, [], 0);
+            this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, EMPTY_OVERLAYS, 0);
+            this._reconcileOverlayList(overlayLayer, entry.overlays, EMPTY_OVERLAYS, 0);
             container.x = tower.x; container.y = tower.y; container.rotation = 0; return;
         }
         arm.visible = true; base.visible = true;
         let bestTier = 0, bestPath = 0;
         for (let p = 1; p <= 3; p++) { if ((tower.upgrades?.[p - 1] || 0) > bestTier) { bestTier = tower.upgrades[p - 1]; bestPath = p; } }
         const sharedConfigType = bestTier > 0 ? `dart_p${bestPath}_t${bestTier}` : 'dart';
-        const dartFallbackSize = 45 * GLOBAL_SCALE * getSpriteScale();
+        const dartFallbackSize = 45 * GLOBAL_SCALE * this._frameMscale;
         let baseKey = 'tower_dart_base'; let isCustomBase = false;
         if (bestTier > 0) {
             const customKey = `tower_dart_p${bestPath}_t${bestTier}_base`;
@@ -500,8 +528,8 @@ export const TowersRenderer = {
             catapult.visible = true; catapult.texture = catapultTexture;
             this._applySpriteConfig(catapult, catapultTexture, sharedConfigType, 'base', dartFallbackSize);
             arm.visible = false; base.visible = false;
-            this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, [], 0);
-            this._reconcileOverlayList(overlayLayer, entry.overlays, [], 0);
+            this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, EMPTY_OVERLAYS, 0);
+            this._reconcileOverlayList(overlayLayer, entry.overlays, EMPTY_OVERLAYS, 0);
             container.x = tower.x; container.y = tower.y; container.rotation = (tower.angle ?? 0) + Math.PI / 2; return;
         }
         catapult.visible = false;
@@ -536,32 +564,41 @@ export const TowersRenderer = {
                 this._applySpriteConfig(arm, armTexture, sharedConfigType, armPartKey, dartFallbackSize);
             } else { arm.visible = false; }
         }
-        const neededAOverlays = [];
-        if (!useFullAnim && !isCustomBase) {
-            for (let i = 1; i <= 3; i++) {
-                const t = tower.upgrades?.[i - 1] || 0;
-                if (t > 0) {
-                    const key = `tower_dart_p${i}_t${t}_a`;
-                    if (PixiAssets.has(key)) neededAOverlays.push({ textureKey: key, configType: sharedConfigType });
+        // Overlay arrays only change when the upgrades (or full-anim / custom
+        // base state) change, so cache them on the entry instead of allocating
+        // fresh arrays every frame.
+        const overlaySig = `${tower.upgrades.join(',')}|${useFullAnim}|${isCustomBase}`;
+        if (entry._overlaySig !== overlaySig) {
+            entry._overlaySig = overlaySig;
+            const neededAOverlays = [];
+            if (!useFullAnim && !isCustomBase) {
+                for (let i = 1; i <= 3; i++) {
+                    const t = tower.upgrades?.[i - 1] || 0;
+                    if (t > 0) {
+                        const key = `tower_dart_p${i}_t${t}_a`;
+                        if (PixiAssets.has(key)) neededAOverlays.push({ textureKey: key, configType: sharedConfigType });
+                    }
                 }
             }
-        }
-        this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, neededAOverlays, dartFallbackSize);
-        const neededOverlays = [];
-        if (!isCustomBase) {
-            for (let i = 1; i <= 3; i++) {
-                const t = tower.upgrades?.[i - 1] || 0;
-                if (t > 0) neededOverlays.push({ textureKey: `tower_dart_p${i}_t${t}`, configType: sharedConfigType });
+            entry._neededAOverlays = neededAOverlays;
+            const neededOverlays = [];
+            if (!isCustomBase) {
+                for (let i = 1; i <= 3; i++) {
+                    const t = tower.upgrades?.[i - 1] || 0;
+                    if (t > 0) neededOverlays.push({ textureKey: `tower_dart_p${i}_t${t}`, configType: sharedConfigType });
+                }
             }
+            entry._neededOverlays = neededOverlays;
         }
-        this._reconcileOverlayList(overlayLayer, entry.overlays, neededOverlays, dartFallbackSize);
+        this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, entry._neededAOverlays, dartFallbackSize);
+        this._reconcileOverlayList(overlayLayer, entry.overlays, entry._neededOverlays, dartFallbackSize);
         container.x = tower.x; container.y = tower.y; container.rotation = (tower.angle ?? 0) + Math.PI / 2;
     },
     _updateMermonkeyVisual(tower, entry) {
         const { container, arm, aOverlayLayer, base, overlayLayer, catapult } = entry;
         arm.visible = false; catapult.visible = false;
-        this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, [], 0);
-        this._reconcileOverlayList(overlayLayer, entry.overlays, [], 0);
+        this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, EMPTY_OVERLAYS, 0);
+        this._reconcileOverlayList(overlayLayer, entry.overlays, EMPTY_OVERLAYS, 0);
         let bestTier = 0, bestPath = 0;
         for (let p = 1; p <= 3; p++) { if ((tower.upgrades?.[p - 1] || 0) > bestTier) { bestTier = tower.upgrades[p - 1]; bestPath = p; } }
         let baseKey = 'tower_mermonkey_base';
@@ -572,7 +609,7 @@ export const TowersRenderer = {
         const baseTexture = PixiAssets.get(baseKey);
         base.visible = true;
         if (base.texture !== baseTexture) base.texture = baseTexture;
-        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE * getSpriteScale();
+        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE * this._frameMscale;
         this._sizeUniform(base, baseTexture, targetSize);
         base.x = 0; base.y = 0;
         container.x = tower.x; container.y = tower.y;
@@ -592,7 +629,7 @@ export const TowersRenderer = {
         
         // If SpriteConfig provides a scale, it overrides everything completely.
         // Otherwise, we fall back to the defaultSize passed in.
-        const size = off ? (45 * (off.scale || 1) * GLOBAL_SCALE * getSpriteScale()) : defaultSize;
+        const size = off ? (45 * (off.scale || 1) * GLOBAL_SCALE * (this._frameMscale ?? getSpriteScale())) : defaultSize;
         
         const maxDim = Math.max(texture.width, texture.height) || 1;
         const scale = size / maxDim;

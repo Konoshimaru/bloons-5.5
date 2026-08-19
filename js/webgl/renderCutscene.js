@@ -575,10 +575,13 @@ export const CutsceneRenderer = {
         // front view) at trailScale, mirrored via ctx.scale(-1,1), alpha =
         // trail alpha (fades as it ages). ---
         const trail = knight.knightTrail || [];
-        while (e.trailSprites.length < trail.length) {
+        // Pre-allocate up to the knight's trail cap (knight.js caps at 15)
+        // once and keep the pool; unused sprites are hidden below instead of
+        // being destroyed and recreated as the trail length fluctuates.
+        const MAX_TRAIL = 15;
+        while (e.trailSprites.length < Math.min(trail.length, MAX_TRAIL)) {
             const s = new Sprite(); s.anchor.set(0.5); e.trailLayer.addChild(s); e.trailSprites.push(s);
         }
-        while (e.trailSprites.length > trail.length) e.trailSprites.pop().destroy();
         const trailTexture = PixiAssets.get(knight.sprite);
         PixiAssets.setPixelArt(knight.sprite);
         for (let i = 0; i < e.trailSprites.length; i++) {

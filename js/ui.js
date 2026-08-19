@@ -155,6 +155,8 @@ export const UI = {
     },
 
     updateWave(wave) {
+        if (wave === this._prevWave) return;
+        this._prevWave = wave;
         const waveEl = el('wave-display');
         if (waveEl) waveEl.innerText = `Wave ${wave}`;
     },
