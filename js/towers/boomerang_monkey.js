@@ -1,5 +1,5 @@
 // js/towers/boomerang_monkey.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 const _boomerOrbitScratch = [];

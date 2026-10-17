@@ -3,7 +3,8 @@ import { TowerStats, Upgrades } from './towers/index.js';
 import { Config } from './config.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 import { HeroRegistry } from './heroes/index.js';
-import { getSellRate } from './towerEconomy.js';
+import { uiHooks } from './uiHooks.js';
+import { getSellValue } from './towerEconomy.js';
 import { getBehavior } from './registry.js';
 import { GAME_AREA_WIDTH } from './constants.js';
 
@@ -209,8 +210,7 @@ const uiTowerPanel = {
         if (sellBtn) {
             if (t.isMinion) { sellBtn.classList.add('hidden'); return; }
             sellBtn.classList.remove('hidden');
-            const resaleRate = getSellRate(t, engine);
-            const sellValue = Math.floor(t.totalSpent * resaleRate);
+            const sellValue = getSellValue(t, engine);
             sellBtn.innerText = `Sell ($${sellValue})`;
         }
         
@@ -606,5 +606,7 @@ const uiTowerPanel = {
         }
     }
 };
+
+uiHooks.setupBeastUI = (panel, t, engine) => uiTowerPanel._setupBeastUI(panel, t, engine);
 
 export default uiTowerPanel;

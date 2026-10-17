@@ -5,7 +5,7 @@
 // UI, so his shop is approximated as auto-purchased, auto-deployed items
 // (Shooty Turret, Stack of Old Nails, Jar of Pickles) while a wave is active.
 
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 

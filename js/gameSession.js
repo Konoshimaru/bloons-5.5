@@ -1,5 +1,6 @@
 // js/gameSession.js
-import { Config, Difficulties, HeroStats } from './config.js';
+import { Config, Difficulties } from './config.js';
+import { HeroStats } from './heroes/index.js';
 import { TowerStats } from './towers/index.js';
 import { Hero } from './hero.js';
 import { Tower } from './tower.js';

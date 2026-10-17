@@ -1,6 +1,7 @@
 // js/ui.js
 import { TowerStats } from './towers/index.js';
-import { Config, HeroStats } from './config.js';
+import { Config } from './config.js';
+import { HeroStats } from './heroes/index.js';
 import uiTowerPanel from './uiTowerPanel.js';
 
 const elements = {};

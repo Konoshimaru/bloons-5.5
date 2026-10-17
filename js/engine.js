@@ -1,5 +1,7 @@
 // js/engine.js
-import { Config, Difficulties, HeroStats } from './config.js';
+import { GameEngine } from './engineRef.js';
+import { Config, Difficulties } from './config.js';
+import { HeroStats } from './heroes/index.js';
 import { TowerStats, TowerRegistry, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
@@ -31,7 +33,9 @@ const FIXED_TIMESTEP = 0.016;
 const FPS_UPDATE_INTERVAL = 1000;
 const HANG_THRESHOLD_MS = 500; 
 
-export const GameEngine = {
+// Filled in place so the object identity exported by engineRef.js stays the same
+// (descriptors are copied, so getters such as `config` keep working).
+Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
     canvas: null,
     ctx: null,
     lastTime: 0,
@@ -181,12 +185,26 @@ export const GameEngine = {
 
     getCost(baseCost) { return Math.floor(baseCost * (this.difficulty ? this.difficulty.costMod : 1.0)); },
 
+    // Pop income can be fractional (round modifiers of 50%/20%/10%...). Fractions accumulate
+    // here so nothing is lost to rounding (the old per-pop floor/max(1) paid $1 for a $0.20 pop,
+    // and Half Cash paid nothing for $1 pops).
+    addPopCash(amount) {
+        const diff = this.difficulty;
+        if (diff && typeof diff.incomeMult === 'number') amount *= diff.incomeMult;
+        this._popCashFrac = (this._popCashFrac || 0) + amount;
+        const whole = Math.floor(this._popCashFrac + 1e-9);
+        if (whole > 0) {
+            this._popCashFrac -= whole;
+            this.addCash(whole, { pop: true, scaled: true });
+        }
+    },
+
     addCash(rawAmount, opts = {}) {
         if (rawAmount <= 0) return;
         const diff = this.difficulty;
         if (diff) {
             if (diff.noIncome && !(opts.wave && diff.allowWaveCash) && !opts.pop) return;
-            if (typeof diff.incomeMult === 'number' && diff.incomeMult !== 1) {
+            if (typeof diff.incomeMult === 'number' && diff.incomeMult !== 1 && !opts.scaled) {
                 rawAmount = Math.floor(rawAmount * diff.incomeMult);
                 if (rawAmount <= 0) return;
             }
@@ -206,6 +224,7 @@ export const GameEngine = {
     },
 
     startGame(isSandbox = false) {
+        this._popCashFrac = 0;
         this.isSandbox = isSandbox;
         try { this.map = new GameMap(this.currentMap); }
         catch (e) {
@@ -428,7 +447,7 @@ export const GameEngine = {
             UI.toggleMenus('game-over-menu'); document.getElementById('go-wave-stat').innerText = `You survived to Wave ${this.waveManager.currentWave}`;
         }
     }
-};
+}));
 
 Object.assign(GameEngine, EngineInput);
 Object.assign(GameEngine, GameSession);
@@ -436,3 +455,5 @@ Object.assign(GameEngine, SimulationLoop);
 
 // ADD THIS LINE AT THE VERY BOTTOM:
 window.GameEngine = GameEngine;
+
+export { GameEngine };

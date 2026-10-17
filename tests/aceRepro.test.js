@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../js/engine.js', () => {
+vi.mock('../js/engineRef.js', () => {
   const towers = [];
   return {
     GameEngine: {

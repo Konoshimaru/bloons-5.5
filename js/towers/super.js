@@ -1,15 +1,14 @@
 // super.js
 // Defines the Super tower and its upgraded combat behavior.
 
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion, isHiddenFrom } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
-import { TowerStats } from './index.js'; 
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _superBeamScratch = [];
-const _superExpScratch = [];
 const _superDarkScratch = [];
 const _superSecondTargetScratch = [];
 const _superTowerScratch = [];
@@ -74,7 +73,7 @@ export default {
         let totalSacrificed = 0;
 
         for (const t of inRange) {
-            const cat = categoryMap[t.type] || TowerStats[t.type]?.category || 'Primary';
+            const cat = categoryMap[t.type] || t.stats?.category || 'Primary';
             const cost = t.totalSpent || 0;
             sacrifices[cat] += cost;
             totalSacrificed += cost;
@@ -264,7 +263,7 @@ export default {
                         p1.init(tower.x, tower.y, tower.milSpectre.dartDmg, target, 'dart', 800, 6, 1.0, null, {}, 0, tower, {isSharp: true});
                         
                         let p2 = engine.projectilePool.get();
-                        p2.init(tower.x, tower.y, tower.milSpectre.bombDmg, target, 'bomb', 800, 30, 1.0, null, {isExplosive: true, explosionRadius: 40, ceramicDmg: 20, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
+                        p2.init(tower.x, tower.y, tower.milSpectre.bombDmg, target, 'bomb', 800, 30, 1.0, null, {isExplosive: true, explosionRadius: 40, ceramicDmg: 20, canHitLead: true}, 0, tower, DamageType.EXPLOSION);
                     }
                 }
             }
@@ -299,7 +298,7 @@ export default {
                         hits++;
                     }
                 }
-                engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: 100, life: 0.3, maxLife: 0.3, color: '#9b59b6' });
+                spawnExplosion(engine, tower.x, tower.y, 100, 0.3, '#9b59b6');
             }
         }
 
@@ -343,7 +342,7 @@ export default {
         
         for (const e of candidates) {
             if (!e.alive || e === primaryTarget) continue;
-            if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
+            if (isHiddenFrom(tower, e)) continue;
             
             const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
             if (baseRange !== 9999 && distSq > effRangeSq) continue;
@@ -436,16 +435,8 @@ export default {
                 }
             }
             
-            engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.5, maxLife: 0.5, color: '#3498db' });
-            const nearby = engine.enemyGrid.query(tower.x, tower.y, expRadius, _superExpScratch);
-            let hits = 0;
-            for (const e of nearby) {
-                if (hits >= 2000) break; // Max 2000 bloons
-                if (e.alive) {
-                    e.takeDamage(pulseDmg, { isExplosion: true, canHitLead: true });
-                    hits++;
-                }
-            }
+            spawnExplosion(engine, tower.x, tower.y, expRadius, 0.5, '#3498db');
+            Utils.applyAoeDamage(engine, tower.x, tower.y, expRadius, pulseDmg, DamageType.EXPLOSION, tower, {}, { maxHits: 2000, canSeeCamo: true });
         } else if (name === "Darkshift") {
             let tx = engine.mouse.x;
             let ty = engine.mouse.y;
@@ -477,6 +468,6 @@ export default {
         tower.lotnUsesThisRound = (tower.lotnUsesThisRound || 0) + 1;
         engine.blackHoleTimer = 8.0;
         engine.log("Black Hole! Lives are protected for 8 seconds.");
-        engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: 200, life: 2.0, maxLife: 2.0, color: '#2c3e50' });
+        spawnExplosion(engine, tower.x, tower.y, 200, 2.0, '#2c3e50');
     }
 };

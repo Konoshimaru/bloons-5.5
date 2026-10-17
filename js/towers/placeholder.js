@@ -1,4 +1,4 @@
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 
 export function createPlaceholderTower(name, cost, desc) {
     return {

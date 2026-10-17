@@ -1,5 +1,5 @@
 // js/heroes/gwendolin.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Projectile } from '../projectile.js';
 import { Utils } from '../utils.js';
 

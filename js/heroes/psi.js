@@ -5,7 +5,8 @@
 // adds extra concurrent vibration attacks; Destructive Resonance explodes on
 // popped Bloons; Psychic Blast stuns; Psionic Scream vibrates or blows back.
 
-import { GameEngine } from '../engine.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 
@@ -169,7 +170,7 @@ export default {
             e.applySlow(0.0, dur, false);
             hits++;
         }
-        GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: 60, life: 0.5, maxLife: 0.5, color: '#9b59b6' });
+        spawnExplosion(GameEngine, tower.x, tower.y, 60, 0.5, '#9b59b6');
     },
     draw(ctx, tower, isPreview) {
         if (!isPreview && tower.psiTargets) {

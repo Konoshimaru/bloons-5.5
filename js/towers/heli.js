@@ -1,5 +1,5 @@
 // js/towers/heli.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants.js';
 import { Sentry } from '../sentryEntity.js';

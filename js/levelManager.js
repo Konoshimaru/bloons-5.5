@@ -6,7 +6,7 @@ import { HeroStats } from './heroes/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { UI } from './ui.js';
 import { updateShopPrices } from './dragManager.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 
 export const LevelManager = {
     // Queue of player levels reached but not yet presented (each may need an

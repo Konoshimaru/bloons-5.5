@@ -1,6 +1,6 @@
 // js/settingsMenu.js
 import { Config } from './config.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { AudioEngine } from './audio.js';
 import { dom } from './dom.js';
 import { LevelManager } from './levelManager.js';

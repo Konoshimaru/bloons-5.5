@@ -1,8 +1,8 @@
 // js/projectile.js
-import { TowerStats } from './towers/index.js';
+import { spawnExplosion } from './combat.js';
 import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE, GAME_AREA_WIDTH } from './constants.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
@@ -185,13 +185,13 @@ export class Projectile {
                 if (hits >= this.pierce) break;
                 
                 const wasMoab = e.data.isMoab;
-                e.tier = 1;
-                e.data = { ...EnemyTypes[1], speed: EnemyTypes[1].speed * (GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0) };
+                e._applyTier(1);
+                e._updateSpriteCache();
                 e.hp = 1;
                 e.alive = true;
                 hits += wasMoab ? 10 : 1;
             }
-            GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#9b59b6' });
+            spawnExplosion(GameEngine, this.x, this.y, 100, 0.5, '#9b59b6');
             this.alive = false;
         }
     }

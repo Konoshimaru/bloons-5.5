@@ -52,13 +52,13 @@ console.log("\n── blocksDamageType immunity matrix ──");
 {
     const white = EnemyTypes[7];
     assert(white.blocksDamageType({ isIce: true, canHitLead: false }) === true, "White blocks ice");
-    assert(white.blocksDamageType({ isExplosion: true, canHitLead: true }) === false, "White does NOT block explosion");
+    assert(white.blocksDamageType(DamageType.EXPLOSION) === false, "White does NOT block explosion");
 }
 {
     const lead = EnemyTypes[8];
     assert(lead.blocksDamageType({ isSharp: true, canHitLead: false }) === true, "Lead blocks sharp (no canHitLead)");
     assert(lead.blocksDamageType({ isSharp: true, canHitLead: true }) === false, "Lead allows sharp (with canHitLead)");
-    assert(lead.blocksDamageType({ isExplosion: true, canHitLead: true }) === false, "Lead does NOT block explosion");
+    assert(lead.blocksDamageType(DamageType.EXPLOSION) === false, "Lead does NOT block explosion");
 }
 {
     const zebra = EnemyTypes[9];

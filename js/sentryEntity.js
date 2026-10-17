@@ -1,10 +1,10 @@
 // js/sentryEntity.js
-import { GameEngine } from './engine.js';
+import { spawnExplosion } from './combat.js';
+import { GameEngine } from './engineRef.js';
 import { Utils, drawShadow } from './utils.js';
 import { createDmgType, resolveDmgType } from './damageTypes.js';
-import { GLOBAL_SCALE } from './constants.js';
+import { GLOBAL_SCALE, GS } from './constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _sentryExpScratch = [];
 const _sentryCandidatesScratch = [];
@@ -82,7 +82,7 @@ export class Sentry {
                 const expR = this.stats.explosionRadius * GS; 
                 const expDmg = this.stats.explosionDamage;
                 const expPierce = this.stats.explosionPierce;
-                engine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expR, life: 0.3, maxLife: 0.3, color: '#9b59b6' });
+                spawnExplosion(engine, this.x, this.y, expR, 0.3, '#9b59b6');
                 const nearby = engine.enemyGrid.query(this.x, this.y, expR, _sentryExpScratch);
                 let hits = 0;
                 for (let e of nearby) {

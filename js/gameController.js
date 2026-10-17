@@ -1,10 +1,12 @@
 // js/gameController.js
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { AudioEngine } from './audio.js';
 import { UI } from './ui.js';
 import { dom } from './dom.js';
 import { updateShopPrices } from './dragManager.js';
 import { menuController } from './menuController.js';
+
+import { controllers } from './controllers.js';
 
 export const gameController = {
     async startGameUI(isSandbox) {
@@ -104,3 +106,5 @@ export const gameController = {
         dom.upTargetNext?.addEventListener('click', () => GameEngine.cycleTargeting(1));
     }
 };
+
+controllers.game = gameController;

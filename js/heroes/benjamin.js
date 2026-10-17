@@ -1,5 +1,6 @@
 // js/heroes/benjamin.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 export default {
@@ -70,7 +71,7 @@ export default {
             if (e.data.isMoab) dmg = 500;
             if (e.data.isBAD) dmg = 0; // BADs immune
             
-            let actualDmg = e.takeDamage(dmg, { isExplosion: true, canHitLead: true });
+            let actualDmg = e.takeDamage(dmg, DamageType.EXPLOSION);
             if (actualDmg > 0) cashGained += Math.floor(actualDmg * 0.5);
         }
         engine.addCash(cashGained);

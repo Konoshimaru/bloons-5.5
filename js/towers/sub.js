@@ -1,7 +1,8 @@
 // sub.js
 // Defines the Sub tower and its underwater attacks.
 
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 const _subScratchA = [];
@@ -120,7 +121,7 @@ export default {
                 if (target) {
                     tower.missileCooldown = 2.0;
                     let p = engine.projectilePool.get();
-                    p.init(tower.x, tower.y, 2, target, 'bomb', 500, 20, 3.0, null, {isExplosive: true, explosionRadius: 30, explosionDamage: 2, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
+                    p.init(tower.x, tower.y, 2, target, 'bomb', 500, 20, 3.0, null, {isExplosive: true, explosionRadius: 30, explosionDamage: 2, canHitLead: true}, 0, tower, DamageType.EXPLOSION);
                 }
             }
         }
@@ -147,7 +148,7 @@ export default {
                 // 'nail' projectile type (not inherently explosive) so the direct
                 // damage is dealt to the spawn AND the blast hits around it.
                 let p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, 20000, tower._preemptiveTarget, 'nail', 800, 80, 5.0, null, {isExplosive: true, explosionRadius: 65, explosionDamage: 1000, explosionPierce: 80, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
+                p.init(tower.x, tower.y, 20000, tower._preemptiveTarget, 'nail', 800, 80, 5.0, null, {isExplosive: true, explosionRadius: 65, explosionDamage: 1000, explosionPierce: 80, canHitLead: true}, 0, tower, DamageType.EXPLOSION);
             }
             if (tower.preemptiveCd > 0) tower.preemptiveCd -= dt;
         }
@@ -211,7 +212,7 @@ export default {
                 // 'nail' is not inherently explosive, so the direct damage is applied to the
                 // primary target while the splash still hits everything in radius.
                 let p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, 10000, target, 'nail', 1000, 80, 5.0, null, {isExplosive: true, explosionRadius: 65, explosionDamage: 350, explosionPierce: 80, canHitLead: true}, 0, tower, {isExplosion: true, canHitLead: true});
+                p.init(tower.x, tower.y, 10000, target, 'nail', 1000, 80, 5.0, null, {isExplosive: true, explosionRadius: 65, explosionDamage: 350, explosionPierce: 80, canHitLead: true}, 0, tower, DamageType.EXPLOSION);
             }
         }
     }

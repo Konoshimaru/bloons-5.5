@@ -1,5 +1,6 @@
 // js/towers/wizard.js
-import { GameEngine } from '../engine.js';
+import { spawnExplosion, isHiddenFrom } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 const _wizAuraScratch = [];
@@ -21,7 +22,7 @@ function _findWizardTarget(tower, engine) {
 
     for (const e of candidates) {
         if (!e.alive) continue;
-        if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
+        if (isHiddenFrom(tower, e)) continue;
         const eRad = e.radius || 10;
         if (Utils.distanceSq(tower.x, tower.y, e.x, e.y) > (effRange + eRad) * (effRange + eRad)) continue;
         let val;
@@ -124,7 +125,7 @@ export default {
                         e.isCamo = false;
                     }
                 }
-                engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: range, life: 0.3, maxLife: 0.3, color: 'rgba(155, 89, 182, 0.3)' });
+                spawnExplosion(engine, tower.x, tower.y, range, 0.3, 'rgba(155, 89, 182, 0.3)');
             }
         }
 

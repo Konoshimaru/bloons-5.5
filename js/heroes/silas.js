@@ -5,7 +5,8 @@
 // aura slows nearby Bloons, Ice Walls freeze anything that crosses them, and
 // three abilities (Frostbite, Frozen Cascade, Frozen Burial) unleash mass freezes.
 
-import { GameEngine } from '../engine.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 
@@ -148,7 +149,7 @@ export default {
                     hits++;
                 }
             }
-            GameEngine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: tower.stats.coldRadius, life: 0.3, maxLife: 0.3, color: '#aee6ff' });
+            spawnExplosion(GameEngine, target.x, target.y, tower.stats.coldRadius, 0.3, '#aee6ff');
             AudioEngine.playSfx('pop');
         } else if (!target.silasRimed) {
             let factor = tower.stats.rimeSlow || 0.5;
@@ -241,7 +242,7 @@ export default {
                 hits++;
             }
         }
-        GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: 40, life: 0.5, maxLife: 0.5, color: '#aee6ff' });
+        spawnExplosion(GameEngine, tower.x, tower.y, 40, 0.5, '#aee6ff');
         engine.log("Silas: Frozen Cascade!");
     },
     ability3(tower, engine) {

@@ -12,7 +12,8 @@
  */
 
 // js/towers/ninja.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 
@@ -107,11 +108,11 @@ export default {
         let projDmgType = dmgType; 
         let projPierce = (tower.stats.pierce + (tower.buffedPierce || 0)) || 2;
         if (tower.stats.flashBomb && shotCount % 4 === 0) {
-            projType = 'flash_bomb'; projDamage = 1; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true };
+            projType = 'flash_bomb'; projDamage = 1; projPierce = 1; projDmgType = DamageType.EXPLOSION;
             ninjaEffects.stun = 1.0; ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = 30; ninjaEffects.explosionRadius = 60; ninjaEffects.explosionDamage = 1;
         } else if (tower.stats.stickyBomb && target.data.isMoab && shotCount % 3 === 0) {
             const isMaster = tower.upgrades[2] === 5;
-            projType = 'sticky_bomb'; projPierce = 1; projDmgType = { isExplosion: true, canHitLead: true };
+            projType = 'sticky_bomb'; projPierce = 1; projDmgType = DamageType.EXPLOSION;
             // BTD6 Sticky Bomb 450 dmg (T4) / Master Bomber 3000 dmg (T5) + 600 AoE
             projDamage = isMaster ? 3000 : 450;
             ninjaEffects.isExplosive = true; ninjaEffects.explosionPierce = isMaster ? 20 : 10; ninjaEffects.explosionRadius = 40; ninjaEffects.explosionDamage = projDamage;

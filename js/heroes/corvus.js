@@ -6,7 +6,8 @@
 // 16-spell Spellbook is approximated - the Spirit's swipe serves as his core
 // offense.
 
-import { GameEngine } from '../engine.js';
+import { spawnExplosion, isHiddenFrom } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 
@@ -55,7 +56,7 @@ export default {
     _eligible(e, tower) {
         if (!e.alive) return false;
         if (e.data.isLead || e.data.isPurple) return false;
-        if (e.isCamo && !tower.stats.canSeeCamo) return false;
+        if (isHiddenFrom(tower, e)) return false;
         return true;
     },
     _manaRatio(tower) {
@@ -200,7 +201,7 @@ export default {
                 hits++;
             }
         }
-        GameEngine.explosions.push({ x: e.x, y: e.y, radius: 0, maxRadius: tower.stats.hauntRadius, life: 0.4, maxLife: 0.4, color: '#8e44ad' });
+        spawnExplosion(GameEngine, e.x, e.y, tower.stats.hauntRadius, 0.4, '#8e44ad');
     },
     draw(ctx, tower, isPreview) {
         if (!isPreview && tower.spirit) {

@@ -1,5 +1,5 @@
 // js/towers/spike.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 

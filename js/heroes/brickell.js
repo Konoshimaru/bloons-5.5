@@ -4,7 +4,9 @@
 // mines that home in on nearby Bloons, and three activated abilities
 // (Naval Tactics, Blast Chain, Mega Mine).
 
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion, isHiddenFrom } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 
@@ -64,7 +66,7 @@ export default {
                     const nearby = GameEngine.enemyGrid.query(m.x, m.y, triggerR + 30, _mineScratch);
                     for (const e of nearby) {
                         if (!e.alive) continue;
-                        if (e.isCamo && !tower.stats.canSeeCamo) continue;
+                        if (isHiddenFrom(tower, e)) continue;
                         if (m.isMega && !e.data.isMoab) continue;
                         if (Utils.withinRange(m.x, m.y, e.x, e.y, triggerR)) {
                             this._explodeMine(tower, m);
@@ -89,7 +91,7 @@ export default {
                     for (const e of nearby) {
                         if (!e.alive || !e.data.isMoab) continue;
                         if (Utils.withinRange(mm.x, mm.y, e.x, e.y, mm.triggerRange)) {
-                            const dmgType = { isExplosion: true, canHitLead: true };
+                            const dmgType = DamageType.EXPLOSION;
                             let hits = 0;
                             const targets = GameEngine.enemyGrid.query(mm.x, mm.y, mm.radius, _mineScratch);
                             for (const t of targets) {
@@ -99,7 +101,7 @@ export default {
                                     hits++;
                                 }
                             }
-                            GameEngine.explosions.push({ x: mm.x, y: mm.y, radius: 0, maxRadius: mm.radius, life: 0.5, maxLife: 0.5, color: '#e67e22' });
+                            spawnExplosion(GameEngine, mm.x, mm.y, mm.radius, 0.5, '#e67e22');
                             AudioEngine.playSfx('moab_destroy');
                             tower.megaMine = null;
                             break;
@@ -144,7 +146,7 @@ export default {
         });
     },
     _explodeMine(tower, m) {
-        const dmgType = m.normal ? { isExplosion: true, canHitLead: true } : { isExplosion: true };
+        const dmgType = m.normal ? DamageType.EXPLOSION : { isExplosion: true };
         const effects = {};
         if (m.decamo) effects.stripCamo = true;
         let hits = 0;
@@ -156,7 +158,7 @@ export default {
                 hits++;
             }
         }
-        GameEngine.explosions.push({ x: m.x, y: m.y, radius: 0, maxRadius: m.radius, life: 0.35, maxLife: 0.35, color: '#3498db' });
+        spawnExplosion(GameEngine, m.x, m.y, m.radius, 0.35, '#3498db');
         AudioEngine.playSfx('pop');
     },
     draw(ctx, tower, isPreview) {
@@ -195,7 +197,7 @@ export default {
         }
         if (tower.megaMine) {
             const mm = tower.megaMine;
-            const dmgType = { isExplosion: true, canHitLead: true };
+            const dmgType = DamageType.EXPLOSION;
             let hits = 0;
             const targets = GameEngine.enemyGrid.query(mm.x, mm.y, mm.radius, _mineScratch);
             for (const t of targets) {
@@ -205,7 +207,7 @@ export default {
                     hits++;
                 }
             }
-            GameEngine.explosions.push({ x: mm.x, y: mm.y, radius: 0, maxRadius: mm.radius, life: 0.5, maxLife: 0.5, color: '#e67e22' });
+            spawnExplosion(GameEngine, mm.x, mm.y, mm.radius, 0.5, '#e67e22');
             AudioEngine.playSfx('moab_destroy');
             tower.megaMine = null;
         }

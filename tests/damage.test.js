@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // 1. Mock the heavy modules
-vi.mock('../js/engine.js', () => ({
+vi.mock('../js/engineRef.js', () => ({
   GameEngine: {
     config: { data: { mkActive: true, monkeyKnowledge: {} } },
     difficulty: null,
@@ -53,6 +53,8 @@ function makeMockEnemy(tierKey, hp = 1, isFortified = false, isCamo = false) {
     
     // Mock these methods so they don't crash
     giveCash: vi.fn(),
+    payLayers: vi.fn(),
+    _applyTier(t) { this.tier = t; this.data = { ...EnemyTypes[t] }; },
     spawnChildren: vi.fn(),
     applySlow: vi.fn(),
     _spawnIceShards: vi.fn(),

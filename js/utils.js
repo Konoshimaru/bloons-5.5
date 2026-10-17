@@ -1,3 +1,5 @@
+import { GS } from './constants.js';
+import { canBeAoeTarget, creditDamage } from './combat.js';
 // utils.js
 // Holds shared utility functions used across the game.
 
@@ -35,7 +37,6 @@ function getEffectiveRange(tower, engine, scale = 3.0) {
     return effRange;
 }
 
-const GS = 1.3; // Assuming GS is 1.3 based on constants.js
 
 function getFootprint(entity) {
     const fp = entity.stats?.footprint || entity.footprint;
@@ -126,8 +127,7 @@ function applyAoeDamage(engine, x, y, radius, damage, dmgType, killerTower = nul
         const e = nearby[i];
         if (!e || !e.alive) continue;
 
-        const canSeeCamo = options.canSeeCamo || (killerTower && (killerTower.stats.canSeeCamo || killerTower.buffedCamo));
-        if (e.isCamo && !canSeeCamo) continue;
+        if (!canBeAoeTarget(e, killerTower, options.canSeeCamo)) continue;
 
         if (options.filter && !options.filter(e)) continue;
 
@@ -137,7 +137,7 @@ function applyAoeDamage(engine, x, y, radius, damage, dmgType, killerTower = nul
         const dmg = e.takeDamage(damage, dmgType, effects, killerTower);
         if (!isNaN(dmg) && dmg !== -1) {
             totalDmgDealt += dmg;
-            if (killerTower) killerTower.damageDealt += dmg;
+            creditDamage(killerTower, dmg);
             hits++;
             if (options.onHit) options.onHit(e, dmg);
         }

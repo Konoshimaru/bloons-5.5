@@ -1,25 +1,22 @@
 ﻿// js/enemy.js
 import { EnemyTypes } from './data.js';
 import { AudioEngine } from './audio.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
 import { Utils } from './utils.js';
 import { Config } from './config.js';
-import { GLOBAL_SCALE } from './constants.js';
+import { GLOBAL_SCALE, GS } from './constants.js';
 import EnemyDamage from './enemyDamage.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 import { updateTimedEffects } from './statusEffects.js';
+import { roundSpeedRamp, moabHpRamp, statusDurationFactor, cashMultForRound, treeLayers, leakLives, singleChildSplit } from './btd6Rules.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const ENEMY_NAMES = [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
-const CASH_REWARD_MODIFIER = 0.15;
 const REGEN_INTERVAL = 2.0;
 const STORM_HIT_INTERVAL = 0.05;
 const FORTIFIED_LEAD_HP = 3;
-const LIVES_LOST_CERAMIC_BASE = 94;
-const LIVES_LOST_FORTIFIED_LEAD = 26;
 
 // Scratch results for getPositionAtDistance. The movement hot path runs once
 // per enemy per substep (3000+ × up to 10 substeps/frame), and a fresh
@@ -42,11 +39,7 @@ export class Enemy {
         this.pathIndex = pathIndex;
         this.isSuperCeramic = isSuperCeramic;
 
-        this.data = { ...EnemyTypes[tier] };
-        this.radius = (this.data.radius || 10) * GS;
-        
-        const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
-        this.data.speed *= diffSpeedMod;
+        this._applyTier(tier);
 
         if (hpMod == null) {
             hpMod = GameEngine.difficulty ? (GameEngine.difficulty.hpMod || 1.0) : 1.0;
@@ -68,30 +61,26 @@ export class Enemy {
         this._updateSpriteCache();
 
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
-        if (round > 80) {
-            let speedMult = 1.0;
-            if (round <= 100) speedMult = 1 + (round - 80) * 0.02;
-            else if (round <= 150) speedMult = 1.6 + (round - 101) * 0.02;
-            else if (round <= 200) speedMult = 3.0 + (round - 151) * 0.02;
-            else if (round <= 251) speedMult = 4.5 + (round - 201) * 0.02;
-            else speedMult = 6.0 + (round - 252) * 0.02;
-            this.data.speed *= speedMult;
-
-            if (this.data.isMoab) {
-                let hpMult = 1.0;
-                if (round <= 100) hpMult = 1.0 + (round - 80) * 0.02;
-                else if (round <= 124) hpMult = 1.4 + (round - 100) * 0.05;
-                else if (round <= 150) hpMult = 2.6 + (round - 124) * 0.15;
-                else if (round <= 250) hpMult = 6.5 + (round - 150) * 0.35;
-                else if (round <= 300) hpMult = 41.5 + (round - 250) * 1.0;
-                else if (round <= 400) hpMult = 91.5 + (round - 300) * 1.5;
-                else if (round <= 500) hpMult = 241.5 + (round - 400) * 2.5;
-                else hpMult = 5 * round - 2008.5;
-                
-                this._maxHp *= hpMult;
-                this.hp = this._maxHp;
-            }
+        if (round > 80 && this.data.isMoab) {
+            this._maxHp *= moabHpRamp(round);
+            this.hp = this._maxHp;
         }
+    }
+
+    // Single place that (re)builds per-tier data. Used by init(), regrow, layer pops and
+    // the shrink ray. Previously each of those had its own copy and only init() applied
+    // the round-81+ speed ramp, so bloons lost their late-game speed after losing a layer.
+    _applyTier(tier) {
+        this.tier = tier;
+        this.data = { ...EnemyTypes[tier] };
+        this.radius = (this.data.radius || 10) * GS;
+        this.data.speed *= this._speedScale();
+    }
+
+    _speedScale() {
+        const diff = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
+        const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
+        return diff * roundSpeedRamp(round);
     }
 
     _updateSpriteCache() {
@@ -174,7 +163,7 @@ export class Enemy {
         
         if (this.isSuperCeramic) {
             if (this.tier === 12) { 
-                this._maxHp = 60 + (GameEngine.waveManager.currentWave - 81) * 2;
+                this._maxHp = this.isFortified ? 120 : 60;
                 this.data.livesLost = this.isFortified ? 75 : 65;
                 this.data.splitsInto = [{tier: 11, count: 1}]; 
             } else if (this.tier === 11) { 
@@ -186,6 +175,13 @@ export class Enemy {
             } else if (this.tier === 16) { 
                 this.data.livesLost = this.isFortified ? 1100 : 660;
             }
+        }
+
+        // Round 81+: one child per layer for every non-MOAB-class bloon (also Lead, Black, White,
+        // Purple... that were spawned directly by the wave, not only the Super Ceramic chain).
+        if (GameEngine.waveManager && GameEngine.waveManager.currentWave >= 81) {
+            const single = singleChildSplit(this.tier);
+            if (single) this.data.splitsInto = single;
         }
 
         if (this.hpMod && this.hpMod !== 1) {
@@ -230,11 +226,7 @@ export class Enemy {
         this.regenTimer += dt;
         if (this.regenTimer > REGEN_INTERVAL) {
             this.regenTimer = 0;
-            this.tier++;
-            this.data = { ...EnemyTypes[this.tier] };
-            this.radius = (this.data.radius || 10) * GS;
-            const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
-            this.data.speed *= diffSpeedMod;
+            this._applyTier(this.tier + 1);
             if (this.data.isMoab) {
                 let moabHp = this.data.maxHp * (this.isFortified ? 2 : 1);
                 if (GameEngine.difficulty && GameEngine.difficulty.moabHpMod) moabHp *= GameEngine.difficulty.moabHpMod;
@@ -289,54 +281,20 @@ export class Enemy {
     }
 
     getLivesLost() {
-        if (this.data.livesLost !== undefined) {
-            return this.data.livesLost;
-        }
-
+        // Explicit overrides (Super Ceramic chain, set in _initializeStats) win.
+        if (this.data.livesLost !== undefined) return this.data.livesLost;
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
-        if (round > 80 && !this.isSuperCeramic) {
-            if (this.data.isCeramic) return 47;
-            if (this.data.isLead) return 11;
-            if (this.data.isPurple) return 2;
-        }
-
-        if (this.data.isMoab || this.data.isBAD) {
-            let childrenRbe = 0;
-            if (this.data.splitsInto) {
-                for (const child of this.data.splitsInto) {
-                    const childData = EnemyTypes[child.tier];
-                    if (childData) childrenRbe += (childData.rbe || 0) * child.count;
-                }
-            }
-            
-            let baseMaxHp = this.data.maxHp;
-            if (this.isFortified && (this.data.isMoab || this.data.isCeramic)) {
-                baseMaxHp *= 2;
-            }
-            const hpRatio = this._maxHp > 0 ? (this.hp / this._maxHp) : 0;
-            const currentHp = Math.max(0, Math.ceil(baseMaxHp * hpRatio)) || 0;
-            
-            return isFinite(currentHp + childrenRbe) ? currentHp + childrenRbe : 0;
-        }
-        if (this.data.isCeramic) {
-            const currentHp = Math.max(0, Math.ceil(this.hp)) || 0;
-            return isFinite(LIVES_LOST_CERAMIC_BASE + currentHp) ? LIVES_LOST_CERAMIC_BASE + currentHp : 0;
-        }
-        if (this.data.isLead && this.isFortified) return LIVES_LOST_FORTIFIED_LEAD;
-        const rbe = this.data.rbe || 0;
-        return isFinite(rbe) ? rbe : 0;
+        const hpRatio = this._maxHp > 0 ? Math.max(0, this.hp / this._maxHp) : 0;
+        const lives = leakLives(this.tier, { round, fortified: this.isFortified, hpRatio });
+        return isFinite(lives) ? lives : 0;
     }
 
     applySlow(factor, duration, isIce = true) {
         if (this.data.isBAD) return;
         if (isIce && (this.data.isWhite || this.data.isZebra || this.data.isLead) && !this.leadStripped) return;
         
-        let actualDuration = duration;
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
-        if (round > 80) {
-            actualDuration *= (1 - (round - 80) * 0.01);
-            if (actualDuration < 0.1) actualDuration = 0.1; 
-        }
+        const actualDuration = duration * statusDurationFactor(round);
 
         if (factor <= this.slowFactor || this.slowTimer <= 0) {
             this.slowFactor = factor;
@@ -345,38 +303,36 @@ export class Enemy {
         }
     }
 
-    giveCash(canSpawn = true, killerTower = null) {
-        let childRbeTotal = 0;
-        if (this.data.splitsInto) {
-            for (const child of this.data.splitsInto) {
-                const childData = EnemyTypes[child.tier];
-                if (childData) childRbeTotal += (childData.rbe || 0) * child.count;
-            }
-        }
-
-        let cashMult = 1.0;
+    _popCashMult(killerTower) {
         const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
-        if (round >= 141) cashMult = 0.02;
-        else if (round >= 121) cashMult = 0.04;
-        else if (round >= 101) cashMult = 0.05;
-        else if (round >= 86) cashMult = 0.10;
-        else if (round >= 61) cashMult = 0.20;
-        else if (round >= 51) cashMult = 0.50;
+        let m = cashMultForRound(round);
+        if (killerTower && killerTower.buffedCashMult > 0) m += killerTower.buffedCashMult;
+        return m;
+    }
 
-        if (killerTower && killerTower.buffedCashMult > 0) {
-            cashMult += killerTower.buffedCashMult;
+    // Pays for the layers a single hit popped on a plain (nextTier-chain) bloon.
+    // BTD6: $1 per layer, scaled by the round modifier (fractions accumulate in the engine).
+    payLayers(layers, killerTower = null) {
+        if (layers <= 0) return;
+        GameEngine.addPopCash(layers * this._popCashMult(killerTower));
+        GameEngine.addSessionXp(layers);
+    }
+
+    // Pays for this bloon's own layer (1). If its children cannot spawn (entity cap) their
+    // whole subtree is paid immediately so the cap never costs the player money.
+    giveCash(canSpawn = true, killerTower = null) {
+        let layers = 1;
+        let childRbeTotal = 0;
+        for (const child of (EnemyTypes[this.tier].splitsInto || [])) {
+            childRbeTotal += (EnemyTypes[child.tier].rbe || 0) * child.count;
         }
-
-        const layerCash = Math.max(1, Math.floor((this.data.rbe - childRbeTotal) * CASH_REWARD_MODIFIER * cashMult));
-        GameEngine.addCash(layerCash, { pop: true });
-        if (!canSpawn && childRbeTotal > 0) {
-            const childCash = Math.max(1, Math.floor(childRbeTotal * CASH_REWARD_MODIFIER * cashMult));
-            GameEngine.addCash(childCash, { pop: true });
+        if (!canSpawn) {
+            for (const child of (this.data.splitsInto || [])) layers += treeLayers(child.tier) * child.count;
         }
+        GameEngine.addPopCash(layers * this._popCashMult(killerTower));
 
-        // Per-pop player XP: award the bloon's own layer value (RBE minus
-        // children, which give their own XP when they pop). Summed over a full
-        // clear this equals the run's total RBE, matching the BTD6 level table.
+        // Per-pop player XP: the bloon's own layer value (RBE minus children, which give
+        // their own XP when they pop), so a full clear sums to the run's total RBE.
         GameEngine.addSessionXp(Math.max(1, this.data.rbe - childRbeTotal));
     }
 

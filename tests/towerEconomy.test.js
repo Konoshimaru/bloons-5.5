@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 
 // 1. Mock the heavy modules BEFORE importing our code
-vi.mock('../js/engine.js', () => ({
+vi.mock('../js/engineRef.js', () => ({
   GameEngine: {
     config: { data: { mkActive: true, monkeyKnowledge: {} } },
     difficulty: null,

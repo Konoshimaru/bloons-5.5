@@ -12,10 +12,10 @@
  */
 
 // js/towers/village.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
-import { Tower } from '../tower.js';
+import { towerFactory } from '../towerFactory.js';
 import { MKEffects } from '../monkeyKnowledgeEffects.js';
 
 const _villageScratchA = [];
@@ -198,7 +198,7 @@ export default {
                     let y = tower.y + Math.sin(angle) * dist;
                     let canPlace = !GameEngine.map.isOnPath(x, y) && !GameEngine.map.isOnProp(x, y) && y < 720 && x < 1280 - 300;
                     if (canPlace) {
-                        let t = new Tower(x, y, 'dart');
+                        let t = towerFactory.create(x, y, 'dart');
                         GameEngine.towers.push(t);
                         GameEngine.log("Monkey City: Free Dart Monkey placed!");
                     }

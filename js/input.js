@@ -1,5 +1,5 @@
 // js/input.js
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { MobileManager, isMobile } from './mobile.js';
 
 export const InputManager = {

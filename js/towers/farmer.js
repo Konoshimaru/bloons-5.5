@@ -1,4 +1,4 @@
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 import { RANGE_SCALE } from '../config.js';

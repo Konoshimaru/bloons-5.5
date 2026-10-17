@@ -13,14 +13,14 @@
  *   to avoid circular imports with `towers/beast.js`.
  */
 // js/beastEntity.js
-import { GameEngine } from './engine.js';
+import { spawnExplosion, isHiddenFrom } from './combat.js';
+import { GameEngine } from './engineRef.js';
 import { Utils } from './utils.js';
 import { RANGE_SCALE } from './config.js';
-import { GLOBAL_SCALE } from './constants.js';
+import { GLOBAL_SCALE, GS } from './constants.js';
 import { LAND_BEASTS, WATER_BEASTS, AIR_BEASTS } from './beastData.js'; 
 import { createDmgType, resolveDmgType } from './damageTypes.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _beastCandidatesScratch = [];
 
@@ -168,7 +168,7 @@ export class Beast {
 
         for (const e of candidates) { 
             if (!e.alive) continue; 
-            if (e.isCamo && !this.stats.canSeeCamo && !this.buffedCamo) continue; 
+            if (isHiddenFrom(this, e)) continue;
             
             const distSq = Utils.distanceSq(this.x, this.y, e.x, e.y);
             const eRad = e.radius || 10;
@@ -211,7 +211,7 @@ export class Beast {
             const expPierce = isThrash ? this.stats.thrashPierce : this.stats.pierce;
             
             const expColor = this.terrain === 'water' ? '#3498db' : (this.terrain === 'air' ? '#ecf0f1' : '#e67e22');
-            engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: expR, life: 0.1, maxLife: 0.1, color: expColor });
+            spawnExplosion(engine, target.x, target.y, expR, 0.1, expColor);
             Utils.applyAoeDamage(engine, target.x, target.y, expR, damage, dmgType, this, effects, { maxHits: expPierce });
         } else {
             let p = engine.projectilePool.get();

@@ -5,7 +5,7 @@
 // abilities map onto the three ability slots (Transformation + form-dependent
 // L7 and L10 abilities).
 
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 

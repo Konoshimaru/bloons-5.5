@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-vi.mock('../js/engine.js', () => {
+vi.mock('../js/engineRef.js', () => {
   const towers = [];
   return {
     GameEngine: {
@@ -35,7 +35,7 @@ vi.mock('../js/config.js', () => ({ RANGE_SCALE: 1, Maps: [], Config: { data: {}
 vi.mock('../js/data.js', () => ({ EnemyTypes: {} }));
 vi.mock('../js/towerEconomy.js', () => ({ default: {} }));
 
-import { GameEngine } from '../js/engine.js';
+import { GameEngine } from '../js/engineRef.js';
 import { Tower } from '../js/tower.js';
 import alchemist from '../js/towers/alchemist.js';
 

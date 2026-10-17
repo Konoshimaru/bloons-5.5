@@ -24,20 +24,20 @@
  * @property {Array<Object>} 3
  */
 // js/tower.js
+import { towerFactory } from './towerFactory.js';
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
-import { GameEngine } from './engine.js'; 
+import { GameEngine } from './engineRef.js';
 import { Utils } from './utils.js';
 import Assets from './assets.js';
 import * as TowerBehavior from './towerBehavior.js';
-import { GLOBAL_SCALE } from './constants.js';
+import { GLOBAL_SCALE, GS } from './constants.js';
 import { RANGE_SCALE } from './config.js'; 
 import { getBehavior } from './registry.js'; 
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 import TowerEconomy from './towerEconomy.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const DEFAULT_HIT_RADIUS = 18;
 const MIN_FIRE_RATE = 0.05;
@@ -275,3 +275,5 @@ export class Tower {
 }
 
 Object.assign(Tower.prototype, TowerEconomy);
+
+towerFactory.create = (x, y, type) => new Tower(x, y, type);

@@ -1,7 +1,6 @@
 // js/mapRenderCore.js
-import { GLOBAL_SCALE } from './constants.js';
+import { GLOBAL_SCALE, GS } from './constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export const MapRenderCore = {
     drawPaths(ctx, paths, ignoreVisibility = false) {

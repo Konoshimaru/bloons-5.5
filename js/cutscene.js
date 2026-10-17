@@ -1,5 +1,6 @@
 // js/cutscene.js
-import { GameEngine } from './engine.js';
+import { DamageType } from './damageTypes.js';
+import { GameEngine } from './engineRef.js';
 import { AudioEngine } from './audio.js';
 import { UI } from './ui.js';
 import Assets from './assets.js';
@@ -158,7 +159,7 @@ export const CutsceneManager = {
             this.timer -= dt;
             if (this.timer <= 0) {
                 if (this.target && this.target.alive) {
-                    this.target.takeDamage(99999, { isExplosion: true, canHitLead: true });
+                    this.target.takeDamage(99999, DamageType.EXPLOSION);
                 }
                 this.state = 'waiting_to_rip'; 
                 this.timer = P.ripWait; 

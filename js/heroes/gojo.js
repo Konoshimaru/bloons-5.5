@@ -1,11 +1,11 @@
 // js/heroes/gojo.js
-import { GameEngine } from '../engine.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { AudioEngine } from '../audio.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE, GS } from '../constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _wellScratch = [];
 
@@ -148,7 +148,7 @@ export default {
         if (tower.fakeRed) {
             tower.fakeRed.life -= dt; tower.fakeRed.rot += dt * 4;
             if (tower.fakeRed.life <= 0) {
-                GameEngine.explosions.push({ x: tower.x, y: tower.y - 20, radius: 0, maxRadius: 80, life: 0.3, maxLife: 0.3, color: '#ff0000' });
+                spawnExplosion(GameEngine, tower.x, tower.y - 20, 80, 0.3, '#ff0000');
                 tower.fakeRed = null;
             }
         }
@@ -156,7 +156,7 @@ export default {
             tower.reversalRed.life -= dt; tower.reversalRed.rot += dt * 4;
             if (tower.reversalRed.life <= 0) {
                 let rx = tower.reversalRed.x, ry = tower.reversalRed.y;
-                GameEngine.explosions.push({ x: rx, y: ry, radius: 0, maxRadius: 150, life: 0.4, maxLife: 0.4, color: '#ff0000' });
+                spawnExplosion(GameEngine, rx, ry, 150, 0.4, '#ff0000');
                 
                 Utils.applyAoeDamage(GameEngine, rx, ry, 150, tower.stats.damage * 20, { isMagic: true, canHitLead: true }, tower, {}, {
                     onHit: (e) => e.applySlow(0.0, 3.0, false)
@@ -179,7 +179,7 @@ export default {
             });
 
             if (tower.maxBlue.life <= 0) {
-                GameEngine.explosions.push({ x: mx, y: my, radius: 0, maxRadius: 200, life: 0.5, maxLife: 0.5, color: '#0000ff' });
+                spawnExplosion(GameEngine, mx, my, 200, 0.5, '#0000ff');
                 Utils.applyAoeDamage(GameEngine, mx, my, 200, tower.maxBlue.dmg * 50, { isMagic: true, canHitLead: true }, tower);
                 tower.maxBlue = null;
             }
@@ -228,7 +228,7 @@ export default {
 
                 if (w.life <= 0) {
                     tower.blueWells.splice(i, 1);
-                    GameEngine.explosions.push({ x: w.x, y: w.y, radius: 0, maxRadius: w.radius, life: 0.3, maxLife: 0.3, color: '#0000ff' });
+                    spawnExplosion(GameEngine, w.x, w.y, w.radius, 0.3, '#0000ff');
 
                     Utils.applyAoeDamage(GameEngine, w.x, w.y, w.radius, w.dmg * 5, { isMagic: true, canHitLead: true }, tower, {}, { maxHits: 50 });
                 }
@@ -382,7 +382,7 @@ export default {
             filter: (e) => !e.data.isBAD,
             onHit: (e) => e.applySlow(0.0, 10.0, false)
         });
-        engine.explosions.push({ x: 450, y: 300, radius: 0, maxRadius: 900, life: 0.8, maxLife: 0.8, color: '#ff00ff' });
+        spawnExplosion(engine, 450, 300, 900, 0.8, '#ff00ff');
     },
     fire(tower, target, damage, dmgType, isCrit, effects, engine) {
         let wellCount = tower.phase === 2 ? 2 : 1;

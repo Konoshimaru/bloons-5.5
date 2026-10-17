@@ -1,9 +1,8 @@
 // js/config.js
 import { Maps } from './data.js';
-import { HeroStats, HeroLevels } from './heroes/index.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 
-export { HeroStats, HeroLevels, CANVAS_WIDTH, CANVAS_HEIGHT };
+export { CANVAS_WIDTH, CANVAS_HEIGHT };
 export const RANGE_SCALE = 3.0;
 
 const STORAGE_KEY = 'td_config';

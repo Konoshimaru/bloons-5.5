@@ -14,14 +14,13 @@
  */
 
 // js/towers/engineer.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils, drawShadow } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 import { createDmgType, resolveDmgType } from '../damageTypes.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 import { Sentry } from '../sentryEntity.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _sentryTrapScratch = [];
 

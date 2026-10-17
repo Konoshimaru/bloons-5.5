@@ -5,7 +5,9 @@
 // attack-speed scaling with nearby Bloons. Abilities: Scatter Missile,
 // Flight Boost, Kinetic Charge.
 
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 
@@ -100,7 +102,7 @@ export default {
         if (!best) return;
         const dmg = tower.stats.scatterDmg || 5;
         const moabDmg = tower.stats.scatterMoabDmg || 0;
-        const dmgType = { isExplosion: true, canHitLead: true };
+        const dmgType = DamageType.EXPLOSION;
         const nearby = GameEngine.enemyGrid.query(best.x, best.y, 35, _rosaliaScratch);
         let hits = 0;
         for (const e of nearby) {
@@ -113,7 +115,7 @@ export default {
             e.takeDamage(d, dmgType, fx, tower);
             hits++;
         }
-        GameEngine.explosions.push({ x: best.x, y: best.y, radius: 0, maxRadius: 18, life: 0.3, maxLife: 0.3, color: '#e67e22' });
+        spawnExplosion(GameEngine, best.x, best.y, 18, 0.3, '#e67e22');
     },
     _explodeKinetic(tower, k) {
         const nearby = GameEngine.enemyGrid.query(k.x, k.y, 50, _rosaliaScratch);
@@ -121,11 +123,11 @@ export default {
         for (const e of nearby) {
             if (!e.alive || hits >= 500) continue;
             if (Utils.withinRange(k.x, k.y, e.x, e.y, 50)) {
-                e.takeDamage(k.dmg, { isExplosion: true, canHitLead: true }, {}, tower);
+                e.takeDamage(k.dmg, DamageType.EXPLOSION, {}, tower);
                 hits++;
             }
         }
-        GameEngine.explosions.push({ x: k.x, y: k.y, radius: 0, maxRadius: 50, life: 0.5, maxLife: 0.5, color: '#f39c12' });
+        spawnExplosion(GameEngine, k.x, k.y, 50, 0.5, '#f39c12');
         AudioEngine.playSfx('moab_destroy');
     },
     draw(ctx, tower, isPreview) {
@@ -208,7 +210,7 @@ export default {
                     gEff.clusterDamage = gDmg;
                     gEff.clusterCeramicDmg = tower.stats.clusterCeramicDmg || 0;
                 }
-                gp.init(tower.x, tower.y, gDmg, target, 'bomb', tower.stats.projectileSpeed * 0.7, tower.stats.grenadePierce || 10, 1.0, null, gEff, spread, tower, { isExplosion: true, canHitLead: true });
+                gp.init(tower.x, tower.y, gDmg, target, 'bomb', tower.stats.projectileSpeed * 0.7, tower.stats.grenadePierce || 10, 1.0, null, gEff, spread, tower, DamageType.EXPLOSION);
                 gp.isCrit = isCrit;
             }
         }

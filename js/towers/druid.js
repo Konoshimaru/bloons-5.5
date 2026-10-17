@@ -1,5 +1,7 @@
 // js/towers/druid.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 const _druidAuraScratch = [];
@@ -123,7 +125,7 @@ export default {
                 if (tCandidates.length > 0) target = tCandidates[Math.floor(Math.random() * tCandidates.length)];
                 if (target) {
                         let p = engine.projectilePool.get();
-                        p.init(tower.x, tower.y - 10, 0, target, 'bomb', 400, 35, 1.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: 0, knockback: tower.stats.knockback, canHitLead: true }, 0, tower, { isExplosion: true, canHitLead: true });
+                        p.init(tower.x, tower.y - 10, 0, target, 'bomb', 400, 35, 1.0, null, { isExplosive: true, explosionRadius: 50, explosionDamage: 0, knockback: tower.stats.knockback, canHitLead: true }, 0, tower, DamageType.EXPLOSION);
                 }
             }
         }
@@ -178,7 +180,7 @@ export default {
             const range = Utils.getEffectiveRange(tower, engine);
             // Grab and crush many bloons at once
             Utils.applyAoeDamage(engine, tower.x, tower.y, range, tower.stats.vineDmg * 2, {isSharp: true, canHitLead: true}, tower, {knockback: 50}, {maxHits: 100});
-            engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: range, life: 0.5, maxLife: 0.5, color: '#27ae60' });
+            spawnExplosion(engine, tower.x, tower.y, range, 0.5, '#27ae60');
         }
     }
 };

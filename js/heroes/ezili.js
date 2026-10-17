@@ -1,5 +1,6 @@
 // js/heroes/ezili.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 export default {
@@ -76,7 +77,7 @@ export default {
         if (target) {
             // At lvl 20, hex deals 100% max HP damage. Otherwise 10%.
             let hexDmg = target._maxHp * tower.stats.hexDmg;
-            target.takeDamage(hexDmg, { isExplosion: true, canHitLead: true });
+            target.takeDamage(hexDmg, DamageType.EXPLOSION);
         }
     },
     fire(tower, target, damage, dmgType, isCrit, effects) {

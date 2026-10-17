@@ -1,13 +1,13 @@
 // js/heroes/sauda.js
-import { GameEngine } from '../engine.js';
+import { isHiddenFrom } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { Config, RANGE_SCALE } from '../config.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 import { AudioEngine } from '../audio.js'; // FIX 3: Import AudioEngine
 import { MobileManager } from '../mobile.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _leapChargeScratch = [];
 const _afterswordScratch = [];
@@ -381,7 +381,7 @@ export default {
         
         for (let e of nearby) {
             if (!e.alive || hits >= tower.stats.pierce) continue;
-            if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
+            if (isHiddenFrom(tower, e)) continue;
             
             if (!Utils.withinRange(tower.x, tower.y, e.x, e.y, actualRange)) continue;
             

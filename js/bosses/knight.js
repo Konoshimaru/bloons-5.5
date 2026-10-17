@@ -1,5 +1,6 @@
 // js/bosses/knight.js
-import { GameEngine } from '../engine.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Enemy } from '../enemy.js';
 import { EnemyTypes } from '../data.js';
 import { BossHealthBarHandler } from '../BossHealthBarHandler.js';
@@ -93,7 +94,7 @@ export class KnightEnemy extends Enemy {
             if (Math.random() < 0.4) {
                 let ex = this.x + (Math.random() - 0.5) * 120;
                 let ey = this.y + (Math.random() - 0.5) * 120;
-                GameEngine.explosions.push({ x: ex, y: ey, radius: 0, maxRadius: 80, life: 0.5, maxLife: 0.5, color: '#9b59b6' });
+                spawnExplosion(GameEngine, ex, ey, 80, 0.5, '#9b59b6');
                 GameEngine.spawnPopEffect(ex, ey, '#9b59b6');
             }
 
@@ -104,8 +105,8 @@ export class KnightEnemy extends Enemy {
                 BossHealthBarHandler.unregisterBoss(this);
                 
                 // Massive final explosion
-                GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 400, life: 1.5, maxLife: 1.5, color: '#000000' });
-                GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 250, life: 1.0, maxLife: 1.0, color: '#9b59b6' });
+                spawnExplosion(GameEngine, this.x, this.y, 400, 1.5, '#000000');
+                spawnExplosion(GameEngine, this.x, this.y, 250, 1.0, '#9b59b6');
                 GameEngine.spawnPopEffect(this.x, this.y, '#000000');
                 
                 GameEngine.log("The Black Knight has been vanquished!");

@@ -1,11 +1,10 @@
 // js/towers/alchemist.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { EnemyTypes } from '../data.js';
 import { RANGE_SCALE } from '../config.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _alchCandidatesScratch = [];
 

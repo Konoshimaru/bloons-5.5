@@ -1,5 +1,7 @@
 // js/towers/bomb.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 export default {
@@ -16,7 +18,7 @@ export default {
     },
     upgrades: {
         1: [
-            { name: "Bigger Blast", cost: 300, stat: "explosionRadius", amount: 10, desc: "Bigger shells deliver a bigger blast radius.", extraMods:{explosionPierce: 15} },
+            { name: "Bigger Bombs", cost: 250, stat: "explosionRadius", amount: 10, desc: "Bigger shells deliver a bigger blast radius.", extraMods:{explosionPierce: 15} },
             { name: "Heavy Bombs", cost: 650, stat:"explosionDamage", amount: 1, desc: "Smash through 2 layers and pop more Bloons.", extraMods:{explosionPierce: 8} },
             { name: "Really Big Bombs", cost: 1100, stat:"explosionDamage", amount: 1, desc: "Huge bombs deal greater damage and knock Bloons back.", extraMods:{explosionRadius: 12, knockback: 30} },
             { name: "Bloon Impact", cost: 2800, stat:"explosionRadius", amount: 10, desc: "Explosions stun Bloons for a short time.", extraMods:{stun: 0.5} },
@@ -50,8 +52,8 @@ export default {
         if (tower.stats.bombBlitz) {
             if (tower._lastLives !== undefined && engine.lives < tower._lastLives && (tower.blitzCd || 0) <= 0) {
                 tower.blitzCd = 60.0;
-                Utils.applyAoeDamage(engine, 640, 360, 1500, 1500, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 1000});
-                engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1500, life: 1.0, maxLife: 1.0, color: '#e67e22' });
+                Utils.applyAoeDamage(engine, 640, 360, 1500, 1500, DamageType.EXPLOSION, tower, {}, {maxHits: 1000});
+                spawnExplosion(engine, 640, 360, 1500, 1.0, '#e67e22');
                 engine.log("Bomb Blitz!");
             }
             tower._lastLives = engine.lives;
@@ -94,8 +96,8 @@ export default {
             }
             if (target) {
                 let dmg = name === "Assassinate 2" ? 4500 : 750;
-                target.takeDamage(dmg, {isExplosion: true, canHitLead: true}, {}, tower);
-                engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: 80, life: 0.5, maxLife: 0.5, color: '#e67e22' });
+                target.takeDamage(dmg, DamageType.EXPLOSION, {}, tower);
+                spawnExplosion(engine, target.x, target.y, 80, 0.5, '#e67e22');
             }
         }
     }

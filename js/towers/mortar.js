@@ -1,5 +1,7 @@
 // js/towers/mortar.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion, canBeAoeTarget, dealDamage } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 // Mortar tower behavior.
@@ -53,9 +55,9 @@ export default {
             if (tower.popAndAweTimer <= 0) {
                 tower.popAndAweTimer = 0.5;
                 for (const e of engine.enemies) {
-                    if (!e || !e.alive) continue;
-                    e.takeDamage(tower.stats.damage, { isExplosion: true, canHitLead: true }, { stun: 1.0 }, tower);
-                    engine.explosions.push({ x: e.x, y: e.y, radius: 0, maxRadius: 40, life: 0.3, maxLife: 0.3, color: '#e67e22' });
+                    if (!canBeAoeTarget(e, tower, true)) continue;   // ability hits camo too
+                    dealDamage(e, tower.stats.damage, DamageType.EXPLOSION, { stun: 1.0 }, tower);
+                    spawnExplosion(engine, e.x, e.y, 40, 0.3, '#e67e22');
                 }
             }
         }

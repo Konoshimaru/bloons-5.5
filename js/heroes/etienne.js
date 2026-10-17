@@ -4,7 +4,8 @@
 // darts. Provides a range buff to nearby towers, camo detection (self + drones
 // at L5), and global camo detection for all towers at L8 (UAV).
 
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { AudioEngine } from '../audio.js';
 
@@ -89,7 +90,7 @@ export default {
             const p = GameEngine.projectilePool.get();
             p.init(tower.x, tower.y, activeDmg, tgt, 'dart', 900, pierce, 1.5, null,
                 { isExplosive: true, explosionRadius: 20, explosionDamage: activeDmg, explosionPierce: pierce, canHitLead: true },
-                (Math.random() - 0.5) * 20, tower, { isExplosion: true, canHitLead: true });
+                (Math.random() - 0.5) * 20, tower, DamageType.EXPLOSION);
         }
         AudioEngine.playSfx('shoot');
     },

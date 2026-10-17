@@ -1,5 +1,6 @@
 // js/heroes/churchill.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 export default {
@@ -60,7 +61,7 @@ export default {
         if (target) {
             for (let i = 0; i < tower.stats.barrageShells; i++) {
                 let p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, tower.stats.barrageDmg, target, 'bomb', 400, 100, 2.0, null, {isExplosive: true, explosionRadius: 40, explosionDamage: tower.stats.barrageDmg, explosionPierce: 50}, 0, tower, {isExplosion: true, canHitLead: true});
+                p.init(tower.x, tower.y, tower.stats.barrageDmg, target, 'bomb', 400, 100, 2.0, null, {isExplosive: true, explosionRadius: 40, explosionDamage: tower.stats.barrageDmg, explosionPierce: 50}, 0, tower, DamageType.EXPLOSION);
             }
         }
     },

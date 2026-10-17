@@ -1,10 +1,9 @@
 // js/towers/sniper.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import Assets from '../assets.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _sniperBounceScratch = [];
 

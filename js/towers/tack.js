@@ -1,5 +1,6 @@
 // js/towers/tack.js
-import { GameEngine } from '../engine.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 const _tackRingScratch = [];
@@ -106,7 +107,7 @@ export default {
             let expRadius = effRange * (expRadiusRaw / baseRange);
             
             // Lingers for 1.0s so it perfectly overlaps with the next shot
-            GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 1.0, maxLife: 1.0, color: '#e67e22' });
+            spawnExplosion(GameEngine, tower.x, tower.y, expRadius, 1.0, '#e67e22');
             
             const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius, _tackRingScratch);
             for (let e of nearby) {

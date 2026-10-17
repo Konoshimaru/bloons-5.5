@@ -1,11 +1,10 @@
 // js/heroes/geto.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils, drawImageCentered } from '../utils.js';
 import Assets from '../assets.js';
 import { AudioEngine } from '../audio.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE, GS } from '../constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _getoCandidatesScratch = [];
 const _getoHitScratch = [];

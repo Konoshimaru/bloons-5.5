@@ -1,5 +1,7 @@
 // js/heroes/pat_fusty.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion, isHiddenFrom } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 const _patUpdateScratch = [];
@@ -79,7 +81,7 @@ export default {
                         target.damageImmune = false; 
                         
                         // Deal the 9,999,999 damage to the outer layer
-                        target.takeDamage(tower.stats.squeezeDmg, { isExplosion: true, canHitLead: true });
+                        target.takeDamage(tower.stats.squeezeDmg, DamageType.EXPLOSION);
                         
                         // FIX: Apply an AoE stun to catch the children that just spawned
                         Utils.applyAoeDamage(GameEngine, target.x, target.y, 40, 0, {}, tower, { stun: tower.stats.squeezeStunDur }, { maxHits: 100 });
@@ -201,12 +203,7 @@ export default {
         const slamDamage = tower.stats.explosionDamage || 2;
         const slamCeramicDmg = tower.stats.explosionCeramicDmg || 2;
         
-        engine.explosions.push({ 
-            x: target.x, y: target.y, 
-            radius: 0, maxRadius: isSlap ? 20 : slamRadius, 
-            life: 0.2, maxLife: 0.2, 
-            color: isSlap ? '#e67e22' : '#795548' 
-        });
+        spawnExplosion(engine, target.x, target.y, isSlap ? 20 : slamRadius, 0.2, isSlap ? '#e67e22' : '#795548');
         
         let currentEffects = { ...effects };
         
@@ -222,7 +219,7 @@ export default {
             for (let e of nearby) {
                 if (hits >= (tower.stats.slapPierce || 8)) break;
                 if (!e.alive) continue;
-                if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
+                if (isHiddenFrom(tower, e)) continue;
                 
                 if (Utils.withinRange(target.x, target.y, e.x, e.y, 20)) {
                     if (!e.data.isBAD) {
@@ -247,7 +244,7 @@ export default {
             for (let e of nearby) {
                 if (hits >= slamPierce) break;
                 if (!e.alive) continue;
-                if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
+                if (isHiddenFrom(tower, e)) continue;
                 
                 if (Utils.withinRange(target.x, target.y, e.x, e.y, slamRadius)) {
                     const dmg = aoeDmg + (e.data.isCeramic ? aoeCeramicDmg : 0);

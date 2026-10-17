@@ -1,14 +1,16 @@
 // buccaneer_monkey.js
 // Defines the Buccaneer Monkey tower and its ship-based attacks.
 
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 const _buccTowerScratch = [];
 
 export default {
     stats: { 
-        name: "Monkey Buccaneer", cost: 400, range: 40, fireRate: 1.0, 
+        name: "Monkey Buccaneer", cost: 400, range: 60, fireRate: 1.0,
         damage: 1, pierce: 4, projectileSpeed: 600, lifespan: 1.0, 
         desc: "Fires darts from both sides. Must be placed on water.", 
         dmgType: 'sharp', projectileType: 'dart', hitRadius: 12, 
@@ -31,7 +33,7 @@ export default {
             {name:"Pirate Lord", cost:27000, stat:"damage", amount:10, desc:"Greatly improved power. Multiple grappling hooks.", extraMods:{isAbility: true, abilityName: "MOAB Takedown 2", abilityCd: 30, cannonCount: 5}}
         ],
         3: [
-            {name:"Long Range", cost:200, stat:"range", amount:15, desc:"Much longer range, projectiles fly faster and pierce more.", extraMods:{projectileSpeed: 200, pierce: 2}},
+            {name:"Long Range", cost:200, stat:"range", amount:11, desc:"Much longer range, projectiles fly faster and pierce more.", extraMods:{projectileSpeed: 200, pierce: 2}},
             {name:"Crow's Nest", cost:350, stat:"canSeeCamo", amount:true, desc:"Allows the ship to hit Camo Bloons."},
             {name:"Merchantman", cost:2400, desc:"Generates cash each round. Deals more damage when over 10k cash.", extraMods:{income: 125}},
             {name:"Favored Trades", cost:5500, desc:"Generates lots of money. Deals more damage when over 50k cash.", extraMods:{income: 250}},
@@ -154,7 +156,7 @@ export default {
             for (let i = 0; i < cannons; i++) {
                 let offset = -10 * (i + 1);
                 let p = engine.projectilePool.get();
-                p.init(tower.x, tower.y, damage + 2, target, 'bomb', 500, 20, 2.0, null, {isExplosive: true, explosionRadius: 40, explosionDamage: damage + 2, canHitLead: true}, offset, tower, {isExplosion: true, canHitLead: true});
+                p.init(tower.x, tower.y, damage + 2, target, 'bomb', 500, 20, 2.0, null, {isExplosive: true, explosionRadius: 40, explosionDamage: damage + 2, canHitLead: true}, offset, tower, DamageType.EXPLOSION);
             }
         }
 
@@ -183,10 +185,10 @@ export default {
             for (const target of moabs) {
                 if (grabbed >= grabs) break;
                 // Instakill and grant plunder cash
-                target.takeDamage(99999, {isExplosion: true, canHitLead: true}, {}, tower);
+                target.takeDamage(99999, DamageType.EXPLOSION, {}, tower);
                 engine.addCash(plunderCash);
                 engine.spawnPopEffect(target.x, target.y, '#f1c40f');
-                engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#e67e22' });
+                spawnExplosion(engine, target.x, target.y, 100, 0.5, '#e67e22');
                 grabbed++;
             }
         }

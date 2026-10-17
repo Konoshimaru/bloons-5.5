@@ -1,6 +1,8 @@
 // js/projectileHitResolution.js
+import { spawnExplosion } from './combat.js';
+import { canBeAoeTarget, creditDamage } from './combat.js';
 import { Utils } from './utils.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { DamageType, createDmgType } from './damageTypes.js';
 import { ProjectileTypeConfig } from './projectileTypeConfig.js';
 import { GLOBAL_SCALE } from './constants.js'; 
@@ -63,7 +65,7 @@ const ProjectileHitResolution = {
     _handleExplosiveHit(primaryEnemy) {
         const expRadius = this._getExplosionRadius();
         const expColor = this._getExplosionColor();
-        GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.3, maxLife: 0.3, color: expColor });
+        spawnExplosion(GameEngine, this.x, this.y, expRadius, 0.3, expColor);
         
         const bombDmgType = this._createBombDmgType();
         
@@ -82,12 +84,7 @@ const ProjectileHitResolution = {
         let hits = 0;
         for (const e of nearby) {
             if (hits >= maxPierce) break;
-            if (!e.alive) continue;
-            
-            // FIX: Big Squeeze immunity
-            if (e.untargetable || e.damageImmune || e.collisionImmune) continue;
-            
-            if (e.isCamo && !(this.effects && this.effects.canSeeCamo) && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
+            if (!canBeAoeTarget(e, this.tower, !!(this.effects && this.effects.canSeeCamo))) continue;
             if (e.data.isLead && !bombDmgType.canHitLead) continue;
             if (e.data.isMoab && !bombDmgType.canHitMoab) continue;
             
@@ -103,10 +100,7 @@ const ProjectileHitResolution = {
                 const dmg = e.takeDamage(expDmg, bombDmgType, this.effects, this.tower);
                 if (dmg === -1) continue;
                 
-                if (this.tower) {
-                    this.tower.damageDealt += dmg;
-                    if (this.tower.parentTower) this.tower.parentTower.damageDealt += dmg;
-                }
+                creditDamage(this.tower, dmg);
                 
                 if (this.isCrit && dmg > 0 && GameEngine.floatingTexts) {
                     GameEngine.floatingTexts.push({
@@ -135,7 +129,7 @@ const ProjectileHitResolution = {
             for (let i = 0; i < this.effects.clusterCount; i++) {
                 let angle = (i / this.effects.clusterCount) * Math.PI * 2;
                 let p = GameEngine.projectilePool.get();
-                p.init(this.x, this.y, this.effects.clusterDamage || 1, null, 'bomb', 300, 1, 0.5, angle, {isExplosive: true, explosionRadius: 15, explosionDamage: this.effects.clusterDamage || 1, explosionPierce: 10, canHitLead: true}, 0, this.tower, {isExplosion: true, canHitLead: true});
+                p.init(this.x, this.y, this.effects.clusterDamage || 1, null, 'bomb', 300, 1, 0.5, angle, {isExplosive: true, explosionRadius: 15, explosionDamage: this.effects.clusterDamage || 1, explosionPierce: 10, canHitLead: true}, 0, this.tower, DamageType.EXPLOSION);
             }
         }
 
@@ -304,7 +298,7 @@ const ProjectileHitResolution = {
             const expRadius = this.tower.stats.explosionRadius || 15;
             const expDmg = this.tower.stats.explosionDamage || 2;
             const expPierce = this.tower.stats.explosionPierce || 3;
-            GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#3498db' });
+            spawnExplosion(GameEngine, this.x, this.y, expRadius, 0.2, '#3498db');
             Utils.applyAoeDamage(GameEngine, this.x, this.y, expRadius, expDmg, this.dmgType, this.tower, this.effects, { maxHits: expPierce });
         }
 

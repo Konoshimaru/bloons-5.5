@@ -1,10 +1,11 @@
 // js/towers/ace.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion, isHiddenFrom } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE, GS } from '../constants.js';
 import Assets from '../assets.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: { 
@@ -109,7 +110,7 @@ export default {
                 let trackPt = engine.map.getNearestPathPoint(tower.planeX, tower.planeY);
                 if (trackPt) {
                     let p = engine.projectilePool.get();
-                    p.init(trackPt.x, trackPt.y, bombDmg, null, 'bomb', 0, bombPierce, 5.0, null, {isExplosive: true, explosionRadius: bombRadius * GS, explosionDamage: bombDmg, canHitLead: true, camoDmg: bombCamoDmg, ceramicDmg: bombCeramicDmg}, 0, tower, {isExplosion: true, canHitLead: true});
+                    p.init(trackPt.x, trackPt.y, bombDmg, null, 'bomb', 0, bombPierce, 5.0, null, {isExplosive: true, explosionRadius: bombRadius * GS, explosionDamage: bombDmg, canHitLead: true, camoDmg: bombCamoDmg, ceramicDmg: bombCeramicDmg}, 0, tower, DamageType.EXPLOSION);
                 }
             }
         }
@@ -123,7 +124,7 @@ export default {
                     for (let i = -1; i <= 1; i++) {
                         let p = engine.projectilePool.get();
                         let offX = i * 30 * GS;
-                        p.init(trackPt.x + offX, trackPt.y, bombDmg, null, 'bomb', 0, bombPierce, 0.1, null, {isExplosive: true, explosionRadius: bombRadius * GS, explosionDamage: bombDmg, canHitLead: true, camoDmg: bombCamoDmg, ceramicDmg: bombCeramicDmg}, 0, tower, {isExplosion: true, canHitLead: true});
+                        p.init(trackPt.x + offX, trackPt.y, bombDmg, null, 'bomb', 0, bombPierce, 0.1, null, {isExplosive: true, explosionRadius: bombRadius * GS, explosionDamage: bombDmg, canHitLead: true, camoDmg: bombCamoDmg, ceramicDmg: bombCeramicDmg}, 0, tower, DamageType.EXPLOSION);
                     }
                 }
             }
@@ -214,7 +215,7 @@ export default {
         let bestTarget = null;
         let bestVal = (mode === 'close') ? Infinity : -Infinity;
         for (const e of engine.enemies) {
-            if (!e || !e.alive || (e.isCamo && !tower.stats.canSeeCamo)) continue;
+            if (!e || !e.alive || (isHiddenFrom(tower, e))) continue;
             if (mode === 'close') {
                 const dist = Utils.distanceSq(tower.planeX, tower.planeY, e.x, e.y);
                 if (dist < bestVal) { bestVal = dist; bestTarget = e; }
@@ -243,7 +244,7 @@ export default {
         
         let pBomb = engine.projectilePool.get();
         let bombEffects = { isExplosive: true, explosionRadius: 20 * GS, explosionDamage: bombDmg, canHitLead: true, ceramicDmg: bombCeramicDmg };
-        pBomb.init(tower.planeX, tower.planeY, bombDmg, target, 'bomb', 300 * GS, 1, 2.0, null, bombEffects, 0, tower, {isExplosion: true, canHitLead: true});
+        pBomb.init(tower.planeX, tower.planeY, bombDmg, target, 'bomb', 300 * GS, 1, 2.0, null, bombEffects, 0, tower, DamageType.EXPLOSION);
     },
 
     draw(ctx, tower, isPreview) {
@@ -288,7 +289,7 @@ export default {
             let effects = {isExplosion: true, canHitLead: true, stun: stunDur};
             
             Utils.applyAoeDamage(engine, tower.planeX, tower.planeY, 1500 * GS, dmg, effects, tower, {}, {maxHits: pierce});
-            engine.explosions.push({ x: tower.planeX, y: tower.planeY, radius: 0, maxRadius: 1500 * GS, life: 1.5, maxLife: 1.5, color: '#ffffff' });
+            spawnExplosion(engine, tower.planeX, tower.planeY, 1500 * GS, 1.5, '#ffffff');
         }
     }
 };

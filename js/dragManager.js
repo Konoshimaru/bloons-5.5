@@ -1,6 +1,7 @@
 // js/dragManager.js
-import { GameEngine } from './engine.js';
-import { Config, HeroStats } from './config.js';
+import { GameEngine } from './engineRef.js';
+import { Config } from './config.js';
+import { HeroStats } from './heroes/index.js';
 import { TowerStats, Upgrades } from './towers/index.js';
 import { UI } from './ui.js';
 import { AudioEngine } from './audio.js';

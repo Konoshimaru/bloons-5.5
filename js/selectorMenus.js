@@ -1,6 +1,6 @@
 // js/selectorMenus.js
 import { Config } from './config.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { HeroRegistry } from './heroes/index.js';
 import { Maps } from './data.js';
 

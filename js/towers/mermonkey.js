@@ -1,9 +1,9 @@
 // js/towers/mermonkey.js
-import { GameEngine } from '../engine.js';
+import { spawnExplosion, isHiddenFrom } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils, drawImageCentered } from '../utils.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _mermAuraScratch = [];
 const _mermRiptideScratch = [];
@@ -94,7 +94,7 @@ export default {
                     
                     for (const e of nearby) {
                         if (!e || !e.alive) continue;
-                        if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue;
+                        if (isHiddenFrom(tower, e)) continue;
                         
                         const distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
                         if (distSq > effRangeSq) continue;
@@ -408,7 +408,7 @@ export default {
                 Utils.applyAoeDamage(engine, 640, 360, 1500, 70, {isFrigid: true, canHitLead: true}, tower, {}, {
                     onHit: (e) => e.applySlow(0.5, 8.0, false)
                 });
-                engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1500, life: 1.0, maxLife: 1.0, color: '#1abc9c' });
+                spawnExplosion(engine, 640, 360, 1500, 1.0, '#1abc9c');
             }
         }
         

@@ -1,5 +1,5 @@
 // js/heroes/adora.js
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 export default {

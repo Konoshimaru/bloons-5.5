@@ -1,6 +1,7 @@
 // js/towerBehavior.js
+import { isHiddenFrom } from './combat.js';
 import { RANGE_SCALE } from './config.js';
-import { GLOBAL_SCALE } from './constants.js';
+import { GLOBAL_SCALE, GS } from './constants.js';
 import { TowerRegistry, Upgrades } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { getBehavior } from './registry.js';
@@ -9,7 +10,6 @@ import { AudioEngine } from './audio.js';
 import Assets from './assets.js';
 import { DamageType, createDmgType, resolveDmgType } from './damageTypes.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const MIN_FIRE_RATE = 0.01;
 const ANIM_FRAME_DURATION = 0.03;
@@ -266,7 +266,7 @@ function _findTarget(tower, engine) {
 
     for (const e of candidates) {
         if (!e.alive) continue;
-        if (e.isCamo && !tower.stats.canSeeCamo && !tower.buffedCamo) continue; 
+        if (isHiddenFrom(tower, e)) continue;
         if (tower.type === 'glue' && e.data.isMoab && !tower.stats.canHitMoab) continue; 
         
         let distSq = 0;

@@ -20,6 +20,10 @@ export function getSellRate(tower, engine) {
     return resaleRate;
 }
 
+export function getSellValue(tower, engine) {
+    return Math.floor(tower.totalSpent * getSellRate(tower, engine));
+}
+
 const TowerEconomy = {
     canUpgrade(path, engine) {
         if (this.isMinion) return false; 
@@ -90,8 +94,7 @@ const TowerEconomy = {
     },
 
     sell(engine) {
-        const resaleRate = getSellRate(this, engine);
-        engine.cash += Math.floor(this.totalSpent * resaleRate);
+        engine.cash += getSellValue(this, engine);
         for (let i = 0; i < 3; i++) {
             if (this.upgrades[i] === 5) engine.tier5Bought[`${this.type}-${i + 1}`] = false;
         }

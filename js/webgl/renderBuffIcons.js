@@ -15,9 +15,8 @@
 
 import { Sprite, Text, Texture } from 'pixi.js';
 import { PixiApp } from './pixiApp.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 const ICON_SIZE = 32; // px, matches towerRenderer.js's 32x32 icon canvas
 const ICON_SPACING = 20 * GS;
 const STACK_BADGE_RADIUS = 7 * GS;

@@ -1,5 +1,5 @@
 // js/menuController.js
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { Config, Difficulties } from './config.js';
 import { TowerStats, Upgrades, TOWER_CATEGORIES } from './towers/index.js';
 import { Maps } from './data.js';
@@ -8,7 +8,7 @@ import { UI } from './ui.js';
 import { MapEditor } from './mapEditor.js';
 import { dom } from './dom.js';
 import { updateShopPrices } from './dragManager.js';
-import { gameController } from './gameController.js';
+import { controllers } from './controllers.js';
 import selectorMenus from './selectorMenus.js';
 
 export const menuController = {
@@ -270,7 +270,7 @@ export const menuController = {
                     GameEngine.currentMap = this.playMenuState.selectedMapIndex;
                     Config.data.currentMap = this.playMenuState.selectedMapIndex;
                     Config.save();
-                    gameController.startGameUI(false);
+                    controllers.game.startGameUI(false);
                 });
                 catDiv.appendChild(btn);
             });
@@ -286,7 +286,7 @@ export const menuController = {
     },
 
     setupMenuListeners() {
-        dom.btnSandbox?.addEventListener('click', () => gameController.startGameUI(true)); 
+        dom.btnSandbox?.addEventListener('click', () => controllers.game.startGameUI(true));
         dom.btnHeroes?.addEventListener('click', () => UI.toggleMenus('hero-select-menu'));
         dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
         dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
@@ -332,7 +332,7 @@ export const menuController = {
         dom.btnMapEditor?.addEventListener('click', () => { MapEditor.init(); UI.toggleMenus('map-editor-menu'); });
         dom.btnContinue?.addEventListener('click', () => {
             if (GameEngine.loadGame()) {
-                gameController.startGameUI(false);
+                controllers.game.startGameUI(false);
             }
         });
         dom.btnAbandon?.addEventListener('click', () => GameEngine.abandonRun());

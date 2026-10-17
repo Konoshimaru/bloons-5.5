@@ -1,7 +1,7 @@
 // waveManager.js
 import { Waves, AbrWaves } from './data.js';
 import { Enemy } from './enemy.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { UI } from './ui.js';
 import { AudioEngine } from './audio.js';
 import { updateShopPrices } from './dragManager.js';

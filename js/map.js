@@ -1,11 +1,10 @@
 import { Utils } from './utils.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import Assets from './assets.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from './constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE, GS } from './constants.js';
 import { RANGE_SCALE } from './config.js'; 
 import { MapRenderCore } from './mapRenderCore.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const GRID_SIZE = 40;
 const DEFAULT_PATH_WIDTH = 45;

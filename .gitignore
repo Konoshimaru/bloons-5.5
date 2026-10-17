@@ -13,3 +13,6 @@ npm-debug.log*
 
 # opencode personal skills (don't push to GitHub)
 .opencode/
+
+# Rotating backups written by the sprite-editor dev plugin (vite.config.js)
+js/backups/

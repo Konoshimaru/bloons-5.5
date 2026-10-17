@@ -1,5 +1,5 @@
 // js/mobile.js
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 
 export const isMobile = {
     Android: function() { return navigator.userAgent.match(/Android/i); },

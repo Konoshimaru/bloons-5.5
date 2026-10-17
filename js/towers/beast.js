@@ -14,15 +14,15 @@
  */
 
 // js/towers/beast.js
-import { GameEngine } from '../engine.js';
+import { DamageType } from '../damageTypes.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
-import { Tower } from '../tower.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 import { Beast } from '../beastEntity.js';
 import { LAND_BEASTS, WATER_BEASTS, AIR_BEASTS } from '../beastData.js';
-import uiTowerPanel from '../uiTowerPanel.js';
+import { uiHooks } from '../uiHooks.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: { 
@@ -97,7 +97,7 @@ export default {
     },
     
     setupCustomUI(panel, t, engine) {
-        uiTowerPanel._setupBeastUI(panel, t, engine);
+        uiHooks.setupBeastUI?.(panel, t, engine);
     },
 
     getCounterText(t) {
@@ -194,7 +194,7 @@ export default {
     fire(tower, target, damage, dmgType, isCrit, effects, engine) {
         if (tower.hasBeast) return;
         const expR = 25; 
-        engine.explosions.push({ x: target.x, y: target.y, radius: 0, maxRadius: expR, life: 0.4, maxLife: 0.4, color: '#f1c40f' });
+        spawnExplosion(engine, target.x, target.y, expR, 0.4, '#f1c40f');
         Utils.applyAoeDamage(engine, target.x, target.y, expR, damage, dmgType, tower, effects, { maxHits: tower.stats.pierce });
     },
 
@@ -202,23 +202,23 @@ export default {
         if (tower.stats.abilityName === "T-Rex Stomp") {
             engine.log("T-Rex Stomp!");
             // Tiered stun: normal 6s / MOAB 3s / BFB 2.5s / ZOMG 2s / DDT 2s / BAD immune
-            Utils.applyAoeDamage(engine, tower.x, tower.y, 100, 150, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 400, onHit: (e) => {
+            Utils.applyAoeDamage(engine, tower.x, tower.y, 100, 150, DamageType.EXPLOSION, tower, {}, {maxHits: 400, onHit: (e) => {
                 let s = 6.0;
                 if (e.data.isMoab) s = e.data.isBAD ? 0 : (e.data.isZOMG || e.data.isDDT) ? 2.0 : e.data.isBFB ? 2.5 : 3.0;
                 if (s > 0) e.applySlow(0.0, s, false);
             }});
-            engine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#e67e22' });
+            spawnExplosion(engine, tower.x, tower.y, 100, 0.5, '#e67e22');
         }
         
         if (tower.stats.abilityName === "Giganoto Stomp") {
             engine.log("Giganotosaurus Stomp!");
             // Tiered stun: normal 12s / MOAB 8s / BFB 6s / ZOMG 4s / DDT 4s / BAD immune
-            Utils.applyAoeDamage(engine, 640, 360, 2000, 300, {isExplosion: true, canHitLead: true}, tower, {}, {maxHits: 600, onHit: (e) => {
+            Utils.applyAoeDamage(engine, 640, 360, 2000, 300, DamageType.EXPLOSION, tower, {}, {maxHits: 600, onHit: (e) => {
                 let s = 12.0;
                 if (e.data.isMoab) s = e.data.isBAD ? 0 : (e.data.isZOMG || e.data.isDDT) ? 4.0 : e.data.isBFB ? 6.0 : 8.0;
                 if (s > 0) e.applySlow(0.0, s, false);
             }});
-            engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1500, life: 1.0, maxLife: 1.0, color: '#c0392b' });
+            spawnExplosion(engine, 640, 360, 1500, 1.0, '#c0392b');
         }
     }
 };

@@ -9,7 +9,7 @@ const data = vi.hoisted(() => ({
   unlocks: {}
 }));
 
-vi.mock('../js/engine.js', () => ({
+vi.mock('../js/engineRef.js', () => ({
   GameEngine: { gameState: 'menu', waveManager: { currentWave: 1 }, config: { data: {} } }
 }));
 

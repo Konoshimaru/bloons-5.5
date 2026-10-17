@@ -1,7 +1,7 @@
 // js/hero.js
 import { Tower } from './tower.js';
 import { HeroRegistry } from './heroes/index.js';
-import { GameEngine } from './engine.js';
+import { GameEngine } from './engineRef.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 const MAX_LEVEL = 20;

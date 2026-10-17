@@ -1,0 +1,140 @@
+1|17.51|Red×20
+2|19.00|Red×35
+3|16.71|Red×10 Blue×5 Red×15
+4|17.31|Red×25 Blue×18 Red×10
+5|16.50|Blue×12 Red×5 Blue×15
+6|18.70|Green×4 Red×15 Blue×15
+7|26.80|Blue×10 Green×5 Red×20 Blue×10
+8|28.87|Blue×20 Green×2 Red×10 Green×12
+9|18.95|Green×30
+10|47.99|Blue×60 Blue×20 Blue×22
+11|19.16|Yellow×3 Green×12 Blue×10 Red×10
+12|17.39|Green×10 Blue×15 Yellow×5
+13|32.21|Blue×50 Green×23
+14|26.63|Red×18 Blue×5 Green×5 Yellow×4 Red×31 Blue×10 Green×5 Yellow×5
+15|25.00|Red×20 Blue×15 Green×12 Yellow×10 Pink×5
+16|16.02|Green×20 Green×20 Yellow×8
+17|5.00|Regrow Yellow×12
+18|26.82|Green×60 Green×20
+19|15.76|Green×10 Regrow Yellow×5 Pink×15 Yellow×4
+20|5.25|Black×6
+21|18.12|Yellow×40 Pink×10 Pink×4
+22|8.00|White×16
+23|6.82|Black×7 White×7
+24|9.00|Camo Green×1 Blue×20
+25|21.14|Regrow Yellow×25 Purple×10
+26|14.51|Pink×23 Zebra×4
+27|34.26|Red×100 Blue×60 Green×45 Yellow×45
+28|5.00|Lead×6
+29|15.25|Yellow×50 Regrow Yellow×15
+30|13.07|Lead×9
+31|15.91|Black×8 White×8 Zebra×8 Regrow Zebra×2
+32|27.96|Black×15 White×20 Purple×10
+33|25.34|Camo Red×20 Camo Yellow×13
+34|36.00|Yellow×160 Zebra×6
+35|33.76|White×25 Rainbow×5 Pink×35 Black×30
+36|20.99|Pink×40 Camo Regrow Green×10 Pink×40 Camo Regrow Green×10 Pink×60
+37|43.51|Black×25 White×25 Lead×15 Zebra×10 Camo White×7
+38|29.06|White×17 Pink×42 Lead×14 Zebra×10 Ceramic×2
+39|37.93|Black×10 White×10 Zebra×20 Rainbow×18 Regrow Rainbow×2
+40|1.00|MOAB×1
+41|46.20|Black×60 Zebra×60
+42|11.60|Regrow Rainbow×6 Camo Rainbow×5
+43|9.26|Rainbow×10 Ceramic×7
+44|23.67|Zebra×10 Zebra×10 Zebra×10 Zebra×10 Zebra×10
+45|53.10|Rainbow×25 Camo Purple×10 Pink×180 Fortified Lead×4
+46|7.00|Fortified Ceramic×6
+47|24.65|Ceramic×12 Camo Pink×70
+48|55.72|Regrow Pink×40 Camo Regrow Purple×30 Rainbow×40 Fortified Ceramic×3
+49|50.00|Green×343 Rainbow×10 Ceramic×18 Zebra×20 Rainbow×10 Regrow Rainbow×10
+50|28.98|MOAB×1 Fortified Lead×8 Red×20 Ceramic×20 MOAB×1
+51|24.14|Camo Ceramic×15 Regrow Rainbow×10
+52|20.56|Rainbow×25 MOAB×1 Ceramic×5 MOAB×1 Ceramic×5
+53|35.00|Camo Pink×80 MOAB×1 MOAB×1 MOAB×1
+54|19.41|Ceramic×35 MOAB×1 MOAB×1
+55|29.78|Ceramic×10 Ceramic×10 Ceramic×10 Ceramic×15 MOAB×1
+56|16.18|Camo Rainbow×40 MOAB×1
+57|26.23|MOAB×2 Rainbow×40 MOAB×2
+58|43.98|MOAB×5 Ceramic×15 Fortified Ceramic×10
+59|26.16|Ceramic×20 Camo Lead×50 Regrow Ceramic×10
+60|1.00|BFB×1
+61|20.00|Regrow Zebra×150 MOAB×5
+62|48.29|Purple×250 MOAB×5 Fortified MOAB×2 Camo Regrow Rainbow×15
+63|42.25|Lead×75 Ceramic×40 Ceramic×40 Ceramic×42
+64|9.53|MOAB×6 Fortified MOAB×3
+65|62.00|Zebra×100 Rainbow×70 Ceramic×50 MOAB×3 BFB×2
+66|22.75|MOAB×2 MOAB×2 MOAB×4 Fortified MOAB×3
+67|26.44|MOAB×4 Fortified Camo Regrow Ceramic×13 MOAB×4
+68|8.44|MOAB×4 BFB×1
+69|42.13|Fortified Lead×40 Regrow Black×40 Ceramic×50
+70|41.14|Rainbow×200 Camo Regrow White×120 MOAB×4
+71|16.55|Ceramic×30 MOAB×10
+72|21.70|Regrow Ceramic×38 BFB×1 BFB×1
+73|26.95|MOAB×7 BFB×2 MOAB×1
+74|82.38|Ceramic×50 Fortified Camo Regrow Ceramic×25 BFB×1 Fortified Ceramic×60
+75|22.59|BFB×1 Lead×14 Fortified MOAB×1 BFB×3 Fortified Lead×14 Fortified MOAB×2 BFB×3
+76|1.78|Regrow Ceramic×60
+77|58.92|MOAB×11 BFB×5
+78|90.00|Rainbow×150 Ceramic×75 BFB×1 Purple×80 Camo Ceramic×72
+79|60.00|Regrow Rainbow×500 BFB×4 Fortified BFB×2
+80|2.00|ZOMG×1
+81|26.47|BFB×9 BFB×8
+82|35.68|BFB×10 Fortified BFB×5
+83|60.20|Ceramic×40 Regrow Ceramic×40 Fortified Ceramic×40 MOAB×30
+84|25.00|MOAB×50 BFB×10
+85|10.00|ZOMG×2
+86|20.85|Fortified BFB×5
+87|10.00|ZOMG×4
+88|14.55|BFB×8 MOAB×18 ZOMG×2
+89|20.74|Fortified MOAB×20 Fortified BFB×8
+90|11.90|Fortified Camo Regrow Lead×50 DDT×3
+91|30.00|Fortified Ceramic×100 BFB×20
+92|35.00|Fortified MOAB×50 ZOMG×4
+93|20.00|Fortified BFB×10 DDT×6
+94|15.00|BFB×25 ZOMG×6
+95|50.81|Camo Regrow Purple×500 Fortified Camo Regrow Lead×250 Fortified MOAB×50 DDT×30
+96|32.12|BFB×10 Fortified MOAB×20 BFB×10 Fortified MOAB×20 BFB×10 ZOMG×6
+97|5.00|Fortified ZOMG×2
+98|30.00|Fortified BFB×30 ZOMG×8
+99|12.00|MOAB×60 Fortified DDT×9
+100|0.10|BAD×1
+101|9.50|Purple×250 Fortified MOAB×10 Fortified Ceramic×50 Purple×200
+102|46.50|ZOMG×1 Fortified ZOMG×1 DDT×18 BFB×3 Fortified ZOMG×2 Fortified DDT×12 Fortified BFB×3
+103|19.00|Fortified ZOMG×10 MOAB×100 Purple×64 Fortified MOAB×50 Purple×66 Purple×68
+104|22.00|Fortified MOAB×150 BFB×10 Fortified Lead×100 BFB×8 Purple×100 BFB×7 Ceramic×100 Fortified BFB×5 Fortified Lead×100 Fortified BFB×4 Purple×100 Fortified BFB×5 Ceramic×100 MOAB×25
+105|9.00|Ceramic×100 Fortified Lead×25 BFB×30 Fortified Ceramic×300
+106|33.50|DDT×21 DDT×18 DDT×15 Fortified DDT×12 Fortified DDT×9 Fortified DDT×6 DDT×12
+107|10.00|Fortified Ceramic×100 Camo Purple×444 Fortified ZOMG×10
+108|24.00|ZOMG×9 Fortified ZOMG×10
+109|18.00|ZOMG×15 Purple×15 BFB×15 Fortified MOAB×15 Fortified BFB×15 Fortified MOAB×15
+110|36.00|BFB×25 DDT×9 DDT×9 Fortified DDT×6 Fortified DDT×6
+111|18.50|ZOMG×17 Fortified ZOMG×9 ZOMG×5
+112|20.00|Fortified BFB×27 Fortified DDT×21
+113|21.50|Fortified MOAB×75 Fortified BFB×15 Camo Ceramic×42 Fortified Ceramic×42
+114|30.00|DDT×9 Fortified MOAB×36 Fortified DDT×6 MOAB×24 BFB×12 Fortified BFB×8 ZOMG×5 Fortified ZOMG×3
+115|30.00|DDT×9 Fortified ZOMG×3 Fortified DDT×6 Fortified BFB×8 ZOMG×5 BFB×12 MOAB×24 Fortified MOAB×36
+116|15.00|Fortified ZOMG×8 Fortified BFB×18 Purple×100 Purple×100 Purple×200
+117|14.00|Lead×250 DDT×27 Fortified DDT×18
+118|16.00|ZOMG×12 Fortified DDT×30
+119|26.00|BAD×2 BAD×1
+120|51.00|ZOMG×12 BFB×12 Fortified MOAB×24
+121|15.00|Fortified BFB×14 Fortified MOAB×28 Fortified ZOMG×6
+122|20.00|BFB×40 Fortified BFB×20 Fortified Lead×75 Fortified Lead×75 Fortified Lead×75
+123|40.00|Fortified ZOMG×8 MOAB×200
+124|30.00|Fortified BFB×75
+125|40.00|ZOMG×6 ZOMG×5 BFB×12 BFB×10 ZOMG×4 BFB×8 MOAB×18 ZOMG×3 BFB×6 MOAB×15 ZOMG×2 BFB×4 MOAB×12 ZOMG×1 BFB×2 MOAB×9 MOAB×6 MOAB×3
+126|27.00|Fortified Camo Regrow Lead×1 DDT×99
+127|14.00|MOAB×48 BFB×24
+128|28.00|Fortified DDT×39 Fortified Camo Ceramic×200 BFB×30
+129|28.00|Fortified ZOMG×7 Fortified Camo Lead×77 Camo Purple×77 Camo Ceramic×77 ZOMG×7 DDT×9 DDT×3 DDT×3 DDT×3
+130|40.00|MOAB×12 DDT×27 Fortified MOAB×9 MOAB×12 Fortified MOAB×9 MOAB×12 DDT×9 MOAB×48 Fortified DDT×3 DDT×6 Fortified DDT×3 DDT×6 Fortified MOAB×48
+131|39.00|Fortified ZOMG×18
+132|41.00|ZOMG×5 ZOMG×4 Fortified ZOMG×3 Camo Purple×100 ZOMG×5 ZOMG×4 Fortified ZOMG×3 Camo Purple×100
+133|43.00|Fortified MOAB×6 Fortified BFB×6 Fortified ZOMG×2 Fortified MOAB×6 Fortified BFB×6 Fortified ZOMG×2 MOAB×9 BFB×9 ZOMG×3 MOAB×9 BFB×9 ZOMG×3 MOAB×9 BFB×9 ZOMG×3
+134|24.01|Fortified BFB×12 BFB×10 BFB×8 BFB×6 BFB×4
+135|24.00|Fortified ZOMG×7 Fortified ZOMG×7 Fortified DDT×7 Fortified DDT×7 Fortified DDT×7
+136|45.00|Fortified MOAB×96 BFB×24
+137|8.10|ZOMG×18 BFB×24 MOAB×48
+138|40.00|Fortified DDT×33 Fortified DDT×27 Fortified DDT×21 DDT×18 DDT×15 DDT×12
+139|45.00|MOAB×109 MOAB×18 Fortified MOAB×18 MOAB×18 Fortified MOAB×18 MOAB×18 Fortified MOAB×18 MOAB×18 Fortified MOAB×18
+140|46.00|Fortified BAD×1 BAD×1

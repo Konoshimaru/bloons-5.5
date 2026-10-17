@@ -1,5 +1,6 @@
 // js/towers/skywarden.js
-import { GameEngine } from '../engine.js';
+import { spawnExplosion } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 
 const _skyEnemyScratch = [];
@@ -331,7 +332,7 @@ export default {
                 s.life -= dt;
                 if (s.life <= 0) {
                     tower.icesplosives.splice(i, 1);
-                    GameEngine.explosions.push({ x: s.x, y: s.y, radius: 0, maxRadius: 20, life: 0.3, maxLife: 0.3, color: '#a3e4ff' });
+                    spawnExplosion(GameEngine, s.x, s.y, 20, 0.3, '#a3e4ff');
                     const near = engine.enemyGrid.query(s.x, s.y, 20, _skyEnemyScratch);
                     let n = 0;
                     for (const e of near) {

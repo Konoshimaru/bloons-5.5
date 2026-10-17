@@ -1,11 +1,10 @@
-import { GameEngine } from '../engine.js';
+import { GameEngine } from '../engineRef.js';
 import Assets from '../assets.js';
 import { drawImageCentered, Utils } from '../utils.js';
 import { SpriteConfig } from '../spriteConfig.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 import { MobileManager } from '../mobile.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 export default {
     stats: {
@@ -28,7 +27,7 @@ export default {
         2: [
             {name:"Quick Shots", cost:100, desc:"Shoots 15% faster.", cooldownMult: 0.85},
             {name:"Very Quick Shots", cost:190, desc:"Shoots 33% faster!", cooldownMult: 0.7882},
-            {name:"Triple Darts", cost:450, desc:"Throws 3 darts at a time.", cooldownMult: 0.75, extraMods: { projectileCount: 2 }},
+            {name:"Triple Shot", cost:450, desc:"Throws 3 darts at a time.", cooldownMult: 0.75, extraMods: { projectileCount: 2 }},
             {name:"Super Monkey Fan Club", cost:7200, desc:"Ability: Converts up to 10 nearby Dart Monkeys into Super Monkeys.", cooldownMult: 0.5, extraMods: { unlocksAbility: true, abilityName: "Fan Club", abilityCd: 60 }},
             {name:"Plasma Monkey Fan Club", cost:45000, desc:"Ability: Transforms up to 21 Dart Monkeys into Plasma Monkeys.", extraMods: { unlocksAbility: true, abilityName: "Plasma Club", abilityCd: 60 }}
         ],

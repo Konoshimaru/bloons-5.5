@@ -1,13 +1,14 @@
 // js/enemyDamage.js
+import { Utils } from './utils.js';
+import { DamageType } from './damageTypes.js';
+import { spawnExplosion } from './combat.js';
 import { EnemyTypes } from './data.js';
 import { AudioEngine } from './audio.js';
-import { GameEngine } from './engine.js';
-import { GLOBAL_SCALE } from './constants.js';
+import { GameEngine } from './engineRef.js';
+import { GLOBAL_SCALE, GS } from './constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 const SAFETY_LOOP_LIMIT = 100;
 
-const _enemyDmgScratch = [];
 const _glueStunScratch = [];
 
 const EnemyDamage = {
@@ -34,10 +35,7 @@ const EnemyDamage = {
         if (this.dipped) damage += 1;
         
         if (effects.instakill && !this.data.isMoab && !this.data.isBAD) {
-            this.alive = false;
-            this.giveCash(true, killerTower);
-            GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-            AudioEngine.playSfx('pop');
+            this._die(true, killerTower, 'pop');
             return 999;
         }
         if (effects.gold > 0) GameEngine.addCash(effects.gold);
@@ -86,13 +84,7 @@ const EnemyDamage = {
         }
         
         if (effects.stun) {
-            let stunDur = effects.stun;
-            const round = GameEngine.waveManager ? GameEngine.waveManager.currentWave : 1;
-            if (round > 80) {
-                stunDur *= (1 - (round - 80) * 0.01);
-                if (stunDur < 0.1) stunDur = 0.1;
-            }
-            this.applySlow(0.0, stunDur, false);
+            this.applySlow(0.0, effects.stun, false);
         }
         if (effects.alchDip) {
             if (this.data.isCeramic || this.data.isMoab) damage += 1;
@@ -120,6 +112,14 @@ const EnemyDamage = {
         if (this.stunOnPop && !this.alive) this._triggerGlueStun();
         
         return result;
+    },
+
+    // The one "this bloon just died" sequence (was copy-pasted in 5 places).
+    _die(canSpawn, killerTower, sfx = 'pop') {
+        this.alive = false;
+        this.giveCash(canSpawn, killerTower);
+        GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
+        if (sfx) AudioEngine.playSfx(sfx);
     },
 
     _triggerGlueStun() {
@@ -168,18 +168,12 @@ const EnemyDamage = {
         this.hp -= damage;
         
         if (this.hp <= 0) {
-            this.alive = false;
-            this.giveCash(canSpawn, killerTower);
-            GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-            AudioEngine.playSfx('moab_destroy');
+            this._die(canSpawn, killerTower, 'moab_destroy');
             
             if (this.unstableConcoction) {
                 const expDmg = this.data.maxHp * 0.10;
-                GameEngine.explosions.push({ x: this.x, y: this.y, radius: 0, maxRadius: 100, life: 0.5, maxLife: 0.5, color: '#e67e22' });
-                const nearby = GameEngine.enemyGrid.query(this.x, this.y, 100, _enemyDmgScratch);
-                for (const e of nearby) {
-                    if (e.alive && e !== this) e.takeDamage(expDmg, { isExplosion: true, canHitLead: true });
-                }
+                spawnExplosion(GameEngine, this.x, this.y, 100, 0.5, '#e67e22');
+                Utils.applyAoeDamage(GameEngine, this.x, this.y, 100, expDmg, DamageType.EXPLOSION, killerTower, {}, { canSeeCamo: true, filter: (e) => e !== this });
             }
             if (effects && effects.unstableConcoction) this.unstableConcoction = true;
             
@@ -199,10 +193,7 @@ const EnemyDamage = {
         if (this.hp <= 0) {
             if (this.isFrozen) this._spawnIceShards();
             
-            this.alive = false;
-            this.giveCash(canSpawn, killerTower);
-            GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-            AudioEngine.playSfx('pop'); 
+            this._die(canSpawn, killerTower, 'pop');
             const carryOver = damage - shellHp;
             this.spawnChildren(canSpawn, carryOver, dmgType);
         } else {
@@ -220,10 +211,7 @@ const EnemyDamage = {
         
         if (this.isFrozen) this._spawnIceShards();
         
-        this.alive = false;
-        this.giveCash(canSpawn, killerTower);
-        GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-        AudioEngine.playSfx('pop');
+        this._die(canSpawn, killerTower, 'pop');
         const carryOver = damage - this.leadHp;
         this.spawnChildren(canSpawn, carryOver, dmgType);
         return 1;
@@ -232,10 +220,7 @@ const EnemyDamage = {
     _handleSplitDamage(damage, dmgType, effects, canSpawn, killerTower) {
         if (this.isFrozen) this._spawnIceShards();
         
-        this.alive = false;
-        this.giveCash(canSpawn, killerTower);
-        GameEngine.spawnPopEffect(this.x, this.y, this.data.color);
-        AudioEngine.playSfx('pop');
+        this._die(canSpawn, killerTower, 'pop');
         const carryOver = damage - 1;
         this.spawnChildren(canSpawn, carryOver, dmgType);
         return 1;
@@ -256,17 +241,14 @@ const EnemyDamage = {
             if (++safetyCounter > SAFETY_LOOP_LIMIT) break;
         }
         
+        // BTD6 pays $1 per layer popped, not only when the last layer goes.
+        this.payLayers(layersPopped, killerTower);
+
         if (currentTier === null) {
             if (this.isFrozen) this._spawnIceShards();
-            
             this.alive = false;
-            this.giveCash(true, killerTower);
         } else {
-            this.tier = currentTier;
-            this.data = { ...EnemyTypes[currentTier] };
-            this.radius = (this.data.radius || 10) * GS;
-            const diffSpeedMod = GameEngine.difficulty ? GameEngine.difficulty.speedMod : 1.0;
-            this.data.speed *= diffSpeedMod;
+            this._applyTier(currentTier);
             this._updateSpriteCache();
         }
         return layersPopped;

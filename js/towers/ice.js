@@ -1,11 +1,11 @@
 // js/towers/ice.js
-import { GameEngine } from '../engine.js';
+import { spawnExplosion, isHiddenFrom, dealDamage } from '../combat.js';
+import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import { RANGE_SCALE } from '../config.js';
 import { createDmgType, DamageType } from '../damageTypes.js';
-import { GLOBAL_SCALE } from '../constants.js';
+import { GLOBAL_SCALE, GS } from '../constants.js';
 
-const GS = typeof GLOBAL_SCALE === 'number' ? GLOBAL_SCALE : 1.0;
 
 const _iceAuraScratch = [];
 const _iceIcicleScratch = [];
@@ -82,7 +82,7 @@ export default {
                 if (Utils.withinRange(tower.x, tower.y, e.x, e.y, auraRange)) {
                     if (e.data.isWhite || e.data.isZebra) continue;
                     if (e.data.isLead && !tower.stats.canHitLead) continue;
-                    if (e.isCamo && !tower.stats.canSeeCamo) continue;
+                    if (isHiddenFrom(tower, e)) continue;
                     if (e.data.isMoab) continue; 
                     if (tower.stats.reFreeze) {
                         e.applySlow(0.0, 0.1, true);
@@ -139,7 +139,7 @@ export default {
             const gFreezeDur = 1.0;
             for (const e of GameEngine.enemies) {
                 if (!e.alive || e.data.isBAD) continue;
-                if (e.isCamo && !tower.stats.canSeeCamo) continue;
+                if (isHiddenFrom(tower, e)) continue;
                 if (e.data.isLead && !tower.stats.canHitLead && !e.leadStripped) continue;
                 if (e.data.isMoab) { e.applySlow(0.5, 1.0, false); continue; } // MOABs are only slowed
                 e.applySlow(0.0, gFreezeDur, true);
@@ -181,7 +181,7 @@ export default {
         }
         
         let expRadius = Utils.getEffectiveRange(tower, GameEngine);
-        GameEngine.explosions.push({ x: tower.x, y: tower.y, radius: 0, maxRadius: expRadius, life: 0.2, maxLife: 0.2, color: '#1abc9c' });
+        spawnExplosion(GameEngine, tower.x, tower.y, expRadius, 0.2, '#1abc9c');
         const nearby = GameEngine.enemyGrid.query(tower.x, tower.y, expRadius, _iceExpScratch);
         let hits = 0;
         
@@ -192,22 +192,20 @@ export default {
             if (!e.alive) continue;
             if (e.data.isWhite || e.data.isZebra) continue;
             if (e.data.isLead && !tower.stats.canHitLead && !tower.stats.embrittlement) continue;
-            if (e.isCamo && !tower.stats.canSeeCamo) continue;
+            if (isHiddenFrom(tower, e)) continue;
             
             if (e.data.isMoab) {
                 if (tower.stats.superBrittle) {
                     e.brittle = true; e.brittleBonus = 4; e.brittleTimer = 3.0;
                     e.isCamo = false; e.isRegen = false;
                     e.permafrostSlow = 0.75; 
-                    let moabDmg = e.takeDamage(5, { isExplosion: true, canHitLead: true }, null, tower);
-                    if (!isNaN(moabDmg) && moabDmg !== -1) tower.damageDealt += moabDmg;
+                    dealDamage(e, 5, DamageType.EXPLOSION, null, tower);
                 } else if (tower.stats.embrittlement) {
                     e.brittle = true; e.brittleBonus = 1; e.brittleTimer = 2.0;
                     e.isCamo = false; e.isRegen = false;
                     if (e.data.isDDT) e.leadStripped = true;
                 } else if (tower.stats.icicles) {
-                    let moabDmg = e.takeDamage(tower.stats.moabDmg || 8, { isExplosion: true, canHitLead: true }, null, tower);
-                    if (!isNaN(moabDmg) && moabDmg !== -1) tower.damageDealt += moabDmg;
+                    dealDamage(e, tower.stats.moabDmg || 8, DamageType.EXPLOSION, null, tower);
                 }
                 continue;
             }
@@ -232,11 +230,9 @@ export default {
                     e.isCamo = false; e.isRegen = false;
                     e.brittle = true; e.brittleBonus = 4; e.brittleTimer = 3.0;
                     if (e.data.isLead) e.leadStripped = true;
-                    let dmg = e.takeDamage(5, { isExplosion: true, canHitLead: true }, null, tower);
-                    if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
+                    dealDamage(e, 5, DamageType.EXPLOSION, null, tower);
                 } else {
-                    let dmg = e.takeDamage(damage, dmgType, effects, tower);
-                    if (!isNaN(dmg) && dmg !== -1) tower.damageDealt += dmg;
+                    dealDamage(e, damage, dmgType, effects, tower);
                 }
                 if (tower.stats.permafrost) e.permafrostSlow = 0.5; 
                 
@@ -272,6 +268,6 @@ export default {
                 e.deepFreezeLayers = freezeLayers;
             }
         }
-        engine.explosions.push({ x: 640, y: 360, radius: 0, maxRadius: 1280, life: 0.8, maxLife: 0.8, color: '#1abc9c' });
+        spawnExplosion(engine, 640, 360, 1280, 0.8, '#1abc9c');
     }
 };
