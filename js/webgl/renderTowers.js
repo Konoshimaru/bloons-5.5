@@ -39,7 +39,7 @@ export const TowersRenderer = {
                 const container = new Container();
                 const nightGlow = new Graphics();
                 const shadow = new Graphics();
-                const glow = new Sprite(); glow.anchor.set(0.5); glow.visible = false;
+                const glow = new Container(); glow.visible = false; // selection outline (see _updateSelectionGlow)
                 const arm = new Sprite(); arm.anchor.set(0.5);
                 const aOverlayLayer = new Container();
                 const base = new Sprite(); base.anchor.set(0.5);
@@ -53,7 +53,7 @@ export const TowersRenderer = {
                 const stun = new Sprite();
                 stun.anchor.set(0.5);
                 layer.addChild(stun);
-                entry = { container, nightGlow, shadow, glow, arm, aOverlayLayer, base, overlayLayer, catapult, stun, aOverlays: [], overlays: [] };
+                entry = { container, nightGlow, shadow, glow, arm, aOverlayLayer, base, overlayLayer, catapult, stun, aOverlays: [], overlays: [], outlineSprites: [], outlineSources: [] };
                 this._towerSprites.set(tower, entry);
             }
             entry.gen = gen;
@@ -149,49 +149,94 @@ export const TowersRenderer = {
         }
     },
 
-    _getSelectionGlowFilters() {
-        if (!this._selectionGlowWhite) {
-            this._selectionGlowWhite = new ColorMatrixFilter();
-            // Map every non-transparent texel to solid white while keeping the
-            // original alpha: R=G=B=1, A=A. Matches the canvas renderer's
-            // `drop-shadow(0 0 3px #fff)` stack around the selected sprite.
-            this._selectionGlowWhite.matrix = [
+    // One shared filter that flattens everything it wraps to a solid white
+    // silhouette (RGB forced to 1, alpha kept). Safe to share: Pixi does not
+    // destroy a container's filters when the container is destroyed.
+    _getSelectionOutlineFilters() {
+        if (!this._selectionOutlineFilters) {
+            const white = new ColorMatrixFilter();
+            white.matrix = [
                 0, 0, 0, 0, 1,
                 0, 0, 0, 0, 1,
                 0, 0, 0, 0, 1,
                 0, 0, 0, 1, 0
             ];
-            this._selectionGlowBlur = new BlurFilter({ strength: 2.5, quality: 3 });
+            this._selectionOutlineFilters = [white];
         }
-        return [this._selectionGlowWhite, this._selectionGlowBlur];
+        return this._selectionOutlineFilters;
     },
 
-    // White glow around the selected tower's sprite, porting towerRenderer.js
-    // draw()'s `drop-shadow(0 0 3px #fff) x4` selection highlight. A slightly
-    // enlarged, blurred, solid-white copy of the base sprite sits behind it.
-    // Only one tower can be selected, so at most one filtered sprite renders
-    // per frame.
+    // Solid white outline hugging the selected tower's sprite stack.
+    //
+    // Technique: for every visible part of the tower (arm, upgrade overlays,
+    // base, catapult) place OUTLINE_STEPS copies of its texture, each nudged
+    // outward by the outline width around a ring, behind the real sprites.
+    // The wrapper container's filter turns all those copies into one solid
+    // white silhouette, so the only white left visible around the monkey is a
+    // crisp, even-width rim. (The previous version drew ONE blurred, scaled-up
+    // copy, which reads as a soft glow rather than an outline, and ignored
+    // the arm/overlays entirely.) Only one tower is ever selected, so at most
+    // one filtered container exists per frame.
     _updateSelectionGlow(engine, tower, entry) {
-        const isSelected = engine.selectedPlacedTower === tower;
-        const glow = entry.glow;
-        if (!isSelected) {
-            if (glow.visible) { glow.visible = false; glow.filters = null; }
+        const outline = entry.glow;
+        if (engine.selectedPlacedTower !== tower) {
+            if (outline.visible) {
+                outline.visible = false;
+                outline.filters = null;
+                this._reconcileOutlineSprites(outline, entry.outlineSprites, 0);
+            }
             return;
         }
-        const base = entry.base;
-        if (!base.visible || base.texture === Texture.EMPTY) {
-            glow.visible = false;
-            glow.filters = null;
+
+        // Collect the parts currently drawn for this tower.
+        const sources = entry.outlineSources;
+        sources.length = 0;
+        const consider = (sprite) => {
+            if (sprite && sprite.visible && sprite.texture !== Texture.EMPTY) sources.push(sprite);
+        };
+        consider(entry.arm);
+        for (const s of entry.aOverlays) consider(s);
+        consider(entry.base);
+        for (const s of entry.overlays) consider(s);
+        consider(entry.catapult);
+
+        if (sources.length === 0) {
+            outline.visible = false;
+            outline.filters = null;
             return;
         }
-        if (glow.texture !== base.texture) glow.texture = base.texture;
-        const gscale = Const.TOWER_SELECTION_GLOW_SCALE;
-        glow.width = base.width * gscale;
-        glow.height = base.height * gscale;
-        glow.x = base.x;
-        glow.y = base.y;
-        if (!glow.filters) glow.filters = this._getSelectionGlowFilters();
-        glow.visible = true;
+
+        const steps = Const.TOWER_SELECTION_OUTLINE_STEPS;
+        const radius = Const.TOWER_SELECTION_OUTLINE_WIDTH * (this._frameMscale || 1);
+        const pool = this._reconcileOutlineSprites(outline, entry.outlineSprites, sources.length * steps);
+
+        let n = 0;
+        for (const src of sources) {
+            for (let k = 0; k < steps; k++) {
+                const angle = (k / steps) * Math.PI * 2;
+                const copy = pool[n++];
+                if (copy.texture !== src.texture) copy.texture = src.texture;
+                copy.x = src.x + Math.cos(angle) * radius;
+                copy.y = src.y + Math.sin(angle) * radius;
+                copy.scale.set(src.scale.x, src.scale.y);
+                copy.rotation = src.rotation;
+            }
+        }
+
+        if (!outline.filters) outline.filters = this._getSelectionOutlineFilters();
+        outline.visible = true;
+    },
+
+    // Grows/shrinks the pooled outline copies to exactly `count` sprites.
+    _reconcileOutlineSprites(parent, pool, count) {
+        while (pool.length < count) {
+            const sprite = new Sprite();
+            sprite.anchor.set(0.5);
+            parent.addChild(sprite);
+            pool.push(sprite);
+        }
+        while (pool.length > count) pool.pop().destroy();
+        return pool;
     },
 
     _drawTowerEffects(engine) {

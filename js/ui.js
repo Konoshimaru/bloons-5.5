@@ -120,6 +120,14 @@ export const UI = {
         cards.forEach(c => c.classList.remove('selected'));
         const panel = el('upgrade-sidebar');
         if (panel) panel.classList.add('hidden');
+
+        // The upgrade tooltip is only hidden by `mouseleave`, which never fires
+        // when the element under the cursor disappears (sell / deselect /
+        // tower destroyed while hovering an upgrade button) — that left a
+        // stranded "floating text box" on screen. Always clear it here.
+        window._hoveredUpgradePath = null;
+        const upgradeTip = el('upgrade-tooltip');
+        if (upgradeTip) upgradeTip.classList.remove('show');
         
         const abilityBar = el('ability-bar');
         if (abilityBar) abilityBar.classList.add('hidden');

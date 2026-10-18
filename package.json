@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "test": "vitest run",
-    "gen:manifest": "node tools/gen-manifest.mjs"
+    "gen:manifest": "node tools/gen-manifest.mjs",
+    "gen:thumbs": "node tools/gen-map-thumbs.mjs"
   },
   "repository": {
     "type": "git",
@@ -23,6 +24,7 @@
   "homepage": "https://github.com/Konoshimaru/bloons-5.5#readme",
   "devDependencies": {
     "jsdom": "^30.1.3",
+    "sharp": "^0.35.5",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
   },

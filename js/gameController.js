@@ -5,11 +5,30 @@ import { UI } from './ui.js';
 import { dom } from './dom.js';
 import { updateShopPrices } from './dragManager.js';
 import { menuController } from './menuController.js';
+import { LoadGate } from './loadGate.js';
+import { Maps } from './data.js';
 
 import { controllers } from './controllers.js';
 
 export const gameController = {
     async startGameUI(isSandbox) {
+        // Ignore double-clicks while the pre-game loading screen is up.
+        if (this._starting) return;
+        this._starting = true;
+        try {
+            // Gate: gameplay assets + this map's background. Instant when the
+            // background prefetch already finished; otherwise one loading screen.
+            await LoadGate.ensureMany(
+                [['game'], ['map', Maps[GameEngine.currentMap]]],
+                { label: 'Preparing the battlefield...' }
+            );
+            await this._startGameUI(isSandbox);
+        } finally {
+            this._starting = false;
+        }
+    },
+
+    async _startGameUI(isSandbox) {
         menuController.showMainMenuUI(false);
         UI.toggleMenus(null);
         document.getElementById('sidebar').classList.remove('hidden');

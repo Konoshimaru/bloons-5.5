@@ -10,12 +10,15 @@ import { dom } from './dom.js';
 import { updateShopPrices } from './dragManager.js';
 import { controllers } from './controllers.js';
 import selectorMenus from './selectorMenus.js';
+import { LoadGate } from './loadGate.js';
+import { MAP_TIERS, getMapTier, getTierInfo, getMapThumbUrl, getMapFullUrl } from './mapMeta.js';
 
 export const menuController = {
     playMenuState: {
         selectedMapIndex: 0,
         page: 0,
-        mapsPerPage: 6
+        mapsPerPage: 6,
+        tab: 'beginner'
     },
 
     showMainMenuUI(show) {
@@ -180,33 +183,80 @@ export const menuController = {
         info.scrollTop = 0;
     },
 
+    // BTD6-style map select: difficulty tabs along the bottom, a 3x2 page of
+    // tier-coloured cards, arrows either side to page within a tab.
     refreshPlayMaps() {
         const grid = document.getElementById('play-map-grid');
         const pageEl = document.getElementById('play-map-page');
+        const tabsEl = document.getElementById('play-tabs');
         if (!grid) return;
-        
-        grid.innerHTML = '';
-        const totalPages = Math.ceil(Maps.length / this.playMenuState.mapsPerPage);
-        if (this.playMenuState.page >= totalPages) this.playMenuState.page = totalPages - 1;
-        if (this.playMenuState.page < 0) this.playMenuState.page = 0;
-        
-        const start = this.playMenuState.page * this.playMenuState.mapsPerPage;
-        const end = start + this.playMenuState.mapsPerPage;
-        const mapsToShow = Maps.slice(start, end);
 
-        mapsToShow.forEach((map, index) => {
-            const actualIndex = start + index;
+        const st = this.playMenuState;
+        const customIds = new Set((Config.data.customMaps || []).map(cm => cm.id));
+        const entries = Maps.map((map, idx) => {
+            const isCustom = !!map.id && customIds.has(map.id);
+            return { map, idx, isCustom, tier: getMapTier(map, isCustom) };
+        });
+
+        // Tabs (the Custom tab only exists once the player has made a map).
+        const tiers = MAP_TIERS.filter(t => entries.some(e => e.tier === t.id));
+        if (!tiers.some(t => t.id === st.tab)) st.tab = tiers.length ? tiers[0].id : 'beginner';
+
+        if (tabsEl) {
+            tabsEl.innerHTML = '';
+            tiers.forEach(t => {
+                const count = entries.filter(e => e.tier === t.id).length;
+                const btn = document.createElement('button');
+                btn.className = 'play-tab' + (t.id === st.tab ? ' active' : '');
+                btn.style.setProperty('--tier', t.color);
+                btn.innerHTML = `<span class="play-tab-dot"></span>${t.label}<span class="play-tab-count">${count}</span>`;
+                btn.addEventListener('click', () => { st.tab = t.id; st.page = 0; this.refreshPlayMaps(); });
+                tabsEl.appendChild(btn);
+            });
+        }
+
+        const visible = entries.filter(e => e.tier === st.tab);
+        const totalPages = Math.max(1, Math.ceil(visible.length / st.mapsPerPage));
+        if (st.page >= totalPages) st.page = totalPages - 1;
+        if (st.page < 0) st.page = 0;
+
+        const prevBtn = document.getElementById('play-prev-maps');
+        const nextBtn = document.getElementById('play-next-maps');
+        if (prevBtn) prevBtn.style.visibility = st.page > 0 ? 'visible' : 'hidden';
+        if (nextBtn) nextBtn.style.visibility = st.page < totalPages - 1 ? 'visible' : 'hidden';
+
+        grid.innerHTML = '';
+        const start = st.page * st.mapsPerPage;
+        visible.slice(start, start + st.mapsPerPage).forEach(({ map, idx, isCustom, tier }) => {
+            const tierInfo = getTierInfo(tier);
             const card = document.createElement('div');
             card.className = 'play-map-card';
-            if (actualIndex === this.playMenuState.selectedMapIndex) card.classList.add('selected');
-            
-            let thumbUrl = map.image ? `sprites/maps/${map.image}.png` : '';
-            card.innerHTML = `
-                <div class="play-map-thumb" style="background-image: url('${thumbUrl}');"></div>
-                <div class="play-map-name">${map.name || `Map ${actualIndex + 1}`}</div>
-            `;
+            card.style.setProperty('--tier', tierInfo.color);
+            if (idx === st.selectedMapIndex) card.classList.add('selected');
 
-            const isCustom = Config.data.customMaps.some(cm => cm.id === map.id);
+            const thumb = document.createElement('div');
+            thumb.className = 'play-map-thumb';
+            const img = document.createElement('img');
+            img.alt = '';
+            img.loading = 'lazy';
+            img.draggable = false;
+            img.src = getMapThumbUrl(map);
+            // No generated thumbnail yet (new/custom map)? Use the full image.
+            img.onerror = () => { img.onerror = null; img.src = getMapFullUrl(map); };
+            thumb.appendChild(img);
+
+            const ribbon = document.createElement('div');
+            ribbon.className = 'play-map-ribbon';
+            ribbon.textContent = tierInfo.label;
+            thumb.appendChild(ribbon);
+
+            const name = document.createElement('div');
+            name.className = 'play-map-name';
+            name.textContent = map.name || `Map ${idx + 1}`;
+
+            card.appendChild(thumb);
+            card.appendChild(name);
+
             if (isCustom) {
                 const delBtn = document.createElement('button');
                 delBtn.className = 'map-delete-btn';
@@ -219,9 +269,7 @@ export const menuController = {
                         Config.save();
                         const mapIdx = Maps.indexOf(map);
                         if (mapIdx > -1) Maps.splice(mapIdx, 1);
-                        if (this.playMenuState.selectedMapIndex >= mapIdx) {
-                            this.playMenuState.selectedMapIndex = Math.max(0, this.playMenuState.selectedMapIndex - 1);
-                        }
+                        if (st.selectedMapIndex >= mapIdx) st.selectedMapIndex = Math.max(0, st.selectedMapIndex - 1);
                         this.refreshPlayMaps();
                     }
                 });
@@ -229,16 +277,17 @@ export const menuController = {
             }
 
             card.addEventListener('click', () => {
-                this.playMenuState.selectedMapIndex = actualIndex;
+                st.selectedMapIndex = idx;
                 this.showPlayDifficulties();
             });
             grid.appendChild(card);
         });
 
-        if (pageEl) pageEl.innerText = `Page ${this.playMenuState.page + 1} / ${totalPages}`;
+        if (pageEl) pageEl.innerText = totalPages > 1 ? `Page ${st.page + 1} / ${totalPages}` : '';
     },
 
     showPlayDifficulties() {
+        LoadGate.prefetch('map', Maps[this.playMenuState.selectedMapIndex]);
         document.getElementById('play-menu-title').innerText = Maps[this.playMenuState.selectedMapIndex].name || "Select Difficulty";
         document.getElementById('play-map-view').classList.add('hidden');
         document.getElementById('play-difficulty-view').classList.remove('hidden');
@@ -278,8 +327,19 @@ export const menuController = {
         }
     },
 
+    // Open the menu on the tab + page that contains the last-played map.
+    _focusPlayTabOnSelectedMap() {
+        const st = this.playMenuState;
+        const map = Maps[st.selectedMapIndex];
+        if (!map) return;
+        const customIds = new Set((Config.data.customMaps || []).map(cm => cm.id));
+        st.tab = getMapTier(map, !!map.id && customIds.has(map.id));
+        const sameTab = Maps.filter(m => getMapTier(m, !!m.id && customIds.has(m.id)) === st.tab);
+        st.page = Math.max(0, Math.floor(sameTab.indexOf(map) / st.mapsPerPage));
+    },
+
     showPlayMaps() {
-        document.getElementById('play-menu-title').innerText = "Select a Map";
+        document.getElementById('play-menu-title').innerText = "Maps";
         document.getElementById('play-map-view').classList.remove('hidden');
         document.getElementById('play-difficulty-view').classList.add('hidden');
         this.refreshPlayMaps();
@@ -287,13 +347,17 @@ export const menuController = {
 
     setupMenuListeners() {
         dom.btnSandbox?.addEventListener('click', () => controllers.game.startGameUI(true));
-        dom.btnHeroes?.addEventListener('click', () => UI.toggleMenus('hero-select-menu'));
+        dom.btnHeroes?.addEventListener('click', async () => {
+            await LoadGate.ensure('portraits', { label: 'Loading heroes...' });
+            UI.toggleMenus('hero-select-menu');
+        });
         dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
         dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
         dom.btnUpdateLog?.addEventListener('click', () => UI.toggleMenus('update-log-menu'));
         
         dom.btnPlay?.addEventListener('click', () => { 
             this.playMenuState.selectedMapIndex = Config.data.currentMap;
+            this._focusPlayTabOnSelectedMap();
             this.showPlayMaps(); 
             UI.toggleMenus('play-menu'); 
         });
@@ -315,7 +379,11 @@ export const menuController = {
             }
         });
 
-        dom.btnMonkeys?.addEventListener('click', () => { this.updateMonkeysMenu(); UI.toggleMenus('monkeys-menu'); });
+        dom.btnMonkeys?.addEventListener('click', async () => {
+            await LoadGate.ensure('portraits', { label: 'Loading monkeys...' });
+            this.updateMonkeysMenu();
+            UI.toggleMenus('monkeys-menu');
+        });
         dom.mmTopLeft?.addEventListener('click', () => { this.updateProfileUI(); UI.toggleMenus('profile-menu'); });
         
         document.getElementById('profile-save-name')?.addEventListener('click', () => {

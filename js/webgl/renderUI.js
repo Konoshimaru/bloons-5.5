@@ -32,17 +32,50 @@ export const UIRenderer = {
             }
             text.gen = gen;
             if (text.text !== ft.text) text.text = ft.text;
-            if (ft.color) text.style.fill = ft.color;
-            text.x = ft.x; text.y = ft.y; text.alpha = Math.max(0, Math.min(1, ft.life / ft.maxLife));
+            // Only touch the style when the colour changes (each assignment forces a
+            // text re-layout), and never let a missing maxLife turn alpha into NaN.
+            if (ft.color && text._ftColor !== ft.color) { text.style.fill = ft.color; text._ftColor = ft.color; }
+            const frac = ft.maxLife > 0 ? ft.life / ft.maxLife : 0;
+            text.x = ft.x; text.y = ft.y; text.alpha = Math.max(0, Math.min(1, frac));
         }
         for (const [ft, text] of this._floatingTextSprites) {
             if (text.gen !== gen) { text.destroy(); this._floatingTextSprites.delete(ft); }
         }
     },
 
-    // Selection highlight is drawn by the tower renderer itself (a white glow
-    // around the sprite, matching the canvas drop-shadow outline) — see
-    // renderTowers.js _updateSelectionGlow. No range-circle overlay here.
+    // Range circle for the currently selected tower. The white outline around
+    // the sprite itself is drawn by the tower renderer (renderTowers.js
+    // _updateSelectionGlow); this adds the translucent range disc underneath,
+    // on the dedicated `selectionFill` layer (above the map/explosions, below
+    // the towers). Towers with unlimited range (stats.range >= 9999, e.g. the
+    // sniper) get no circle, same as BTD6.
+    _drawSelectedRange(engine) {
+        if (!this._selectionGraphics) {
+            this._selectionGraphics = new Graphics();
+            PixiApp.layer('selectionFill').addChild(this._selectionGraphics);
+        }
+        const g = this._selectionGraphics;
+        const sel = engine.selectedPlacedTower;
+        const baseRange = sel && sel.stats && typeof sel.stats.range === 'number' ? sel.stats.range : 0;
+
+        if (!sel || engine.gameState !== 'playing' || baseRange <= 0 || baseRange >= 9999) {
+            if (this._selectionRangeKey !== null) { g.clear(); this._selectionRangeKey = null; }
+            return;
+        }
+
+        const radius = Math.max(1, Utils.getEffectiveRange(sel, engine));
+        // Ace flies around; every other tower sits at (x, y).
+        const x = sel.x, y = sel.y;
+        // Only rebuild the geometry when it actually changes (range buffs and
+        // day/night shrink it smoothly, so this still tracks them).
+        const key = `${x}|${y}|${radius.toFixed(1)}`;
+        if (this._selectionRangeKey === key) return;
+        this._selectionRangeKey = key;
+
+        g.clear();
+        g.circle(x, y, radius).fill({ color: Const.TOWER_SELECTION_RANGE_COLOR, alpha: Const.TOWER_SELECTION_RANGE_FILL_ALPHA });
+        g.circle(x, y, radius).stroke({ color: Const.TOWER_SELECTION_RANGE_COLOR, alpha: Const.TOWER_SELECTION_RANGE_LINE_ALPHA, width: Const.TOWER_SELECTION_RANGE_LINE_WIDTH });
+    },
 
     _drawLeakFlash(engine) {
         if (!this._leakFlashGraphics) { this._leakFlashGraphics = new Graphics(); PixiApp.layer('overlay').addChild(this._leakFlashGraphics); }

@@ -19,6 +19,7 @@ import { UI } from './ui.js';
 import { MonkeyKnowledge } from './monkeyKnowledge.js';
 import { LevelManager } from './levelManager.js';
 import { LoadingMinigame } from './loadingMinigame.js';
+import { LoadGate } from './loadGate.js';
 import { setupShopListeners, setupNudgeLogic, updateShopPrices } from './dragManager.js';
 import selectorMenus from './selectorMenus.js';
 import settingsMenu from './settingsMenu.js';
@@ -41,13 +42,20 @@ Object.assign(Main, gameController);
 // handler await the same promise, so a fast click just waits for the same
 // in-flight work.
 let canvasPreloadPromise = null;
-function buildCanvasPreloadUrls() {
+// Menu portraits (CSS backgrounds in the Monkeys / Heroes menus). Gated before
+// those menus open — see LoadGate group "portraits".
+function buildPortraitUrls() {
     const urls = [];
     Object.keys(TowerStats).forEach(type => urls.push(`sprites/portraits/${type}_menuportrait.png`));
     Object.keys(HeroRegistry).forEach(key => urls.push(`sprites/portraits/${key}_menuportrait.png`));
-    Maps.forEach(map => {
-        if (map.bgImage) urls.push(`sprites/maps/${map.bgImage}`);
-    });
+    return urls;
+}
+
+// Canvas-side gameplay images. Map backgrounds are intentionally NOT here any
+// more: they're ~1-3MB each x 2 (day+night) x every map, and a session only
+// plays one — LoadGate group "map" loads just the chosen map's pair.
+function buildCanvasPreloadUrls() {
+    const urls = [];
     Object.keys(TowerStats).forEach(type => {
         urls.push(`sprites/towers/${type}_base.png`);
         urls.push(`sprites/towers/${type}_arm.png`);
@@ -78,6 +86,30 @@ function startCanvasPreload() {
     }
     return canvasPreloadPromise;
 }
+
+// ---- LoadGate groups (see js/loadGate.js) ---------------------------------
+LoadGate.register('boot', {
+    load: async () => { await AudioEngine.init(); MonkeyKnowledge.init(); },
+});
+LoadGate.register('portraits', {
+    load: (_ctx, onProgress) => Assets.preloadUrls(buildPortraitUrls(), onProgress),
+});
+LoadGate.register('game', {
+    load: async (_ctx, onProgress) => {
+        const renderer = await GameEngine.rendererReady;
+        await Promise.all([
+            renderer ? renderer.preloadGameAssets(onProgress) : Promise.resolve(),
+            startCanvasPreload(),
+        ]);
+    },
+});
+LoadGate.register('map', {
+    key: (mapData) => (mapData && (mapData.image || mapData.bgImage)) || 'none',
+    load: async (mapData) => {
+        const renderer = await GameEngine.rendererReady;
+        if (renderer && renderer.preloadMap) await renderer.preloadMap(mapData);
+    },
+});
 
 window.addEventListener('error', (e) => {
     const errMsg = document.getElementById('error-message');
@@ -135,6 +167,16 @@ function setupEventListeners() {
     });
 }
 
+// Repeat-visit asset cache (public/sw.js). Production builds only — the dev
+// server must always serve fresh files, and the sprite editors rewrite assets.
+// Fully optional: if registration is blocked (e.g. some embedded hosts) the
+// game simply loads from the network as before.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register(`sw.js?v=${__BUILD_ID__}`).catch(err => console.warn('[sw] not registered:', err));
+    });
+}
+
 // Scale/position the game container immediately (module scripts run after DOM
 // parse, so the elements exist here) instead of waiting for the slow `load`
 // event — otherwise the title screen shows un-framed until all assets finish.
@@ -142,7 +184,11 @@ windowLayout.init();
 
 window.addEventListener('load', () => {
     GameEngine.init();
-    startCanvasPreload();
+    // Start every group loading in the background right away (portraits are small
+    // so they go first); each is gated only where it is actually needed.
+    LoadGate.prefetch('portraits');
+    LoadGate.prefetch('game');
+    LoadingMinigame.onComplete = () => LevelManager.addXP(1, { autoGrantCategory: true });
     const titleMeta = document.getElementById('title-meta');
     if (titleMeta) titleMeta.innerText = `v${pkg.version} · ${GameEngine.rendererName}`;
     setupEventListeners();
@@ -151,53 +197,18 @@ window.addEventListener('load', () => {
     const titleScreen = document.getElementById('title-screen');
     const loadingScreen = document.getElementById('loading-screen');
     const titlePlayBtn = document.getElementById('title-play-btn');
-    const loadingStatus = document.getElementById('loading-status');
-
-    const setStatus = (text) => { if (loadingStatus) loadingStatus.textContent = text; };
 
     titlePlayBtn.addEventListener('click', async () => {
         try {
             titleScreen.classList.add('hidden');
-            loadingScreen.classList.remove('hidden');
-            loadingScreen.classList.remove('minigame-only');
-            document.getElementById('minigame-close')?.classList.add('hidden');
-            setStatus('Loading...');
-            LoadingMinigame.onComplete = () => LevelManager.addXP(1, { autoGrantCategory: true });
-            LoadingMinigame.start();
-
-            // 1-4) Run the three independent preload tracks concurrently:
-            //   a) WebGL textures (tower/hero frames incl. upgrades, enemies +
-            //      cracks + blades, effects, projectiles, maps) — mostly loaded
-            //      already by the background _preloadSprites() fired at init.
-            //   b) Canvas Images — same URL/Manifest lists, preloaded in the
-            //      background by startCanvasPreload() during the title screen;
-            //      they drive the animation-decision logic (towerBehavior probes
-            //      Assets.get() to pick full-anim prefixes) and warm the HTTP
-            //      cache for the CSS menu portraits.
-            //   c) AudioEngine.init() — builds the AudioContext, loads the music
-            //      playlist, and decodes all SFX.
-            // Each track is independent (its own cache/subsystem) and every
-            // preload is idempotent, so awaiting them together is safe.
-            const renderer = await GameEngine.rendererReady;
-            setStatus('Loading assets...');
-            await Promise.all([
-                renderer ? renderer.preloadGameAssets(() => { setStatus('Loading assets...'); }) : Promise.resolve(),
-                startCanvasPreload(),
-                AudioEngine.init(),
-            ]);
-
-            setStatus('Ready!');
-            MonkeyKnowledge.init();
-
-            await new Promise(r => setTimeout(r, 300));
-            
-            LoadingMinigame.stop();
+            // The main menu only needs audio + knowledge. Everything else keeps
+            // loading in the background and is gated where it's used.
+            await LoadGate.ensure('boot', { label: 'Loading...' });
             loadingScreen.classList.add('hidden');
             Main.showMainMenuUI(true);
             AudioEngine.playMenuMusic();
         } catch (err) {
-            console.error("Boot: Loading sequence failed, forcing game load:", err);
-            LoadingMinigame.stop();
+            console.error("Boot: Loading sequence failed, forcing menu:", err);
             loadingScreen.classList.add('hidden');
             Main.showMainMenuUI(true);
         }

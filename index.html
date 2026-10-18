@@ -154,6 +154,7 @@
                 <div class="loading-container">
                     <button id="minigame-close" class="back-btn hidden">Back</button>
                     <div id="loading-status" class="loading-indicator">Loading...</div>
+                    <div id="loading-bar"><div id="loading-bar-fill"></div></div>
                 </div>
         </div>
 
@@ -183,21 +184,20 @@
 
         <!-- Unified Play Menu -->
         <div id="play-menu" class="overlay hidden">
-            <div class="menu-content" style="max-width: 900px; width: 90vw;">
-                <h2 id="play-menu-title">Select a Map</h2>
+            <div id="play-screen">
+                <button id="play-back-btn" class="play-round-btn" title="Back" aria-label="Back">&#10094;</button>
+                <h2 id="play-menu-title">Maps</h2>
                 <div id="play-map-view">
-                    <div class="play-map-nav">
-                        <button id="play-prev-maps">◀ Prev</button>
-                        <span id="play-map-page">Page 1</span>
-                        <button id="play-next-maps">Next ▶</button>
+                    <div id="play-map-stage">
+                        <button id="play-prev-maps" class="play-arrow-btn" aria-label="Previous page">&#10094;</button>
+                        <div id="play-map-grid" class="play-map-grid"></div>
+                        <button id="play-next-maps" class="play-arrow-btn" aria-label="Next page">&#10095;</button>
                     </div>
-                    <div id="play-map-grid" class="play-map-grid"></div>
+                    <div id="play-map-page"></div>
+                    <div id="play-tabs"></div>
                 </div>
                 <div id="play-difficulty-view" class="hidden">
                     <div id="play-difficulty-grid"></div>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-                    <button id="play-back-btn" class="back-btn">Back</button>
                 </div>
             </div>
         </div>

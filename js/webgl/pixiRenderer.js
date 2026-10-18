@@ -13,7 +13,6 @@ import { MenuRenderer } from './renderMenu.js';
 import { BuffIconsRenderer } from './renderBuffIcons.js';
 import { TowerStats } from '../towers/index.js';
 import { HeroRegistry } from '../heroes/index.js';
-import { Maps } from '../data.js';
 import { SPRITESHEETS } from '../spriteSheets.js';
 
 export const PixiRenderer = {
@@ -30,6 +29,7 @@ export const PixiRenderer = {
     _floatingTextsLayer: null,
     _floatingTextSprites: new Map(),
     _selectionGraphics: null,
+    _selectionRangeKey: null,
     _leakFlashGraphics: null,
     _hitscansGraphics: null,
     _bananaSprites: new Map(),
@@ -156,15 +156,19 @@ export const PixiRenderer = {
         }
         for (let i = 0; i <= 15; i++) keys.push(`proj_meteor_${i}`);
 
-        // Map backgrounds (and their night variants) — iterate the live map
-        // list so newly added maps preload automatically too.
-        for (const mapData of Maps) {
-            if (!mapData || !mapData.image) continue;
-            keys.push(`map_${mapData.image}`);
-            keys.push(mapData.imageNight ? `map_${mapData.imageNight}` : `map_${mapData.image}_night`);
-        }
+        // Map backgrounds are NOT preloaded here any more (see preloadMap) —
+        // PixiAssets.get() still lazy-loads them if something asks first.
 
         return keys;
+    },
+
+    // Day + night background for ONE map. Called by the LoadGate "map" group
+    // (and prefetched as soon as the player highlights a map) so the map never
+    // appears with a blank background.
+    async preloadMap(mapData) {
+        if (!mapData || !mapData.image) return;
+        const night = mapData.imageNight || `${mapData.image}_night`;
+        await PixiAssets.preloadManifest([`map_${mapData.image}`, `map_${night}`], null, true);
     },
 
     // Await-able full preload used by the loading screen. Idempotent (the
@@ -269,6 +273,7 @@ export const PixiRenderer = {
         this._safeDraw('_drawBackground', engine);
         this._safeDraw('_drawAcidPools', engine);
         this._safeDraw('_drawExplosions', engine);
+        this._safeDraw('_drawSelectedRange', engine);
         this._safeDraw('_drawTowerEffects', engine);
         this._safeDraw('_drawHeroVFX', engine);
         this._safeDraw('_drawTowers', engine);

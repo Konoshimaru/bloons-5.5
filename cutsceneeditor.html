@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boss Cutscene Animator</title>
+    <link rel="stylesheet" href="/css/cutsceneEditor.css">
+</head>
+<body>
+    <div id="panel">
+        <header>
+            <h1>🎞️ Knight Keyframes</h1>
+            <p>Add keys → set the sprite &amp; position → <b>Save</b>. The real cutscene plays your track when it has keys.</p>
+        </header>
+        <div id="panel-scroll">
+            <div class="btnrow">
+                <button id="btn-add" class="primary">＋ Add keyframe</button>
+                <button id="btn-builtin">⟳ Build from current animation</button>
+                <button id="btn-save">💾 Save</button>
+                <button id="btn-clear" class="danger">✕ Clear all</button>
+            </div>
+            <div id="key-list"></div>
+            <p id="empty-hint" style="color:#8b93a3;font-size:12px;padding:8px 2px;">
+                No keyframes — the cutscene uses its built-in reveal.<br>
+                Hit <b>⟳ Build from current animation</b> to load the existing reveal (pan → roar → equip → walk-in) as ~43 editable keyframes, then drag keys / swap sprites freely.<br>
+                Leave X/Y blank to hold position; camera shifts when adjacent keys change it.
+            </p>
+        </div>
+        <div id="toast"></div>
+    </div>
+
+    <div id="stage-wrap">
+        <div id="stage-toolbar">
+            <span class="title">Preview</span>
+            <button id="btn-play" class="play">▶ Play</button>
+            <button id="btn-restart">↺ Restart</button>
+            <span style="color:#8b93a3;">＋key at playhead:</span>
+            <button id="btn-add-here">⏱ t</button>
+            <span class="note">scrub the timeline · drag diamonds to retime · Space = play/pause · R = restart</span>
+        </div>
+        <div id="stage-holder">
+            <canvas id="stage" width="1280" height="720"></canvas>
+        </div>
+        <div id="timeline">
+            <div class="track-row" style="margin-bottom:8px;">
+                <span class="lbl">Keyframes</span>
+                <div id="beat-bar" class="beat-bar"></div>
+                <span id="zoom-controls" style="display:flex;align-items:center;gap:4px;">
+                    <button id="zoom-out" title="Zoom out">−</button>
+                    <span id="zoom-label" style="color:#8b93a3;font-size:11px;width:34px;text-align:center;">100%</span>
+                    <button id="zoom-in" title="Zoom in">＋</button>
+                    <button id="zoom-fit" title="Fit whole timeline">⛶</button>
+                    <button id="zoom-left" title="Pan left">◀</button>
+                    <button id="zoom-right" title="Pan right">▶</button>
+                </span>
+            </div>
+            <div class="track-row">
+                <span class="lbl" id="time-label">0.00s</span>
+                <input id="scrubber" type="range" min="0" max="1000" value="0">
+            </div>
+            <p style="color:#8b93a3;font-size:10.5px;margin:6px 0 0 96px;">Timeline: <b>wheel</b> = zoom at cursor · <b>shift+wheel</b> = pan · <b>middle-drag</b> = pan</p>
+        </div>
+    </div>
+
+    <script type="module" src="/js/cutsceneEditor.js"></script>
+</body>
+</html>

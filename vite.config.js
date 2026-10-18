@@ -55,8 +55,14 @@ function configSavePlugin(route, filePath, backupPrefix, exportName) {
   };
 }
 
+// Changes every build; passed to the service worker so each deploy gets a fresh asset cache.
+const BUILD_ID = Date.now().toString(36);
+
 export default defineConfig({
   base: './', // Required for itch.io
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   plugins: [
     configSavePlugin('/__save-sprite-config', path.join(__dirname, 'js', 'spriteConfig.js'), 'spriteConfig', 'SpriteConfig'),
     configSavePlugin('/__save-bloon-config', path.join(__dirname, 'js', 'bloonSpriteConfig.js'), 'bloonSpriteConfig', 'BloonSpriteConfig'),

@@ -372,8 +372,12 @@ export function setupShopListeners() {
                 }
                 tip.style.top = finalTop + 'px';
                 
+                // `show` is applied a frame later (so the position settles first).
+                // If the cursor already left this button by then, mouseleave has
+                // run and removing `show` was a no-op — adding it now would strand
+                // the tooltip on screen. Only show if we're still hovering.
                 requestAnimationFrame(() => {
-                    tip.classList.add('show');
+                    if (window._hoveredUpgradePath === path) tip.classList.add('show');
                 });
             }
         });
@@ -531,8 +535,15 @@ export function setupNudgeLogic() {
         const overSidebar = (e.clientX >= sidebarRect.left && e.clientX <= sidebarRect.right);
 
         if (overSidebar) {
-            GameEngine.deselectAll();
-            GameEngine.stuckPlacement = null;
+            // Releasing over the sidebar only cancels a placement that was
+            // being dragged/nudged on the canvas. A plain click on a shop
+            // card also ends with a pointerup over the sidebar — that must
+            // KEEP the selection so click-card-then-click-map works like BTD6
+            // (dragging from the card is cancelled by the card's own handler).
+            if (isNudging || isCanvasDragging) {
+                GameEngine.deselectAll();
+                GameEngine.stuckPlacement = null;
+            }
             isNudging = false;
             isCanvasDragging = false;
             return;

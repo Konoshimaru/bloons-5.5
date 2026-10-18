@@ -58,7 +58,16 @@ export const TOWER_SELECTION_LINE_WIDTH = 3;
 export const TOWER_SELECTION_RING_COLOR = 0xe67e22;
 export const TOWER_RANGE_FILL_COLOR = 0xe67e22;
 export const TOWER_SELECTION_FILL_ALPHA = 0.15;
-export const TOWER_SELECTION_GLOW_SCALE = 1.08;
+// Solid white outline around the selected tower (renderTowers.js
+// _updateSelectionGlow): `WIDTH` is the rim thickness in world px, `STEPS` how
+// many offset copies form the ring (more = smoother rim on diagonals).
+export const TOWER_SELECTION_OUTLINE_WIDTH = 3;
+export const TOWER_SELECTION_OUTLINE_STEPS = 16;
+// Range circle shown under the selected tower (renderUI.js _drawSelectedRange).
+export const TOWER_SELECTION_RANGE_COLOR = 0xffffff;
+export const TOWER_SELECTION_RANGE_FILL_ALPHA = 0.14;
+export const TOWER_SELECTION_RANGE_LINE_ALPHA = 0.55;
+export const TOWER_SELECTION_RANGE_LINE_WIDTH = 3;
 export const ACID_POOL_COLOR = 0x2ecc71;
 export const ACID_FOAM_COLOR = 0xecf0f1;
 export const ACID_POOL_LIFE_DIVISOR = 2.0;
