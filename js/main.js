@@ -207,6 +207,8 @@ window.addEventListener('load', () => {
             loadingScreen.classList.add('hidden');
             Main.showMainMenuUI(true);
             AudioEngine.playMenuMusic();
+            // Hand out rewards for levels reached in an earlier session but never claimed.
+            LevelManager.resumeUnclaimed();
         } catch (err) {
             console.error("Boot: Loading sequence failed, forcing menu:", err);
             loadingScreen.classList.add('hidden');

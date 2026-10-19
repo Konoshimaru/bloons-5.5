@@ -31,6 +31,7 @@ export class KnightEnemy extends Enemy {
         this.knightTrail = [];
         this.trailTimer = 0;
         this.isCinematic = true; 
+        this.followsPath = false;   // he moves on his own: towers must aim at him, not along the map path
 
         this.state = 'idle'; 
         this.stateTimer = 3.0; 

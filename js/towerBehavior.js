@@ -212,7 +212,7 @@ function _getAcquireTarget(tower, engine) {
         // re-scan every tick — wait the interval out. Fires always re-scan,
         // so a newly-spawned valid target is still picked up on time.
         if (!cached && tower._targetRescanTimer > 0) return null;
-        if (cached && cached.alive && cached._spawnId === tower._cachedTargetSpawnId && tower._cachedTargetingKey === targetingKey) {
+        if (cached && cached.alive && !cached.invulnerable && !cached.untargetable && cached._spawnId === tower._cachedTargetSpawnId && tower._cachedTargetingKey === targetingKey) {
             if (tower.stats.range === 9999 || Utils.withinRange(tower.x, tower.y, cached.x, cached.y, Utils.getEffectiveRange(tower, engine) + (cached.radius || 10))) {
                 return cached;
             }
@@ -266,6 +266,7 @@ function _findTarget(tower, engine) {
 
     for (const e of candidates) {
         if (!e.alive) continue;
+        if (e.invulnerable || e.untargetable) continue;   // e.g. the Knight while he rolls to a new spot
         if (isHiddenFrom(tower, e)) continue;
         if (tower.type === 'glue' && e.data.isMoab && !tower.stats.canHitMoab) continue; 
         
@@ -362,28 +363,31 @@ function _executeFire(tower, target, engine) {
     }
     if (!target.alive) return; 
 
+    fire(tower, target, engine, computeLeadAim(tower, target, engine));
+}
+
+// Where a projectile should be aimed so it meets a moving target, or null to aim straight at the
+// target's current x/y. The lead is computed ALONG THE MAP PATH (distanceTraveled + speed * time),
+// so it is only valid for enemies that really follow the path. Bosses that move on their own
+// (the Black Knight hovers / rolls to a new spot) have distanceTraveled = 0, which used to make
+// every tower aim at the START OF THE PATH instead of at the boss. Such enemies set
+// `followsPath = false` and are aimed at directly.
+export function computeLeadAim(tower, target, engine) {
     const projSpeed = tower.stats.projectileSpeed || 0;
-    let aim = null;
-    
-    if (projSpeed > 0 && projSpeed < 1500 && !tower.stats.hitscan && target.data.speed > 0) {
-        const dist = Utils.distance(tower.x, tower.y, target.x, target.y);
-        
-        const effSpeed = target.data.speed * (target.slowFactor || 1) * (target.gojoSlow || 1) * (target.permafrostSlow || 1);
-        
-        const timeToHit = (dist / projSpeed) * (0.8 + Math.random() * 0.4);
-        
-        const futureDist = target.distanceTraveled + (effSpeed * timeToHit);
-        const pathIdx = target.pathIndex || 0;
-        const totalLen = engine.map.getTotalLength(pathIdx);
-        const safeFutureDist = Math.max(0, Math.min(totalLen, futureDist));
-        const futurePos = engine.map.getPositionAtDistance(safeFutureDist, pathIdx);
-        
-        if (!futurePos.finished) {
-            aim = { x: futurePos.x, y: futurePos.y };
-        }
-    }
-    
-    fire(tower, target, engine, aim);
+    if (!(projSpeed > 0 && projSpeed < 1500) || tower.stats.hitscan) return null;
+    if (target.followsPath === false || !(target.data.speed > 0)) return null;
+
+    const dist = Utils.distance(tower.x, tower.y, target.x, target.y);
+    const effSpeed = target.data.speed * (target.slowFactor || 1) * (target.gojoSlow || 1) * (target.permafrostSlow || 1);
+    const timeToHit = (dist / projSpeed) * (0.8 + Math.random() * 0.4);
+
+    const futureDist = target.distanceTraveled + (effSpeed * timeToHit);
+    const pathIdx = target.pathIndex || 0;
+    const totalLen = engine.map.getTotalLength(pathIdx);
+    const safeFutureDist = Math.max(0, Math.min(totalLen, futureDist));
+    const futurePos = engine.map.getPositionAtDistance(safeFutureDist, pathIdx);
+
+    return futurePos.finished ? null : { x: futurePos.x, y: futurePos.y };
 }
 
 function _getAnimationAsset(tower) {

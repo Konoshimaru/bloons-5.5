@@ -337,9 +337,16 @@ export const UIRenderer = {
         }
         const g = this._hitboxGraphics;
 
-        if (!Config.data.showHitboxes) return;
+        if (!Config.data.showHitboxes) {
+            // Wipe the last drawn frame once. Returning without clear() left every ring that
+            // existed at the moment of toggling off frozen on screen (only towers placed
+            // afterwards looked "off").
+            if (this._hitboxesDrawn) { g.clear(); this._hitboxesDrawn = false; }
+            return;
+        }
 
         g.clear();
+        this._hitboxesDrawn = true;
 
         // Towers
         for (const t of engine.towers) {

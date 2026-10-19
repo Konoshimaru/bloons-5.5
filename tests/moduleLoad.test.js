@@ -4,10 +4,17 @@
 import { it, expect } from 'vitest';
 
 const loaders = import.meta.glob('../js/**/*.js');
+// Files used as <script type="module"> entry points of an HTML page (main game, editors...) run
+// page-specific DOM code on import, so they are not "game modules": exclude them automatically.
+const pages = import.meta.glob('../*.html', { query: '?raw', import: 'default', eager: true });
+const entryPoints = new Set(
+  Object.values(pages).flatMap((html) => [...html.matchAll(/<script[^>]*type="module"[^>]*src="\/?([^"]+)"/g)].map((m) => m[1]))
+);
 
 it('every game module loads', async () => {
   const entries = Object.entries(loaders).filter(([f]) =>
-    !f.includes('/backups/') && !f.includes('/js/tests/') && !f.endsWith('/main.js'));
+    !f.includes('/backups/') && !f.includes('/js/tests/') &&
+    !entryPoints.has(f.replace('../', '')));
   const failures = [];
   for (const [f, load] of entries) {
     try { await load(); } catch (e) { failures.push(f + ': ' + String(e.message).split('\n')[0]); }

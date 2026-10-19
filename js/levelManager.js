@@ -8,6 +8,21 @@ import { UI } from './ui.js';
 import { updateShopPrices } from './dragManager.js';
 import { GameEngine } from './engineRef.js';
 
+const GIFT_BOX_TOWERS = ['desperado', 'dartling', 'mermonkey', 'beast'];
+
+// Single source of truth for what a level's unlock text pays out. Replaces the ad-hoc
+// `includes("Monkey Money 50")` / `includes("Monkey Knowledge Point")` checks (which hard-coded
+// two money amounts and always paid exactly +1 knowledge regardless of the "×N").
+export function parseRewards(text = '') {
+    const monkeyMoney = [...text.matchAll(/Monkey Money\s*(\d+)/gi)].reduce((sum, m) => sum + Number(m[1]), 0);
+    const mk = text.match(/Monkey Knowledge Points?\s*(?:[×x]\s*(\d+))?/i);
+    return {
+        monkeyMoney,
+        knowledge: mk ? (mk[1] ? Number(mk[1]) : 1) : 0,
+        giftBox: /Gift Box/i.test(text)
+    };
+}
+
 export const LevelManager = {
     // Queue of player levels reached but not yet presented (each may need an
     // interactive "pick a tower" screen). Drained one at a time so multiple
@@ -17,6 +32,7 @@ export const LevelManager = {
     _levelUpActive: false,
     _pausedForLevelUp: false,
     _prevGameState: null,
+    _shownInteractive: 0,   // interactive screens already presented in the current queue run
 
     addXP(amount, opts = {}) {
         Config.data.playerXP += amount;
@@ -38,38 +54,74 @@ export const LevelManager = {
             this._pendingLevels.push(Config.data.playerLevel);
         }
 
-        Config.save();
-        UI.updateMetaStats();
+        // Persist the new level/XP right away; the drain below commits again after every reward
+        // it hands out (previously the save + UI refresh happened BEFORE the rewards were granted,
+        // so they were neither saved nor shown until some later save).
+        this._commit();
         if (this._pendingLevels.length > 0) this._drainPendingLevels(opts);
     },
 
-    // Presents each queued level-up in order. Non-interactive levels are
-    // granted silently; category levels show the tower-choice screen (pausing
-    // the game if we're mid-round). Falls back to auto-granting everything for
-    // reconcile-style calls.
+    // Save + refresh the HUD. Always called AFTER state changes.
+    _commit() {
+        Config.save();
+        UI.updateMetaStats();
+    },
+
+    // Re-queues levels the player already reached but whose rewards were never claimed (the game
+    // was closed while a pick screen was open, or an older version saved before granting).
+    // Called once at boot. Category levels show the normal pick screen.
+    resumeUnclaimed(opts = {}) {
+        let queued = false;
+        for (let level = 2; level <= Config.data.playerLevel; level++) {
+            if (Config.data.claimedLevels.includes(level)) continue;
+            if (!(LevelProgression[level] && LevelProgression[level].unlocks)) continue;
+            if (this._pendingLevels.includes(level)) continue;
+            this._pendingLevels.push(level);
+            queued = true;
+        }
+        if (queued) this._drainPendingLevels(opts);
+        return queued;
+    },
+
+    // Presents each queued level-up in order. Levels that only pay currency are granted
+    // immediately and announced in one toast; category levels (and levels that unlock a hero)
+    // show a screen and pause the round. Reconcile-style calls auto-grant categories.
     _drainPendingLevels(opts = {}) {
         if (this._levelUpActive) return;
         this._levelUpActive = true;
+        const batch = [];
         try {
             while (this._pendingLevels.length > 0) {
                 const level = this._pendingLevels[0];
                 if (Config.data.claimedLevels.includes(level)) { this._pendingLevels.shift(); continue; }
                 const category = this._categoryOfLevel(level);
+                const resume = () => { this._levelUpActive = false; this._drainPendingLevels(opts); };
                 if (category && !opts.autoGrantCategory) {
+                    this._flushBatchToast(batch);
+                    this._shownInteractive++;
                     this._pauseForLevelUp();
-                    this._showSelectionScreen(category, level, () => {
-                        this._levelUpActive = false;
-                        this._drainPendingLevels(opts);
-                    });
+                    this._showSelectionScreen(category, level, resume);
                     return;
                 }
                 this._pendingLevels.shift();
-                this._processLevelUp(level, { autoGrantCategory: !!opts.autoGrantCategory });
+                const summary = this._processLevelUp(level, { autoGrantCategory: !!opts.autoGrantCategory });
+                if (!summary) continue;
+                if (summary.newHeroes.length > 0 && this._host()) {
+                    this._flushBatchToast(batch);
+                    this._shownInteractive++;
+                    this._pauseForLevelUp();
+                    this._showHeroUnlockedPopup(summary.newHeroes, resume, summary.level);
+                    return;
+                }
+                batch.push(summary);
             }
+            this._flushBatchToast(batch);
+            this._shownInteractive = 0;
             this._levelUpActive = false;
             this._resumeFromLevelUp();
         } catch (e) {
             this._levelUpActive = false;
+            this._shownInteractive = 0;
             console.error('[LevelManager] level-up queue error:', e);
             this._resumeFromLevelUp();
         }
@@ -104,37 +156,33 @@ export const LevelManager = {
         }
     },
 
+    // Grants a non-interactive level. Returns the reward summary (or null if nothing to do).
     _processLevelUp(level, opts = {}) {
         const data = LevelProgression[level];
-        if (!data || !data.unlocks) return;
-        if (Config.data.claimedLevels.includes(level)) return;
+        if (!data || !data.unlocks) return null;
+        if (Config.data.claimedLevels.includes(level)) return null;
 
         const unlockText = data.unlocks;
-        const autoGrantCategory = !!opts.autoGrantCategory;
         const excluded = this._excludedNames(unlockText);
+        const category = this._categoryOfLevel(level);
+        const extra = {};
 
-        let category = null;
-        if (unlockText.includes("Primary tower")) category = 'Primary';
-        else if (unlockText.includes("Military tower")) category = 'Military';
-        else if (unlockText.includes("Magic tower")) category = 'Magic';
-        else if (unlockText.includes("Support tower")) category = 'Support';
-
-        if (category && autoGrantCategory) {
+        if (category && opts.autoGrantCategory) {
             // Reconciliation mode: no interactive choice, just grant everything missed.
+            extra.autoTowers = [];
             for (const type in TowerStats) {
                 const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
                 if (cat !== category) continue;
                 if (Config.data.unlockedTowers.includes(type)) continue;
                 if (excluded.includes((TowerStats[type] || {}).name)) continue;
                 Config.data.unlockedTowers.push(type);
+                extra.autoTowers.push(type);
             }
         } else if (category) {
-            // Interactive category choice: the queue shows the selection screen
-            // and applies this via _grantLevelRewards when the player picks.
-            return;
+            return null; // interactive: the selection screen grants it
         }
 
-        this._grantLevelRewards(level, unlockText);
+        return this._grantLevelRewards(level, unlockText, extra);
     },
 
     // Names to exclude from a category unlock (e.g. "Primary tower (except
@@ -152,39 +200,57 @@ export const LevelManager = {
         return names;
     },
 
-    // Applies the non-category rewards for a level (money, knowledge, gift box,
-    // named towers/heroes) and marks the level claimed. Shared by both the
-    // auto-grant path and the interactive selection screen's completion.
-    _grantLevelRewards(level, unlockText) {
+    // What a level will hand out, without touching any state (used by the level-up screen).
+    _previewRewards(level) {
+        const text = (LevelProgression[level] || {}).unlocks || '';
+        const r = parseRewards(text);
+        const giftTowers = r.giftBox ? GIFT_BOX_TOWERS.filter(t => !Config.data.unlockedTowers.includes(t)) : [];
+        const named = this._namedUnlockKeys(text, this._excludedNames(text))
+            .filter(k => !Config.data.unlockedTowers.includes(k));
+        return { ...r, giftTowers, named, heroes: named.filter(k => !!HeroRegistry[k]) };
+    },
+
+    // Applies a level's non-category rewards (money, knowledge, gift box, named towers/heroes),
+    // marks the level claimed and COMMITS (save + HUD refresh). Shared by the auto-grant path and
+    // the selection screen's completion. Returns a summary used for the toast / popups.
+    //   extra.picked           tower the player chose on the selection screen
+    //   extra.bonusKnowledge   +MK for categories with nothing left to pick
+    //   extra.autoTowers       towers auto-granted by reconcile-style mode
+    _grantLevelRewards(level, unlockText, extra = {}) {
         const data = LevelProgression[level];
-        if (!data || !data.unlocks) return;
+        if (!data || !data.unlocks) return null;
         if (!unlockText) unlockText = data.unlocks;
 
-        if (unlockText.includes("Monkey Money 50")) {
-            Config.data.monkeyMoney += 50;
-        }
-        if (unlockText.includes("Monkey Money 200")) {
-            Config.data.monkeyMoney += 200;
-        }
-        if (unlockText.includes("Monkey Knowledge Point")) {
-            Config.data.knowledgePoints += 1;
-        }
-        if (unlockText.includes("Gift Box")) {
-            ['desperado', 'dartling', 'mermonkey', 'beast'].forEach(t => {
+        const r = parseRewards(unlockText);
+        const summary = {
+            level,
+            text: unlockText,
+            monkeyMoney: r.monkeyMoney,
+            knowledge: r.knowledge + (extra.bonusKnowledge || 0),
+            newTowers: [...(extra.autoTowers || [])],
+            newHeroes: []
+        };
+        if (extra.picked) summary.newTowers.push(extra.picked);
+
+        Config.data.monkeyMoney += r.monkeyMoney;
+        Config.data.knowledgePoints += summary.knowledge;
+        if (r.giftBox) {
+            GIFT_BOX_TOWERS.forEach(t => {
                 if (!Config.data.unlockedTowers.includes(t)) {
                     Config.data.unlockedTowers.push(t);
+                    summary.newTowers.push(t);
                 }
             });
-            updateShopPrices();
         }
 
         // Always attempt to unlock specific heroes/towers by name
         const newlyUnlocked = this._unlockSpecificByName(unlockText, this._excludedNames(unlockText));
-        const heroKeys = newlyUnlocked.filter(key => !!HeroRegistry[key]);
-        if (heroKeys.length > 0) this._showHeroUnlockedPopup(heroKeys);
-        updateShopPrices();
+        newlyUnlocked.forEach(key => (HeroRegistry[key] ? summary.newHeroes : summary.newTowers).push(key));
 
         if (!Config.data.claimedLevels.includes(level)) Config.data.claimedLevels.push(level);
+        updateShopPrices();
+        this._commit();
+        return summary;
     },
 
     // Scans every level up to the player's current level and grants any rewards
@@ -205,14 +271,15 @@ export const LevelManager = {
             if (Config.data.claimedLevels.includes(level)) continue;
             if (!LevelProgression[level]) continue;
             const unlockText = LevelProgression[level].unlocks || '';
-            if (unlockText.includes("Monkey Knowledge Point")) knowledgeLevels.push(level);
+            const kp = parseRewards(unlockText).knowledge;
+            if (kp > 0) knowledgeLevels.push(kp);
             // Heroes are still hardcoded by name in levelData; unlock them here.
             const newly = this._unlockSpecificByName(unlockText, this._excludedNames(unlockText));
             heroUnlocks.push(...newly.filter(key => !!HeroRegistry[key]));
-            if (unlockText.includes("Monkey Money 50")) Config.data.monkeyMoney += 50;
-            if (unlockText.includes("Monkey Money 200")) Config.data.monkeyMoney += 200;
-            if (unlockText.includes("Gift Box")) {
-                ['desperado', 'dartling', 'mermonkey', 'beast'].forEach(t => {
+            const paid = parseRewards(unlockText);
+            Config.data.monkeyMoney += paid.monkeyMoney;
+            if (paid.giftBox) {
+                GIFT_BOX_TOWERS.forEach(t => {
                     if (!Config.data.unlockedTowers.includes(t)) {
                         Config.data.unlockedTowers.push(t);
                     }
@@ -226,7 +293,7 @@ export const LevelManager = {
         // player hasn't got everything they should, so grant it.
         this._grantRemainingCategoryTowers();
         // THEN monkey knowledge.
-        knowledgeLevels.forEach(() => { Config.data.knowledgePoints += 1; });
+        knowledgeLevels.forEach((kp) => { Config.data.knowledgePoints += kp; });
         Config.save();
         updateShopPrices();
         UI.updateMetaStats();
@@ -267,12 +334,10 @@ export const LevelManager = {
         return [];
     },
 
-    // Unlocks towers/heroes named in the level text. Returns the list of keys
-    // that were newly unlocked this call, so callers can surface them (e.g. the
-    // hero-unlocked popup).
-    _unlockSpecificByName(text, excluded = []) {
+    // Keys of the towers/heroes named in a level's text (pure lookup, changes nothing).
+    _namedUnlockKeys(text, excluded = []) {
         const allKeys = [...Object.keys(TowerStats), ...Object.keys(HeroRegistry)];
-        const unlocked = [];
+        const keys = [];
         for (const key of allKeys) {
             // Tower stats live flat on TowerStats[key]; hero objects keep their
             // stats under HeroRegistry[key].stats.
@@ -281,118 +346,226 @@ export const LevelManager = {
             const stats = towerStats || (heroObj ? heroObj.stats : null);
             if (!stats) continue;
             if (excluded.includes(stats.name)) continue;
-            if (text.includes(stats.name)) {
-                if (!Config.data.unlockedTowers.includes(key)) {
-                    Config.data.unlockedTowers.push(key);
-                    unlocked.push(key);
-                }
+            if (text.includes(stats.name)) keys.push(key);
+        }
+        return keys;
+    },
+
+    // Unlocks towers/heroes named in the level text. Returns the list of keys
+    // that were newly unlocked this call, so callers can surface them.
+    _unlockSpecificByName(text, excluded = []) {
+        const unlocked = [];
+        for (const key of this._namedUnlockKeys(text, excluded)) {
+            if (!Config.data.unlockedTowers.includes(key)) {
+                Config.data.unlockedTowers.push(key);
+                unlocked.push(key);
             }
         }
         return unlocked;
     },
 
+    // ---------------------------------------------------------------------------------------
+    // UI
+    // ---------------------------------------------------------------------------------------
+    _host() {
+        if (typeof document === 'undefined') return null;
+        return document.getElementById('game-container') || document.body;
+    },
+
+    _nameOf(key) {
+        return ((TowerStats[key] || (HeroRegistry[key] || {}).stats || {}).name) || key;
+    },
+
+    // Lines such as "+1 Monkey Knowledge Point", "+50 Monkey Money", "Unlocked: Ninja Monkey".
+    _summaryLines(summaries) {
+        const mm = summaries.reduce((n, s) => n + (s.monkeyMoney || 0), 0);
+        const mk = summaries.reduce((n, s) => n + (s.knowledge || 0), 0);
+        const keys = summaries.flatMap(s => [...(s.newTowers || []), ...(s.newHeroes || [])]);
+        const lines = [];
+        if (mk > 0) lines.push(`+${mk} Monkey Knowledge Point${mk > 1 ? 's' : ''}`);
+        if (mm > 0) lines.push(`+${mm} Monkey Money`);
+        if (keys.length) lines.push(`Unlocked: ${keys.map(k => this._nameOf(k)).join(', ')}`);
+        if (!lines.length) {
+            const text = summaries.map(s => s.text).filter(Boolean).join(' · ');
+            if (text) lines.push(text);
+        }
+        return lines;
+    },
+
+    _levelTitle(summaries) {
+        const first = summaries[0].level, last = summaries[summaries.length - 1].level;
+        return first === last ? `Level ${first} reached!` : `Levels ${first}–${last} reached!`;
+    },
+
+    // Non-blocking announcement for levels that only pay currency (no screen, no pause), so the
+    // player can see the reward arrive instead of it happening silently.
+    _flushBatchToast(batch) {
+        if (!batch.length) return;
+        const summaries = batch.splice(0, batch.length);
+        this._showToast(this._levelTitle(summaries), this._summaryLines(summaries));
+    },
+
+    _showToast(title, lines) {
+        const host = this._host();
+        if (!host || !lines.length) return;
+        let box = document.getElementById('levelup-toasts');
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'levelup-toasts';
+            box.style.cssText = 'position:absolute; top:64px; left:50%; transform:translateX(-50%); z-index:95; ' +
+                'display:flex; flex-direction:column; gap:8px; align-items:center; pointer-events:none;';
+            host.appendChild(box);
+        }
+        const toast = document.createElement('div');
+        toast.className = 'levelup-toast';
+        toast.style.cssText = 'background:#2c3e50; border:2px solid var(--gold, #f1c40f); border-radius:10px; ' +
+            'padding:10px 18px; color:white; text-align:center; box-shadow:0 6px 18px rgba(0,0,0,0.5); font-weight:700;';
+        toast.innerHTML = `<div style="font-weight:900; color:var(--gold, #f1c40f); margin-bottom:2px;">${title}</div>` +
+            lines.map(l => `<div style="font-size:14px;">${l}</div>`).join('');
+        box.appendChild(toast);
+        while (box.children.length > 4) box.firstChild.remove();
+        setTimeout(() => toast.remove(), 4500);
+    },
+
+    _portrait(key, size = 80) {
+        return `<div style="width:${size}px; height:${size}px; margin:0 auto 8px; background-image:url('sprites/portraits/${key}_menuportrait.png'); background-size:cover; border-radius:8px;"></div>`;
+    },
+
     _showSelectionScreen(category, level, onDone) {
+        const host = this._host();
+        if (!host) throw new Error('No DOM available for the level-up screen');
         const existingOverlay = document.getElementById('level-up-select-menu');
         if (existingOverlay) existingOverlay.remove();
+
+        const unlockText = (LevelProgression[level] || {}).unlocks || '';
+        const excluded = this._excludedNames(unlockText);
+        const preview = this._previewRewards(level);
+
+        const options = [];
+        for (const type in TowerStats) {
+            const stats = TowerStats[type];
+            if ((stats.category || TOWER_CATEGORIES[type]) !== category) continue;
+            if (Config.data.unlockedTowers.includes(type)) continue;
+            if (excluded.includes(stats.name)) continue;
+            options.push(type);
+        }
 
         const overlay = document.createElement('div');
         overlay.id = 'level-up-select-menu';
         overlay.className = 'overlay';
         overlay.style.zIndex = 100;
 
-        const finish = () => {
-            this._grantLevelRewards(level);
-            Config.save();
+        const content = document.createElement('div');
+        content.className = 'menu-content';
+
+        // "Level-up 2 of 3" when several screens are queued back to back.
+        const remaining = this._pendingLevels.slice(1)
+            .filter(l => !Config.data.claimedLevels.includes(l) && this._categoryOfLevel(l)).length;
+        const total = this._shownInteractive + remaining;
+        const counter = total > 1 ? `<div style="color:#bdc3c7; font-size:13px;">Level-up ${this._shownInteractive} of ${total}</div>` : '';
+        content.innerHTML = `<h2>Level ${level} Reached!</h2>${counter}`;
+
+        // Everything else this level pays (so nothing arrives unannounced).
+        const extras = [];
+        if (preview.knowledge) extras.push(`+${preview.knowledge} Monkey Knowledge Point${preview.knowledge > 1 ? 's' : ''}`);
+        if (preview.monkeyMoney) extras.push(`+${preview.monkeyMoney} Monkey Money`);
+        preview.giftTowers.forEach(t => extras.push(`Gift Box: ${this._nameOf(t)}`));
+        preview.named.forEach(k => extras.push(`${HeroRegistry[k] ? 'New hero' : 'Unlocks'}: ${this._nameOf(k)}`));
+        if (extras.length) {
+            const box = document.createElement('div');
+            box.className = 'level-up-extras';
+            box.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; justify-content:center;';
+            box.innerHTML = extras.map(t => `<span style="background:#2c3e50; border:1px solid var(--gold, #f1c40f); border-radius:14px; padding:4px 12px; font-size:13px; color:white;">${t}</span>`).join('');
+            content.appendChild(box);
+        }
+
+        let finished = false;
+        const finish = (picked) => {
+            if (finished) return;
+            finished = true;
+            if (picked && !Config.data.unlockedTowers.includes(picked)) Config.data.unlockedTowers.push(picked);
+            // Grant -> claim -> save -> refresh HUD (all inside _grantLevelRewards), THEN close.
+            const summary = this._grantLevelRewards(level, undefined, {
+                picked,
+                bonusKnowledge: options.length === 0 ? 1 : 0
+            });
             overlay.remove();
-            updateShopPrices();
+            if (summary) this._showToast(`Level ${level} reward`, this._summaryLines([summary]));
             if (typeof onDone === 'function') onDone();
         };
 
-        const content = document.createElement('div');
-        content.className = 'menu-content';
-        content.innerHTML = `<h2>Level ${level} Reached!</h2><p>Select a ${category} tower to unlock:</p>`;
-        
-        const grid = document.createElement('div');
-        grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = 'repeat(3, 1fr)';
-        grid.style.gap = '15px';
-        grid.style.marginTop = '20px';
-
-        const excluded = this._excludedNames(LevelProgression[level]?.unlocks || '');
-        const options = [];
-        for (const type in TowerStats) {
-            const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
-            if (cat === category) {
-                options.push(type);
-            }
-        }
-
-        let availableOptions = [];
-
-        options.forEach(type => {
-            const stats = TowerStats[type] || HeroStats[type];
-            if (!stats) return;
-            if (Config.data.unlockedTowers.includes(type)) return;
-            if (excluded.includes(stats.name)) return;
-            {
-                availableOptions.push(type);
-
-                const card = document.createElement('div');
-                card.style.background = '#34495e';
-                card.style.border = '2px solid #7f8c8d';
-                card.style.borderRadius = '8px';
-                card.style.padding = '10px';
-                card.style.textAlign = 'center';
-                card.style.cursor = 'pointer';
-                card.style.transition = 'all 0.2s';
-                
-                card.innerHTML = `
-                    <div style="width: 80px; height: 80px; margin: 0 auto 10px; background-image: url('sprites/portraits/${type}_menuportrait.png'); background-size: cover; border-radius: 8px;"></div>
-                    <div style="font-weight: 900; color: white; margin-bottom: 5px;">${stats.name}</div>
-                    <div style="font-size: 12px; color: #bdc3c7;">$${stats.cost}</div>
-                `;
-
-                card.addEventListener('mouseenter', () => {
-                    card.style.borderColor = '#f1c40f';
-                    card.style.transform = 'scale(1.05)';
-                });
-                card.addEventListener('mouseleave', () => {
-                    card.style.borderColor = '#7f8c8d';
-                    card.style.transform = 'scale(1)';
-                });
-
-                card.addEventListener('click', () => {
-                    Config.data.unlockedTowers.push(type);
-                    finish();
-                });
-
-                grid.appendChild(card);
-            }
-        });
-
-        if (availableOptions.length === 0) {
-            Config.data.knowledgePoints += 1;
-            Config.save();
-            content.innerHTML += `<p>All ${category} towers already unlocked! +1 Monkey Knowledge Point granted.</p>`;
-
+        if (options.length === 0) {
+            const note = document.createElement('p');
+            note.textContent = `All ${category} towers are already unlocked! You get +1 Monkey Knowledge Point instead.`;
             const continueBtn = document.createElement('button');
             continueBtn.textContent = 'Continue';
             continueBtn.className = 'back-btn';
-            continueBtn.style.marginTop = '15px';
-            continueBtn.addEventListener('click', finish);
+            continueBtn.id = 'level-up-confirm';
+            continueBtn.addEventListener('click', () => finish(null));
+            content.appendChild(note);
             content.appendChild(continueBtn);
         } else {
+            const prompt = document.createElement('p');
+            prompt.textContent = `Select a ${category} tower to unlock:`;
+            content.appendChild(prompt);
+
+            const grid = document.createElement('div');
+            grid.style.cssText = 'display:grid; grid-template-columns:repeat(3, 1fr); gap:15px; margin-top:5px;';
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.id = 'level-up-confirm';
+            confirmBtn.className = 'back-btn';
+            confirmBtn.textContent = 'Select a tower';
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+
+            let selected = null;
+            const cards = new Map();
+            const choose = (type) => {
+                selected = type;
+                cards.forEach((card, t) => {
+                    const on = t === type;
+                    card.style.borderColor = on ? '#f1c40f' : '#7f8c8d';
+                    card.style.transform = on ? 'scale(1.05)' : 'scale(1)';
+                    card.style.background = on ? '#3e5771' : '#34495e';
+                    card.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+                confirmBtn.textContent = `Unlock ${this._nameOf(type)}`;
+            };
+
+            options.forEach(type => {
+                const stats = TowerStats[type] || HeroStats[type];
+                const card = document.createElement('div');
+                card.className = 'level-up-card';
+                card.dataset.tower = type;
+                card.setAttribute('role', 'button');
+                card.setAttribute('aria-pressed', 'false');
+                card.style.cssText = 'background:#34495e; border:2px solid #7f8c8d; border-radius:8px; padding:10px; text-align:center; cursor:pointer; transition:all 0.15s;';
+                card.innerHTML = `${this._portrait(type)}
+                    <div style="font-weight:900; color:white; margin-bottom:5px;">${stats.name}</div>
+                    <div style="font-size:12px; color:#bdc3c7;">$${stats.cost}</div>`;
+                card.addEventListener('click', () => choose(type));
+                card.addEventListener('dblclick', () => { choose(type); finish(type); });
+                cards.set(type, card);
+                grid.appendChild(card);
+            });
+
+            confirmBtn.addEventListener('click', () => { if (selected) finish(selected); });
             content.appendChild(grid);
+            content.appendChild(confirmBtn);
         }
 
         overlay.appendChild(content);
-        document.getElementById('game-container').appendChild(overlay);
+        host.appendChild(overlay);
     },
 
-    // Shows a popup announcing newly unlocked hero(es) (from a level-up or the
-    // reconcile fixer). Mirrors the level-up selection overlay's styling.
-    _showHeroUnlockedPopup(heroKeys) {
-        if (typeof document === 'undefined') return;
+    // Popup announcing newly unlocked hero(es). Closing it continues the level-up queue
+    // (onClose), so it never stacks on top of the next level's screen.
+    _showHeroUnlockedPopup(heroKeys, onClose, level) {
+        const host = this._host();
+        if (!host) { if (typeof onClose === 'function') onClose(); return; }
         const existing = document.getElementById('hero-unlocked-popup');
         if (existing) existing.remove();
 
@@ -401,28 +574,26 @@ export const LevelManager = {
         overlay.className = 'overlay';
         overlay.style.zIndex = 100;
 
-        const cards = heroKeys.map(key => {
-            const stats = (HeroRegistry[key] || {}).stats || {};
-            const name = stats.name || key;
-            return `
+        const cards = heroKeys.map(key => `
                 <div style="background:#34495e; border:2px solid var(--gold); border-radius:8px; padding:12px; text-align:center; min-width:120px;">
-                    <div style="width:80px; height:80px; margin:0 auto 8px; background-image:url('sprites/portraits/${key}_menuportrait.png'); background-size:cover; border-radius:8px;"></div>
-                    <div style="font-weight:900; color:white;">${name}</div>
-                </div>`;
-        }).join('');
+                    ${this._portrait(key)}
+                    <div style="font-weight:900; color:white;">${this._nameOf(key)}</div>
+                </div>`).join('');
 
         const content = document.createElement('div');
         content.className = 'menu-content';
         content.innerHTML = `
             <h2>${heroKeys.length > 1 ? 'New Heroes Unlocked!' : 'New Hero Unlocked!'}</h2>
+            ${level ? `<div style="color:#bdc3c7; font-size:13px;">Level ${level} reward</div>` : ''}
             <div style="display:flex; gap:15px; justify-content:center; margin-top:15px; flex-wrap:wrap;">${cards}</div>
             <button class="back-btn" id="hero-unlocked-close" style="margin-top:18px;">Continue</button>`;
 
-        const closeBtn = content.querySelector('#hero-unlocked-close');
-        closeBtn.addEventListener('click', () => overlay.remove());
+        content.querySelector('#hero-unlocked-close').addEventListener('click', () => {
+            overlay.remove();
+            if (typeof onClose === 'function') onClose();
+        });
         overlay.appendChild(content);
-        const host = document.getElementById('game-container');
-        if (host) host.appendChild(overlay);
+        host.appendChild(overlay);
     }
 };
 
