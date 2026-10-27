@@ -1,8 +1,26 @@
 // js/towers/glue.js
 import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../constants.js';
 
 export default {
+    // Bonus Glue Gunner MK (v1.3.2): the first Glue Gunner placed each game is
+    // free (the shop card shows "Free!" via updateShopPrices) - no auto-placed
+    // tower at game start anymore. INDEPENDENT of Bonus Monkey! (owner fix:
+    // placing one freebie must not consume the other). Same guards as the
+    // dart freebie.
+    getPlacementCostModifier(stats, cost, engine) {
+        if (!engine.isSandbox && engine.difficulty && !engine.difficulty.noSelling) {
+            const mkActive = engine.config.data.mkActive !== false;
+            const hasFreeGlue = mkActive && engine.config.data.monkeyKnowledge && engine.config.data.monkeyKnowledge.bonus_glue;
+            const hasNoGlue = !engine.towers.some(t => t.type === 'glue');
+            if (hasFreeGlue && hasNoGlue) {
+                return 0;
+            }
+        }
+        return cost;
+    },
+
     stats: { 
         name: "Glue Gunner", cost: 225, range: 46, 
         baseCooldown: 1.0, fireRate: 1.0, 
@@ -47,7 +65,10 @@ export default {
                 let pEffects = { slow: tower.stats.slow, slowDuration: tower.stats.slowDuration, brittleBonus: 2, brittleTimer: debuffDur };
 if (tower.stats.dot) { pEffects.dot = tower.stats.dot; pEffects.dotTimer = tower.stats.dotTimer; if (tower.stats.dotDuration) pEffects.dotDuration = tower.stats.dotDuration; }
                 if (tower.stats.canHitMoab) { pEffects.canHitMoab = true; pEffects.moabSlow = tower.stats.moabSlow; }
-                Utils.applyAoeDamage(engine, engine.width / 2, engine.height / 2, 2000, 0, {isSharp: true, canHitLead: true, canHitMoab: true}, tower, pEffects, {maxHits: 2000});
+                // Center on the canvas. GameEngine has no width/height properties,
+                // so the old engine.width/2 wrote NaN into the grid query and the
+                // storm hit nothing for its whole 20s (audit C-4 / fix 4).
+                Utils.applyAoeDamage(engine, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2, 2000, 0, {isSharp: true, canHitLead: true, canHitMoab: true}, tower, pEffects, {maxHits: 2000});
             }
         }
     },

@@ -9,56 +9,104 @@
 <body>
     <div id="panel">
         <header>
-            <h1>🎞️ Knight Keyframes</h1>
-            <p>Add keys → set the sprite &amp; position → <b>Save</b>. The real cutscene plays your track when it has keys.</p>
+            <h1>Boss Cutscene Animator</h1>
+            <p>Blockbench-style keyframes for the boss intro. The actor named <b>knight</b> drives the real boss in-game.</p>
         </header>
         <div id="panel-scroll">
-            <div class="btnrow">
-                <button id="btn-add" class="primary">＋ Add keyframe</button>
-                <button id="btn-builtin">⟳ Build from current animation</button>
-                <button id="btn-save">💾 Save</button>
-                <button id="btn-clear" class="danger">✕ Clear all</button>
-            </div>
-            <div id="key-list"></div>
-            <p id="empty-hint" style="color:#8b93a3;font-size:12px;padding:8px 2px;">
-                No keyframes — the cutscene uses its built-in reveal.<br>
-                Hit <b>⟳ Build from current animation</b> to load the existing reveal (pan → roar → equip → walk-in) as ~43 editable keyframes, then drag keys / swap sprites freely.<br>
-                Leave X/Y blank to hold position; camera shifts when adjacent keys change it.
-            </p>
+            <details class="sec" open>
+                <summary>Scene</summary>
+                <div class="sec-body">
+                    <div class="row">
+                        <label>Name</label>
+                        <input id="scene-name" type="text" spellcheck="false">
+                    </div>
+                    <div class="row">
+                        <label>Use as boss intro
+                            <span class="hint">Replaces the hardcoded reveal in-game</span>
+                        </label>
+                        <input id="chk-boss" type="checkbox">
+                    </div>
+                    <div class="btnrow">
+                        <button id="btn-save" class="primary">Save</button>
+                        <button id="btn-export">Export</button>
+                        <button id="btn-import">Import</button>
+                        <button id="btn-vanilla" title="Load the hardcoded reveal as editable keyframes">Import vanilla</button>
+                        <button id="btn-new" class="danger">New</button>
+                    </div>
+                    <input id="file-import" type="file" accept=".json,application/json" hidden>
+                </div>
+            </details>
+
+            <details class="sec" open>
+                <summary>Actors</summary>
+                <div class="sec-body">
+                    <div id="outliner"></div>
+                    <div class="btnrow">
+                        <button id="btn-add-actor">＋ Add actor</button>
+                        <button id="btn-add-camera" title="Reserved actor whose x pans the in-game world camera">＋ Camera</button>
+                    </div>
+                    <p class="note">The <b>knight</b> actor drives the real boss in-game — position, sprite, alpha, and (since the parity update) scale and mirror too. Rotation stays preview-only.</p>
+                </div>
+            </details>
+
+            <details class="sec">
+                <summary>Key inspector</summary>
+                <div class="sec-body">
+                    <div id="inspector">
+                        <p class="note">Select a keyframe diamond (or an actor and drag it on stage) to edit.</p>
+                    </div>
+                </div>
+            </details>
+
+            <details class="sec">
+                <summary>Sprites</summary>
+                <div class="sec-body">
+                    <input id="lib-search" type="search" placeholder="Search sprites…" spellcheck="false">
+                    <div id="library"></div>
+                    <p class="note">Click a sprite to assign it to the selected actor's base sprite (or the selected key when one is active). Boss animation frames are always listed; towers/heroes/atlases load from <code>sprites/manifest.json</code>.</p>
+                </div>
+            </details>
         </div>
         <div id="toast"></div>
     </div>
 
     <div id="stage-wrap">
         <div id="stage-toolbar">
-            <span class="title">Preview</span>
-            <button id="btn-play" class="play">▶ Play</button>
-            <button id="btn-restart">↺ Restart</button>
-            <span style="color:#8b93a3;">＋key at playhead:</span>
-            <button id="btn-add-here">⏱ t</button>
-            <span class="note">scrub the timeline · drag diamonds to retime · Space = play/pause · R = restart</span>
+            <span class="title">Stage</span>
+            <button id="btn-play" class="play">▶</button>
+            <button id="btn-restart" title="Restart (R)">↺</button>
+            <span class="sep"></span>
+            <button id="zoom-out" title="Zoom out (-)">−</button>
+            <span id="zoom-label">100%</span>
+            <button id="zoom-in" title="Zoom in (+)">＋</button>
+            <button id="btn-fit" title="Fit scene (F)">⛶ Fit</button>
+            <button id="btn-11" title="Actual size (0)">1:1</button>
+            <span class="sep"></span>
+            <label class="tool" title="Show the selected map behind the actors, panned by the camera channel exactly like in-game">Map
+                <select id="map-select"></select>
+            </label>
+            <label class="tool"><input id="chk-map" type="checkbox" checked> bg</label>
+            <label class="tool"><input id="chk-paths" type="checkbox" checked> paths</label>
+            <span class="note">wheel = zoom at cursor · right/middle/space-drag = pan</span>
         </div>
         <div id="stage-holder">
             <canvas id="stage" width="1280" height="720"></canvas>
         </div>
         <div id="timeline">
-            <div class="track-row" style="margin-bottom:8px;">
-                <span class="lbl">Keyframes</span>
-                <div id="beat-bar" class="beat-bar"></div>
-                <span id="zoom-controls" style="display:flex;align-items:center;gap:4px;">
-                    <button id="zoom-out" title="Zoom out">−</button>
-                    <span id="zoom-label" style="color:#8b93a3;font-size:11px;width:34px;text-align:center;">100%</span>
-                    <button id="zoom-in" title="Zoom in">＋</button>
-                    <button id="zoom-fit" title="Fit whole timeline">⛶</button>
-                    <button id="zoom-left" title="Pan left">◀</button>
-                    <button id="zoom-right" title="Pan right">▶</button>
-                </span>
+            <div class="tl-row">
+                <canvas id="tl" height="120"></canvas>
             </div>
-            <div class="track-row">
-                <span class="lbl" id="time-label">0.00s</span>
+            <div class="tl-row tl-controls">
+                <span id="time-label">0.00s</span>
                 <input id="scrubber" type="range" min="0" max="1000" value="0">
+                <button id="btn-add-key" title="Add a key on the selected actor at the playhead (K)">＋ Key</button>
+                <button id="btn-dup-keys" title="Duplicate the selected keys (D)">Dup</button>
+                <button id="btn-del-keys" class="danger" title="Delete the selected keys (Del)">Del</button>
+                <label class="tool"><input id="chk-snap" type="checkbox" checked> snap 30fps</label>
             </div>
-            <p style="color:#8b93a3;font-size:10.5px;margin:6px 0 0 96px;">Timeline: <b>wheel</b> = zoom at cursor · <b>shift+wheel</b> = pan · <b>middle-drag</b> = pan</p>
+            <div class="tl-row">
+                <span class="note">click = select · shift/ctrl+click = add to selection · drag keys = move block · drag empty = box select · dblclick key = select lane · right-click = delete / menu · K = add key · D = duplicate · Del = delete · ←/→ = nudge · Ctrl+Z/Y = undo/redo · Esc = deselect</span>
+            </div>
         </div>
     </div>
 

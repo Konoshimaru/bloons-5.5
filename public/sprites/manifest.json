@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-14T00:08:39.620Z",
+  "generated": "2026-10-19T14:09:14.172Z",
   "towers": {
     "ace": {
       "name": "Monkey Ace",
@@ -6150,6 +6150,11 @@
   },
   "sheets": [
     {
+      "id": "bfb",
+      "json": "sprites/sheets/bfb/bfb.json",
+      "png": "sprites/sheets/bfb/bfb.png"
+    },
+    {
       "id": "bomb_p3_t1_attack",
       "json": "sprites/sheets/bomb_p3_t1_attack/bomb_p3_t1_attack.json",
       "png": "sprites/sheets/bomb_p3_t1_attack/bomb_p3_t1_attack.png"
@@ -6178,6 +6183,11 @@
       "id": "glue_p1_t4_attack",
       "json": "sprites/sheets/glue_p1_t4_attack/glue_p1_t4_attack.json",
       "png": "sprites/sheets/glue_p1_t4_attack/glue_p1_t4_attack.png"
+    },
+    {
+      "id": "moab",
+      "json": "sprites/sheets/moab/moab.json",
+      "png": "sprites/sheets/moab/moab.png"
     },
     {
       "id": "ninja_attack",

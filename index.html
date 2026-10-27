@@ -83,6 +83,12 @@
                 <div class="up-card" id="up-path2"><div class="up-card-info"><span class="up-name">Path 2</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-2"></div></div>
                 <div class="up-card" id="up-path3"><div class="up-card-info"><span class="up-name">Path 3</span><span class="cost">$0</span></div><div class="tier-boxes" id="tier-boxes-3"></div></div>
             </div>
+            <!-- v1.4.2: the skill-tree "convergence" 4th paragon node is GONE
+                 (owner ask: "the fourth paragon button should not exist").
+                 When all three Tier 5s of a paragon-capable type are owned,
+                 the Tier 5 monkey's own three path cards turn purple and
+                 become the paragon purchase (uiTowerPanel.js). -->
+            <div id="paragon-info" class="hidden"></div>
             <div class="up-bottom">
                 <button id="up-sell">Sell ($0)</button>
                 <button id="up-collect-bank" class="hidden">Collect Bank ($0)</button>
@@ -148,14 +154,25 @@
             <div id="title-meta"></div>
         </div>
 
-        <!-- Loading Screen -->
+        <!-- Fade veil (v1.3.6): full-screen black cover for screen-to-screen
+             transitions (title -> menu, menu -> battle, quit -> menu).
+             js/fadeVeil.js toggles .on; css/menus.css styles it. -->
+        <div id="fade-veil"></div>
+
+        <!-- Loading Screen (status + progress bar immediately; the sword-pull
+             minigame canvas only fades in when a load outlives
+             TUNING.minigame.appearAfterMs — see loadGate.js) -->
         <div id="loading-screen" class="full-screen-overlay hidden">
+            <!-- v1.3.5: the sword-pull minigame canvas is back, but it only
+                 fades in (.live) when loadGate decides a load is genuinely
+                 long (TUNING.minigame.appearAfterMs). The Back button is for
+                 the forced mode (forceMinigame()) only. -->
             <canvas id="loading-minigame" class="loading-minigame"></canvas>
-                <div class="loading-container">
-                    <button id="minigame-close" class="back-btn hidden">Back</button>
-                    <div id="loading-status" class="loading-indicator">Loading...</div>
-                    <div id="loading-bar"><div id="loading-bar-fill"></div></div>
-                </div>
+            <div class="loading-container">
+                <button id="minigame-close" class="back-btn hidden">Back</button>
+                <div id="loading-status" class="loading-indicator">Loading...</div>
+                <div id="loading-bar"><div id="loading-bar-fill"></div></div>
+            </div>
         </div>
 
         <!-- Main Menu UI Bars -->
@@ -180,6 +197,11 @@
                 <button id="btn-powers">POWERS</button>
                 <button id="btn-knowledge">KNOWLEDGE</button>
             </div>
+            <!-- v1.4.5: runtime version badge. Text is set from constants.js
+                 GAME_VERSION every time the menu shows, so the player (and bug
+                 reports) can always verify which build is actually running -
+                 a stale cached bundle can never masquerade as the new one. -->
+            <div id="mm-version-badge" title="Running build"></div>
         </div>
 
         <!-- Unified Play Menu -->
@@ -310,18 +332,196 @@
             </div>
         </div>
 
+        <!-- Paragons: no dedicated main-menu hub any more. Each tower's Paragon
+             lives in the MONKEYS menu under its three upgrade paths, and the
+             in-game offer appears in the upgrade panel's skill tree. -->
+
           <!-- Update Log Menu -->
+        <!-- v1.4.0: Paragon pre-purchase menu - the BTD6-style confirmation
+             dialog. Opened from the purple upgrade buttons once ALL three
+             Tier 5s of the type are owned; shows the power/degree the current
+             monkeys would make and takes an extra cash investment that raises
+             the Degree before the purchase commits. -->
+        <div id="paragon-buy-menu" class="overlay hidden">
+            <div class="menu-window">
+                <button id="paragon-buy-close" class="menu-x" title="Back" aria-label="Back">&#10006;</button>
+                <div class="menu-content" style="max-width: 540px; text-align: left;">
+                    <h2 style="text-align: center; margin-bottom: 2px;" id="paragon-buy-title">APEX PLASMA MASTER</h2>
+                    <div id="paragon-buy-sub" style="text-align: center; font-size: 13px; color: #bdc3c7; margin-bottom: 10px;"></div>
+                    <div id="paragon-buy-power"></div>
+                    <div id="paragon-buy-degree" class="paragon-buy-degree">DEGREE 1</div>
+                    <!-- v1.4.2: the investment is a SLIDER (owner ask), capped
+                         live at the useful max (cash-power room vs wallet). The
+                         readout shows the current value; the quick buttons
+                         still jump in $10k/$50k/Max steps. -->
+                    <label class="paragon-invest-row" for="paragon-invest">Extra investment (raises the Degree)
+                        <span id="paragon-invest-readout" class="paragon-invest-readout">$0</span>
+                    </label>
+                    <input id="paragon-invest" type="range" min="0" max="0" step="1000" value="0">
+                    <div class="paragon-invest-quick">
+                        <button id="paragon-inv-10k" type="button">+$10k</button>
+                        <button id="paragon-inv-50k" type="button">+$50k</button>
+                        <button id="paragon-inv-max" type="button">Max</button>
+                    </div>
+                    <div id="paragon-invest-hint" class="paragon-invest-hint"></div>
+                    <div id="paragon-buy-total" class="paragon-buy-total"></div>
+                    <div style="display: flex; gap: 10px; margin-top: 12px;">
+                        <button id="paragon-buy-confirm" class="paragon-buy-confirm" type="button">Create Paragon</button>
+                        <button id="paragon-buy-cancel" class="back-btn" type="button" style="flex: 0 0 auto;">Back</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="update-log-menu" class="overlay hidden">
-            <div class="menu-content" style="max-width: 780px; text-align: left;">
+            <!-- menu-window is the NON-scrolling frame: the X pins to its top-right
+                 corner and stays put while .menu-content scrolls beneath it. -->
+            <div class="menu-window">
+                <button id="update-log-close" class="menu-x" title="Close" aria-label="Close">&#10006;</button>
+            <div class="menu-content" style="max-width: 780px; text-align: left; max-height: 80vh;">
                 <h2 style="text-align: center;">Update Log</h2>
                 <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 10px;">
+                    <div style="border: 1px solid #f1c40f; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.4.5 — Regression armor</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>No gameplay or balance changes in this release.</b> Every performance fix from the game's update history (sniper targeting, boss aiming, renderer optimizations) is now tagged directly in the source code with a permanent guard comment, so future updates can never accidentally delete one — the class of bug that caused the earlier sniper lag.</li>
+                            <li><b>The audit was extended</b> to the two newest upstream updates (the Ace/performance pass and the Knight aiming confirmation): all of their fixes are confirmed present in this build, and the automated regression suite now pins those too (33 checks, up from 22).</li>
+                            <li>Corner badge now reads <b>v1.4.5</b> — if a bug report mentions lag or glitches, the badge proves whether the new code is actually loaded.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #f1c40f; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.4.4 — Guarded optimizations &amp; version badge</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>Version badge on the main menu.</b> The bottom-right corner of the menu now shows the exact build you are running (e.g. "v1.4.4"). If a bug report mentions lag or glitches, the badge proves whether the new code is actually loaded — no more stale-browser-cache confusion.</li>
+                            <li><b>No gameplay or balance changes in this release.</b> The full historical set of sniper/performance fixes (targeting cache, line-of-sight cache, support-buff throttle, animation preloading, boss double-update skip, shadow/glow dirty-checks) was audited commit-by-commit against the original GitHub history and every one of them is confirmed present in this build. Automated regression tests now pin the whole set so a future update can never silently drop one.</li>
+                            <li><b>Still seeing lag with a fast-firing tower?</b> Press <b>F3</b> during the fight to record a performance capture, then <b>F4</b> to export the report, and send it over — it pinpoints exactly which subsystem is slow on your machine.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #f1c40f; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.4.3 — Big performance fix for fast-firing towers</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>Fixed the heavy lag when a fast-firing tower shoots a boss.</b> A Sniper with the Elite Defender upgrade (or any other hyper-fast tower) hammering the Black Knight could bring the whole game to a crawl — the boss's health-bar number was being redrawn from scratch on every single hit. The health bar now updates smoothly while the number itself only refreshes 10 times a second (the bar still drains in real time, and it always shows the exact number the moment the boss dies).</li>
+                            <li><b>The selected-monkey panel no longer redraws its text every frame.</b> "Damage Dealt", the stats line, the portrait, and the ability bar were being rewritten 60 times per second whether they changed or not — with a fast tower selected that meant constant re-layout work every frame. They now only redraw when something actually changes, and the damage counter ticks at a smooth 10 times per second instead of straining every frame.</li>
+                            <li><b>Cash and Lives counters update more efficiently.</b> During heavy bloon popping or leaking, the counters were redrawing every frame; they now coalesce to a rate that looks identical but stops fighting the rest of the game for frame time. The red pulse when you lose a life still plays the instant it happens.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #f1c40f; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.4.2 — Paragon polish &amp; the Dominus rebalance</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>The purple Paragon buttons are Tier-5-only again.</b> When you own all three Tier 5s of a Paragon-capable monkey, only the Tier 5 monkeys' upgrade buttons turn purple — a fresh Dart Monkey upgrades normally. And the extra fourth "convergence" button is gone entirely: the Tier 5's own three upgrade paths ARE the Paragon purchase, exactly like BTD6.</li>
+                            <li><b>Glaive Dominus rebalanced to its real wiki power.</b> It throws glaives at the actual hypersonic rate (25 attacks a second at Degree 1) that Shred their first target with a heavy damage-over-time, its three orbiting blades spin and tick twice as fast with their proper Ceramic/MOAB/Boss bonuses, and every 3 seconds it hurls a MOAB Press — a knockback glaive that detonates for thousands of damage and sets survivors on fire. It also grants every other Primary monkey +11.1% attack speed, and its new <b>Overcharge</b> ability (45s cooldown) briefly boosts its own attack speed by up to +187%.</li>
+                            <li><b>The Paragon investment is a slider now.</b> Drag it to choose how much extra cash to pour into the Degree — the slider never goes past the point where money stops buying power, the value is shown live, and the +$10k/+$50k/Max quick buttons still work.</li>
+                            <li><b>Paragons have their monkey sprite back.</b> A texture-key bug made every Paragon render as just a pulsing yellow circle; they now draw as their base monkey (gold-tinted placeholder, like before).</li>
+                            <li><b>Smoother fade-to-black.</b> Every fade now holds at fully black for a beat before clearing up (no more near-black dip), game-over and victory returns to the main menu fade through black like quitting does, and entering a level no longer hides the loading screen — the progress bar and the sword minigame stay visible on slow loads.</li>
+                            <li><b>The Black Knight leaves a much bigger wake.</b> His after-image trail is ~1.5x denser and each ghost lasts ~1.5x longer.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #f1c40f; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.4.1 — The Glaive Dominus &amp; sellable Paragons</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>New Paragon: the Glaive Dominus.</b> The Boomerang Monkey gets its own Paragon. Own all three Boomerang Tier 5s (Glaive Lord, Perma Charge, MOAB Domination) and the Tier 5 Boomerang Monkeys' upgrade buttons turn purple — same purchase menu and Degree investment as the Apex Plasma Master, at a $375,000 base price. In game it throws fast ricocheting glaives, keeps three plasma blades permanently orbiting it, and hits MOABs like a truck. <i>(Rebalanced to its full wiki power in v1.4.2.)</i></li>
+                            <li><b>Paragons can be sold again.</b> The permanence rule is gone — the Sell button is back, and it pays 70% of everything you put into that Paragon: the Tier 5 you upgraded from, the base price, and any Degree investment. The monkeys it absorbed stay absorbed, same as BTD6 sacrifices.</li>
+                            <li><b>The Black Knight can no longer sell your Paragons.</b> His Sword Strike straight-up sells whatever monkey it catches — Paragons are now immune to that. The worst he can do to one is stun it, like any other high-tier monkey. Selling your own Paragon on purpose still works normally.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.4.0 — Paragons, the full BTD6 way</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>The Paragon button works like it does in BTD6 now.</b> Once you own all three Dart Monkey Tier 5s, the upgrade buttons on <b>every</b> Dart Monkey — any tier, not just the Tier 5s — turn purple and buy the Paragon. Sandbox plays by the same rule: buy the three Tier 5s first, then spend freely. <i>(Changed in v1.4.2 — the purple buttons now appear on the Tier 5 monkeys only, matching BTD6 exactly.)</i></li>
+                            <li><b>New purchase menu.</b> Clicking a purple button no longer buys on the spot. You get a confirmation screen showing the Power — and the exact Degree — your monkeys would make, plus an <b>extra investment box</b>: every $7,500 you throw in pushes the Degree higher, just like sacrificed cash does. The total charge is the $150,000 base cost plus whatever you invest, and the Max button fills in the most that can still help.</li>
+                            <li><b>Paragons can't be sold anymore.</b> Once created, a Paragon is yours for the rest of the run — the Sell button disappears and every sell path refuses it. Commit wisely! <i>(Changed in v1.4.1 — Paragons can be sold again, and the Black Knight is the only thing barred from selling them.)</i></li>
+                            <li>The Paragon's info panel now lists your menu investment as its own line in the power breakdown, so you can see exactly what the extra cash bought you.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.3.6 — Transitions &amp; polish</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>The game fades now.</b> Title screen → menu, menu → battle, and quit → menu all fade through black instead of hard-cutting. The fade only covers the swap, so loading progress stays visible on slower loads.</li>
+                            <li>Several features that some players never actually received due to an update-packaging mistake now arrive properly with this update: the two-lane Settings menu, the loading screen fades, the long-load-only minigame, the Bonus Glue Gunner fix, and the in-game paragon requirements checklist.</li>
+                            <li>The Update Log's ✕ close button finally matches the style of the rest of the menus.</li>
+                            <li>Sandbox: the Spawn Bloons cards no longer error out when files from an older update are still in the folder — they fall back to the base portrait instead.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.3.5 — The minigame is back (and smarter)</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>The loading-screen minigame returns — now only when it matters.</b> Loads start with the plain status + progress bar, and if a load is still running after about a second and a half, the sword-pulling minigame fades in behind it so you have something to mash while the bar crawls. Quick loads never show it.</li>
+                            <li>It plays exactly as you remember: click/tap/hold (or Space) to shake swords loose, momentum ramps up, the screen shakes at full power, and every 20 farmed swords quietly grants <b>+1 XP</b>.</li>
+                            <li>Console fans: <code>forceMinigame()</code> / <code>closeMinigame()</code> still work for on-demand play, and the delay is tunable live via <code>tuning.minigame.appearAfterMs</code>.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.3.4 — UI polish pass</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li>The <b>Settings menu is now two proper lateral lanes</b> — two clearly separated vertical columns side by side (SFX lane and Music lane), every row left-aligned, sliders full-width, and the whole menu wider so nothing wraps into a jumble.</li>
+                            <li>The Update Log's <b>✕ close button got a real style</b>: a dark round chip sitting inside the window's top-right corner, red glow on hover, press and keyboard-focus states.</li>
+                            <li><b>Loading screens actually fade now</b> — in and out (0.32s), the title screen fades too, and a shown loading screen holds for at least 0.7s so it reads as intentional instead of a flash.</li>
+                            <li>The <b>loading-screen minigame is gone</b>. Loading screens are plain, centered status + progress bars that only appear when the game genuinely has to wait for assets. <i>(Brought back in v1.3.5 — it now only shows up when a load is genuinely taking a while.)</i></li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.3.3 — Audit repair wave</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>Regrow Bloons actually regrow now</b> — the mechanic had never worked (a never-initialized timer made it a silent no-op). Regrow follows BTD6's canonical layer chart: black children climb back through white/lead/zebra, zebra skips straight to rainbow, and children regrow toward the type their wave spawned instead of dead-ending.</li>
+                            <li><b>Sandbox can no longer poison your Continue save.</b> Sandbox sessions (999,999 lives / $10M) are no longer autosaved over your legitimate saved run — the save slot made before sandbox is left untouched.</li>
+                            <li><b>The game can no longer get permanently stuck after a run ends in a hidden tab.</b> Coming back to the tab now always restarts the render loop, and every new game guarantees it's running.</li>
+                            <li>Production builds (<code>npm run build</code>) now include <b>all four editor/test pages and your sprites</b> — a deploy no longer ships without art or working editors.</li>
+                            <li>Per-run cleanup: a stale post-Chimps MOAB cache and leftover mana shields can no longer leak between games (sandbox runs after normal games were inheriting the shield), and Skywarden combo counters no longer survive onto recycled bloons.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.3.2 — Bug-fix sweep</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li><b>Bonus Glue Gunner</b> no longer drops a free Glue Gunner on the map when a game starts — it works like Bonus Monkey! now: the <b>first Glue Gunner you place is free</b> (the shop shows "Free!"). The two freebies are <b>independent</b>: owning both MK nodes grants one free Dart Monkey <b>and</b> one free Glue Gunner every game.</li>
+                            <li>The <b>Alchemist turns to face his target</b> when throwing potions (he used to stay frozen facing up).</li>
+                            <li>The in-game level/XP readout now starts <b>fully hidden</b> — hover the bottom-right corner of the map to bring it up, click the handle to expand, and it hides itself again when collapsed. It also always renders <b>behind</b> the upgrade panel.</li>
+                            <li>Paragons follow BTD6 rules again: creating one needs <b>three Tier 5s + a selected Tier 5 + the cash</b> — the 500,000 XP requirement no longer blocks the in-game purchase. The XP track stays in the MONKEYS menu as a mastery milestone.</li>
+                            <li>Sandbox: the bloon spawn cards now <b>show the camo / regen / camo+regen variants</b> of their portraits when you flip the toggles.</li>
+                            <li>The Black Knight's <b>split-screen rift</b> is shorter (5s → 3.5s), and his <b>Cursor Slash now steals 10% of your current cash</b> instead of a flat $500 — the amount flashes in red over your cash counter.</li>
+                            <li>The Knight's <b>silhouette trail</b> was rebuilt: ghosts only appear while he's really moving (no more flickering pile during the cutscene), they're less than half as frequent, and they drift sideways slightly as they fade.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.3.1 — Menus &amp; polish pass</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li>Menu close bug fixed FOR GOOD: menus that were added later (like the Paragons hub) could get stuck open when you pressed Back, because the game hid menus from a hand-written list that the new menus were never added to. Every menu now closes through the page itself — this class of bug can't come back, and the Back buttons no longer break if their label has inner styling.</li>
+                            <li>The <b>PARAGONS</b> main-menu button is gone. Paragons now live in the <b>MONKEYS</b> menu: pick a tower and its three upgrade paths converge into its golden Paragon node, with the live XP bar and the unlock button right there. In-game, selecting a tower shows the same convergence under its upgrade paths, with a live requirements checklist on the node.</li>
+                            <li>Update Log: there's now an <b>✕ close button pinned to the top-right</b> of the window — no more scrolling all the way down to leave.</li>
+                            <li>Loading screens fade in and out instead of popping. The pre-menu load also does more up front (audio, knowledge and every menu portrait warm up as soon as the game opens — before you press PLAY), and what's left is quick enough to usually skip the screen entirely.</li>
+                            <li>Settings menu rebuilt into <b>two lanes</b> — one volume slider per lane and the toggles split between them — so it's about half as tall and fits on screen without scrolling.</li>
+                            <li>The in-game level/XP readout now starts <b>collapsed</b> (click the little handle bottom-right to open it) and sits <b>behind</b> the upgrade panel instead of floating over it. <i>(Now fully hidden until you hover the corner, as of v1.3.2.)</i></li>
+                            <li>Paragon XP double-checked end to end: pops credit the right tower type, XP banks and saves correctly, the MONKEYS-menu bar updates, and the unlock gate works in real games (sandbox stays free).</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.3.0 — Paragons</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li>PARAGONS ARE HERE. The <b>Apex Plasma Master</b> (Dart Monkey Paragon) can now be created: have all three Dart Tier 5s on the field, select one of them, and buy the golden fourth upgrade card for $150,000. It consumes every Dart Monkey on the map and their history decides its <b>Paragon Power</b> and <b>Degree</b> (1-100, full BTD6 fidelity).</li>
+                            <li>Its three plasma juggernaut balls split into six damage-inheriting mini balls at half pierce and again at zero pierce, and detonate at the screen edge — exactly like BTD6.</li>
+                            <li>Tower XP: every pop now earns 1 XP for that tower's type. Reach <b>500,000 Dart XP</b> and unlock the Apex Plasma Master from the new <b>PARAGONS</b> section on the main menu (progress bar included). <i>(Moved to the MONKEYS menu in v1.3.1.)</i></li>
+                            <li>Sandbox: paragons are offered freely for testing — select any Dart Monkey, no XP or Tier 5 requirements.</li>
+                            <li>Economy is now 1:1 with BTD6: late-round pop income (rounds 121+) was slightly generous and now matches the official curve, and the Ninja Monkey's prices were re-synced to the current BTD6 patch (T5s $35k/$22k/$40k; several early tiers adjusted — Double Shot is cheaper, Bloon Sabotage and Sticky Bomb are pricier).</li>
+                            <li>Paragons are immune to all external buffs, can't be sacrificed to Sun Temples, and keep their Degree through save/load.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.2.1</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li>Code health pass: five deep bugs found by a full-codebase audit are fixed — details below.</li>
+                            <li>Geto fix: a backwards loop in his squid bookkeeping walked off the end of its list and crashed the game the moment a squid existed. It now runs the right way — no more first-frame TypeError.</li>
+                            <li>Engineer fix: Overclock works again. Activating it on a normal tower used to throw an internal error before doing anything, and its duration now follows the target's upgrade tier like it should (60s for tier 3 and below, 45s for tier 4, 30s for tier 5).</li>
+                            <li>BFB/ZOMG recognition: the two big blimp layers were missing their type flags, so anything that specifically reacts to BFBs or ZOMGs didn't recognize them. Super Monkey's Magic sacrifice knockback, Mermonkey's pull/upgrade cost, Skywarden's bonus and stun, and Beast Handler grabs now all treat them as configured — MOAB/DDT/BAD behavior is unchanged.</li>
+                            <li>Glue Storm fix: the storm now actually glues things. Its whole 20-second duration was silently centered on an invalid point, so every pulse hit nothing; it's now centered on the track area with the same coverage as Glue Strike.</li>
+                            <li>Knight fix: his Cursor Slash punish actually punishes now — the engine was silently refusing the &minus;$500 penalty, so cutting his slash only ever cost you a stun. Cash penalties flow properly again (the engine gained a proper <code>removeCash</code> path; regular cash gains are untouched).</li>
+                        </ul>
+                    </div>
                     <div style="border: 1px solid #7f8c8d; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
                         <h3 style="color: var(--gold); margin-bottom: 6px;">v1.2.0</h3>
                         <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
                             <li>Big preload: the loading screen now warms up most of the game up front — tower/hero attack animations (including every upgrade), bloons + cracks + blades, effects, projectiles, maps and audio. No more mid-round blank squares or first-use hitches (upgraded sniper, effects, etc.).</li>
                             <li>Fixed first-shot animation: attack frames are decoded before the first shot, so towers play their full attack animation from shot #1 instead of a stuttery/base-only few.</li>
                             <li>Loading screen revamp: kept out of the way — a slim pulsing "Loading..." indicator sits in the corner while the game warms up (the old full logo / status-bar / tips layout was removed).</li>
-                            <li>Loading-screen minigame: click/tap/hold (or Space) to shake swords loose, Budokai Tenkaichi style — swords are scattered around the screen, each pull builds self-reinforcing momentum (bigger gains, harder budges, faster pops), the screen shakes at full power, and freed swords pop with a slide-up flash. Idle swords even work themselves out very slowly. Every 20 farmed earns a silent +1 XP. Purely optional; loading never waits on it. Run <code>forceMinigame()</code> in the devtools console to play it anytime (<code>closeMinigame()</code> to dismiss).</li>
+                            <li>Loading-screen minigame: click/tap/hold (or Space) to shake swords loose, Budokai Tenkaichi style — swords are scattered around the screen, each pull builds self-reinforcing momentum (bigger gains, harder budges, faster pops), the screen shakes at full power, and freed swords pop with a slide-up flash. Idle swords even work themselves out very slowly. Every 20 farmed earns a silent +1 XP. Purely optional; loading never waits on it. Run <code>forceMinigame()</code> in the devtools console to play it anytime (<code>closeMinigame()</code> to dismiss). <i>(Removed in v1.3.4, brought back in v1.3.5 — it now only shows up during longer loads.)</i></li>
                             <li>Knight boss: the intro cutscene now plays a full roar (knight_back frames) then a sword-equip animation before the knight turns to face you for the fight.</li>
                             <li>Tuning tools: <code>tuning</code> is exposed on the console (<code>window.tuning</code>) — boss cutscene pacing (phase durations + reveal fps) and minigame feel knobs can be adjusted live without a rebuild. Replay the cutscene instantly with <code>retryCutscene()</code>.</li>
                             <li>Knight fix: the knight no longer blinks mid-reveal (the sword-equip frame 1 was loading a missing sprite; the WebGL renderer also keeps the last frame if one isn't ready yet).</li>
@@ -370,6 +570,7 @@
                     </div>
                 </div>
                 <button class="back-btn" data-target="main-menu-ui">Back</button>
+            </div>
             </div>
         </div>
 
@@ -467,25 +668,31 @@
                 </div>
             </div>
         </div>
-        <!-- Settings Menu -->
+        <!-- Settings Menu (two LATERAL lanes: two vertical columns side by
+             side, one volume slider per lane, the checkboxes split evenly) -->
         <div id="settings-menu" class="overlay hidden">
             <div class="menu-content">
                 <h2>Settings</h2>
-                <div class="setting-item"><label>SFX Volume: <span id="vol-display">50%</span></label><input type="range" id="volume-slider" min="0" max="100" value="50"></div>
-                <div class="setting-item"><label>Music Volume: <span id="music-vol-display">30%</span></label><input type="range" id="music-slider" min="0" max="100" value="30"></div>
-                <div class="setting-item"><label><input type="checkbox" id="shuffle-music-checkbox"> Shuffle Music</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="random-start-checkbox"> Random Starting Track</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="extreme-speed-checkbox"> Enable Extreme Speeds (5x, 10x, 20x)</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="bg-run-checkbox"> Run in Background</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="auto-wave-checkbox-menu"> Auto Start Waves</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="flavor-text-checkbox" checked> Show Wave Flavor Text</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="smoothing-checkbox" checked> Enable Anti-Aliasing (Sprites)</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="fps-checkbox" checked> Show FPS Counter</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="show-stats-checkbox"> Show Tower Stats in Upgrade Menu</label></div>
-                <div class="setting-item"><label><input type="checkbox" id="uncap-fps-checkbox"> Uncap FPS (EXPERIMENTAL!!!)</label></div>
-                <!-- NEW: Show Hitboxes Toggle -->
-                <div class="setting-item"><label><input type="checkbox" id="show-hitboxes-checkbox"> Show Hitboxes & Ranges (Debug)</label></div>
-                <div class="music-controls"><button id="prev-song-btn">⏮</button><button id="next-song-btn">⏭</button></div>
+                <div class="settings-grid">
+                    <div class="settings-col">
+                        <div class="setting-item"><label>SFX Volume: <span id="vol-display">50%</span></label><input type="range" id="volume-slider" min="0" max="100" value="50"></div>
+                        <div class="setting-item"><label><input type="checkbox" id="shuffle-music-checkbox"> Shuffle Music</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="extreme-speed-checkbox"> Enable Extreme Speeds (5x, 10x, 20x)</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="auto-wave-checkbox-menu"> Auto Start Waves</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="smoothing-checkbox" checked> Enable Anti-Aliasing (Sprites)</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="show-stats-checkbox"> Show Tower Stats in Upgrade Menu</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="show-hitboxes-checkbox"> Show Hitboxes & Ranges (Debug)</label></div>
+                    </div>
+                    <div class="settings-col">
+                        <div class="setting-item"><label>Music Volume: <span id="music-vol-display">30%</span></label><input type="range" id="music-slider" min="0" max="100" value="30"></div>
+                        <div class="setting-item"><label><input type="checkbox" id="random-start-checkbox"> Random Starting Track</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="bg-run-checkbox"> Run in Background</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="flavor-text-checkbox" checked> Show Wave Flavor Text</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="fps-checkbox" checked> Show FPS Counter</label></div>
+                        <div class="setting-item"><label><input type="checkbox" id="uncap-fps-checkbox"> Uncap FPS (EXPERIMENTAL!!!)</label></div>
+                        <div class="music-controls"><button id="prev-song-btn">⏮</button><button id="next-song-btn">⏭</button></div>
+                    </div>
+                </div>
                 <div class="setting-item" style="margin-top: 15px; border-top: 1px solid #555; padding-top: 15px;">
                     <button id="level-fix-btn">Fix Missing Level Rewards</button>
                     <div id="level-fix-status" style="font-size: 12px; color: #bdc3c7; margin-top: 6px;"></div>
@@ -533,6 +740,13 @@
                 <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                     <input type="text" id="profile-name-input" placeholder="Enter your name" style="flex: 1; margin: 0;">
                     <button id="profile-save-name" style="width: auto; margin: 0; padding: 10px 20px;">Save</button>
+                </div>
+                <!-- Owner cheat: only revealed when the profile is named
+                     Konoshi (menuController.updateProfileUI toggles it). -->
+                <div id="cheat-section" class="hidden" style="border: 1px dashed var(--gold, #f1c40f); border-radius: 8px; padding: 12px; margin-bottom: 20px; background: rgba(241, 196, 15, 0.06);">
+                    <div style="font-weight: 900; color: var(--gold, #f1c40f); margin-bottom: 8px;">CHEATS ENABLED</div>
+                    <button id="cheat-unlock-btn" style="width: 100%; margin: 0; background: var(--gold, #f1c40f); color: #2c3e50;">UNLOCK EVERYTHING</button>
+                    <div id="cheat-status" style="font-size: 12px; color: #bdc3c7; margin-top: 8px; min-height: 14px;"></div>
                 </div>
                 <div id="profile-stats" style="text-align: left; width: 100%; margin-bottom: 20px; font-size: 18px;">
                     <!-- Populated by JS -->

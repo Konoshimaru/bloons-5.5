@@ -164,3 +164,72 @@
     font-size: 18px !important;
     margin-bottom: 0 !important;
 }
+/* ---- Paragon (v1.3.0 card; v1.4.2: the 4th convergence node is GONE ---- */
+/* v1.4.2 (owner: "the fourth paragon button should not exist"): the
+   separate skill-tree paragon node no longer exists in the DOM - a Tier 5
+   monkey's own three path cards turn purple as the purchase instead. These
+   styles keep only the selected-paragon info panel below. */
+#paragon-info { display: flex; flex-direction: column; gap: 8px; }
+#paragon-info.hidden { display: none; }
+.paragon-degree-badge { align-self: center; background: linear-gradient(135deg, #f1c40f, #e67e22); color: #2c3e50; font-weight: 900; padding: 4px 18px; border-radius: 12px; font-size: 14px; }
+.paragon-power-lines { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #ecf0f1; background: rgba(0,0,0,0.3); border: 1px solid #7f8c8d; border-radius: 6px; padding: 8px; }
+.paragon-power-total { color: var(--gold, #f1c40f); font-weight: 900; margin-top: 2px; }
+.paragon-stats-line { font-size: 11px; color: #bdc3c7; text-align: center; }
+
+/* ---- Paragon v1.4.0: purple purchase takeover + pre-purchase menu ---- */
+/* Once all three Tier 5s are owned, a Tier 5 monkey's three upgrade cards
+   become the Paragon purchase: purple, BTD6 paragon style (v1.4.2: the
+   takeover lives on the path cards only - the 4th node is gone). */
+.up-card.paragon-active {
+    border-color: #8e44ad;
+    background: linear-gradient(180deg, rgba(142, 68, 173, 0.30), rgba(30, 8, 48, 0.45));
+    box-shadow: 0 0 14px rgba(155, 89, 182, 0.40);
+}
+.up-card.paragon-active:hover { box-shadow: 0 0 22px rgba(155, 89, 182, 0.70); transform: translateY(-1px); }
+.up-card.paragon-active .up-name { color: #d2b4de; }
+.up-card.paragon-active .cost { color: #c39bd3; }
+.up-card.paragon-active.locked { opacity: 0.62; cursor: not-allowed; filter: saturate(0.5); }
+.up-card.paragon-active.locked:hover { transform: none; box-shadow: 0 0 12px rgba(155, 89, 182, 0.35); }
+
+/* The pre-purchase dialog (#paragon-buy-menu): power preview, big degree
+   readout, the investment input + quick buttons, and the total/confirm row. */
+.paragon-buy-degree {
+    text-align: center; font-size: 34px; font-weight: 900; letter-spacing: 2px;
+    color: #af7ac5; text-shadow: 0 0 18px rgba(155, 89, 182, 0.75); margin: 10px 0;
+}
+.paragon-invest-row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    font-size: 13px; color: #ecf0f1; margin-top: 4px;
+}
+/* v1.4.2: the investment is a slider (owner ask) - purple accent, live
+   readout next to the label, quick buttons unchanged. */
+.paragon-invest-readout {
+    font-size: 16px; font-weight: 900; color: #c39bd3;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+#paragon-invest[type="range"] {
+    width: 100%; box-sizing: border-box; margin: 2px 0 0;
+    accent-color: #8e44ad; cursor: pointer; height: 26px;
+}
+#paragon-invest[type="range"]:focus-visible { outline: 2px solid #af7ac5; outline-offset: 2px; }
+.paragon-invest-quick { display: flex; gap: 8px; margin-top: 8px; }
+.paragon-invest-quick button {
+    flex: 1; background: rgba(142, 68, 173, 0.25); border: 1px solid #8e44ad;
+    border-radius: 8px; color: #e8daef; font-weight: 700; padding: 7px 0; cursor: pointer;
+    transition: background 0.15s;
+}
+.paragon-invest-quick button:hover { background: rgba(142, 68, 173, 0.5); }
+.paragon-invest-hint { font-size: 12px; color: #95a5a6; margin-top: 6px; min-height: 15px; }
+.paragon-buy-total { margin-top: 8px; font-size: 14px; color: #ecf0f1; text-align: center; }
+.paragon-buy-total b { color: #c39bd3; }
+.paragon-buy-poor { color: #e74c3c; font-weight: 700; }
+.paragon-invest-bonus { color: #af7ac5; font-weight: 700; }
+.paragon-buy-confirm {
+    flex: 1; padding: 12px 0; border: none; border-radius: 10px; cursor: pointer;
+    font-size: 16px; font-weight: 900; letter-spacing: 0.5px; color: #fff;
+    background: linear-gradient(135deg, #8e44ad, #5b2c6f);
+    box-shadow: 0 0 14px rgba(155, 89, 182, 0.45);
+    transition: filter 0.15s;
+}
+.paragon-buy-confirm:hover { filter: brightness(1.12); }
+.paragon-buy-confirm:disabled { opacity: 0.45; cursor: not-allowed; filter: grayscale(0.4); box-shadow: none; }

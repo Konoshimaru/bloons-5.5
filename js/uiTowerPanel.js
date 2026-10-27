@@ -1,12 +1,14 @@
 // js/uiTowerPanel.js
 import { TowerStats, Upgrades } from './towers/index.js';
 import { Config } from './config.js';
+import { canOfferParagon, PARAGON_POWER_RULES } from './paragonPower.js';
 import { getEffectiveCooldown } from './towerBehavior.js';
 import { HeroRegistry } from './heroes/index.js';
 import { uiHooks } from './uiHooks.js';
 import { getSellValue } from './towerEconomy.js';
 import { getBehavior } from './registry.js';
 import { GAME_AREA_WIDTH } from './constants.js';
+import { writeThrottled, writeStyleThrottled } from './uiWriteThrottle.js';
 
 const _elCache = {};
 function el(id) {
@@ -63,8 +65,11 @@ const uiTowerPanel = {
             const ab = abilities[i];
             const icon = bar.children[i];
             if (!icon) continue;
-            
-            icon.innerText = ab.name;
+
+            // v1.4.3: these ran as unconditional innerText writes every
+            // frame (a forced layout per ability icon); the values are
+            // stable between cooldown seconds, so change-detect them.
+            writeThrottled(icon, ab.name);
             icon._tower = ab.tower;
             icon._slot = ab.slot;
             
@@ -77,7 +82,7 @@ const uiTowerPanel = {
                     icon.appendChild(overlay);
                 }
                 overlay.style.height = `${Math.min(100, (ab.cd / ab.maxCd) * 100)}%`;
-                overlay.innerText = Math.ceil(ab.cd) + 's';
+                writeThrottled(overlay, Math.ceil(ab.cd) + 's');
             } else {
                 icon.classList.remove('disabled');
                 if (overlay) overlay.remove();
@@ -197,6 +202,11 @@ const uiTowerPanel = {
             imgPath = `sprites/portraits/${t.type}_menuportrait.png`;
         }
 
+        // v1.4.3: this wrote three style properties EVERY frame (style
+        // recalc per frame). The path only changes on upgrade or selection
+        // switch, so change-detect it.
+        if (portrait._lastImgPath === imgPath) return;
+        portrait._lastImgPath = imgPath;
         portrait.style.backgroundImage = `url('${imgPath}')`;
         portrait.style.backgroundSize = 'cover';
         portrait.style.backgroundPosition = 'center';
@@ -208,10 +218,13 @@ const uiTowerPanel = {
             panel.appendChild(sellBtn);
         }
         if (sellBtn) {
+            // v1.4.1: paragons are sellable again - they get a normal Sell
+            // button priced by getSellValue (totalSpent now carries everything
+            // the player paid for the paragon). Minions still have no Sell.
             if (t.isMinion) { sellBtn.classList.add('hidden'); return; }
             sellBtn.classList.remove('hidden');
             const sellValue = getSellValue(t, engine);
-            sellBtn.innerText = `Sell ($${sellValue})`;
+            writeThrottled(sellBtn, `Sell ($${sellValue})`);
         }
         
         const bankBtn = el('up-collect-bank');
@@ -222,7 +235,7 @@ const uiTowerPanel = {
             const showBank = t.stats.isBank && t.bankBalance > 0;
             if (showBank) {
                 bankBtn.classList.remove('hidden');
-                bankBtn.innerText = `Collect Bank ($${Math.floor(t.bankBalance)})`;
+                writeThrottled(bankBtn, `Collect Bank ($${Math.floor(t.bankBalance)})`);
             } else {
                 bankBtn.classList.add('hidden');
             }
@@ -243,30 +256,32 @@ const uiTowerPanel = {
         if (title) {
             let titleStr = t.stats.name;
             if (t.type === 'gojo') titleStr += t.phase === 2 ? " (Awakened)" : " (Teen)";
-            title.innerText = titleStr;
+            writeThrottled(title, titleStr);
         }
         
         const counters = el('up-counters');
-        if (counters) counters.innerText = `Pops: ${t.damageDealt}`;
+        // v1.4.3: "Pops: N" ticks at hit rate for fast heroes - coalesce the
+        // counter to 10Hz instead of one forced layout per frame.
+        if (counters) writeThrottled(counters, `Pops: ${t.damageDealt}`, 100);
         
         const levelText = el('hero-level-text');
         if (levelText) {
-            levelText.innerText = `Level ${t.level} / 20 | XP: ${t.xp} / ${t.xpToNext}`;
+            writeThrottled(levelText, `Level ${t.level} / 20 | XP: ${t.xp} / ${t.xpToNext}`, 100);
         }
         
         const expFill = el('hero-exp-fill');
         if (expFill) {
-            expFill.style.width = `${(t.xp / t.xpToNext) * 100}%`;
+            writeStyleThrottled(expFill, 'width', `${(t.xp / t.xpToNext) * 100}%`, 100);
         }
         
         const currentDesc = el('hero-current-desc');
         if (currentDesc) {
-            currentDesc.innerText = this._getHeroLevelDescription(t.type, t.level);
+            writeThrottled(currentDesc, this._getHeroLevelDescription(t.type, t.level));
         }
         
         const nextDesc = el('hero-next-desc');
         if (nextDesc) {
-            nextDesc.innerText = t.level < 20 ? `Next: ${this._getHeroLevelDescription(t.type, t.level + 1)}` : "Max Level Reached";
+            writeThrottled(nextDesc, t.level < 20 ? `Next: ${this._getHeroLevelDescription(t.type, t.level + 1)}` : "Max Level Reached");
         }
         
         // FIX: Hero level up pop animation on the PORTRAIT
@@ -301,7 +316,7 @@ const uiTowerPanel = {
         if (t.level < 20) {
             buyBtn.classList.remove('hidden');
             const cost = t.xpToNext - t.xp;
-            buyBtn.innerText = `Buy Level ($${cost})`;
+            writeThrottled(buyBtn, `Buy Level ($${cost})`);
             if (engine.cash < cost) {
                 buyBtn.classList.add('disabled');
             } else {
@@ -320,6 +335,12 @@ const uiTowerPanel = {
         const targetingRow = el('up-targeting-row');
         
         if (pathsEl) pathsEl.classList.toggle('hidden', t.isMinion);
+        // Minions never reach _updateUpgradeCards, so the paragon convergence
+        // block would keep the PREVIOUS tower's state - hide it explicitly.
+        if (t.isMinion) {
+            const conv = el('paragon-convergence');
+            if (conv) conv.classList.add('hidden');
+        }
         
         const behavior = getBehavior(t.type);
 
@@ -468,25 +489,82 @@ const uiTowerPanel = {
         const rangeVal = Number(t.stats.range) || 0;
         const rangeStr = rangeVal === 9999 ? 'Global' : rangeVal.toFixed(1);
         
-        upStats.innerText = `DMG: ${effDmg} | RNG: ${rangeStr} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`;
+        // v1.4.3: change-detect (the RATE component wobbles a few times per
+        // second with Elite Defender's track/frenzy speed modifiers).
+        writeThrottled(upStats, `DMG: ${effDmg} | RNG: ${rangeStr} | RATE: ${effRate.toFixed(2)}s | PRC: ${effPierce}`);
     },
 
     _updateTargetingText(t) {
         const targetText = el('up-target-text');
-        if (targetText) targetText.innerText = t.targetingMode || 'First';
+        if (targetText) writeThrottled(targetText, t.targetingMode || 'First');
         
         const targetText2 = el('up-target-text-2');
-        if (targetText2) targetText2.innerText = t.targetingMode2 || 'First';
+        if (targetText2) writeThrottled(targetText2, t.targetingMode2 || 'First');
     },
 
     _updateUpgradeCards(t, engine) {
         if (!t || t.isMinion || t.stats.isHero || !Upgrades[t.type]) return;
 
         const title = el('up-title');
-        if (title) title.innerText = t.stats.name || 'Tower';
+        if (title) {
+            writeThrottled(title, t.isParagon
+                ? `${t.stats.name || 'Paragon'} · Degree ${t.paragonDegree || 1}`
+                : (t.stats.name || 'Tower'));
+        }
         
         const counters = el('up-counters');
-        if (counters) counters.innerText = this._getTowerCounterText(t);
+        // v1.4.3 (the reported bug): "Dmg Dealt" ticks up on EVERY shot, so a
+        // fast-firing tower (Elite Defender vs the Knight: 12-100 hits/s)
+        // forced a DOM layout every single frame. Coalesce the counter to
+        // 10Hz - it still visibly counts up while shooting.
+        if (counters) writeThrottled(counters, this._getTowerCounterText(t), 100);
+
+        const paragonInfo = el('paragon-info');
+        const pathsEl = el('up-paths');
+
+        if (t.isParagon) {
+            // Selected paragon: degree badge + power breakdown instead of the
+            // three path cards.
+            if (pathsEl) pathsEl.classList.add('hidden');
+            const conv = el('paragon-convergence');
+            if (conv) conv.classList.add('hidden');
+            const pcard = el('up-paragon');
+            if (pcard) pcard.classList.add('hidden');
+            if (paragonInfo) {
+                paragonInfo.classList.remove('hidden');
+                const s = t.degreeInfo || {};
+                const pb = t.powerBreakdown || {};
+                // v1.4.3: Pop Power climbs with every pop while a paragon is
+                // selected - throttle the innerHTML rebuild (parse + layout)
+                // to 10Hz like the counters.
+                writeThrottled(paragonInfo,
+                    `<div class="paragon-degree-badge">DEGREE ${t.paragonDegree || 1}</div>` +
+                    `<div class="paragon-power-lines">` +
+                    `<div>Cash Power: ${Math.round(pb.cashPower || 0)} / 60,000</div>` +
+                    (pb.extraCash ? `<div>Menu Investment: $${Math.round(pb.extraCash).toLocaleString('en-US')} (+${Math.round(pb.extraPower || 0)} power)</div>` : '') +
+                    `<div>Upgrade Power: ${Math.round(pb.upgradePower || 0)} / 10,000</div>` +
+                    `<div>Extra T5 Power: ${Math.round(pb.extraT5Power || 0)} / 50,000</div>` +
+                    `<div>Pop Power: ${Math.round(pb.popsPower || 0)} / 90,000</div>` +
+                    (pb.totemPower ? `<div>Totem Power: ${Math.round(pb.totemPower)}</div>` : '') +
+                    `<div class="paragon-power-total">Total Power: ${Math.round(pb.total || 0)}</div>` +
+                    `</div>` +
+                    (s.interval ? `<div class="paragon-stats-line">DMG ${s.damage} | CER +${s.ceramicDmg} | BOSS +${s.bossDmg} | PRC ${s.pierce} | ${(s.interval).toFixed(3)}s</div>` : ''),
+                    100, 'innerHTML');
+            }
+            this._updatePortrait(t);
+            return;
+        }
+
+        if (paragonInfo) paragonInfo.classList.add('hidden');
+        if (pathsEl) pathsEl.classList.remove('hidden');
+        // v1.4.2: the separate 4th "paragon node" button is GONE (owner ask:
+        // "the fourth paragon button should not exist") - the three path cards
+        // of a Tier 5 monkey ARE the paragon purchase now. Keep both elements
+        // hard-hidden in case a stale DOM ever carries them over.
+        const pcard = el('up-paragon');
+        if (pcard) { pcard.classList.add('hidden'); pcard._pSig = null; }
+        const conv = el('paragon-convergence');
+        if (conv) conv.classList.add('hidden');
 
         const statsEl = el('up-stats');
         if (statsEl) {
@@ -516,7 +594,12 @@ const uiTowerPanel = {
                             if (data.extraMods.range) projRange += data.extraMods.range;
                         }
                         
-                        statsEl.innerHTML = `<span style="color:#00ffff; font-weight:bold;">DMG: ${Math.round(projDmg)} | RNG: ${projRange.toFixed(1)} | RATE: ${projRate.toFixed(2)}s | PRC: ${Math.round(projPierce)}</span>`;
+                        // v1.4.3: hover preview - the string is stable while
+                        // hovering, so change-detect instead of re-parsing
+                        // HTML every frame.
+                        writeThrottled(statsEl,
+                            `<span style="color:#00ffff; font-weight:bold;">DMG: ${Math.round(projDmg)} | RNG: ${projRange.toFixed(1)} | RATE: ${projRate.toFixed(2)}s | PRC: ${Math.round(projPierce)}</span>`,
+                            0, 'innerHTML');
                     } else {
                         this._updateTowerStats(t);
                     }
@@ -526,6 +609,23 @@ const uiTowerPanel = {
             } else {
                 statsEl.classList.add('hidden');
             }
+        }
+
+        // v1.4.2: once EVERY Tier 5 of this type is owned, the three upgrade
+        // cards of a TIER 5 monkey turn into the Paragon purchase - purple,
+        // named after the paragon, and clicking any of them opens the
+        // pre-purchase menu (engineInput.handleUpgrade routes the click).
+        // v1.4.1 showed the takeover on EVERY dart/boomerang; the owner asked
+        // for the BTD6 rule back: the purple buttons only appear on valid
+        // Tier 5 monkeys (a path maxed), not on every monkey of the type.
+        // (Wiki: "the upgrade icon will become available on any of the tier 5
+        // Boomerang Monkeys".)
+        const parCfg = PARAGON_POWER_RULES[t.type];
+        const isTier5 = (t.upgrades || []).some(u => u >= 5);
+        let parTakeover = null;
+        if (parCfg && isTier5) {
+            const offer = canOfferParagon(engine, t, t.type);
+            if (offer.eligible) parTakeover = offer;
         }
 
         for (let i = 1; i <= 3; i++) {
@@ -552,6 +652,13 @@ const uiTowerPanel = {
                     newLocked = true;
                 }
             }
+
+            if (parTakeover) {
+                newName = parCfg.name.toUpperCase();
+                newCost = `$${parTakeover.cost.toLocaleString('en-US')}`;
+                newLocked = !parTakeover.affordable;
+            }
+            card.classList.toggle('paragon-active', !!parTakeover);
 
             if (!card._cache) card._cache = { tier: -1, name: "", cost: "", locked: null };
             const cache = card._cache;
@@ -597,11 +704,12 @@ const uiTowerPanel = {
             const data = Upgrades[t.type][path][tier];
             const tip = document.getElementById('upgrade-tooltip');
             if (tip && tip.classList.contains('show')) {
-                if (data) {
-                    tip.innerHTML = `<b>${data.name} (${tier + 1}/5)</b><br>${data.desc}`;
-                } else {
-                    tip.innerHTML = `<b>MAXED</b>`;
-                }
+                // v1.4.3: change-detect — the tooltip string is stable while
+                // hovering one upgrade, this re-parsed it every frame.
+                writeThrottled(tip,
+                    parTakeover ? `<b>${parCfg.name} (Paragon)</b><br>Consumes every monkey of this type on the field to create the Paragon. Click to review its power and Degree.`
+                    : (data ? `<b>${data.name} (${tier + 1}/5)</b><br>${data.desc}` : `<b>MAXED</b>`),
+                    0, 'innerHTML');
             }
         }
     }

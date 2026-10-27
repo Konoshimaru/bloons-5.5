@@ -2,16 +2,20 @@
 import { GameEngine } from './engineRef.js';
 import { Config, Difficulties } from './config.js';
 import { TowerStats, Upgrades, TOWER_CATEGORIES } from './towers/index.js';
+import { PARAGON_POWER_RULES } from './paragonPower.js';
 import { Maps } from './data.js';
 import { AudioEngine } from './audio.js';
 import { UI } from './ui.js';
 import { MapEditor } from './mapEditor.js';
 import { dom } from './dom.js';
+import { isCheater, unlockEverything } from './cheats.js';
 import { updateShopPrices } from './dragManager.js';
 import { controllers } from './controllers.js';
 import selectorMenus from './selectorMenus.js';
 import { LoadGate } from './loadGate.js';
+import { FadeVeil } from './fadeVeil.js';
 import { MAP_TIERS, getMapTier, getTierInfo, getMapThumbUrl, getMapFullUrl } from './mapMeta.js';
+import { GAME_VERSION } from './constants.js';
 
 export const menuController = {
     playMenuState: {
@@ -26,9 +30,31 @@ export const menuController = {
         if (show) {
             ui.classList.remove('hidden');
             UI.updateMetaStats();
+            // v1.4.4: the badge always reflects the RUNNING code (constants.js
+            // is bundled into whatever build is loaded), so a stale cached
+            // bundle can never display the new version number.
+            const badge = document.getElementById('mm-version-badge');
+            if (badge) badge.textContent = `v${GAME_VERSION}`;
         } else {
             ui.classList.add('hidden');
         }
+    },
+
+    // v1.4.2: the shared battle -> menu swap behind the fade veil (quit,
+    // game-over and victory all land here now - one cohesive sequence
+    // instead of three near-identical click handlers).
+    _returnToMenu() {
+        UI.toggleMenus(null);
+        GameEngine.deselectAll();
+        GameEngine.gameState = 'menu';
+        GameEngine.map = null;
+        this.showMainMenuUI(true);
+        document.getElementById('sidebar').classList.add('hidden');
+        document.getElementById('top-ui-left').classList.add('hidden');
+        document.getElementById('top-ui-right').classList.add('hidden');
+        document.getElementById('level-bar').classList.add('hidden');
+        AudioEngine.playMenuMusic();
+        updateShopPrices();
     },
 
     applyConfigToUI() {
@@ -67,6 +93,12 @@ export const menuController = {
         const nameInput = document.getElementById('profile-name-input');
         
         if (nameInput) nameInput.value = Config.data.playerName || "";
+
+        // Owner cheat reveal: the unlock panel exists ONLY for the Konoshi
+        // profile. Toggled here so it appears/disappears live when the name
+        // is saved or the profile menu is opened.
+        const cheatSection = document.getElementById('cheat-section');
+        if (cheatSection) cheatSection.classList.toggle('hidden', !isCheater(Config));
         
         if (profileStats) {
             profileStats.innerHTML = `
@@ -105,6 +137,7 @@ export const menuController = {
         };
 
         for (const type in TowerStats) {
+            if (type.startsWith('paragon_')) continue; // paragons live in the Paragons menu, not MONKEYS
             const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
             if (cat && categories[cat]) {
                 categories[cat].push(type);
@@ -179,7 +212,14 @@ export const menuController = {
         }
 
         html += `</div>`;
+
+        // Skill-tree convergence: if this tower has a paragon, the three paths
+        // visually flow into its golden node right below the path columns.
+        const pcfg = PARAGON_POWER_RULES[type];
+        if (pcfg) html += this._paragonTreeSection(type, pcfg);
+
         info.innerHTML = html;
+        if (pcfg) this._wireMonkeysParagonUnlock(type);
         info.scrollTop = 0;
     },
 
@@ -345,6 +385,64 @@ export const menuController = {
         this.refreshPlayMaps();
     },
 
+    // MONKEYS-menu paragon section: the tower's three upgrade paths converge
+    // into its Paragon node (replaces the retired PARAGONS main-menu hub).
+    // Shows live tower-XP progress toward the mastery badge. v1.3.2: the XP
+    // unlock is a MILESTONE only - in-game creation follows BTD6 rules
+    // (v1.4.0: all three T5s owned, then ANY tower of the type can buy, cash
+    // permitting) with no XP requirement. Later paragons appear automatically
+    // as PARAGON_POWER_RULES grows.
+    _paragonTreeSection(type, cfg) {
+        const xp = (Config.data.towerXp && Config.data.towerXp[type]) || 0;
+        const needed = cfg.xpToUnlock || 500000;
+        const unlocked = !!(Config.data.paragonUnlocks && Config.data.paragonUnlocks[type]);
+        const pct = Math.min(100, (xp / needed) * 100);
+        const baseName = TowerStats[type] ? TowerStats[type].name : type;
+
+        let action;
+        if (unlocked) {
+            action = `<span class="mm-paragon-unlocked-tag">MASTERED</span>`;
+        } else if (xp >= needed) {
+            action = `<button class="mm-paragon-unlock-btn" data-paragon="${type}">MASTER</button>`;
+        } else {
+            action = `<span class="mm-paragon-locked-tag">MASTERY &mdash; pop bloons with the ${baseName} to earn XP</span>`;
+        }
+
+        return `
+            <div class="mm-paragon-section" data-tower="${type}">
+                <div class="mm-paragon-caption">The three paths converge:</div>
+                <svg class="mm-paragon-fan" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M16 0 C 16 11, 50 6, 50 20" />
+                    <path d="M50 0 L 50 20" />
+                    <path d="M84 0 C 84 11, 50 6, 50 20" />
+                </svg>
+                <div class="mm-paragon-node ${unlocked ? 'unlocked' : 'locked'}">
+                    <div class="mm-paragon-name">${cfg.name}</div>
+                    <div class="mm-paragon-sub">Paragon &middot; $${cfg.baseCost.toLocaleString('en-US')} &middot; in-game: own all 3 Tier 5s, then any Tier 5 of these monkeys can buy it</div>
+                    <div class="mm-exp-bar-container mm-paragon-bar"><div class="mm-exp-bar-fill mm-paragon-xp-fill" style="width: ${pct.toFixed(2)}%;"></div></div>
+                    <div class="mm-paragon-xp-text">${xp.toLocaleString('en-US')} / ${needed.toLocaleString('en-US')} XP</div>
+                    <div class="mm-paragon-action">${action}</div>
+                </div>
+            </div>`;
+    },
+
+    _wireMonkeysParagonUnlock(type) {
+        const btn = document.querySelector(`.mm-paragon-unlock-btn[data-paragon="${type}"]`);
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            const cfg = PARAGON_POWER_RULES[type];
+            if (!cfg) return;
+            const xp = (Config.data.towerXp && Config.data.towerXp[type]) || 0;
+            const needed = cfg.xpToUnlock || 500000;
+            if ((Config.data.paragonUnlocks && Config.data.paragonUnlocks[type]) || xp < needed) return;
+            if (!Config.data.paragonUnlocks) Config.data.paragonUnlocks = {};
+            Config.data.paragonUnlocks[type] = true;
+            Config.save();
+            UI.updateMetaStats();
+            this.selectMonkey(type); // re-render the section in its unlocked state
+        });
+    },
+
     setupMenuListeners() {
         dom.btnSandbox?.addEventListener('click', () => controllers.game.startGameUI(true));
         dom.btnHeroes?.addEventListener('click', async () => {
@@ -354,6 +452,19 @@ export const menuController = {
         dom.btnPowers?.addEventListener('click', () => UI.toggleMenus('powers-menu'));
         dom.btnKnowledge?.addEventListener('click', () => UI.toggleMenus('knowledge-menu'));
         dom.btnUpdateLog?.addEventListener('click', () => UI.toggleMenus('update-log-menu'));
+        // Changelog X: always visible in the top-right of the window (the Back
+        // button sits below the last entry, which forced scrolling to close).
+        document.getElementById('update-log-close')?.addEventListener('click', () => UI.toggleMenus('main-menu-ui'));
+        // Owner cheat: the section itself is toggled by updateProfileUI and only
+        // exists for the Konoshi profile; the guard here is a second lock.
+        document.getElementById('cheat-unlock-btn')?.addEventListener('click', () => {
+            if (!isCheater(Config)) return;
+            const res = unlockEverything(Config);
+            UI.updateMetaStats();
+            this.updateProfileUI();
+            const status = document.getElementById('cheat-status');
+            if (status) status.textContent = `Unlocked ${res.towers} towers & heroes, ${res.paragons} paragon(s) and ${res.knowledge} knowledge perks.`;
+        });
         
         dom.btnPlay?.addEventListener('click', () => { 
             this.playMenuState.selectedMapIndex = Config.data.currentMap;
@@ -405,33 +516,21 @@ export const menuController = {
         });
         dom.btnAbandon?.addEventListener('click', () => GameEngine.abandonRun());
         
-        dom.backBtns.forEach(btn => btn.addEventListener('click', (e) => UI.toggleMenus(e.target.dataset.target)));
+        // Back buttons: read the target off the BUTTON, not e.target. A nested
+        // <span>/icon inside the button used to make e.target the child, whose
+        // dataset.target is undefined - toggleMenus(undefined) then hid every
+        // overlay INCLUDING the main menu (black screen). Same bug family as
+        // the unregistered-menu close failure; fixed together.
+        dom.backBtns.forEach(btn => btn.addEventListener('click', () => UI.toggleMenus(btn.dataset.target)));
         dom.settingsBackBtn?.addEventListener('click', () => UI.toggleMenus(GameEngine.lastMenu));
         dom.goMenuBtn?.addEventListener('click', () => {
-            UI.toggleMenus(null);
-            GameEngine.deselectAll();
-            GameEngine.gameState = 'menu';
-            GameEngine.map = null;
-            this.showMainMenuUI(true);
-            document.getElementById('sidebar').classList.add('hidden');
-            document.getElementById('top-ui-left').classList.add('hidden');
-            document.getElementById('top-ui-right').classList.add('hidden');
-            document.getElementById('level-bar').classList.add('hidden');
-            AudioEngine.playMenuMusic();
-            updateShopPrices();
+            // v1.4.2: game-over/victory -> menu now fades through black like
+            // every other menu return (cohesion) instead of a hard cut.
+            FadeVeil.through(() => this._returnToMenu());
         });
         dom.vicMenuBtn?.addEventListener('click', () => {
-            UI.toggleMenus(null);
-            GameEngine.deselectAll();
-            GameEngine.gameState = 'menu';
-            GameEngine.map = null;
-            this.showMainMenuUI(true);
-            document.getElementById('sidebar').classList.add('hidden');
-            document.getElementById('top-ui-left').classList.add('hidden');
-            document.getElementById('top-ui-right').classList.add('hidden');
-            document.getElementById('level-bar').classList.add('hidden');
-            AudioEngine.playMenuMusic();
-            updateShopPrices();
+            // v1.4.2: same fade for the victory screen's menu button.
+            FadeVeil.through(() => this._returnToMenu());
         });
         dom.hmPrevBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: -300, behavior: 'smooth' }));
         dom.hmNextBtn?.addEventListener('click', () => dom.heroSelector?.scrollBy({ left: 300, behavior: 'smooth' }));

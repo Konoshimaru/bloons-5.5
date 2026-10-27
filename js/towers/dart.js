@@ -59,6 +59,9 @@ export default {
             const hasNoDarts = !engine.towers.some(t => t.type === 'dart');
             const hasMonkeyCity = engine.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
 
+            // v1.3.2: the MK free dart and the MK free glue are INDEPENDENT
+            // freebies (no shared slot) - Monkey City's per-round dart is
+            // unaffected either way.
             if ((hasFreeMonkey && hasNoDarts) || (hasMonkeyCity && !engine.freeDartMonkeyClaimed)) {
                 return 0;
             }

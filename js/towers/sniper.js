@@ -96,6 +96,10 @@ export default {
     },
     updateSupport(tower, dt) {
         if (tower.stats.globalSniperBuff) {
+            // [REGRESSION GUARD | upstream 2a7c064 "sniper lag improvement"] Elite Support
+            // re-buff throttle — without it every Elite Sniper pair churns activeBuffs
+            // (find + push) 60x/sec. Pinned behaviorally by tests/gitsniperfixes.test.js.
+            // DO NOT DELETE.
             // Refresh the buff-list entry at a low frequency instead of every
             // tick — the effect is already 1s long, so 2-3 refreshes/sec is
             // functionally identical and avoids churning activeBuffs 60x/sec

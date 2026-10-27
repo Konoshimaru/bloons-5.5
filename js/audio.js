@@ -133,7 +133,7 @@ export const AudioEngine = {
             }
         }
 
-        // Batch the fetch + decode so the loading-screen minigame's rAF keeps
+        // Batch the fetch + decode so rAF rendering keeps
         // getting frame time (matches the 16-per-chunk / 10ms-yield batching
         // used by the canvas/WebGL preloads). decodeAudioData is async but
         // decoding ~22 files at once still spikes the main thread.

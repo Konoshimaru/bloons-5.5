@@ -64,6 +64,9 @@ function radialGrad(outerR, stops) {
 // array (and a fresh 2-float array per point) every frame. Safe to share:
 // the only caller (_drawMaxBlueVFX) consumes each blob via Graphics.poly(),
 // which reads the points synchronously before the next blob is built.
+// [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"] Module-level
+// scratch arrays below (blob/capture/wave) — no per-frame array/object allocations.
+// Pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
 const _blobScratch = new Array(34);
 // 41 capture-curve sample points x 2 floats.
 const _captureScratch = new Array(82);

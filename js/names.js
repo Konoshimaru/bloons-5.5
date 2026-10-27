@@ -35,6 +35,18 @@ export const Names = {
         return `${ENEMY_PREFIX}${base}`;
     },
 
+    // Sprite FILE (relative URL) for a bloon with modifiers - same suffix
+    // order as getEnemyWithModifiers (_regen_camo). Used by the sandbox menu
+    // so the spawn cards' portraits match the camo/regen toggles (v1.3.2).
+    getEnemySpriteFile(tier, isCamo, isRegen) {
+        const base = ENEMY_NAMES[tier];
+        if (!base) return null;
+        if (isCamo && isRegen) return `sprites/enemies/${base}_regen_camo.png`;
+        if (isCamo) return `sprites/enemies/${base}_camo.png`;
+        if (isRegen) return `sprites/enemies/${base}_regen.png`;
+        return `sprites/enemies/${base}.png`;
+    },
+
     getProjectile(type) {
         return `${PROJECTILE_PREFIX}${type}`;
     },

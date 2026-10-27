@@ -55,6 +55,26 @@ function configSavePlugin(route, filePath, backupPrefix, exportName) {
   };
 }
 
+// Audit C-8 (v1.3.3): dev mode serves the working tree directly, so the
+// missing build wiring was invisible. In production, `vite build` used to
+// bundle ONLY index.html - the four editor/test pages never reached dist and
+// their entry scripts dropped out of the module graph - and the sprite tree
+// (served from the repo root in dev) was not copied at all: a deploy with no
+// art and 404 editors. Pages are now explicit rollup inputs, and this plugin
+// copies the root sprites/ tree (incl. manifest.json when present) into dist
+// at bundle close. No-op on checkouts without a sprites/ dir.
+function spritesCopyPlugin() {
+  const SRC = path.join(__dirname, 'sprites');
+  const OUT = path.join(__dirname, 'dist', 'sprites');
+  return {
+    name: 'copy-root-sprites',
+    closeBundle() {
+      if (!fs.existsSync(SRC)) return;
+      fs.cpSync(SRC, OUT, { recursive: true });
+    },
+  };
+}
+
 // Changes every build; passed to the service worker so each deploy gets a fresh asset cache.
 const BUILD_ID = Date.now().toString(36);
 
@@ -66,6 +86,7 @@ export default defineConfig({
   plugins: [
     configSavePlugin('/__save-sprite-config', path.join(__dirname, 'js', 'spriteConfig.js'), 'spriteConfig', 'SpriteConfig'),
     configSavePlugin('/__save-bloon-config', path.join(__dirname, 'js', 'bloonSpriteConfig.js'), 'bloonSpriteConfig', 'BloonSpriteConfig'),
+    spritesCopyPlugin(),
   ],
   server: {
     host: '127.0.0.1', // Match Live Server's local IP
@@ -83,5 +104,23 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // Audit C-8 (v1.3.3): without explicit inputs, vite build bundled only
+    // index.html and the editor/test pages (and their entry scripts) never
+    // reached dist. All five HTML entry points are listed here.
+    rollupOptions: {
+      input: {
+        index: path.resolve(__dirname, 'index.html'),
+        cutsceneeditor: path.resolve(__dirname, 'cutsceneeditor.html'),
+        spriteeditor: path.resolve(__dirname, 'spriteeditor.html'),
+        blooneditor: path.resolve(__dirname, 'blooneditor.html'),
+        tests: path.resolve(__dirname, 'tests.html'),
+      },
+    },
+  },
+  // Vitest reads this config too: keep packaging snapshots / backup scripts
+  // under scripts/ out of the default **/*.test.* glob, or a stale bundled
+  // copy of a suite turns the whole run red (happened 2026-10-22).
+  test: {
+    exclude: ['**/node_modules/**', 'scripts/**', 'js/backups/**'],
   }
 });

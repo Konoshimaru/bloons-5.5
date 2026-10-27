@@ -262,7 +262,7 @@ class PixiAssetsManager {
             return;
         }
         // Batched (limited concurrency) so hundreds of texture uploads don't
-        // saturate the main thread and starve the loading minigame's rAF.
+        // saturate the main thread and starve rAF responsiveness.
         // 16-per-chunk / 10ms-yield matches js/assets.js's runBatched.
         for (let i = 0; i < keys.length; i += 16) {
             const chunk = keys.slice(i, i + 16);

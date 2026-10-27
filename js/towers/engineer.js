@@ -224,7 +224,7 @@ export default {
         let target = null; let maxCost = 0; 
         let effRange = Utils.getEffectiveRange(tower, engine) * 3.0; 
         for (let ot of engine.towers) { 
-            if (ot === tower || ot.type === 'farm' || ot.type === 'village' || ot.isMinion) continue; 
+            if (ot === tower || ot.type === 'farm' || ot.type === 'village' || ot.isMinion || ot.isParagon) continue; 
             if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, effRange)) { 
                 if (ot.totalSpent > maxCost) { maxCost = ot.totalSpent; target = ot; } 
             } 
@@ -240,7 +240,7 @@ export default {
             if (tower.upgrades[1] === 5) {
                 target.overclockTimer = 60; // Ultraboost temporary buff lasts 60s
             } else {
-                const topTier = Math.max(ot.upgrades[0], ot.upgrades[1], ot.upgrades[2]);
+                const topTier = Math.max(target.upgrades[0], target.upgrades[1], target.upgrades[2]);
                 target.overclockTimer = topTier >= 5 ? 30 : topTier === 4 ? 45 : 60;
             }
             if (tower.upgrades[1] === 5) {

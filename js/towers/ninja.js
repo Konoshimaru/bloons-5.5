@@ -30,25 +30,25 @@ export default {
     },
     upgrades: {
         1: [
-            {name:"Ninja Discipline", cost:300, desc:"Increases attack speed and range.", cooldownMult: 0.85, extraMods:{range:8}},
+            {name:"Ninja Discipline", cost:350, desc:"Increases attack speed and range.", cooldownMult: 0.85, extraMods:{range:8}},
             {name:"Sharp Shurikens", cost:350, stat:"pierce", amount:2, desc:"Can pop 4 bloons per shuriken."},
-            {name:"Double Shot", cost:1200, desc:"Throws 2 shurikens at a time.", cooldownMult: 0.75, extraMods: { projectileCount: 1 }},
-            {name:"Bloonjitsu", cost:3500, desc:"Throws 5 shurikens at once!", cooldownMult: 0.5, extraMods: { projectileCount: 3, damage: 1 }},
-            {name:"Grandmaster Ninja", cost:14000, desc:"Massive attack speed increase. Throws 8 shurikens.", cooldownMult: 0.5, extraMods: { projectileCount: 3, damage: 1 }}
+            {name:"Double Shot", cost:900, desc:"Throws 2 shurikens at a time.", cooldownMult: 0.75, extraMods: { projectileCount: 1 }},
+            {name:"Bloonjitsu", cost:2750, desc:"Throws 5 shurikens at once!", cooldownMult: 0.5, extraMods: { projectileCount: 3, damage: 1 }},
+            {name:"Grandmaster Ninja", cost:35000, desc:"Massive attack speed increase. Throws 8 shurikens.", cooldownMult: 0.5, extraMods: { projectileCount: 3, damage: 1 }}
         ],
         2: [
             {name:"Distraction", cost:250, stat:"distraction", amount:true, desc:"Shurikens have a chance to knock bloons backwards."},
             {name:"Counter-Espionage", cost:400, stat:"counterEspionage", amount:true, desc:"Strips Camo from bloons they hit."},
-            {name:"Shinobi Tactics", cost:2000, stat:"shinobi", amount:true, desc:"Buffs nearby Ninja Monkeys' attack speed and pierce."},
-            {name:"Bloon Sabotage", cost:4000, stat:"isAbility", amount:true, desc:"Ability: Slows all bloons on screen by 50% for 15s.", extraMods:{unlocksAbility:true, abilityName:"Sabotage", abilityCd:45}},
-            {name:"Grand Saboteur", cost:14000, stat:"damage", amount:2, desc:"Increases ability duration and damage."}
+            {name:"Shinobi Tactics", cost:1200, stat:"shinobi", amount:true, desc:"Buffs nearby Ninja Monkeys' attack speed and pierce."},
+            {name:"Bloon Sabotage", cost:5200, stat:"isAbility", amount:true, desc:"Ability: Slows all bloons on screen by 50% for 15s.", extraMods:{unlocksAbility:true, abilityName:"Sabotage", abilityCd:45}},
+            {name:"Grand Saboteur", cost:22000, stat:"damage", amount:2, desc:"Increases ability duration and damage."}
         ],
         3: [
             {name:"Seeking Shuriken", cost:300, stat:"seeking", amount:true, desc:"Shurikens seek out bloons automatically."},
-            {name:"Caltrops", cost:500, stat:"caltrops", amount:true, desc:"Dispenses caltrops onto the ground every 3.9 seconds."},
-            {name:"Flash Bomb", cost:2000, stat:"flashBomb", amount:true, desc:"Throws flash bombs that stun bloons."},
-            {name:"Sticky Bomb", cost:4500, stat:"stickyBomb", amount:true, desc:"Throws a bomb that sticks to MOABs and explodes."},
-            {name:"Master Bomber", cost:14000, stat:"damage", amount:5, desc:"Massive damage against MOABs."}
+            {name:"Caltrops", cost:450, stat:"caltrops", amount:true, desc:"Dispenses caltrops onto the ground every 3.9 seconds."},
+            {name:"Flash Bomb", cost:2250, stat:"flashBomb", amount:true, desc:"Throws flash bombs that stun bloons."},
+            {name:"Sticky Bomb", cost:5000, stat:"stickyBomb", amount:true, desc:"Throws a bomb that sticks to MOABs and explodes."},
+            {name:"Master Bomber", cost:40000, stat:"damage", amount:5, desc:"Massive damage against MOABs."}
         ]
     },
     updateSupport(tower, dt) {
@@ -57,7 +57,7 @@ export default {
             let effRange = Utils.getEffectiveRange(tower, GameEngine);
             const nearbyTowers = GameEngine.towerGrid.query(tower.x, tower.y, effRange, _ninjaShinobiScratch);
             for (let ot of nearbyTowers) { 
-                if (ot && ot.type === 'ninja' && ot !== tower) { 
+                if (ot && ot.type === 'ninja' && ot !== tower && !ot.isParagon) { 
                     if (Utils.withinRange(tower.x, tower.y, ot.x, ot.y, effRange)) ninjaCount++; 
                 } 
             }

@@ -9,6 +9,9 @@ import { GLOBAL_SCALE } from '../constants.js';
 import * as Const from './rendererConstants.js';
 
 export const ProjectilesRenderer = {
+    // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"] frameGen
+    // sweep + pop-texture/banana caches below (no per-frame string keys or Map lookups) —
+    // pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
     _frameGen: 0,
 
     _drawProjectiles(engine) {

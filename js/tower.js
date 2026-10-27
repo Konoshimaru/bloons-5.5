@@ -233,7 +233,19 @@ export class Tower {
     applyUpgradesForLoad() {
         for (let p = 1; p <= 3; p++) {
             for (let tier = 0; tier < this.upgrades[p - 1]; tier++) {
-                this._applyUpgradeStats(Upgrades[this.type][p][tier]);
+                const upgradeData = Upgrades[this.type][p][tier];
+                // P0 save repair (paragon plan ch.4): replay what each upgrade
+                // COST into totalSpent, otherwise a loaded tower's cash value
+                // (sell price, paragon power input) collapses to its base cost.
+                // Replayed at the current difficulty's cost modifier; MK
+                // discounts are not replayed (acceptable approximation).
+                if (upgradeData) {
+                    this._applyUpgradeStats(upgradeData);
+                    const cost = (typeof GameEngine.getCost === 'function')
+                        ? GameEngine.getCost(upgradeData.cost || 0)
+                        : (upgradeData.cost || 0);
+                    this.totalSpent += cost;
+                }
             }
         }
         this._postUpgradeHook(3);

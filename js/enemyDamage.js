@@ -31,6 +31,10 @@ const EnemyDamage = {
         if (this.brittle) damage += this.brittleBonus;
         
         if (dmgType.moabDmg && this.data.isMoab) damage += (dmgType.moabDmg || 0);
+        // Boss-class damage bonus (Apex Plasma Master "Boss" column). The
+        // knight cutscene boss is tier 99; future boss-event bloons can flag
+        // data.isBoss and be covered by the same check.
+        if (dmgType.bossDmg && (this.data.isBoss || this.tier === 99)) damage += (dmgType.bossDmg || 0);
         if (dmgType.fortifiedDmg && this.isFortified) damage += (dmgType.fortifiedDmg || 0);
         if (this.dipped) damage += 1;
         

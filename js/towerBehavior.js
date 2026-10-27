@@ -26,6 +26,12 @@ export function getEffectiveCooldown(tower) {
 
     let finalCooldown = tower._baseCooldown * tower._cooldownMult;
 
+    // Glaive Dominus Primary aura (v1.4.2, wiki v36.0): +11.1% attack speed
+    // (0.9x cooldown) for every Primary monkey while a Dominus is alive.
+    // Timer-based so the buff expires on its own when the paragon is sold
+    // or destroyed - no stale flags.
+    if (tower.gdBuffTimer > 0) finalCooldown *= 0.9;
+
     if (tower.overclockTimer > 0) finalCooldown *= 0.6;
     if (tower.ultraboostStacks > 0) finalCooldown *= Math.pow(0.96, tower.ultraboostStacks);
     
@@ -52,6 +58,9 @@ export function update(tower, dt, engine) {
 
 function _updateTimers(tower, dt, engine) {
     tower.cooldown -= dt;
+    // [REGRESSION GUARD | upstream 088355e+2a7c064 "sniper lag improvement"] Cooldown clamp:
+    // without it an idle tower's cooldown drifts to -thousands and breaks fire-rate math.
+    // Pinned by tests/gitsniperfixes.test.js — DO NOT DELETE.
     if (tower.cooldown < -1) tower.cooldown = -1; // don't let it drift indefinitely
     if (tower.abilityCooldown > 0) tower.abilityCooldown -= dt;
     if (tower.ability2Cooldown > 0) tower.ability2Cooldown -= dt;
@@ -65,6 +74,7 @@ function _updateTimers(tower, dt, engine) {
         if (tower.monsterTimer <= 0) { tower.isMonster = false; tower.monsterTimer = 0; }
     }
     if (tower.fanClubBuffTimer > 0) tower.fanClubBuffTimer -= dt;
+    if (tower.gdBuffTimer > 0) tower.gdBuffTimer -= dt;
     if (tower.overclockTimer > 0) tower.overclockTimer -= dt; 
     if (tower.stunTimer > 0) tower.stunTimer -= dt; 
     if (tower._targetRescanTimer > 0) tower._targetRescanTimer -= dt; 
@@ -97,6 +107,8 @@ function _updateTimers(tower, dt, engine) {
             if (pending && pending.alive) {
                 _executeFire(tower, pending, engine);
             } else if (!pending && tower.stats.fireWithoutTarget) {
+                // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"]
+                // Null-target volley release — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
                 // fireWithoutTarget towers (e.g. the base Monkey Ace's radial
                 // volley) schedule with a null pendingTarget; without this the
                 // windup never resolves into an actual shot once their attack
@@ -190,6 +202,7 @@ function _acquireAndFire(tower, dt, engine) {
     } 
 }
 
+// [REGRESSION GUARD | upstream 088355e "going down" -> 2a7c064 "sniper lag improvement"]
 // Cached target acquisition. Previously every tower re-ran _findTarget on
 // every simulation tick — a full scan of every live enemy for infinite-range
 // towers like the Sniper/Dartling/Mortar (range 9999 bypasses the spatial
@@ -212,6 +225,8 @@ function _getAcquireTarget(tower, engine) {
         // re-scan every tick — wait the interval out. Fires always re-scan,
         // so a newly-spawned valid target is still picked up on time.
         if (!cached && tower._targetRescanTimer > 0) return null;
+        // [REGRESSION GUARD | upstream 4e2bd10 "confirming knight fix update"] invulnerable /
+        // untargetable (rolling Knight) must never stay cached — pinned by tests/gitsniperfixes.test.js.
         if (cached && cached.alive && !cached.invulnerable && !cached.untargetable && cached._spawnId === tower._cachedTargetSpawnId && tower._cachedTargetingKey === targetingKey) {
             if (tower.stats.range === 9999 || Utils.withinRange(tower.x, tower.y, cached.x, cached.y, Utils.getEffectiveRange(tower, engine) + (cached.radius || 10))) {
                 return cached;
@@ -226,6 +241,9 @@ function _getAcquireTarget(tower, engine) {
         tower._targetRescanTimer = 0;
     } else {
         tower._targetRescanTimer = TARGET_RESCAN_INTERVAL;
+        // [REGRESSION GUARD | upstream 2a7c064 "sniper lag improvement"] Cooldown parking on
+        // fruitless scans — the #1 sniper-lag fix (idle 9999-range towers re-scanned EVERY tick).
+        // Pinned behaviorally by tests/gitsniperfixes.test.js — DO NOT DELETE.
         // Park the cooldown so firingReady is false for the whole throttle
         // window. Without this an idle tower (cooldown stays <= 0 because
         // nothing ever resets it on a fruitless scan) never enters the
@@ -255,6 +273,8 @@ function _findTarget(tower, engine) {
 
     const minRange = tower.stats.minRange ? (tower.stats.minRange * RANGE_SCALE * GS) : 0;
 
+    // [REGRESSION GUARD | upstream 0bad3c4 "fully fixed sniper lag"] Global-range fast path.
+    // Pinned by tests/gitsniperfixes.test.js — DO NOT DELETE.
     // Global-range towers (range === 9999) never filter by distance, so the
     // distanceSq / range math below is pure waste for them — except when the
     // targeting mode is 'Close' (needs the distance for its value) or the
@@ -266,6 +286,7 @@ function _findTarget(tower, engine) {
 
     for (const e of candidates) {
         if (!e.alive) continue;
+        // [REGRESSION GUARD | upstream 4e2bd10] skip invulnerable/untargetable (rolling Knight).
         if (e.invulnerable || e.untargetable) continue;   // e.g. the Knight while he rolls to a new spot
         if (isHiddenFrom(tower, e)) continue;
         if (tower.type === 'glue' && e.data.isMoab && !tower.stats.canHitMoab) continue; 
@@ -317,6 +338,8 @@ function _getTargetValue(tower, enemy, dist, targetingMode) {
 function _hasLineOfSight(tower, e, engine) {
     if (tower.stats.range === 9999 || !engine.map || engine.map.props.length === 0) return true;
     
+    // [REGRESSION GUARD | upstream 2a7c064 "sniper lag improvement"] Blockers cached on the MAP
+    // (shared by all towers), not per-tower — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
     // Blockers are static map data shared by every tower — compute the
     // filtered list once on the map instead of per-tower copies.
     if (!engine.map._losBlockers) {
@@ -366,6 +389,7 @@ function _executeFire(tower, target, engine) {
     fire(tower, target, engine, computeLeadAim(tower, target, engine));
 }
 
+// [REGRESSION GUARD | upstream 4e2bd10 "confirming knight fix update"] Path-lead aiming.
 // Where a projectile should be aimed so it meets a moving target, or null to aim straight at the
 // target's current x/y. The lead is computed ALONG THE MAP PATH (distanceTraveled + speed * time),
 // so it is only valid for enemies that really follow the path. Bosses that move on their own
@@ -391,6 +415,8 @@ export function computeLeadAim(tower, target, engine) {
 }
 
 function _getAnimationAsset(tower) {
+    // [REGRESSION GUARD | upstream 0bad3c4 "fully fixed sniper lag"] Upgrade-keyed anim cache —
+    // pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
     // The tower's type + upgrade tiers fully determine which sprites exist, so
     // this resolution is constant until the tower is upgraded. Cache the result
     // keyed on the upgrade values — the key changes on upgrade, so it

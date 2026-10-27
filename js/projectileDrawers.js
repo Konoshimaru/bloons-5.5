@@ -96,6 +96,19 @@ export const ProjectileDrawers = {
         ctx.fillStyle = '#e67e22'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
     },
+    // --- PARAGON (APEX PLASMA MASTER) PROJECTILES ---
+    apex_ball: (ctx, p) => {
+        const pulse = 1 + 0.12 * Math.sin(performance.now() / 60);
+        const r = 13 * pulse;
+        ctx.fillStyle = 'rgba(255,159,67,0.35)'; ctx.beginPath(); ctx.arc(0, 0, r + 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff9f43'; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(0, 0, r * 0.62, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, r * 0.3, 0, Math.PI * 2); ctx.fill();
+    },
+    apex_mini: (ctx, p) => {
+        ctx.fillStyle = '#ff9f43'; ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+    },
     dark_blade: (ctx) => {
         ctx.fillStyle = '#2c3e50'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-6, -6); ctx.lineTo(-6, 6); ctx.fill();
         ctx.fillStyle = '#8e44ad'; ctx.beginPath(); ctx.moveTo(12, 0); ctx.lineTo(-2, -3); ctx.lineTo(-2, 3); ctx.fill();

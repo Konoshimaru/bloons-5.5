@@ -6,7 +6,7 @@ export { CANVAS_WIDTH, CANVAS_HEIGHT };
 export const RANGE_SCALE = 3.0;
 
 const STORAGE_KEY = 'td_config';
-const CURRENT_SCHEMA_VERSION = 16;
+const CURRENT_SCHEMA_VERSION = 17;
 
 const migrations = {
     11: (data) => {
@@ -42,6 +42,13 @@ const migrations = {
             data.claimedLevels = [];
             for (let l = 2; l <= current; l++) data.claimedLevels.push(l);
         }
+        return data;
+    },
+    17: (data) => {
+        // v1.3.0 Paragon system: per-tower-type XP (1 per popped layer, keyed
+        // by base tower type) and one-time paragon unlocks from the main menu.
+        if (!data.towerXp) data.towerXp = {};
+        if (!data.paragonUnlocks) data.paragonUnlocks = {};
         return data;
     }
 };
@@ -81,6 +88,8 @@ const DEFAULT_DATA = {
         farmer: false
     },
     unlockedTowers: ['dart', 'quincy'],
+    towerXp: {},
+    paragonUnlocks: {},
     stats: {
         gamesPlayed: 0,
         highestRound: 0,

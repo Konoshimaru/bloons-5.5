@@ -2,6 +2,13 @@
 import { Config, Difficulties } from './config.js';
 import { HeroStats } from './heroes/index.js';
 import { TowerStats } from './towers/index.js';
+import { applyApexStats } from './towers/paragon_dart.js';
+import { applyGlaiveStats } from './towers/paragon_boomerang.js';
+
+// v1.4.1: per-paragon stat restorers, keyed by the tower's paragonBaseType.
+// Legacy saves (v1.4.0) predate the saved field and only ever contained dart
+// paragons, so they fall back to 'dart'.
+const PARAGON_STAT_APPLIERS = { dart: applyApexStats, boomerang: applyGlaiveStats };
 import { Hero } from './hero.js';
 import { Tower } from './tower.js';
 import { UI } from './ui.js';
@@ -11,13 +18,32 @@ import { LevelManager } from './levelManager.js';
 const GameSession = {
     saveGame() {
         if (this.gameState !== 'playing' && this.gameState !== 'paused') return;
+        // Audit C-6 (v1.3.3): sandbox runs must never become the Continue
+        // save. The engine autosaves on every visibilitychange-to-hidden and
+        // pause-menu quit; a sandbox session (999,999 lives / $10M cash)
+        // used to silently overwrite the player's legitimate saved run.
+        // Sandbox simply doesn't persist - an existing Continue save made
+        // BEFORE sandbox is left untouched.
+        if (this.isSandbox) return;
         const state = { 
             mapIndex: this.currentMap, 
             difficultyKey: Config.data.currentDifficulty, 
             lives: this.lives, 
             cash: this.cash, 
             wave: this.waveManager.currentWave,
-            towers: this.towers.map(t => ({ x: t.x, y: t.y, type: t.type, upgrades: [...t.upgrades], targeting: t.targetingMode, heroLevel: t.level || 0 })) 
+            towers: this.towers.map(t => {
+                const data = { x: t.x, y: t.y, type: t.type, upgrades: [...t.upgrades], targeting: t.targetingMode, heroLevel: t.level || 0 };
+                // Paragon persistence (plan ch.5): degree + base type + exact
+                // cash value, so a loaded paragon keeps its stats and its
+                // v1.4.1 sell value.
+                if (t.isParagon) {
+                    data.isParagon = true;
+                    data.paragonDegree = t.paragonDegree || 1;
+                    data.paragonBaseType = t.paragonBaseType || 'dart'; // v1.4.1
+                    data.totalSpent = t.totalSpent || 0;
+                }
+                return data;
+            }) 
         };
         Config.data.savedRun = state; 
         Config.save();
@@ -42,10 +68,28 @@ const GameSession = {
         for (const tData of state.towers) {
             const stats = TowerStats[tData.type] || HeroStats[tData.type];
             let t;
-            if (stats.isHero) { t = new Hero(tData.x, tData.y, tData.type); this.hero = t; } 
+            if (stats && stats.isHero) { t = new Hero(tData.x, tData.y, tData.type); this.hero = t; } 
             else { t = new Tower(tData.x, tData.y, tData.type); }
-            t.upgrades = [...tData.upgrades]; t.targetingMode = tData.targeting; t.applyUpgradesForLoad();
+            t.upgrades = [...tData.upgrades]; t.targetingMode = tData.targeting;
+            if (tData.isParagon) {
+                // Paragons reconstruct from their degree, not from upgrades.
+                // v1.4.1: the base type is saved with the tower, so a Glaive
+                // Dominus reloads with glaive stats, not dart stats.
+                const baseType = PARAGON_STAT_APPLIERS[tData.paragonBaseType] ? tData.paragonBaseType : 'dart';
+                t.isParagon = true;
+                t.paragonBaseType = baseType;
+                PARAGON_STAT_APPLIERS[baseType](t, tData.paragonDegree || 1);
+                if (typeof tData.totalSpent === 'number') t.totalSpent = tData.totalSpent;
+            } else {
+                t.applyUpgradesForLoad();
+            }
             if (t.stats.isHero && tData.heroLevel > 1) { while (t.level < tData.heroLevel) t.levelUp(); }
+            // P0 save repair: re-mark Tier-5 ownership so a loaded game restores
+            // the exact paragon-eligibility state (and can never buy a duplicate
+            // T5 of a path that already has one on the field).
+            for (let i = 0; i < 3; i++) {
+                if (t.upgrades[i] === 5) this.tier5Bought[`${t.type}-${i + 1}`] = true;
+            }
             this.towers.push(t);
         }
         this.updateUI(); 
@@ -69,12 +113,31 @@ const GameSession = {
         LevelManager.addXP(amount, { inGame: this.gameState === 'playing' });
     },
 
+    // Flushes per-pop TOWER XP (paragon unlock progress, keyed by base tower
+    // type) banked by addTowerXp() into Config.data.towerXp. Same batching
+    // pattern as flushSessionXp so per-pop adds never touch localStorage.
+    flushTowerXp() {
+        const session = this.towerXpSession;
+        if (!session) return;
+        let dirty = false;
+        for (const type of Object.keys(session)) {
+            const amount = Math.floor(session[type]);
+            if (amount <= 0) continue;
+            if (!Config.data.towerXp) Config.data.towerXp = {};
+            Config.data.towerXp[type] = (Config.data.towerXp[type] || 0) + amount;
+            delete session[type];
+            dirty = true;
+        }
+        if (dirty) Config.save();
+    },
+
     giveRewards() {
         const wavesSurvived = this.waveManager.currentWave;
         // Bank any un-flushed per-pop XP first so nothing is lost at game end.
         const sessionXp = Math.floor(this.sessionXp || 0);
         this.sessionXp = 0; this.sessionXpFlushTimer = 0;
         if (sessionXp > 0) LevelManager.addXP(sessionXp, { inGame: false });
+        this.flushTowerXp();
         const xpEarned = wavesSurvived * 15;
         let mmEarned = Math.floor(wavesSurvived / 3) + 5;
         

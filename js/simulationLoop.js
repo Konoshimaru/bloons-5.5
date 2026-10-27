@@ -15,6 +15,9 @@ const SimulationLoop = {
     _updateLimitsAndTimers(dt) {
         if (this.projectilePool.active.length > MAX_PROJECTILES) this.projectilePool.removeAt(0);
         if (this.particlePool.active.length > MAX_PARTICLES) this.particlePool.removeAt(0);
+        // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"]
+        // Swap-remove instead of shift() — shift() reindexes the whole array at the
+        // effect cap every frame during heavy fights. Pinned by tests/gitsniperfixes.test.js.
         // Swap-remove the oldest entry (order doesn't matter for these effect
         // pools) instead of shift(), which reindexes the whole array.
         if (this.explosions.length > MAX_EXPLOSIONS) { this.explosions[0] = this.explosions[this.explosions.length - 1]; this.explosions.pop(); }
@@ -91,6 +94,9 @@ const SimulationLoop = {
         for (let i = this.enemies.length - 1; i >= 0; i--) {
             const e = this.enemies[i];
             if (!e) continue;
+            // [REGRESSION GUARD | upstream 823611e "roaring knight lag fix"] Tier-99 boss
+            // double-update skip — the Knight's state machine must advance exactly once per
+            // frame. Pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
             // The knight boss (tier 99) is already updated once by
             // CutsceneManager.update() every frame; updating it here too
             // would run its state machine/attacks/trail at 2x speed during

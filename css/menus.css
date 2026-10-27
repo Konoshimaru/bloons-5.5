@@ -10,6 +10,8 @@
 #mm-left-bar button { width: 50px; height: 50px; background: rgba(44, 62, 80, 0.8); border: 1px solid #7f8c8d; color: white; border-radius: 8px; cursor: pointer; font-size: 24px; display: flex; justify-content: center; align-items: center; transition: all 0.2s; }
 #mm-left-bar button:hover { background: var(--accent); border-color: #d35400; }
 #mm-bottom-bar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: auto; background: rgba(44, 62, 80, 0.8); padding: 10px 20px; border-radius: 12px; border: 1px solid #7f8c8d; }
+/* v1.4.4: runtime version badge (bottom-right of the main menu). */
+#mm-version-badge { position: absolute; bottom: 24px; right: 24px; padding: 4px 12px; border-radius: 12px; background: rgba(44, 62, 80, 0.8); border: 1px solid #7f8c8d; color: #f1c40f; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; pointer-events: auto; user-select: none; }
 #mm-bottom-bar button { background: var(--panel); border: none; color: white; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: normal; transition: all 0.2s; }
 #mm-bottom-bar button:hover { background: var(--accent); }
 
@@ -49,6 +51,30 @@
 .mm-stat-box strong { color: var(--gold); font-size: 16px; }
 .mm-paths-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
 .mm-path-col { display: flex; flex-direction: column; gap: 8px; }
+/* MONKEYS-menu paragon section: the three upgrade paths converge into the
+   tower's Paragon node (replaces the old main-menu PARAGONS hub). */
+.mm-paragon-section { margin-top: 18px; display: flex; flex-direction: column; align-items: center; }
+.mm-paragon-caption { font-size: 12px; color: #95a5a6; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+.mm-paragon-fan { width: 60%; max-width: 420px; height: 22px; display: block; }
+.mm-paragon-fan path { fill: none; stroke: var(--gold, #f1c40f); stroke-width: 2; opacity: 0.55; stroke-linecap: round; }
+.mm-paragon-node {
+    width: 100%; max-width: 520px; text-align: center;
+    border: 2px solid var(--gold, #f1c40f); border-radius: 12px; padding: 12px 16px;
+    background: linear-gradient(180deg, rgba(241, 196, 15, 0.10), rgba(0, 0, 0, 0.30));
+    display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.mm-paragon-node.locked { opacity: 0.75; filter: saturate(0.6); }
+.mm-paragon-node.unlocked { box-shadow: 0 0 16px rgba(241, 196, 15, 0.45); }
+.mm-paragon-name { font-weight: 900; color: var(--gold, #f1c40f); font-size: 16px; }
+.mm-paragon-sub { font-size: 12px; color: #bdc3c7; }
+.mm-paragon-bar { width: 100%; height: 12px; background: rgba(0,0,0,0.5); }
+.mm-paragon-bar .mm-paragon-xp-fill { background: linear-gradient(90deg, #f1c40f, #e67e22); }
+.mm-paragon-xp-text { font-size: 12px; color: #ecf0f1; }
+.mm-paragon-action { margin-top: 2px; }
+.mm-paragon-unlock-btn { background: var(--gold, #f1c40f); color: #2c3e50; font-weight: 900; border: none; padding: 10px 22px; border-radius: 6px; cursor: pointer; transition: transform 0.15s, filter 0.15s; }
+.mm-paragon-unlock-btn:hover { transform: scale(1.05); filter: brightness(1.1); }
+.mm-paragon-unlocked-tag { color: #2ecc71; font-weight: 900; letter-spacing: 1px; }
+.mm-paragon-locked-tag { color: #7f8c8d; font-weight: 700; font-size: 12px; }
 .mm-upg-card { background: var(--bg); border-left: 4px solid var(--accent); padding: 8px; border-radius: 0 4px 4px 0; }
 .mm-upg-card h4 { margin: 0 0 4px 0; color: var(--gold); font-size: 14px; }
 .mm-upg-card p { margin: 0; font-size: 12px; color: #ecf0f1; line-height: 1.3; }
@@ -61,21 +87,90 @@
 .play-diff-btn:hover { background: #3e5771; border-color: var(--accent); }
 
 .full-screen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; gap: 40px; }
+/* Full-screen overlay fades (loadGate.js toggles .fade-out around .hidden):
+   opacity transitions in/out; .hidden still hard-cuts display once the fade
+   has finished. pointer-events released while transparent. Applies to the
+   loading screen AND the title screen (title -> loading -> menu all fade). */
+.full-screen-overlay { transition: opacity 0.32s ease; }
+.full-screen-overlay.fade-out { opacity: 0; pointer-events: none; }
+/* v1.3.6 fade-through-black veil (js/fadeVeil.js): covers EVERYTHING while a
+   screen swap happens underneath (title -> menu, menu -> battle, quit ->
+   menu). Sits above all overlays and menus; pointer-events block input while
+   black so the swap can never be clicked through. */
+#fade-veil { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 0.28s ease; z-index: 9000; }
+#fade-veil.on { opacity: 1; pointer-events: auto; }
+/* Non-scrolling window frame + always-visible close X (Update Log etc.).
+   .menu-window is position:relative; .menu-x pins to ITS top-right corner,
+   so the X stays put while .menu-content scrolls underneath it. */
+.menu-window { position: relative; }
+/* Always-visible close X for windowed menus (Update Log etc.). Sits INSIDE
+   the window's top-right corner so it can never be clipped or drift. v1.3.6:
+   restyled to MATCH the menu's own button language (the red round
+   .map-delete-btn used across these same menus) instead of the translucent
+   dark chip that read as foreign: solid red rounded square, white glyph,
+   darker press, gold keyboard-focus ring. */
+.menu-x {
+    position: absolute; top: 10px; right: 10px; z-index: 5;
+    width: 30px; height: 30px; border-radius: 4px;
+    background: rgba(231, 76, 60, 0.9); border: none; color: white;
+    font-size: 14px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.45);
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+    padding: 0; user-select: none;
+}
+.menu-x:hover {
+    background: #c0392b; color: #fff;
+    transform: scale(1.06); box-shadow: 0 3px 10px rgba(192, 57, 43, 0.55);
+}
+.menu-x:active { transform: scale(0.94); }
+.menu-x:focus-visible { outline: 2px solid var(--gold, #f1c40f); outline-offset: 2px; }
+/* Settings menu: two LATERAL lanes - two clearly separated VERTICAL columns
+   side by side (not a flat horizontal grid). One volume slider per lane,
+   checkboxes split evenly, every row left-aligned and full-width. */
+#settings-menu .menu-content { max-width: 780px; width: 720px; text-align: left; }
+#settings-menu h2 { text-align: center; }
+.settings-grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+    column-gap: 56px; row-gap: 14px;
+    text-align: left; align-items: start;
+}
+.settings-grid .setting-item { margin: 0; }
+.settings-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.settings-col .setting-item {
+    display: flex; flex-direction: column; gap: 6px;
+    text-align: left; margin: 0;
+}
+.settings-col .setting-item label { display: block; line-height: 1.45; }
+.settings-col input[type="range"] { width: 100%; cursor: pointer; }
+@media (max-width: 760px) {
+    #settings-menu .menu-content { width: auto; }
+    .settings-grid { grid-template-columns: 1fr; }
+}
 .game-logo { max-width: 80%; max-height: 50%; object-fit: contain; }
 #title-meta { position: absolute; right: 12px; bottom: 8px; font-size: 12px; color: rgba(255, 255, 255, 0.45); font-family: 'Luckiest Guy', cursive; letter-spacing: 1px; pointer-events: none; }
 .large-btn { padding: 15px 60px; font-size: 24px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Luckiest Guy', cursive; letter-spacing: 2px; transition: transform 0.1s; }
 .large-btn:hover { transform: scale(1.05); }
-.loading-container { position: absolute; left: 16px; bottom: 14px; z-index: 2; text-align: left; }
-.loading-minigame { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #16351c; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
-.loading-indicator { font-family: 'Luckiest Guy', cursive; text-transform: uppercase; font-size: 12px; letter-spacing: 2px; color: rgba(255, 255, 255, 0.4); animation: loading-pulse 1.6s ease-in-out infinite; }
+/* Loading screen: centered status + progress bar, slightly oversized so a
+   held screen reads as intentional rather than a flash (v1.3.4). The
+   minigame canvas below it is hidden until a load runs long (v1.3.5). */
+.loading-container { position: relative; z-index: 2; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.loading-indicator { font-family: 'Luckiest Guy', cursive; text-transform: uppercase; font-size: 16px; letter-spacing: 2px; color: rgba(255, 255, 255, 0.55); animation: loading-pulse 1.6s ease-in-out infinite; }
 @keyframes loading-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.75; } }
-/* Forced-minigame mode (forceMinigame() console command): hide the corner
-   loading indicator and show only the canvas + Back button. */
-#loading-bar { width: 220px; height: 6px; margin-top: 8px; border-radius: 3px; background: rgba(255,255,255,0.12); overflow: hidden; }
+#loading-bar { width: 260px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.12); overflow: hidden; }
 #loading-bar-fill { width: 0%; height: 100%; background: var(--gold, #f1c40f); transition: width 0.15s ease-out; }
+/* v1.3.5: the sword-pulling minigame is back — but only for LONG loads.
+   loadGate.js keeps the canvas transparent (opacity 0, non-interactive) and
+   adds .live once a load outlives TUNING.minigame.appearAfterMs; it fades in
+   behind the status + bar (container sits at z-index 2 above it). */
+.loading-minigame { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: #16351c; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; z-index: 1; opacity: 0; pointer-events: none; transition: opacity 0.3s ease-in; }
+.loading-minigame.live { opacity: 1; pointer-events: auto; }
+/* Forced-minigame mode (forceMinigame() console command): hide the status
+   and bar, show only the canvas + Back button. */
 #loading-screen.minigame-only #loading-bar { display: none; }
-#loading-screen.minigame-only { gap: 22px; }
 #loading-screen.minigame-only #loading-status { display: none; }
+#loading-screen.minigame-only { gap: 22px; }
 /* Map Card Delete Button */
 .map-delete-btn {
     position: absolute;

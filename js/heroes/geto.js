@@ -195,7 +195,7 @@ export default {
                 GameEngine.log("Curse captured!");
             }
         }
-        for (let i = tower.squids.length - 1; i >= 0; i++) {
+        for (let i = tower.squids.length - 1; i >= 0; i--) {
             let s = tower.squids[i];
             s.life -= dt;
             if (!s.isWorm) {

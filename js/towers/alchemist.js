@@ -14,7 +14,10 @@ export default {
         baseCooldown: 2.0, fireRate: 2.0,
         damage: 1, pierce: 15, projectileSpeed: 300,
         lifespan: 1.0, desc: "Throws acid potions. Can buff nearby towers.",
-        dmgType: 'acid', projectileType: 'potion', hitRadius: 18, isStaticRotation: true,
+        dmgType: 'acid', projectileType: 'potion', hitRadius: 18,
+        // v1.3.2: no isStaticRotation - the alchemist now turns to face its
+        // target when throwing (towerBehavior updates tower.angle, and
+        // renderTowers rotates the sprite; the flag used to pin him at 0).
         brewCd: 8.0, brewTimer: 0, category: 'Magic'
     },
     upgrades: {
@@ -75,7 +78,7 @@ export default {
                 let effRangeSq = effRange * effRange;
                 
                 for (let ot of GameEngine.towers) {
-                    if (!ot || ot === tower || ot.type === 'farm' || ot.type === 'village' || ot.type === 'alchemist' || ot.type === 'farmer' || ot.type === 'engineer') continue;
+                    if (!ot || ot === tower || ot.type === 'farm' || ot.type === 'village' || ot.type === 'alchemist' || ot.type === 'farmer' || ot.type === 'engineer' || ot.isParagon) continue;
                     let distSq = Utils.distanceSq(tower.x, tower.y, ot.x, ot.y);
                     if (distSq < effRangeSq) {
                         if (tower.stats.canBrew && (!ot.alchBuff || (!ot.alchBuff.isPerm && ot.alchBuff.shotsLeft < 10))) { 

@@ -46,6 +46,10 @@ export const PixiRenderer = {
         this._preloadSprites();
     },
 
+    // [REGRESSION GUARD | upstream 2a7c064 "sniper lag improvement"] Attack-frame preload.
+    // Our manifest-based preload below SUPERSEDES upstream's hardcoded ANIM_FRAME_COUNTS
+    // (it covers every tower + upgrade prefix) — same intent: the first sniper shot must
+    // never trigger a mid-round decode + GPU upload. Pinned by tests/gitsniperfixes.test.js.
     // PixiAssets loads lazily (a get() returns Texture.EMPTY until the asset
     // finishes loading), so any sprite that isn't preloaded is invisible for
     // a frame or two on its FIRST use — that's what made the cutscene slash

@@ -39,6 +39,9 @@ const ProjectileHitResolution = {
     },
 
     split() {
+        // Apex Plasma Master balls split into damage-inheriting plasma minis;
+        // everything else keeps the Ultra-Juggernaut juggernaut_sub behavior.
+        if (this.type === 'apex_ball') return this._splitApex();
         if (this.hasSplit) return;
         this.hasSplit = true;
         for (let i = 0; i < 6; i++) {
@@ -46,6 +49,22 @@ const ProjectileHitResolution = {
             const p = GameEngine.projectilePool.get();
             p.init(this.x, this.y, 2, null, 'juggernaut_sub', 400, 10, 1.0, ang, null, 0, this.tower, this.dmgType, this.isCrit);
             p.bonusCeramic = this.bonusCeramic;
+        }
+    },
+
+    // Apex Plasma Master: six mini-juggernauts that inherit the parent ball's
+    // damage, damage type, effects and crit state (wiki: "the Mini Juggernaut
+    // balls have the same hitbox and damage as the large balls"). Mini pierce
+    // and lifespan are not wiki-published; 8 / 0.75s is the Wave-1 tuning
+    // approximation and lives here as the single knob to adjust.
+    APEX_MINI_PIERCE: 8,
+    APEX_MINI_LIFE: 0.75,
+    _splitApex() {
+        for (let i = 0; i < 6; i++) {
+            const ang = (i / 6) * Math.PI * 2;
+            const p = GameEngine.projectilePool.get();
+            p.init(this.x, this.y, this.damage, null, 'apex_mini', Math.max(300, this.speed * 0.8),
+                this.APEX_MINI_PIERCE, this.APEX_MINI_LIFE, ang, this.effects, 0, this.tower, this.dmgType, this.isCrit);
         }
     },
 
@@ -326,8 +345,23 @@ const ProjectileHitResolution = {
 
         const cfg = ProjectileTypeConfig[this.type] || {};
         this.pierce--;
-        
-        if (this.pierce <= 0 && !cfg.survivesZeroPierce) {
+
+        if (cfg.apexSplit) {
+            // Apex Plasma Master: split into 6 minis at exactly two moments -
+            // when half the pierce budget is consumed (the ball keeps flying)
+            // and again when the pierce runs out (ball explodes).
+            const half = Math.ceil((this.spawnPierce || this.pierce) / 2);
+            if (!this.hasSplitHalf && this.pierce > 0 && this.pierce <= half) {
+                this.hasSplitHalf = true;
+                this.split();
+            }
+            if (this.pierce <= 0) {
+                this.split();
+                spawnExplosion(GameEngine, this.x, this.y, 50, 0.25, '#ff9f43');
+                this.alive = false;
+                return;
+            }
+        } else if (this.pierce <= 0 && !cfg.survivesZeroPierce) {
             if (cfg.splitsOnZeroPierce && !this.hasSplit) {
                 this.split();
             }

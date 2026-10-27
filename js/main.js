@@ -18,8 +18,9 @@ import { InputManager } from './input.js';
 import { UI } from './ui.js';
 import { MonkeyKnowledge } from './monkeyKnowledge.js';
 import { LevelManager } from './levelManager.js';
-import { LoadingMinigame } from './loadingMinigame.js';
 import { LoadGate } from './loadGate.js';
+import { LoadingMinigame } from './loadingMinigame.js';
+import { FadeVeil } from './fadeVeil.js';
 import { setupShopListeners, setupNudgeLogic, updateShopPrices } from './dragManager.js';
 import selectorMenus from './selectorMenus.js';
 import settingsMenu from './settingsMenu.js';
@@ -186,8 +187,15 @@ window.addEventListener('load', () => {
     GameEngine.init();
     // Start every group loading in the background right away (portraits are small
     // so they go first); each is gated only where it is actually needed.
+    // 'boot' (audio + knowledge) also starts HERE, not on Play-click: the
+    // pre-menu loading screen has less to wait for, and what remains (menu
+    // portraits) joins it behind that screen instead of a later gate.
+    LoadGate.prefetch('boot');
     LoadGate.prefetch('portraits');
     LoadGate.prefetch('game');
+    // v1.3.5: the restored loading minigame quietly farms XP — every
+    // xpMilestone swords pulled fires onComplete once (only reachable on
+    // genuinely long loads, or via forceMinigame()).
     LoadingMinigame.onComplete = () => LevelManager.addXP(1, { autoGrantCategory: true });
     const titleMeta = document.getElementById('title-meta');
     if (titleMeta) titleMeta.innerText = `v${pkg.version} · ${GameEngine.rendererName}`;
@@ -195,23 +203,32 @@ window.addEventListener('load', () => {
     Main.applyConfigToUI();
     
     const titleScreen = document.getElementById('title-screen');
-    const loadingScreen = document.getElementById('loading-screen');
     const titlePlayBtn = document.getElementById('title-play-btn');
 
     titlePlayBtn.addEventListener('click', async () => {
         try {
-            titleScreen.classList.add('hidden');
-            // The main menu only needs audio + knowledge. Everything else keeps
-            // loading in the background and is gated where it's used.
-            await LoadGate.ensure('boot', { label: 'Loading...' });
-            loadingScreen.classList.add('hidden');
-            Main.showMainMenuUI(true);
-            AudioEngine.playMenuMusic();
-            // Hand out rewards for levels reached in an earlier session but never claimed.
-            LevelManager.resumeUnclaimed();
+            // v1.3.6: the title -> menu swap now goes through a fade to black
+            // (owner: "no transitions, no fading to black"). The title still
+            // fades out on its own; the veil covers the loading gap so the
+            // menu never pops in over a bare background.
+            LoadGate.fadeHide(titleScreen);
+            await FadeVeil.through(async () => {
+                // The pre-menu gate: audio + knowledge + menu portraits. Both groups
+                // were prefetched at page load, so this is usually instant (the
+                // gate only shows its screen after 150ms); when it DOES show, it
+                // fades in and out like every other loading screen.
+                try {
+                    await LoadGate.ensureMany([['boot'], ['portraits']], { label: 'Loading...' });
+                } catch (err) {
+                    console.error("Boot: Loading sequence failed, forcing menu:", err);
+                }
+                Main.showMainMenuUI(true);
+                AudioEngine.playMenuMusic();
+                // Hand out rewards for levels reached in an earlier session but never claimed.
+                LevelManager.resumeUnclaimed();
+            });
         } catch (err) {
-            console.error("Boot: Loading sequence failed, forcing menu:", err);
-            loadingScreen.classList.add('hidden');
+            console.error("Boot: transition failed, forcing menu:", err);
             Main.showMainMenuUI(true);
         }
     });

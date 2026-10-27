@@ -41,6 +41,13 @@ export const BOSS_BAR_BORDER_ALPHA = 0.8;
 export const BOSS_BAR_EMPTY_COLOR = 0x2c3e50;
 export const BOSS_BAR_HIGHLIGHT_COLOR = 0xffffff;
 export const BOSS_BAR_HIGHLIGHT_ALPHA = 0.2;
+// v1.4.3: the HP NUMBER coalesces to 10Hz. Every hit changes the string, so
+// a fast-firing tower (Elite Defender: 12-100 hits/s) re-rasterized and
+// re-uploaded the Pixi Text texture every frame — the main per-hit cost of
+// the v1.4.2 "sniper lags the game" report. The bar FILL still tracks HP
+// exactly every frame; only the printed number is throttled (and it syncs
+// immediately on death).
+export const BOSS_BAR_TEXT_UPDATE_MS = 100;
 
 export const CURSOR_FILL_COLOR = 0xffffff;
 export const CURSOR_STROKE_COLOR = 0x000000;

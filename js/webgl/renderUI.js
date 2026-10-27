@@ -14,6 +14,8 @@ import { isMobile } from '../mobile.js';
 import * as Const from './rendererConstants.js';
 
 export const UIRenderer = {
+    // [REGRESSION GUARD | upstream d29d4af] frameGen sweep for floating texts + boss bars
+    // (replaces per-frame `seen` Sets) — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
     _frameGen: 0,
 
     _drawFloatingTexts(engine) {
@@ -236,7 +238,20 @@ export const UIRenderer = {
                 graphics.rect(startX, y, fillWidth, Const.BOSS_BAR_HEIGHT / 2).fill({ color: Const.BOSS_BAR_HIGHLIGHT_COLOR, alpha: Const.BOSS_BAR_HIGHLIGHT_ALPHA });
             }
             const text = `${boss.name}: ${Math.ceil(currentHp)} / ${boss.maxHp}`;
-            if (label.text !== text) label.text = text;
+            // [REGRESSION GUARD | local v1.4.3 sniper-lag fix — the owner-reported bug]
+            // Boss-bar number coalesced to 10Hz; pinned by tests/v143fixes.test.js. DO NOT DELETE.
+            // v1.4.3: every hit changes this string, so a fast-firing tower
+            // (the reported case: Sniper 0-0-5 vs the Knight, 12-100 hits/s)
+            // made `label.text` change EVERY frame — each assignment is a
+            // full Pixi Text re-measure + canvas re-raster + GPU texture
+            // re-upload. Coalesce the NUMBER to 10Hz; the fill rects above
+            // still track HP exactly every frame, so the bar reads live, and
+            // a dying boss (hp 0) syncs immediately.
+            const now = performance.now();
+            if ((currentHp <= 0 || now - (entry.lastTextAt || 0) >= Const.BOSS_BAR_TEXT_UPDATE_MS) && label.text !== text) {
+                label.text = text;
+                entry.lastTextAt = now;
+            }
             label.x = startX + Const.BOSS_BAR_WIDTH / 2; label.y = y + Const.BOSS_BAR_HEIGHT / 2;
         });
         for (const [boss, entry] of this._bossBarEntries) {
@@ -290,10 +305,17 @@ export const UIRenderer = {
         const validLandPlacement = !onPath && (!onWater || onFrozenWater);
 
         let cost = engine.getCost(stats.cost);
-        if (type === 'dart' && !engine.isSandbox && engine.difficulty && !engine.difficulty.noSelling) {
+        if (!engine.isSandbox && engine.difficulty && !engine.difficulty.noSelling) {
             const mkActive = Config.data.mkActive !== false;
-            const hasFreeMonkey = Config.data.unlocks.freeFirstDartMonkey || (mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_monkey);
-            if (hasFreeMonkey && !engine.towers.some(t => t.type === 'dart')) cost = 0;
+            // v1.3.2: the MK freebies (free dart / free glue) are INDEPENDENT
+            // per type - each preview shows Free! while its own freebie is up.
+            if (type === 'dart') {
+                const hasFreeMonkey = Config.data.unlocks.freeFirstDartMonkey || (mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_monkey);
+                if (hasFreeMonkey && !engine.towers.some(t => t.type === 'dart')) cost = 0;
+            } else if (type === 'glue') {
+                const hasFreeGlue = mkActive && Config.data.monkeyKnowledge && Config.data.monkeyKnowledge.bonus_glue;
+                if (hasFreeGlue && !engine.towers.some(t => t.type === 'glue')) cost = 0;
+            }
         }
         const canAfford = engine.cash >= cost;
 
@@ -338,6 +360,8 @@ export const UIRenderer = {
         const g = this._hitboxGraphics;
 
         if (!Config.data.showHitboxes) {
+            // [REGRESSION GUARD | upstream 4e2bd10] One-shot wipe when hitboxes toggle off —
+            // pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
             // Wipe the last drawn frame once. Returning without clear() left every ring that
             // existed at the moment of toggling off frozen on screen (only towers placed
             // afterwards looked "off").

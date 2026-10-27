@@ -8,12 +8,16 @@ import { GLOBAL_SCALE } from '../constants.js';
 import { getSpriteScale } from '../mobile.js';
 import * as Const from './rendererConstants.js';
 
+// [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"] Shared empty
+// overlay list — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
 // Shared empty list for overlay reconciles that need no overlays (special
 // tower states, mermonkey). _reconcileOverlayList only reads it, so sharing
 // one array across every call is safe and avoids a fresh [] per frame.
 const EMPTY_OVERLAYS = [];
 
 export const TowersRenderer = {
+    // [REGRESSION GUARD | upstream d29d4af] frameGen sweep pattern (replaces per-frame `seen`
+    // Sets across ALL renderers) — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
     // Per-frame generation stamp replaces the fresh `seen` Set that was
     // allocated + filled every frame just to sweep dead entries. Each entry
     // carries the frame that touched it; the sweep reclaims stale stamps.
@@ -23,6 +27,8 @@ export const TowersRenderer = {
     _drawTowers(engine) {
         const layer = PixiApp.layer('towers');
         const mscale = getSpriteScale();
+        // [REGRESSION GUARD | upstream d29d4af] frame-cached sprite scale — pinned by
+        // tests/gitsniperfixes.test.js. DO NOT DELETE.
         // Frame-cached sprite scale: every per-tower visual helper reads this
         // instead of re-calling getSpriteScale() (a window-width lookup) 4-8
         // times per tower. _applySpriteConfig falls back to getSpriteScale()
@@ -71,6 +77,8 @@ export const TowersRenderer = {
             entry.shadow.rotation = -entry.container.rotation;
 
             const shadowR = Const.TOWER_SHADOW_SCALE * (tower.stats?.scale || 1.0) * GLOBAL_SCALE * mscale;
+            // [REGRESSION GUARD | upstream 0bad3c4 "fully fixed sniper lag"] Shadow dirty-check
+            // — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
             // Shadow + night glow are static geometry per tower — shadowR only
             // depends on tower.stats.scale and the mobile scale factor, both
             // fixed after placement. Rebuilding them every frame (Graphics
@@ -104,6 +112,8 @@ export const TowersRenderer = {
                     });
                     entry.nightGlowGradientR = glowR;
                 }
+                // [REGRESSION GUARD | upstream 0bad3c4] Night-glow dirty-check — pinned by
+                // tests/gitsniperfixes.test.js. DO NOT DELETE.
                 if (entry._nightGlowR !== glowR || entry._nightAlpha !== engine.nightAlpha) {
                     entry.nightGlow.clear();
                     entry.nightGlow.circle(0, 0, glowR).fill({ fill: entry.nightGlowGradient, alpha: engine.nightAlpha * 0.5 });
@@ -419,9 +429,76 @@ export const TowersRenderer = {
     },
 
     _updateTowerVisual(tower, entry) {
+        if (tower.isParagon) { this._updateParagonVisual(tower, entry); return; }
         if (tower.type === 'dart') { this._updateDartVisual(tower, entry); return; }
         if (tower.type === 'mermonkey') { this._updateMermonkeyVisual(tower, entry); return; }
         this._updateGenericTowerVisual(tower, entry);
+    },
+    // Paragon placeholder art (zero-asset tint strategy, plan ch.5):
+    // draws the base monkey's Tier-5 sprite with a gold tint, 1.15x scale and
+    // a pulsing additive glow. v1.4.1: the texture keys derive from the
+    // paragon's BASE type (paragonBaseType), so every paragon rides this
+    // path. v1.4.2 BUGFIX: the fallback keys were missing the `tower_`
+    // prefix (dart_p3_t5_base / dart_base never exist in the atlas), so no
+    // texture was ever found, base.visible went false and the paragon drew as
+    // ONLY the gold glow circle ("all paragons are just yellow circles"). The
+    // real chain mirrors _updateDartVisual/_updateGenericTowerVisual:
+    //   tower_paragon_<type>_base (reserved real art, untinted)
+    //   tower_<type>_p3_t5_base  (the base monkey's Tier-5 sprite)
+    //   tower_<type>_base        (the plain monkey - always exists)
+    _updateParagonVisual(tower, entry) {
+        const { container, arm, base, overlayLayer, aOverlayLayer, catapult } = entry;
+        catapult.visible = false;
+        arm.visible = false;
+        const mscale = this._frameMscale || 1;
+        const targetSize = (tower.stats?.drawSize || (45 * (tower.stats?.scale || 1.0))) * GLOBAL_SCALE * mscale * 1.15;
+
+        const baseType = tower.paragonBaseType || 'dart';
+        let tex = Texture.EMPTY;
+        let isRealArt = false;
+        let configKey = baseType;
+        for (const key of [`tower_paragon_${baseType}_base`, `tower_${baseType}_p3_t5_base`, `tower_${baseType}_base`]) {
+            if (PixiAssets.has(key)) {
+                tex = PixiAssets.get(key);
+                isRealArt = key === `tower_paragon_${baseType}_base`;
+                // Match the generic tower's SpriteConfig selection: an
+                // upgrade base uses `<type>_p3_t5` when that config exists.
+                if (!isRealArt && key === `tower_${baseType}_p3_t5_base`) {
+                    configKey = SpriteConfig[`${baseType}_p3_t5`] ? `${baseType}_p3_t5` : baseType;
+                }
+                break;
+            }
+        }
+        if (tex === Texture.EMPTY) {
+            // No base texture at all (fresh install before assets decode) -
+            // only the glow shows. tower_<type>_base always exists once the
+            // game group is loaded, so this is a load-race guard only.
+            base.visible = false;
+        } else {
+            base.visible = true;
+            if (base.texture !== tex) base.texture = tex;
+            // Use the same sprite-config offsets as a normal tower so the
+            // monkey sits exactly where the real one would.
+            this._applySpriteConfig(base, tex, configKey, 'base', targetSize);
+            base.tint = isRealArt ? 0xffffff : 0xffd700;
+        }
+        this._reconcileOverlayList(aOverlayLayer, entry.aOverlays, EMPTY_OVERLAYS, targetSize);
+        this._reconcileOverlayList(overlayLayer, entry.overlays, EMPTY_OVERLAYS, targetSize);
+
+        // Pulsing additive gold glow behind the tower.
+        let glowG = entry.paragonGlow;
+        if (!glowG) {
+            glowG = new Graphics();
+            glowG.blendMode = 'add';
+            container.addChildAt(glowG, 0);
+            entry.paragonGlow = glowG;
+        }
+        const pulse = 0.5 + 0.5 * Math.sin(performance.now() / 1000 * 3);
+        const glowR = 26 * GLOBAL_SCALE * mscale;
+        glowG.clear().circle(0, 0, glowR).fill({ color: 0xffd700, alpha: 0.15 + 0.12 * pulse });
+
+        container.x = tower.x; container.y = tower.y;
+        container.rotation = (tower.angle ?? 0) + Math.PI / 2;
     },
     _updateGenericTowerVisual(tower, entry) {
         const { container, arm, aOverlayLayer, base, overlayLayer, catapult } = entry;

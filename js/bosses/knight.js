@@ -11,6 +11,15 @@ import { TUNING } from '../tuning.js';
 import { getBossMusic } from './knightMusic.js';
 import KnightAttacks from './knightAttacks.js';
 
+// Silhouette tuning (v1.3.2): a ghost only spawns when the knight has moved
+// at least GHOST_MIN_DISPLACEMENT px since the previous ghost (the idle
+// hover-bob peaks at ~66 px/s = ~7px per 0.11s interval, so 9px filters the
+// bob out while real walks/rolls still trail), and every ghost drifts
+// sideways up to GHOST_LATERAL_DRIFT px/s while fading.
+const GHOST_MIN_DISPLACEMENT = 9;
+const GHOST_MIN_DISPLACEMENT_SQ = GHOST_MIN_DISPLACEMENT * GHOST_MIN_DISPLACEMENT;
+const GHOST_LATERAL_DRIFT = 15; // px/s
+
 export class KnightEnemy extends Enemy {
     constructor(x, y) {
         super(); 
@@ -30,7 +39,16 @@ export class KnightEnemy extends Enemy {
         this.time = 0; 
         this.knightTrail = [];
         this.trailTimer = 0;
+        // Silhouette gating (v1.3.2): ghosts only spawn when the knight has
+        // actually displaced since the previous one - the idle hover-bob and
+        // the cutscene's in-place animation frames used to spawn a flickering
+        // pile of stacked silhouettes because the game "thought" he was moving.
+        this._lastGhostX = this.x;
+        this._lastGhostY = this.y;
         this.isCinematic = true; 
+        // [REGRESSION GUARD | upstream 4e2bd10 "confirming knight fix update"] The Knight moves
+        // on his own — without this flag every tower aims at the START OF THE PATH instead of
+        // at him (see computeLeadAim in towerBehavior.js). Pinned by tests/gitsniperfixes.test.js.
         this.followsPath = false;   // he moves on his own: towers must aim at him, not along the map path
 
         this.state = 'idle'; 
@@ -64,11 +82,27 @@ export class KnightEnemy extends Enemy {
         this.spriteAnimFrame = 1;
         this.spriteAnimTimer = 0;
         this.spriteAnimReverse = false; // point lowers back down once the throw is released
+        // [REGRESSION GUARD | upstream d29d4af] Point-anim hold-and-release (sword-throw pose
+        // holds at peak until the throw ends) — pinned by tests/gitsniperfixes.test.js.
         this.pointRelease = false;      // set when sword_throw ends so the point anim reverses
         this.flyPhase = null;    // null | 'transition' | 'fly' (death exit)
         this.flyElapsed = 0;     // time since the fly-away started
         this.slashBackup = 0;    // 0..1 how far the knight has backed away while readying
-        this.slashFired = false;   // set when the spinning slashes dash (wind-up ends)
+        this.slashBackupDirX = 0;  // away-from-cursor direction, captured ONCE at attack
+        this.slashBackupDirY = -1; // start and frozen (the knight never chases the cursor)
+        this.slashFired = false;   // set when a spinning-slashes volley dashes
+        this.slashSwinging = false; // body swing in progress (set per release, cleared at the last swing frame)
+        // Multi-volley spinning slashes: the attack chains volleys of
+        // spin→release instead of a single 2.5s spin (see knightAttacks.js).
+        this.slashVolley = 0;      // volleys released so far this attack
+        this.slashVolleys = TUNING.bossAnim.sprites.slash.volleys;
+        this.slashVolleyTimer = 0; // time until the current volley releases
+        this.slashCursorHit = false; // one cursor punish per release (shared by both lines)
+        // Screen-split slash choreography: windup during prep/warning, swing
+        // on the shatter, hold, lower, stand.
+        this.splitSlashFired = false;
+        this.splitSlashDone = false;
+        this.splitSlashTimer = 0;
 
         BossHealthBarHandler.registerBoss(this);
     }
@@ -135,28 +169,39 @@ export class KnightEnemy extends Enemy {
             this.y = 300 + Math.cos(this.time * 3) * 20;
         } else if (this.state !== 'repositioning') {
             // Back up away from the cursor while readying the spinning
-            // slashes (wind-up pose), then step back in once they're flying.
-            const slashCfg = TUNING.bossAnim.sprites.slash;
-            const targetBackup = this.state === 'spinning_slashes' ? 1 : 0;
-            this.slashBackup += (targetBackup - this.slashBackup) * Math.min(1, dt * slashCfg.backupSpeed);
-            const bx = this.x - GameEngine.mouse.x;
-            const by = this.y - GameEngine.mouse.y;
-            const bdist = Math.max(1, Math.hypot(bx, by));
-            this.x = this.homeX + Math.sin(this.time * 2) * 30 - (bx / bdist) * slashCfg.backupDist * this.slashBackup;
-            this.y = this.homeY + Math.cos(this.time * 3) * 20 - (by / bdist) * slashCfg.backupDist * this.slashBackup;
+            // slashes (wind-up pose), then step back in once they're flying
+            // — along the direction frozen when the attack started. Only the
+            // slash crosses follow the live cursor; the knight must not.
+            this._updateSlashBackup(dt);
         }
 
-        // Update Trail
+        // Update Trail: a ghost spawns only after trailInterval has elapsed
+        // AND the knight has moved GHOST_MIN_DISPLACEMENT px since the last
+        // ghost (v1.3.2). Each ghost drifts sideways a little while it fades
+        // so the trail reads as motion, not a stack.
         this.trailTimer += dt;
-        if (this.trailTimer > 0.04) {
-            this.knightTrail.unshift({ x: this.x, y: this.y, alpha: 0.7 * this.alpha });
+        const gdx = this.x - this._lastGhostX;
+        const gdy = this.y - this._lastGhostY;
+        if (this.trailTimer > TUNING.bossAnim.trailInterval &&
+            (gdx * gdx + gdy * gdy) >= GHOST_MIN_DISPLACEMENT_SQ) {
+            this.knightTrail.unshift({
+                x: this.x, y: this.y, alpha: 0.7 * this.alpha,
+                vx: (Math.random() - 0.5) * 2 * GHOST_LATERAL_DRIFT, // ±15 px/s sideways
+                vy: (Math.random() - 0.5) * 2 * (GHOST_LATERAL_DRIFT * 0.4),
+            });
             this.trailTimer = 0;
+            this._lastGhostX = this.x;
+            this._lastGhostY = this.y;
         }
-        if (this.knightTrail.length > 15) this.knightTrail.pop();
+        if (this.knightTrail.length > (TUNING.bossAnim.trailCap ?? 15)) this.knightTrail.pop();
 
         for (let i = this.knightTrail.length - 1; i >= 0; i--) {
             let t = this.knightTrail[i];
-            t.alpha -= dt * 1.5;
+            t.x += (t.vx || 0) * dt;
+            t.y += (t.vy || 0) * dt;
+            // v1.4.2: fade rate from TUNING (1.0/s - ghosts last 1.5x longer
+            // than the old hardcoded 1.5, owner ask).
+            t.alpha -= dt * (TUNING.bossAnim.trailFadeRate ?? 1.5);
             if (t.alpha <= 0) this.knightTrail.splice(i, 1);
         }
 

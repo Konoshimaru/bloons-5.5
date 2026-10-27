@@ -570,11 +570,21 @@ export const CutsceneRenderer = {
     // renderer path as the in-game boss (knightRenderer is driven entirely
     // from this.x/this.y/knightTrail/spinningSlashes/thrownSwords).
     _drawKnightEffects(e, knight) {
+        // Facing: the vanilla render mirrors the knight body unconditionally
+        // (ctx.scale(-1,1) port). A custom cutscene doc can override it via
+        // its mirror channel — cutscenePlayback writes knight.spriteMirror;
+        // null/undefined = not authored → keep the vanilla facing.
+        const flip = knight.spriteMirror == null ? true : !!knight.spriteMirror;
+        // Doc-authored size multiplier (scale 1 = the sizes below). Lives on
+        // the entity so it persists through the handover into the fight.
+        const previewScale = Math.max(0.01, knight.previewScale || 1);
         // --- Trail ghosts: `knight.sprite` (the current body sprite, so the
         // trail follows the reveal animation instead of always showing the
         // front view) at trailScale, mirrored via ctx.scale(-1,1), alpha =
         // trail alpha (fades as it ages). ---
         const trail = knight.knightTrail || [];
+        // [REGRESSION GUARD | upstream d29d4af] Trail sprite pool capped + kept (no
+        // destroy/recreate churn) — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
         // Pre-allocate up to the knight's trail cap (knight.js caps at 15)
         // once and keep the pool; unused sprites are hidden below instead of
         // being destroyed and recreated as the trail length fluctuates.
@@ -592,7 +602,7 @@ export const CutsceneRenderer = {
                 s.texture = trailTexture;
                 s.width = trailTexture.width * KNIGHT_TRAIL_SCALE;
                 s.height = trailTexture.height * KNIGHT_TRAIL_SCALE;
-                s.scale.x = -Math.abs(s.scale.x); // ctx.scale(-1,1) mirror
+                s.scale.x = (flip ? -1 : 1) * Math.abs(s.scale.x); // ctx.scale(-1,1) mirror
                 s.x = t.x - i * KNIGHT_TRAIL_DRIFT; s.y = t.y;
                 s.alpha = Math.max(0, Math.min(1, t.alpha));
             } else {
@@ -608,9 +618,9 @@ export const CutsceneRenderer = {
             this._knightLastTexture = texture;
             e.knight.visible = true;
             if (e.knight.texture !== texture) e.knight.texture = texture;
-            e.knight.width = texture.width * KNIGHT_SCALE;
-            e.knight.height = texture.height * KNIGHT_SCALE;
-            e.knight.scale.x = -Math.abs(e.knight.scale.x);
+            e.knight.width = texture.width * KNIGHT_SCALE * previewScale;
+            e.knight.height = texture.height * KNIGHT_SCALE * previewScale;
+            e.knight.scale.x = (flip ? -1 : 1) * Math.abs(e.knight.scale.x);
             e.knight.x = knight.x; e.knight.y = knight.y;
             e.knight.alpha = Math.min(1, knight.alpha ?? 1);
         } else if (this._knightLastTexture) {

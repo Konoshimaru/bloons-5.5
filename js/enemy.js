@@ -15,6 +15,29 @@ import { roundSpeedRamp, moabHpRamp, statusDurationFactor, cashMultForRound, tre
 
 const ENEMY_NAMES = [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
 const REGEN_INTERVAL = 2.0;
+
+// ---------------------------------------------------------------------------
+// REGEN chart (audit C-2 revival, v1.3.3). The old climb was _applyTier(tier+1)
+// against a numeric maxTier gate, which is wrong twice over: black(6)/white(7)
+// sit BELOW pink(5) in the pop hierarchy despite the higher tier number (so
+// black children could never regrow back to pink), and zebra must go straight
+// to rainbow (purple(10) is a side branch, not a regrow step - climbing
+// through it gave regen bloons a one-tick wrong sprite plus plasma immunity).
+// REGEN_NEXT is BTD6's canonical regrow chart; _REGEN_DEPTH orders side
+// branches (purple 8.5 between zebra/rainbow, DDT 11.5 between MOAB/BFB) so
+// the ceiling gate can never overshoot onto a branch above the wave's bloon.
+// ---------------------------------------------------------------------------
+const _REGEN_DEPTH = [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8.5, 9, 10, 11, 12, 13, 11.5, 14];
+const _REGEN_NEXT = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 11, 11: 12, 12: 13, 13: 14, 14: 15, 15: 17, 16: 17 };
+
+function _regenNextTier(tier, maxTier) {
+    const d = _REGEN_DEPTH;
+    if (d[tier] === undefined || d[maxTier] === undefined) return null;
+    if (d[tier] >= d[maxTier]) return null;   // at/above the wave's bloon: fully regrown
+    const next = _REGEN_NEXT[tier];
+    if (next === undefined || d[next] > d[maxTier]) return null; // no on-chart step below the ceiling
+    return next;
+}
 const STORM_HIT_INTERVAL = 0.05;
 const FORTIFIED_LEAD_HP = 3;
 
@@ -35,6 +58,18 @@ export class Enemy {
         this.isCamo = isCamo;
         this.isRegen = isRegen;
         this.maxTier = maxTier;
+        // Audit C-2 (v1.3.3): the regen accumulator was never initialized
+        // anywhere - undefined + dt = NaN forever, so `NaN > REGEN_INTERVAL`
+        // was always false and NO regrow bloon ever regenerated. init() is
+        // the pool-reuse reset point, so this covers recycled objects too.
+        this.regenTimer = 0;
+        // Pooled-flag sweep (audit v1.3.3): Skywarden combo state lives on
+        // the enemy (_skyC_wind/storm/ice). A recycled pool object used to
+        // respawn still carrying the previous bloon's combo counters, giving
+        // the new bloon free combo stages (and the tower a stale watch ref).
+        this._skyC_wind = null;
+        this._skyC_storm = null;
+        this._skyC_ice = null;
         this.isFortified = isFortified;
         this.pathIndex = pathIndex;
         this.isSuperCeramic = isSuperCeramic;
@@ -222,11 +257,16 @@ export class Enemy {
         }
     }
     _updateRegen(dt) {
-        if (!this.isRegen || this.tier >= this.maxTier) return;
+        if (!this.isRegen) return;
         this.regenTimer += dt;
         if (this.regenTimer > REGEN_INTERVAL) {
             this.regenTimer = 0;
-            this._applyTier(this.tier + 1);
+            // BTD6 canonical chart step (see _REGEN_NEXT above) instead of
+            // tier+1: black children regrow to their wave lineage and zebra
+            // skips the purple side branch.
+            const next = _regenNextTier(this.tier, this.maxTier);
+            if (next == null) return;
+            this._applyTier(next);
             if (this.data.isMoab) {
                 let moabHp = this.data.maxHp * (this.isFortified ? 2 : 1);
                 if (GameEngine.difficulty && GameEngine.difficulty.moabHpMod) moabHp *= GameEngine.difficulty.moabHpMod;
@@ -316,6 +356,17 @@ export class Enemy {
         if (layers <= 0) return;
         GameEngine.addPopCash(layers * this._popCashMult(killerTower));
         GameEngine.addSessionXp(layers);
+        this._creditTowerXp(layers, killerTower);
+    }
+
+    // Per-pop TOWER XP (paragon unlock progress): 1 XP per popped layer,
+    // credited to the killer tower's base type. Sentries credit their engineer
+    // via parentTower; heroes have their own XP system and are skipped.
+    _creditTowerXp(layers, killerTower) {
+        if (!killerTower || layers <= 0) return;
+        const base = killerTower.parentTower || killerTower;
+        if (!base || (base.stats && base.stats.isHero)) return;
+        GameEngine.addTowerXp(base.type, layers);
     }
 
     // Pays for this bloon's own layer (1). If its children cannot spawn (entity cap) their
@@ -333,7 +384,9 @@ export class Enemy {
 
         // Per-pop player XP: the bloon's own layer value (RBE minus children, which give
         // their own XP when they pop), so a full clear sums to the run's total RBE.
-        GameEngine.addSessionXp(Math.max(1, this.data.rbe - childRbeTotal));
+        const ownLayers = Math.max(1, this.data.rbe - childRbeTotal);
+        GameEngine.addSessionXp(ownLayers);
+        this._creditTowerXp(ownLayers, killerTower);
     }
 
     spawnChildren(canSpawn, carryOverDamage = 0, dmgType) {
@@ -353,7 +406,11 @@ export class Enemy {
                 const childCamo = child.forceCamo !== undefined ? child.forceCamo : this.isCamo;
                 const childRegen = child.forceRegen !== undefined ? child.forceRegen : this.isRegen;
                 const c = GameEngine.enemyPool.get();
-                c.init(child.tier, this.map, childCamo, childRegen, child.tier, this.isFortified, this.hpMod, this.pathIndex, this.isSuperCeramic);
+                // Audit C-2 (v1.3.3): children inherit the parent's REGEN
+                // ceiling (the type the WAVE spawned), not their own tier -
+                // a regen ceramic's zebras must be able to climb back to
+                // ceramic. Non-regen bloons ignore maxTier entirely.
+                c.init(child.tier, this.map, childCamo, childRegen, this.maxTier, this.isFortified, this.hpMod, this.pathIndex, this.isSuperCeramic);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
                 
                 if (this.deepFreezeLayers > 0) {

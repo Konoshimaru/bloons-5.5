@@ -6,6 +6,13 @@
 // ramps with clicks, so later swords budge harder and pop faster. Purely
 // decorative — the loading sequence never waits on it. The caller may set
 // `onComplete`, fired once per xpMilestone swords taken (e.g. to grant +1 XP).
+//
+// v1.3.5: RESTORED after v1.3.4 excised it (that over-pruned — the intent was
+// "only on long loads", not "gone"). loadGate.js now arms a timer when the
+// loading screen appears and only calls start() once the load outlives
+// TUNING.minigame.appearAfterMs, so quick loads never see it. The canvas
+// fades in via the .live class (css/menus.css). forceMinigame()/
+// closeMinigame() console commands still work for on-demand play.
 import { AudioEngine } from './audio.js';
 import { TUNING } from './tuning.js';
 
@@ -268,6 +275,9 @@ function update(dt) {
     // the old setInterval did — the browser fires every queued tick back-to-
     // back once the thread frees up. dt is already clamped in tick(), and the
     // guard caps catch-up regardless of that assumption.
+    // [REGRESSION GUARD | upstream d29d4af] Hold-to-repeat driven by dt (a busy main thread
+    // can never queue a burst of pulls the way setInterval did) — pinned by
+    // tests/gitsniperfixes.test.js. DO NOT DELETE.
     if (holdActive) {
         holdTimer += dt;
         let guard = 0;
@@ -529,6 +539,8 @@ function draw() {
     }
     ctx.globalAlpha = 1;
 
+    // [REGRESSION GUARD | upstream d29d4af] Vignette gradient cached, rebuilt only on resize
+    // (was a fresh createRadialGradient every frame) — pinned by tests/gitsniperfixes.test.js.
     ctx.fillStyle = vignetteGradient;
     ctx.fillRect(0, 0, W, H);
 }
@@ -564,8 +576,9 @@ export const LoadingMinigame = {
         canvas = document.getElementById('loading-minigame');
         if (!canvas) return;
         ctx = canvas.getContext('2d');
+        if (!ctx) return;   // no 2D context (jsdom tests, exotic browsers) — stay inert
         loadSprites();
-clicks = 0;
+        clicks = 0;
         momentum = 0;
         time = 0;
         particles = [];
@@ -624,6 +637,8 @@ window.forceMinigame = function () {
     LoadingMinigame.stop();
     overlay.classList.remove('hidden');
     overlay.classList.add('minigame-only');
+    const mgCanvas = document.getElementById('loading-minigame');
+    if (mgCanvas) mgCanvas.classList.add('live');   // forced mode: visible immediately
     const closeBtn = _closeBtn();
     if (closeBtn) {
         closeBtn.classList.remove('hidden');
@@ -643,6 +658,8 @@ window.closeMinigame = function () {
         overlay.classList.add('hidden');
         overlay.classList.remove('minigame-only');
     }
+    const mgCanvas = document.getElementById('loading-minigame');
+    if (mgCanvas) mgCanvas.classList.remove('live');
     const closeBtn = _closeBtn();
     if (closeBtn) closeBtn.classList.add('hidden');
 };

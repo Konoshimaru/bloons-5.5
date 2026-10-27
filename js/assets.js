@@ -55,11 +55,11 @@ function awaitImageLoad(img) {
 
 // Limited-concurrency runner: preload can request hundreds of sprites at once;
 // firing them all simultaneously saturates the main thread with Image()/decode
-// work and starves the loading minigame's rAF. This processes `items` in small
+// work and starves rAF responsiveness. This processes `items` in small
 // batches (with a yield between batches long enough for a couple of rAF frames)
-// so the loading minigame keeps animating smoothly while loads run in parallel
+// so the main thread stays responsive while loads run in parallel
 // within each batch. 16-per-chunk with a 10ms yield is the sweet spot between
-// keeping the minigame alive and not wasting seconds on sleeps.
+// keeping the page responsive and not wasting seconds on sleeps.
 const PRELOAD_BATCH = 16;
 const PRELOAD_YIELD_MS = 10;
 async function runBatched(items, batch, task) {

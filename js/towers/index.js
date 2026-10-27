@@ -26,6 +26,8 @@ import dartling from './dartling.js';
 import ace from './ace.js';
 import desperado from './desperado.js';
 import skywarden from './skywarden.js';
+import paragonDart from './paragon_dart.js';
+import paragonBoomerang from './paragon_boomerang.js';
 import { createPlaceholderTower } from './placeholder.js';
 
 const placeholderTowers = [
@@ -33,7 +35,9 @@ const placeholderTowers = [
 
 export const TowerRegistry = {
     dart, boomerang, tack, ninja, sniper, ice, glue, bomb, spike, farm, village, heli, ace, desperado,
-    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer, mermonkey, beast, dartling, druid, skywarden
+    super: superMonkey, sub, buccaneer, mortar, wizard, engineer, alchemist, farmer, mermonkey, beast, dartling, druid, skywarden,
+    paragon_dart: paragonDart,
+    paragon_boomerang: paragonBoomerang
 };
 
 placeholderTowers.forEach(([key, name, cost, desc]) => {
@@ -52,7 +56,10 @@ export const TOWER_CATEGORIES = {
     druid: 'Magic', mermonkey: 'Magic', skywarden: 'Magic',
     // Support
     farm: 'Support', spike: 'Support', village: 'Support', engineer: 'Support', 
-    beast: 'Support', farmer: 'Support'
+    beast: 'Support', farmer: 'Support',
+    // Paragons (never rendered in the shop; created from their base tower)
+    paragon_dart: 'Primary',
+    paragon_boomerang: 'Primary'
 };
 
 // Assign the category to the tower's stats if it doesn't already exist

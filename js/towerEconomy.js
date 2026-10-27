@@ -27,6 +27,7 @@ export function getSellValue(tower, engine) {
 const TowerEconomy = {
     canUpgrade(path, engine) {
         if (this.isMinion) return false; 
+        if (this.isParagon) return false; // paragons never upgrade
         
         const behavior = getBehavior(this.type);
         if (behavior?.canUpgrade && !behavior.canUpgrade(this, path, engine)) return false;
@@ -94,6 +95,15 @@ const TowerEconomy = {
     },
 
     sell(engine) {
+        // v1.4.1: paragons are NOT permanent anymore - the player can sell them
+        // like any other tower (the Knight's Sword Strike is the only thing
+        // barred from selling one, see bosses/knightAttacks.js _hitTower).
+        // Sell value = the standard rate over totalSpent, which for a paragon
+        // is everything the player paid: the source Tier 5's value + the
+        // paragon's base price + any Degree investment (see paragon_dart /
+        // paragon_boomerang creation). A paragon has empty upgrade arrays, so
+        // the tier5Bought reset below is naturally a no-op for it - the T5
+        // exclusivity ledger was already cleared at creation.
         engine.cash += getSellValue(this, engine);
         for (let i = 0; i < 3; i++) {
             if (this.upgrades[i] === 5) engine.tier5Bought[`${this.type}-${i + 1}`] = false;

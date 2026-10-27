@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "name": "Knight intro (vanilla)",
+  "duration": 7.275,
+  "useForBossIntro": true,
+  "actors": [
+    {
+      "id": "camera",
+      "isCamera": true,
+      "name": "🎥 Camera",
+      "sprite": null,
+      "visible": true,
+      "keys": [
+        {
+          "t": 0,
+          "x": 0,
+          "easing": "linear"
+        },
+        {
+          "t": 1.2,
+          "x": 500,
+          "easing": "linear"
+        },
+        {
+          "t": 6.075,
+          "x": 500,
+          "easing": "linear"
+        },
+        {
+          "t": 7.275,
+          "x": 0,
+          "easing": "linear"
+        }
+      ]
+    },
+    {
+      "id": "knight",
+      "name": "knight",
+      "sprite": "boss_knight_back_1",
+      "visible": true,
+      "keys": [
+        {
+          "t": 0,
+          "x": -400,
+          "y": 300,
+          "scale": 1,
+          "mirror": true
+        },
+        {
+          "t": 1.2,
+          "sprite": "boss_knight_back_1"
+        },
+        {
+          "t": 1.325,
+          "sprite": "boss_knight_back_2"
+        },
+        {
+          "t": 1.45,
+          "sprite": "boss_knight_back_3"
+        },
+        {
+          "t": 1.575,
+          "sprite": "boss_knight_back_4"
+        },
+        {
+          "t": 1.7,
+          "sprite": "boss_knight_back_5"
+        },
+        {
+          "t": 1.825,
+          "sprite": "boss_knight_back_6"
+        },
+        {
+          "t": 1.95,
+          "sprite": "boss_knight_back_7"
+        },
+        {
+          "t": 2.075,
+          "sprite": "boss_knight_back_8"
+        },
+        {
+          "t": 2.2,
+          "sprite": "boss_knight_back_9"
+        },
+        {
+          "t": 2.325,
+          "sprite": "boss_knight_back_10"
+        },
+        {
+          "t": 2.45,
+          "sprite": "boss_knight_back_11"
+        },
+        {
+          "t": 2.575,
+          "sprite": "boss_knight_back_12"
+        },
+        {
+          "t": 2.7,
+          "sprite": "boss_knight_back_13"
+        },
+        {
+          "t": 2.825,
+          "sprite": "boss_knight_back_14"
+        },
+        {
+          "t": 2.95,
+          "sprite": "boss_knight_back_15"
+        },
+        {
+          "t": 3.075,
+          "sprite": "boss_knight_back_16"
+        },
+        {
+          "t": 3.2,
+          "sprite": "boss_knight_back_17"
+        },
+        {
+          "t": 3.325,
+          "sprite": "boss_knight_back_18"
+        },
+        {
+          "t": 3.45,
+          "sprite": "boss_knight_back_19"
+        },
+        {
+          "t": 3.575,
+          "sprite": "boss_equip_sword_1"
+        },
+        {
+          "t": 3.7,
+          "sprite": "boss_equip_sword_2"
+        },
+        {
+          "t": 3.825,
+          "sprite": "boss_equip_sword_3"
+        },
+        {
+          "t": 3.95,
+          "sprite": "boss_equip_sword_4"
+        },
+        {
+          "t": 4.075,
+          "sprite": "boss_equip_sword_5"
+        },
+        {
+          "t": 4.2,
+          "sprite": "boss_equip_sword_6"
+        },
+        {
+          "t": 4.325,
+          "sprite": "boss_equip_sword_7"
+        },
+        {
+          "t": 4.45,
+          "sprite": "boss_equip_sword_8"
+        },
+        {
+          "t": 4.575,
+          "sprite": "boss_equip_sword_9"
+        },
+        {
+          "t": 4.7,
+          "sprite": "boss_equip_sword_10"
+        },
+        {
+          "t": 4.825,
+          "sprite": "boss_equip_sword_11"
+        },
+        {
+          "t": 4.95,
+          "sprite": "boss_equip_sword_12"
+        },
+        {
+          "t": 5.075,
+          "sprite": "boss_equip_sword_13"
+        },
+        {
+          "t": 5.2,
+          "sprite": "boss_equip_sword_14"
+        },
+        {
+          "t": 5.325,
+          "sprite": "boss_equip_sword_15"
+        },
+        {
+          "t": 5.45,
+          "sprite": "boss_equip_sword_16"
+        },
+        {
+          "t": 5.575,
+          "sprite": "boss_equip_sword_17"
+        },
+        {
+          "t": 5.7,
+          "sprite": "boss_equip_sword_18"
+        },
+        {
+          "t": 5.825,
+          "sprite": "boss_equip_sword_19"
+        },
+        {
+          "t": 5.95,
+          "sprite": "boss_equip_sword_20"
+        },
+        {
+          "t": 6.075,
+          "x": -400,
+          "sprite": "enemy_knight_front",
+          "easing": "linear"
+        },
+        {
+          "t": 7.275,
+          "x": 200
+        }
+      ]
+    }
+  ]
+}

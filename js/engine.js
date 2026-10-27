@@ -33,6 +33,11 @@ const FIXED_TIMESTEP = 0.016;
 const FPS_UPDATE_INTERVAL = 1000;
 const HANG_THRESHOLD_MS = 500; 
 
+// Tower types that earn tower XP toward their paragon unlock (registered
+// towers only; addTowerXp maps paragon_* pops back onto the base type and
+// hero types simply never appear in this set).
+const PARAGON_XP_TYPES = new Set(Object.keys(TowerRegistry).filter(k => !k.startsWith('paragon_')));
+
 // Filled in place so the object identity exported by engineRef.js stays the same
 // (descriptors are copied, so getters such as `config` keep working).
 Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
@@ -96,6 +101,11 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
     // LevelManager in batches so per-pop adds never touch localStorage.
     sessionXp: 0,
     sessionXpFlushTimer: 0,
+
+    // Per-tower-type XP earned from pops this run (paragon unlock progress).
+    // Banked by addTowerXp(), flushed into Config.data.towerXp by
+    // GameSession.flushTowerXp() on the same 0.5s cadence as sessionXp.
+    towerXpSession: {},
     
     difficulty: null,
     hero: null,
@@ -176,7 +186,12 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
             }
         } else {
             if (this.bgInterval) { clearInterval(this.bgInterval); this.bgInterval = null; }
-            if (!this._rafId && this.gameState !== 'gameover') {
+            // Audit C-5 (v1.3.3): reschedule whenever the tab comes back,
+            // whatever the run state. The loop itself is safe in the gameover
+            // state (it only skips sim+render), and refusing to reschedule
+            // here used to leave the page permanently dead after a run ended
+            // in a hidden tab (the only recovery was the uncap-FPS checkbox).
+            if (!this._rafId) {
                 this.lastTime = performance.now();
                 this._rafId = requestAnimationFrame(this._boundLoop);
             }
@@ -223,6 +238,18 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         this.cash += rawAmount;
     },
 
+    // Direct cash PENALTY (boss Cursor Slash etc.). addCash() early-returns on
+    // non-positive amounts, so punishments routed through it were silently
+    // swallowed (audit C-4). Floors at 0 so cash can never go negative.
+    // Every deduction also flashes a red "-$N" over the cash display so the
+    // player SEES what the boss took (v1.3.2).
+    removeCash(amount) {
+        const amt = Math.floor(Math.max(0, amount));
+        if (amt <= 0) return;
+        this.cash = Math.max(0, this.cash - amt);
+        if (UI && typeof UI.showCashDeduction === 'function') UI.showCashDeduction(amt);
+    },
+
     startGame(isSandbox = false) {
         this._popCashFrac = 0;
         this.isSandbox = isSandbox;
@@ -245,17 +272,23 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         this.acidPools.length = 0; this.menuClickables.length = 0;
         this.projectilePool.clear(); this.particlePool.clear();
         this.sessionXp = 0; this.sessionXpFlushTimer = 0;
+        this.towerXpSession = {};
         if (!isSandbox && !diff.noSelling) {
             if (Config.data.unlocks.extraStartingLives) this.lives += 10;
             if (Config.data.unlocks.extraStartingCash) this.cash += 200;
         }
 
+        // Pooled-flag sweep (audit v1.3.3): these reset for BOTH modes - the
+        // singleton persists across games, and starting a sandbox run after a
+        // normal one used to inherit its mana shield (which then "refilled"
+        // every round, free tanking for sandbox experiments).
+        this.manaShield = 0;
+        this.maxManaShield = 0;
+        this.leakedThisRound = false;
+        this.globalXpMult = 1.0;
+
         const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
         if (!isSandbox) {
-            this.manaShield = 0;
-            this.maxManaShield = 0;
-            this.leakedThisRound = false;
-            this.globalXpMult = 1.0;
             for (const eff of MKEffects.gameInit) {
                 if (!mk[eff.id]) continue;
                 if (eff.condition && !eff.condition(this, diff)) continue;
@@ -267,11 +300,23 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         this.waveManager = new WaveManager();
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
         this.waveManager.currentWave = diff.startRound - 1;
+        // Pooled-flag sweep (audit v1.3.3): the engine is a singleton, so
+        // per-run caches must reset on EVERY start, both modes. A stale
+        // _postChimpsMoab from the previous run defeated the validity check
+        // (a dead pooled enemy reference kept the post-Chimps cutscene
+        // pointed at a recycled bloon).
+        this._postChimpsMoab = null;
         this.tier5Bought = {};
         this.speedState = 0; this.timeScale = 1;
         this.freeDartMonkeyClaimed = false; 
         UI.updateWaveSpeedBtn(this.speedState);
         CutsceneManager.reset(); 
+        // Audit C-5 (v1.3.3): guarantee the render loop is running. If a
+        // previous run died in a hidden tab (gameover under the setInterval
+        // fallback), the visibility handler's old gameover guard left the
+        // page dead and a fresh run would boot into a game that never ticks.
+        // restartLoop() cancels any live rAF first, so no double-scheduling.
+        this.restartLoop();
         this.updateUI();
     },
 
@@ -295,6 +340,28 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         if (!amount || amount <= 0) return;
         this.sessionXp += amount;
         if (this.sessionXp >= 25) this.flushSessionXp();
+    },
+
+    // Per-pop tower XP (1 XP per popped layer, BTD6-style) credited to the
+    // killer tower's BASE type - paragon pops credit their base tower, sentry
+    // pops credit the engineer. Heroes have their own XP (skipped here), and
+    // sandbox never touches meta progression. Banked per type and flushed in
+    // batches so a busy round doesn't hammer localStorage.
+    addTowerXp(towerType, amount) {
+        if (!towerType || !amount || amount <= 0) return;
+        if (this.isSandbox) return;
+        let base = towerType;
+        if (base.startsWith('paragon_')) base = base.slice('paragon_'.length);
+        if (!PARAGON_XP_TYPES.has(base)) return;
+        this.towerXpSession[base] = (this.towerXpSession[base] || 0) + amount;
+    },
+
+    // True while any banked tower XP is waiting for its 0.5s flush.
+    _hasTowerXpPending() {
+        for (const k in this.towerXpSession) {
+            if (this.towerXpSession[k] > 0) return true;
+        }
+        return false;
     },
 
     log(msg) { UI.log(msg); },
@@ -386,11 +453,13 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
 
     update(dt) {
         this._updateLimitsAndTimers(dt);
-        if (this.sessionXp > 0) {
+        if (this.sessionXp > 0 || this._hasTowerXpPending()) {
             this.sessionXpFlushTimer -= dt;
-            if (this.sessionXpFlushTimer <= 0) { this.sessionXpFlushTimer = 0.5; this.flushSessionXp(); }
+            if (this.sessionXpFlushTimer <= 0) { this.sessionXpFlushTimer = 0.5; this.flushSessionXp(); this.flushTowerXp(); }
         }
         if (this.difficulty && this.difficulty.isPostChimps && CutsceneManager.state === 'idle') {
+            // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"]
+            // Cached damaged-MOAB lookup — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
             // Cache the first damaged MOAB instead of scanning every enemy
             // every frame. Re-find only when the cached target dies, heals
             // back to full, or hasn't been set — the same MOAB would win a

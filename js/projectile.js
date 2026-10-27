@@ -57,6 +57,8 @@ export class Projectile {
         this.bonusCeramic = tower ? tower.stats.bonusCeramic : 0;
         this.isCrit = isCrit;
         this.hasSplit = false;
+        this.hasSplitHalf = false;
+        this.spawnPierce = pierce;
         this.t = 0;
         this.targetTower = null;
         this.buffType = null;
@@ -97,6 +99,8 @@ export class Projectile {
 
     _getRadius(type) {
         if (type === 'bomb') return 8;
+        if (type === 'apex_ball') return 10;
+        if (type === 'apex_mini') return 6;
         if (type === 'spike' || type === 'spike_opult' || type === 'juggernaut' || type === 'ultra_juggernaut') return 10;
         return 5;
     }
@@ -112,6 +116,9 @@ export class Projectile {
         this.tower = null;
         this.effects = null;
         this.hitEnemies.clear();
+        this.hasSplit = false;
+        this.hasSplitHalf = false;
+        this.spawnPierce = 0;
     }
 
     update(dt) {
@@ -134,6 +141,14 @@ export class Projectile {
         }
 
         if (this._isOffscreen()) {
+            // Apex Plasma Master: the ball detonates at the screen edge (its
+            // pierce-exhaustion split has usually already happened in the hit
+            // resolver; a ball that still has pierce left just explodes).
+            if (this.type === 'apex_ball') {
+                spawnExplosion(GameEngine,
+                    Math.max(0, Math.min(GAME_AREA_WIDTH, this.x)),
+                    Math.max(0, Math.min(CANVAS_HEIGHT, this.y)), 60, 0.3, '#ff9f43');
+            }
             this.alive = false;
             return;
         }
@@ -276,7 +291,7 @@ export class Projectile {
 
     _isHomingType() {
         // so they don't overwrite the angle offset (arc spread) every frame.
-        const nonHomingTypes = ['tack', 'dart', 'ninja', 'nail', 'potion', 'spike_opult', 'juggernaut', 'ultra_juggernaut', 'arrow', 'fire', 'super_dart', 'laser', 'plasma', 'sun_ball', 'dark_blade'];
+        const nonHomingTypes = ['tack', 'dart', 'ninja', 'nail', 'potion', 'spike_opult', 'juggernaut', 'ultra_juggernaut', 'apex_ball', 'apex_mini', 'arrow', 'fire', 'super_dart', 'laser', 'plasma', 'sun_ball', 'dark_blade'];
         return !nonHomingTypes.includes(this.type);
     }
 
@@ -365,6 +380,8 @@ export class Projectile {
             case 'spike_opult': return 20;
             case 'juggernaut':
             case 'ultra_juggernaut': return 24;
+            case 'apex_ball': return 26;
+            case 'apex_mini': return 14;
             case 'arrow':
             case 'fire': return 30;
             case 'ninja': return 20;

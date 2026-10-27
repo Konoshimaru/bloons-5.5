@@ -171,6 +171,7 @@ export const LevelManager = {
             // Reconciliation mode: no interactive choice, just grant everything missed.
             extra.autoTowers = [];
             for (const type in TowerStats) {
+                if (type.startsWith('paragon_')) continue; // paragons are never category unlocks
                 const cat = TowerStats[type].category || TOWER_CATEGORIES[type];
                 if (cat !== category) continue;
                 if (Config.data.unlockedTowers.includes(type)) continue;
@@ -311,6 +312,7 @@ export const LevelManager = {
         for (const cat of ['Primary', 'Military', 'Magic', 'Support']) {
             const excluded = this._categoryExcludedNames(cat);
             for (const type in TowerStats) {
+                if (type.startsWith('paragon_')) continue; // paragons are never category unlocks
                 const stats = TowerStats[type];
                 if (!stats) continue;
                 if ((stats.category || TOWER_CATEGORIES[type]) !== cat) continue;
@@ -443,6 +445,7 @@ export const LevelManager = {
 
         const options = [];
         for (const type in TowerStats) {
+            if (type.startsWith('paragon_')) continue; // paragons are never pick options
             const stats = TowerStats[type];
             if ((stats.category || TOWER_CATEGORIES[type]) !== category) continue;
             if (Config.data.unlockedTowers.includes(type)) continue;

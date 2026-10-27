@@ -172,14 +172,23 @@ export const MKEffects = {
 
     gameInit: [
         { id: 'more_cash', action: (eng) => eng.cash += 200 },
-        { id: 'bonus_glue', action: (eng, diff, classes) => { const t = new classes.Tower(350, 350, 'glue'); eng.towers.push(t); } },
         { id: 'mana_shield', condition: (eng, diff) => diff.name !== 'Impoppable', action: (eng, diff) => { eng.maxManaShield = 25; eng.manaShield = 25; } },
         { id: 'monkey_education', action: (eng) => eng.globalXpMult = 1.08 }
     ],
 
     towerPlacement: [
-        { id: 'bonus_monkey', type: ['dart'], condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && !eng.towers.some(t => t.type === 'dart'), action: (cost) => 0 },
-        { id: 'unlock_free_dart', type: ['dart'], alwaysActive: true, condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && eng.config.data.unlocks.freeFirstDartMonkey && !eng.towers.some(t => t.type === 'dart'), action: (cost) => 0 },
+        // Free-monkey MK freebies (Bonus Monkey! / Bonus Glue Gunner): the FIRST
+        // placement of that type costs 0 instead of auto-placing at game start
+        // (v1.3.2: the glue used to drop a tower at (350,350) on load). The two
+        // freebies are INDEPENDENT (owner fix, v1.3.2 - "if one is placed the
+        // other one loses its buff" was the bug): owning both MK nodes grants
+        // one free Dart Monkey AND one free Glue Gunner every game. A freebie
+        // is spent simply by that tower type existing on the field, exactly
+        // like the free dart always behaved (`freebie: true` only drives the
+        // "Monkey Knowledge: free X placed!" log in engineInput).
+        { id: 'bonus_monkey', type: ['dart'], freebie: true, condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && !eng.towers.some(t => t.type === 'dart'), action: (cost) => 0 },
+        { id: 'bonus_glue', type: ['glue'], freebie: true, condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && !eng.towers.some(t => t.type === 'glue'), action: (cost) => 0 },
+        { id: 'unlock_free_dart', type: ['dart'], alwaysActive: true, freebie: true, condition: (eng, type) => !eng.isSandbox && eng.difficulty && !eng.difficulty.noSelling && eng.config.data.unlocks.freeFirstDartMonkey && !eng.towers.some(t => t.type === 'dart'), action: (cost) => 0 },
         { id: 'military_conscription', type: ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'], condition: (eng, type) => !eng.isSandbox && !eng.towers.some(t => ['sniper', 'sub', 'buccaneer', 'ace', 'heli', 'mortar', 'dartling'].includes(t.type)), action: (cost) => Math.floor(cost * 0.66) },
         { id: 'first_line_of_defense', type: ['spike'], condition: (eng, type) => !eng.isSandbox && !eng.towers.some(t => t.type === 'spike'), action: (cost) => Math.max(0, cost - 150) },
         { id: 'farm_subsidy', type: ['farm'], condition: (eng, type) => !eng.isSandbox && !eng.towers.some(t => t.type === 'farm'), action: (cost) => Math.max(0, cost - 100) }

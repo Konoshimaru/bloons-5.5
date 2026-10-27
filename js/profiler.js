@@ -19,6 +19,8 @@ export const Profiler = {
     lastSessionSeconds: 0,
 
     _tick: 0,
+    // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"] Ring buffer
+    // instead of push+shift() — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
     // Ring-buffer bookkeeping: `buffer` is a fixed-size array that record()
     // overwrites in place via _head; _len is how many samples it currently
     // holds. Replaces the old push+shift() (an O(N) reindex of the whole

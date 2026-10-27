@@ -108,6 +108,8 @@ export default {
         
         for (let t of nearbyTowers) {
             if (t === tower) continue;
+            // Paragons accept no external buffs (BTD6 rule) - skip entirely.
+            if (t.isParagon) continue;
             
             if (Utils.withinRange(tower.x, tower.y, t.x, t.y, effRange)) {
                 let totalRangeBuff = tower.stats.rangeBuff || 0;

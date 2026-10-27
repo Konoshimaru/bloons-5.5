@@ -89,6 +89,8 @@ export const WorldRenderer = {
 
     _drawAcidPools(engine) {
         const layer = PixiApp.layer('acidPools');
+        // [REGRESSION GUARD | upstream d29d4af] frameGen sweep (no per-frame Set) —
+        // pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
         this._frameGen = (this._frameGen + 1) || 1;
         const gen = this._frameGen;
         for (const pool of engine.acidPools || []) {

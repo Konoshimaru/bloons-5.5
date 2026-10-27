@@ -14,6 +14,11 @@ export const ProjectileTypeConfig = {
     spike_opult:      { exemptFromHitTracking: true },
     juggernaut:       { exemptFromHitTracking: true },
     ultra_juggernaut: { exemptFromHitTracking: true, splitsOnZeroPierce: true },
+
+    // Apex Plasma Master (paragon dart, v1.3.0). apexSplit = the ball splits
+    // into 6 damage-inheriting mini juggernauts at HALF pierce and again at
+    // pierce exhaustion (projectileHitResolution._handleStandardHit).
+    apex_ball:        { apexSplit: true },
     
     boomerang:        { survivesZeroPierce: true },
     arrow:            { decrementsPierceOnExplosion: true },

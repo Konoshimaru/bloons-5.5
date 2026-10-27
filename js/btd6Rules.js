@@ -40,10 +40,12 @@ export function statusDurationFactor(round) {
     return 0.5;
 }
 
-// Cash-per-pop multiplier by round.
+// Cash-per-pop multiplier by round. BTD6 curve (Bloons wiki "Money"):
+// 1.0 / 0.5 (R51+) / 0.2 (R61+) / 0.1 (R86+) / 0.05 (R101+) / 0.02 (R121+).
+// The old intermediate 0.04 tier at R121-140 was the game's ONLY economy
+// divergence from BTD6 - removed in v1.3.0 so late-round income is 1:1.
 export function cashMultForRound(round) {
-    if (round >= 141) return 0.02;
-    if (round >= 121) return 0.04;
+    if (round >= 121) return 0.02;
     if (round >= 101) return 0.05;
     if (round >= 86) return 0.10;
     if (round >= 61) return 0.20;

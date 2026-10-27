@@ -60,7 +60,7 @@ export default {
 
     _performSacrifice(tower, isTrueSunGod) {
         const range = Utils.getEffectiveRange(tower, GameEngine);
-        const inRange = GameEngine.towers.filter(t => t !== tower && !t.stats.isHero && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range);
+        const inRange = GameEngine.towers.filter(t => t !== tower && !t.stats.isHero && !t.isMinion && !t.isParagon && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range);
         
         const categoryMap = {
             dart: 'Primary', tack: 'Primary', ice: 'Primary', bomb: 'Primary', boomerang: 'Primary', glue: 'Primary',
@@ -197,7 +197,7 @@ export default {
             if (refresh) tower._supBuffTimer = 0.4;
             const nearby = GameEngine.towerGrid.query(tower.x, tower.y, range, _superTowerScratch);
             for (const t of nearby) {
-                if (t !== tower && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
+                if (t !== tower && !t.isParagon && Utils.distanceSq(tower.x, tower.y, t.x, t.y) < range * range) {
                     if (refresh) {
                         t.addBuff('sun_buff', 'Sun God', 0.5, 1, { type: 'sun_buff' }, false);
                     }

@@ -10,22 +10,36 @@
 //   map        the chosen map's day/night bg     -> before that map starts
 //
 // `ensure()` costs nothing when the group is already loaded (no screen flash).
-// If it isn't, the loading screen appears with a progress bar and the minigame
-// until it is. A gate never blocks forever: loader errors are logged and the
-// gate opens anyway (a missing sprite is better than a stuck game).
+// If it isn't, the loading screen appears with a progress bar until it is.
+// A gate never blocks forever: loader errors are logged and the gate opens
+// anyway (a missing sprite is better than a stuck game).
 //
-// This module is a deliberate import-free leaf (apart from the minigame) so it
-// adds no import cycles; main.js registers the real loaders.
-import { LoadingMinigame } from './loadingMinigame.js';
+// v1.3.5: the sword-pulling minigame (js/loadingMinigame.js) is back, but
+// only for LONG loads — when a screen has been up for
+// TUNING.minigame.appearAfterMs the gate fades the canvas in behind the
+// status/bar; quick loads never see it. v1.3.4 had deleted the module
+// outright, which over-pruned the request ("remove it from the main-menu
+// loading screen" meant "stop flashing it on every load").
+//
+// This module only imports the minigame + tuning — both import-free leaves,
+// so it still adds no import cycles; main.js registers the real loaders.
 
 const SHOW_DELAY_MS = 150;   // loads faster than this never show the screen
-const MIN_SHOW_MS = 450;     // once shown, stay up long enough not to flicker
+const MIN_SHOW_MS = 700;     // once shown, stay up long enough to read as a
+                             // real screen, not a flash (v1.3.4: was 450)
+const FADE_MS = 320;         // loading screen opacity fade in/out (was 280)
+                             // (minigame delay lives in TUNING.minigame.appearAfterMs)
+
+import { LoadingMinigame } from './loadingMinigame.js';
+import { TUNING } from './tuning.js';
 
 const loaders = new Map();   // group -> { load(ctx, onProgress), key(ctx) }
 const runs = new Map();      // "group:key" -> { promise, done, progress, listeners }
 
 let screenUsers = 0;
 let screenSetup = false;
+let fadeTimer = null;        // a pending fade-out; cancelled if a gate re-shows
+let minigameTimer = null;    // pending minigame summon; cancelled on release
 
 function runId(group, ctx) {
     const def = loaders.get(group);
@@ -35,14 +49,41 @@ function runId(group, ctx) {
 
 function el(id) { return document.getElementById(id); }
 
+// v1.3.5: the minigame is a LONG-LOAD reward, not a fixture. Arm it when the
+// screen shows; if the load finishes first, disarm. The canvas fades in via
+// the .live class (css/menus.css); LoadingMinigame.start()/stop() are idempotent.
+function armMinigame() {
+    disarmMinigame();
+    const delay = (TUNING.minigame && TUNING.minigame.appearAfterMs) || 1500;
+    minigameTimer = setTimeout(() => {
+        minigameTimer = null;
+        const cv = el('loading-minigame');
+        if (cv) cv.classList.add('live');
+        try { LoadingMinigame.start(); } catch (e) { console.warn('[loadGate] minigame start failed', e); }
+    }, delay);
+}
+
+function disarmMinigame() {
+    if (minigameTimer) { clearTimeout(minigameTimer); minigameTimer = null; }
+    const cv = el('loading-minigame');
+    if (cv) cv.classList.remove('live');
+    try { LoadingMinigame.stop(); } catch (e) { /* ignore */ }
+}
+
 function showScreen(label, run) {
     screenUsers++;
     const screen = el('loading-screen');
     if (!screen) return () => {};
     if (screenUsers === 1) {
-        screen.classList.remove('hidden', 'minigame-only');
+        // Cancel any in-flight fade-out from the previous gate, then fade in:
+        // start transparent (hidden just removed), force a reflow, release.
+        if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+        screen.classList.remove('hidden');
+        screen.classList.add('fade-out');
+        void screen.offsetWidth;
+        screen.classList.remove('fade-out');
         el('minigame-close')?.classList.add('hidden');
-        try { LoadingMinigame.start(); } catch (e) { console.warn('[loadGate] minigame start failed', e); }
+        armMinigame();
     }
     const status = el('loading-status');
     const fill = el('loading-bar-fill');
@@ -55,15 +96,49 @@ function showScreen(label, run) {
         screenUsers--;
         if (screenUsers <= 0) {
             screenUsers = 0;
-            try { LoadingMinigame.stop(); } catch (e) { /* ignore */ }
-            screen.classList.add('hidden');
-            if (fill) fill.style.width = '0%';
+            disarmMinigame();
+            // Fade out first, THEN hide - the CSS transition animates the
+            // opacity while the screen is still interactive-visible.
+            if (screen.classList.contains('hidden')) {
+                if (fill) fill.style.width = '0%';
+            } else {
+                screen.classList.add('fade-out');
+                if (fadeTimer) clearTimeout(fadeTimer);
+                fadeTimer = setTimeout(() => {
+                    fadeTimer = null;
+                    screen.classList.add('hidden');
+                    screen.classList.remove('fade-out');
+                    if (fill) fill.style.width = '0%';
+                }, FADE_MS);
+            }
         }
     };
 }
 
 export const LoadGate = {
     register(group, def) { loaders.set(group, def); },
+
+    // Direct fade helpers for loading screens managed OUTSIDE the gate (e.g.
+    // the pre-menu boot sequence in main.js) so every loading screen fades
+    // consistently. Idempotent and re-entrancy safe via the shared timer.
+    fadeShow(screen) {
+        if (!screen) return;
+        if (fadeTimer) { clearTimeout(fadeTimer); fadeTimer = null; }
+        screen.classList.remove('hidden');
+        screen.classList.add('fade-out');
+        void screen.offsetWidth;
+        screen.classList.remove('fade-out');
+    },
+    fadeHide(screen) {
+        if (!screen || screen.classList.contains('hidden')) return;
+        screen.classList.add('fade-out');
+        if (fadeTimer) clearTimeout(fadeTimer);
+        fadeTimer = setTimeout(() => {
+            fadeTimer = null;
+            screen.classList.add('hidden');
+            screen.classList.remove('fade-out');
+        }, FADE_MS);
+    },
 
     // Start (or join) a group's load without showing any UI.
     prefetch(group, ctx) {
@@ -92,7 +167,11 @@ export const LoadGate = {
 
     // Several groups behind ONE loading screen (e.g. starting a map needs the
     // gameplay assets AND that map's background). `specs` is [[group, ctx?], ...].
-    async ensureMany(specs, { label = 'Loading...' } = {}) {
+    // `onScreen` (v1.4.2) fires once, at the moment the loading screen actually
+    // appears - used by gameController to lift the fade veil so the progress
+    // bar (and the long-load minigame) is never hidden behind black. Loads
+    // faster than SHOW_DELAY_MS never show a screen and never fire it.
+    async ensureMany(specs, { label = 'Loading...', onScreen = null } = {}) {
         const parts = specs.map(([group, ctx]) => this.prefetch(group, ctx));
         if (parts.every(r => r.done)) return;
         const combined = {
@@ -104,22 +183,28 @@ export const LoadGate = {
             combined.listeners.forEach(fn => fn(combined.progress));
         };
         parts.forEach(r => r.listeners.add(update));
-        try { await this._wait(combined, label); }
+        try { await this._wait(combined, label, onScreen); }
         finally { parts.forEach(r => r.listeners.delete(update)); }
     },
 
     // Resolve once the group is loaded, showing the loading screen only if that
     // takes longer than SHOW_DELAY_MS.
-    async ensure(group, { ctx, label = 'Loading...' } = {}) {
+    async ensure(group, { ctx, label = 'Loading...', onScreen = null } = {}) {
         const run = this.prefetch(group, ctx);
         if (run.done) return;
-        await this._wait(run, label);
+        await this._wait(run, label, onScreen);
     },
 
-    async _wait(run, label) {
+    async _wait(run, label, onScreen = null) {
         let hide = null;
         let shownAt = 0;
-        const timer = setTimeout(() => { shownAt = performance.now(); hide = showScreen(label, run); }, SHOW_DELAY_MS);
+        const timer = setTimeout(() => {
+            shownAt = performance.now();
+            hide = showScreen(label, run);
+            // v1.4.2: the screen is up (and fading in on its own) - tell the
+            // caller so it can lift any cover that would hide it.
+            if (onScreen) { try { onScreen(); } catch (e) { console.warn('[loadGate] onScreen callback failed', e); } }
+        }, SHOW_DELAY_MS);
         await run.promise;
         clearTimeout(timer);
         if (hide) {

@@ -10,6 +10,7 @@ import { getBehavior } from './registry.js';
 import { TowerRegistry, TOWER_CATEGORIES } from './towers/index.js';
 import { HeroRegistry } from './heroes/index.js';
 import { CutsceneManager } from './cutscene.js';
+import { Names } from './names.js';
 
 export function generateShopUI() {
     const shopView = document.getElementById('shop-view');
@@ -37,6 +38,9 @@ export function generateShopUI() {
     for (const type of sortedTowers) {
         const stats = TowerRegistry[type].stats;
         if (!stats) continue;
+        // Paragons are never bought from the sidebar - they are created from
+        // a maxed base tower (plan chapter 5: shop exclusion filter).
+        if (type.startsWith('paragon_')) continue;
 
         const card = document.createElement('div');
         const category = TOWER_CATEGORIES[type] || 'Support'; 
@@ -145,6 +149,7 @@ export function setupShopListeners() {
                 enemyView.classList.remove('hidden');
                 dom.sbViewToggle.innerText = '🐵 Back to Shop';
                 updateShopHeader("Spawn Bloons");
+                applySandboxPortraits(); // portraits always match the toggles when the view opens
             }
         });
     }
@@ -153,17 +158,63 @@ export function setupShopListeners() {
         sandboxCamoOn = !sandboxCamoOn;
         dom.camoToggleBtn.classList.toggle('active', sandboxCamoOn);
         dom.camoToggleBtn.innerText = `Camo: ${sandboxCamoOn ? 'On' : 'Off'}`;
+        applySandboxPortraits();
     });
     dom.regenToggleBtn?.addEventListener('click', () => {
         sandboxRegenOn = !sandboxRegenOn;
         dom.regenToggleBtn.classList.toggle('active', sandboxRegenOn);
         dom.regenToggleBtn.innerText = `Regen: ${sandboxRegenOn ? 'On' : 'Off'}`;
+        applySandboxPortraits();
     });
     dom.fortToggleBtn?.addEventListener('click', () => {
         sandboxFortifiedOn = !sandboxFortifiedOn;
         dom.fortToggleBtn.classList.toggle('active', sandboxFortifiedOn);
         dom.fortToggleBtn.innerText = `Fortified: ${sandboxFortifiedOn ? 'On' : 'Off'}`;
     });
+
+    // v1.3.2: the bloon spawn cards mirror the camo/regen toggles - selecting
+    // camo, regen or both swaps every card's portrait to the matching variant
+    // sprite (with a one-time probe + fallback to the base portrait for packs
+    // that lack a variant file). Fortified is an overlay effect in-game, so
+    // its toggle doesn't change portraits.
+    const verifiedSpriteUrls = new Set();
+    function applySandboxPortraits() {
+        if (!enemyView) return;
+        // v1.3.6: never hard-crash on a partial/stale install. A mixed-version
+        // repo (new dragManager.js + old names.js) used to throw
+        // "Names.getEnemySpriteFile is not a function" straight out of the
+        // card click handler - degrade to the base portraits instead and tell
+        // the player exactly which file is out of date.
+        if (typeof Names.getEnemySpriteFile !== 'function') {
+            if (!applySandboxPortraits._warned) {
+                applySandboxPortraits._warned = true;
+                console.warn('[sandbox] Names.getEnemySpriteFile is missing - js/names.js is from an older version. Re-apply the FULL latest pack (v1.3.6+ ships every file). Portraits stay on the base sprite.');
+            }
+            return;
+        }
+        const camo = sandboxCamoOn, regen = sandboxRegenOn;
+        dom.enemyCards.forEach(card => {
+            const tier = parseInt(card.dataset.enemy);
+            if (!Number.isFinite(tier)) return; // the knight boss card keeps its portrait
+            const wanted = Names.getEnemySpriteFile(tier, camo, regen);
+            const baseFile = Names.getEnemySpriteFile(tier, false, false);
+            if (!wanted || !baseFile) return;
+            card.style.backgroundImage = `url('${wanted}')`;
+            if (wanted === baseFile || verifiedSpriteUrls.has(wanted)) return;
+            // Probe the variant once; apply only if the toggles haven't moved
+            // on since (a stale probe must not clobber a newer portrait).
+            const probe = new Image();
+            probe.onload = () => {
+                verifiedSpriteUrls.add(wanted);
+                if (sandboxCamoOn === camo && sandboxRegenOn === regen) card.style.backgroundImage = `url('${wanted}')`;
+            };
+            probe.onerror = () => {
+                // Variant missing from the sprite pack: revert to the base.
+                if (sandboxCamoOn === camo && sandboxRegenOn === regen) card.style.backgroundImage = `url('${baseFile}')`;
+            };
+            probe.src = wanted;
+        });
+    }
 
     dom.enemyCards.forEach(card => {
         card.addEventListener('click', () => {
@@ -391,6 +442,8 @@ export function setupShopListeners() {
     dom.upPaths.forEach((el, i) => upHover(el, i + 1));
     dom.upBuyLevel?.addEventListener('click', () => GameEngine.buyHeroLevel());
     dom.upPaths.forEach((el, i) => el?.addEventListener('click', () => GameEngine.handleUpgrade(i + 1)));
+    // v1.4.2: no #up-paragon 4th node any more - the Tier 5's own path cards
+    // are the paragon purchase (engineInput.handleUpgrade routes them).
     dom.upSell?.addEventListener('click', () => GameEngine.sellTower());
     dom.upCollectBank?.addEventListener('click', () => {
         if (GameEngine.selectedPlacedTower && GameEngine.selectedPlacedTower.bankBalance > 0) {

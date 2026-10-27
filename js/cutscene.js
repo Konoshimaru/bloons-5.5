@@ -5,10 +5,29 @@ import { AudioEngine } from './audio.js';
 import { UI } from './ui.js';
 import Assets from './assets.js';
 import { Config } from './config.js';
-import { KnightEnemy, getBossMusic } from './bosses/knight.js'; 
+import { KnightEnemy, getBossMusic } from './bosses/knight.js';
 import CutsceneBalls from './bosses/cutsceneBalls.js';
 import { BossHealthBarHandler } from './BossHealthBarHandler.js';
 import { TUNING } from './tuning.js';
+import { CustomCutscene } from './cutscenePlayback.js';
+import { sceneDuration, buildVanillaIntroDoc } from './cutsceneRuntime.js';
+
+const CUSTOM_DOC_STORE = 'kilo_cutscene_v1';
+
+// Authored scene from cutsceneeditor.html (if enabled), else the built-in
+// vanilla intro doc. The vanilla doc is the re-timed authored reveal (see
+// buildVanillaIntroDoc), so the doc-driven custom_reveal path ALWAYS plays —
+// a saved editor scene simply overrides it.
+function loadCustomDoc() {
+    try {
+        const raw = localStorage.getItem(CUSTOM_DOC_STORE);
+        if (raw) {
+            const doc = JSON.parse(raw);
+            if (doc && doc.useForBossIntro && Array.isArray(doc.actors)) return doc;
+        }
+    } catch (e) { console.warn('bad custom cutscene doc', e); }
+    return buildVanillaIntroDoc();
+}
 
 // --- CONFIG ---
 
@@ -54,14 +73,15 @@ export const CutsceneManager = {
     state: 'idle',
     timer: 0,
     target: null,
-    knightEnemy: null, 
+    knightEnemy: null,
     ripProgress: 0,
     cameraOffsetX: 0,
-    cameraTargetX: 500, 
+    cameraTargetX: 500,
     knightAnimName: null,
     knightAnimFrame: 0,
     knightAnimTimer: 0,
     knightAnimDone: false,
+    customDoc: null,
 
     reset() {
         this.state = 'idle';
@@ -74,8 +94,10 @@ export const CutsceneManager = {
         this.knightAnimFrame = 0;
         this.knightAnimTimer = 0;
         this.knightAnimDone = false;
+        this.customDoc = null;
+        CustomCutscene.stop();
         CutsceneBalls.reset();
-        
+
         for (let i = GameEngine.enemies.length - 1; i >= 0; i--) {
             if (GameEngine.enemies[i] instanceof KnightEnemy) {
                 GameEngine.enemies.splice(i, 1);
@@ -84,7 +106,7 @@ export const CutsceneManager = {
         }
 
         BossHealthBarHandler.activeBosses.length = 0;
-        
+
         const music = getBossMusic();
         music.pause();
         music.currentTime = 0;
@@ -92,17 +114,18 @@ export const CutsceneManager = {
 
     trigger(moabEnemy) {
         if (this.state !== 'idle') return;
-        if (moabEnemy.tier !== 13) return; 
-        
-        moabEnemy.data.splitsInto = []; 
-        
+        if (moabEnemy.tier !== 13) return;
+
+        moabEnemy.data.splitsInto = [];
+
         GameEngine.speedState = 0;
         GameEngine.timeScale = 1;
         UI.updateWaveSpeedBtn(0);
-        
+
         this.state = 'tension';
-        this.timer = P.tension; 
+        this.timer = P.tension;
         this.target = moabEnemy;
+        this.customDoc = loadCustomDoc();
     },
 
     update(dt) {
@@ -129,29 +152,29 @@ export const CutsceneManager = {
 
         if (this.state === 'tension') {
             this.timer -= dt;
-            
+
             this.target.distanceTraveled += this.target.data.speed * dt;
             let pathIdx = this.target.pathIndex || 0;
             let totalLen = GameEngine.map.getTotalLength(pathIdx);
-            
+
             if (this.target.distanceTraveled > totalLen - 50) {
                 this.target.distanceTraveled = totalLen - 50;
             }
-            
+
             const pos = GameEngine.map.getPositionAtDistance(this.target.distanceTraveled, pathIdx);
             this.target.x = pos.x;
             this.target.y = pos.y;
-            
+
             let progress = 1 - (this.timer / P.tension);
-            let shakeAmount = progress * 25; 
+            let shakeAmount = progress * 25;
             this.target.x += (Math.random() - 0.5) * shakeAmount;
             this.target.y += (Math.random() - 0.5) * shakeAmount;
-            
+
             if (this.timer <= 0) {
-                AudioEngine.pause(); 
+                AudioEngine.pause();
                 this.state = 'slashing';
                 this.timer = P.slash;
-                
+
                 AudioEngine.playSfx('knight_slash_moab');
             }
         }
@@ -161,15 +184,15 @@ export const CutsceneManager = {
                 if (this.target && this.target.alive) {
                     this.target.takeDamage(99999, DamageType.EXPLOSION);
                 }
-                this.state = 'waiting_to_rip'; 
-                this.timer = P.ripWait; 
+                this.state = 'waiting_to_rip';
+                this.timer = P.ripWait;
             }
         }
         else if (this.state === 'waiting_to_rip') {
             this.timer -= dt;
             if (this.timer <= 0) {
                 this.state = 'ripping';
-                this.timer = P.rip; 
+                this.timer = P.rip;
                 this.ripProgress = 0;
             }
         }
@@ -186,19 +209,64 @@ export const CutsceneManager = {
                 this.knightEnemy = new KnightEnemy(-400, 300);
                 this.knightEnemy.sprite = bossFrameKey('knight_back', 1);
                 GameEngine.enemies.push(this.knightEnemy);
-                
-                this.state = 'panning_to_knight'; 
-                this.timer = P.pan; 
+
+                if (this.customDoc) {
+                    // Authored scene: skip the hardcoded pan/reveal/return
+                    // states entirely — the scene owns the whole reveal. The
+                    // actor named "knight" drives the real enemy; the camera
+                    // actor (if any) pans the world via cameraOffsetX.
+                    // start() FIRST, then bind — start() tears down previous
+                    // visuals, and playback also preserves the binding across
+                    // that teardown, so both orders are safe.
+                    this.state = 'custom_reveal';
+                    this.timer = CustomCutscene.start(this.customDoc);
+                    CustomCutscene.setKnightTarget(this.knightEnemy);
+                    this.cameraOffsetX = 0;
+                } else {
+                    this.state = 'panning_to_knight';
+                    this.timer = P.pan;
+                }
+            }
+        }
+        else if (this.state === 'custom_reveal') {
+            this.timer -= dt;
+            CustomCutscene.update(dt);
+            // Camera keys from the doc drive the same world pan the hardcoded
+            // states used (renderCutscene shifts the world + cutscene layer).
+            const cam = CustomCutscene.cam;
+            this.cameraOffsetX = cam ? cam.x : 0;
+            if (this.timer <= 0) {
+                // Hand the boss over: snap the real KnightEnemy to the final
+                // transform of the actor named "knight" (vanilla end state if
+                // the scene has no such actor), then straight into the fight.
+                const fin = CustomCutscene.finalKnightState();
+                this.knightEnemy.x = fin ? fin.x : 200;
+                this.knightEnemy.y = fin ? fin.y : 300;
+                if (fin && fin.sprite) this.knightEnemy.sprite = fin.sprite;
+                else this.knightEnemy.sprite = 'enemy_knight_front';
+                // A scene that fades the knight out must not hand over an
+                // invisible boss — the fight always starts fully visible.
+                this.knightEnemy.alpha = 1;
+                this.knightEnemy.isCinematic = false;
+                this.cameraOffsetX = 0;
+                CustomCutscene.stop();
+
+                this.state = 'knight_floating';
+
+                CutsceneBalls.init();
+
+                music.volume = Config.data.musicVolume ?? 0.3;
+                music.play().catch(e => console.warn("Boss music blocked:", e));
             }
         }
         else if (this.state === 'panning_to_knight') {
             this.timer -= dt;
-            let progress = 1 - (this.timer / P.pan); 
+            let progress = 1 - (this.timer / P.pan);
             this.cameraOffsetX = this.cameraTargetX * progress;
-            
+
             if (this.timer <= 0) {
                 this.cameraOffsetX = this.cameraTargetX;
-                this.state = 'knight_revealed'; 
+                this.state = 'knight_revealed';
             }
         }
         else if (this.state === 'knight_revealed') {
@@ -213,25 +281,25 @@ export const CutsceneManager = {
         }
         else if (this.state === 'panning_back') {
             this.timer -= dt;
-            let progress = 1 - (this.timer / P.pan); 
+            let progress = 1 - (this.timer / P.pan);
             this.cameraOffsetX = this.cameraTargetX * (1 - progress);
-            
+
             this.knightEnemy.x = -400 + (600 * progress);
-            
+
             if (this.timer <= 0) {
                 this.cameraOffsetX = 0;
                 this.knightEnemy.x = 200;
-                this.knightEnemy.isCinematic = false; 
+                this.knightEnemy.isCinematic = false;
                 this.state = 'knight_floating';
-                
+
                 CutsceneBalls.init();
-                
+
                 music.volume = Config.data.musicVolume ?? 0.3;
                 music.play().catch(e => console.warn("Boss music blocked:", e));
             }
         }
 
-        return this.state !== 'knight_floating'; 
+        return this.state !== 'knight_floating';
     },
 
     _advanceKnightAnim(dt) {
@@ -264,12 +332,16 @@ export const CutsceneManager = {
 };
 
 // --- DEV COMMANDS ---
+// Console debug handle for the cutscene state machine (headless verification
+// and live tuning; same spirit as the trigger/retry commands below).
+window.__cutscene = CutsceneManager;
+
 window.triggerBossCutscene = function() {
     if (!GameEngine.map || GameEngine.gameState !== 'playing') {
         console.error("❌ Cutscene Error: You must be in an active game (not the main menu) to trigger the cutscene!");
         return;
     }
-    
+
     if (CutsceneManager.state !== 'idle') {
         console.error("❌ Cutscene Error: Cutscene is already playing!");
         return;
@@ -281,7 +353,7 @@ window.triggerBossCutscene = function() {
     e.x = 640;
     e.y = 360;
     GameEngine.enemies.push(e);
-    
+
     CutsceneManager.trigger(e);
 };
 

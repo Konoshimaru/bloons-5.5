@@ -3,6 +3,7 @@ import { TowerStats } from './towers/index.js';
 import { Config } from './config.js';
 import { HeroStats } from './heroes/index.js';
 import uiTowerPanel from './uiTowerPanel.js';
+import { writeThrottled } from './uiWriteThrottle.js';
 
 const elements = {};
 function el(id) {
@@ -12,7 +13,13 @@ function el(id) {
     return elements[id];
 }
 
-const MENUS = ['play-menu', 'hero-select-menu', 'knowledge-menu', 'powers-menu', 'difficulty-menu', 'maps-menu', 'settings-menu', 'pause-menu', 'game-over-menu', 'victory-menu', 'map-editor-menu', 'custom-maps-menu', 'profile-menu', 'monkeys-menu', 'update-log-menu'];
+// Every menu overlay closes through the DOM, not a hand-maintained list. The
+// old hardcoded MENUS array was the root cause of the recurring "new menu
+// won't close" bug: each menu added to index.html also had to be remembered
+// here, and one that wasn't (paragons-menu) stayed open forever when any
+// toggleMenus() call hid only the registered IDs around it. Every full-screen
+// menu uses class="overlay", so query the live DOM — future menus close
+// themselves with zero extra wiring.
 const SPEED_TEXTS = ["Start Wave", "1x", "2x", "3x", "5x", "10x", "20x"];
 
 export const UI = {
@@ -21,10 +28,7 @@ export const UI = {
 
     toggleMenus(menuId) {
         let anyOverlayVisible = false;
-        for (const id of MENUS) {
-            const menu = el(id);
-            if (menu) menu.classList.add('hidden');
-        }
+        document.querySelectorAll('.overlay').forEach(menu => menu.classList.add('hidden'));
         
         const mainUI = el('main-menu-ui');
         
@@ -50,6 +54,26 @@ export const UI = {
     showPause() {
         const pauseMenu = el('pause-menu');
         if (pauseMenu) pauseMenu.classList.remove('hidden');
+    },
+
+    // Red "-$N" that floats up off the cash counter when a punishment docks
+    // the player's cash (knight Cursor Slash, v1.3.2). Multiple simultaneous
+    // deductions each get their own floater; all self-remove after the anim.
+    showCashDeduction(amount) {
+        const cash = el('cash-display');
+        const amt = Math.floor(amount);
+        if (!cash || !Number.isFinite(amt) || amt <= 0) return;
+        const prev = cash.querySelector('.cash-deduction:last-of-type');
+        const span = document.createElement('span');
+        span.className = 'cash-deduction';
+        span.innerText = `-$${amt.toLocaleString('en-US')}`;
+        // Stack consecutive floaters so two quick hits don't overlap exactly.
+        if (prev) {
+            const n = cash.querySelectorAll('.cash-deduction').length;
+            span.style.marginTop = `${n * -14}px`;
+        }
+        cash.appendChild(span);
+        setTimeout(() => span.remove(), 1200);
     },
 
     hidePause() {
@@ -159,11 +183,16 @@ export const UI = {
                 livesEl.classList.add('pulse');
             }
             this._prevLives = lives;
-            livesEl.innerText = `Lives: ${lives}`;
+            // v1.4.3: mass-leak waves changed this every frame (one forced
+            // layout per leak). The pulse animation above stays immediate;
+            // only the number coalesces to 10Hz.
+            writeThrottled(livesEl, `Lives: ${lives}`, 100);
         }
     },
 
     updateWave(wave) {
+        // [REGRESSION GUARD | upstream d29d4af] Change-gate: DOM wave text only rewrites on
+        // real change — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
         if (wave === this._prevWave) return;
         this._prevWave = wave;
         const waveEl = el('wave-display');
@@ -172,7 +201,11 @@ export const UI = {
 
     updateCash(cash, engine) {
         const cashEl = el('cash-display');
-        if (cashEl) cashEl.innerText = `$${cash}`;
+        // v1.4.3: during heavy popping cash changes EVERY frame (one forced
+        // layout per frame). 20Hz reads identically to a human; purchases and
+        // affordability logic all read engine.cash directly, so nothing can
+        // act on a <=50ms-stale display.
+        if (cashEl) writeThrottled(cashEl, `$${cash}`, 50);
 
         if (!this._towerCardCache) {
             this._towerCardCache = document.querySelectorAll('.tower-card[data-tower]');

@@ -202,6 +202,8 @@ export const EnemiesRenderer = {
             this._sizeUniform(base, texture, bodySize);
         }
         base.x = bodyX; base.y = bodyY;
+        // [REGRESSION GUARD | upstream d29d4af] Per-entry scratch object (no per-enemy literal
+        // allocation every frame) — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
         // Reuse a per-entry scratch object instead of allocating a fresh
         // literal for every alive enemy every frame.
         let info = entry._baseInfo;

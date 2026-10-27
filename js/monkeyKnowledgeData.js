@@ -32,9 +32,9 @@ export default {
             { id: 'mega_mauler', x: 0, y: 750, parent: ['aviation_glue', 'hard_press'], name: 'Mega Mauler', desc: 'MOAB Mauler does more damage per hit.', cost: '8 KP + 250 MM', req: 'Aviation Grade Glue, Hard Press' },
             { id: 'long_turbo', x: 300, y: 750, parent: 'hard_press', name: 'Long Turbo', desc: 'Boomerang Turbo Charge ability lasts 15 seconds.', cost: '10 KP + 500 MM', req: 'Hard Press' },
             { id: 'come_on_everybody', x: 500, y: 750, parent: 'master_double', name: 'Come On Everybody!', desc: 'Primary towers attack 5% faster if all are below tier 3, and cost 5% less if all are tier 3 or 4.', cost: '10 KP + 500 MM', req: 'Master Double Cross' },
-            { id: 'bonus_glue', x: -300, y: 900, parent: 'cheaper_solution', name: 'Bonus Glue Gunner', desc: 'Start each game with 1 free Glue Gunner!', cost: '10 KP + 1000 MM', req: 'Cheaper Solution' },
+            { id: 'bonus_glue', x: -300, y: 900, parent: 'cheaper_solution', name: 'Bonus Glue Gunner', desc: 'The first Glue Gunner you place each game is free! (Independent of Bonus Monkey! - owning both grants one free Dart AND one free Glue Gunner per game.)', cost: '10 KP + 1000 MM', req: 'Cheaper Solution' },
             { id: 'bionic_aug', x: 300, y: 900, parent: 'long_turbo', name: 'Bionic Augmentation', desc: 'While Turbo Charge is active, Bionic Boomerang is able to target Camo Bloons.', cost: '10 KP + 500 MM', req: 'Long Turbo' },
-            { id: 'bonus_monkey', x: 500, y: 900, parent: 'come_on_everybody', name: 'Bonus Monkey!', desc: 'Start each game with a free Dart Monkey!', cost: '10 KP + 1000 MM', req: 'Come On Everybody!' },
+            { id: 'bonus_monkey', x: 500, y: 900, parent: 'come_on_everybody', name: 'Bonus Monkey!', desc: 'The first Dart Monkey you place each game is free! (Independent of Bonus Glue Gunner - owning both grants one free Dart AND one free Glue Gunner per game.)', cost: '10 KP + 1000 MM', req: 'Come On Everybody!' },
             { id: 'more_cash', x: 100, y: 1050, parent: ['cheaper_solution', 'bonus_monkey'], name: 'More Cash', desc: 'Increase starting cash by 200.', cost: '10 KP + 1000 MM', req: 'Cheaper Solution, Bonus Monkey!' }
         ];
     },

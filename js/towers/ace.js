@@ -23,7 +23,7 @@ export default {
         hitRadius: 18, 
         projectileCount: 8, 
         category: 'Military',
-        fireWithoutTarget: true 
+        fireWithoutTarget: true // [REGRESSION GUARD | upstream d29d4af] base Ace radial volley fires with no target — pinned by tests/gitsniperfixes.test.js
     },
     upgrades: {
         1: [
@@ -59,6 +59,9 @@ export default {
             tower.planeAngle = 0;
         }
 
+        // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"] dt memo
+        // + gun-target cache below — the gun re-scans a few times a second instead of on every
+        // shot (same pattern as the Heli and Sniper). Pinned by tests/gitsniperfixes.test.js.
         tower._aceDt = dt;
         
         let aceRadius = (tower.stats.aceRadius || 80) * GS;
@@ -185,6 +188,8 @@ export default {
     },
 
     _findTargetForGun(tower, engine, mode, dt) {
+        // [REGRESSION GUARD | upstream d29d4af] Cached gun-target acquisition (0.2s refresh,
+        // spawn-id validated) — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
         // 'first'/'last' rank by path progress — a global property the spatial
         // grid can't help with, and 'close' picks the globally-nearest enemy
         // (no range cap), so all three modes keep the full scan. Target

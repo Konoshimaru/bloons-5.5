@@ -1,6 +1,9 @@
 // js/engineInput.js
 import { Config, CANVAS_WIDTH, CANVAS_HEIGHT } from './config.js';
 import { TowerStats, Upgrades } from './towers/index.js';
+import { PARAGON_POWER_RULES } from './paragonPower.js';
+import { canOfferParagon } from './towers/paragon_dart.js';
+import { ParagonMenu } from './paragonMenu.js';
 import { HeroStats } from './heroes/index.js';
 import { getBehavior } from './registry.js';
 import { Utils } from './utils.js';
@@ -160,11 +163,17 @@ export default {
             let cost = this.getCost(stats.cost);
             const mk = Config.data.mkActive === false ? {} : (Config.data.monkeyKnowledge || {});
             this._monkeyCityFreeDart = false; 
+            this._pendingMkFreebie = false;
             for (const eff of MKEffects.towerPlacement) {
                 if (!mk[eff.id] && !eff.alwaysActive) continue;
                 if (eff.type && !eff.type.includes(this.selectedTowerType)) continue;
                 if (eff.condition && !eff.condition(this, this.selectedTowerType)) continue;
                 if (eff.action) cost = eff.action(cost);
+                // MK free-monkey freebies (Bonus Monkey! / Bonus Glue Gunner):
+                // just remember that THIS placement was free so we can log it
+                // nicely - the freebies themselves are independent per type
+                // (v1.3.2) and need no shared consumption flag.
+                if (eff.freebie && cost === 0) this._pendingMkFreebie = true;
             }
             if (this.selectedTowerType === 'dart' && !this.isSandbox && this.difficulty && !this.difficulty.noSelling) {
                 const hasMonkeyCity = this.towers.some(t => t && t.type === 'village' && t.upgrades[2] >= 4);
@@ -198,6 +207,7 @@ export default {
             if (newTower.type === 'village') newTower.targetingMode = 'First';
             this.towers.push(newTower); this.cash -= cost; AudioEngine.playSfx('place');
             if (this._monkeyCityFreeDart) { this.freeDartMonkeyClaimed = true; this._monkeyCityFreeDart = false; this.log("Monkey City: Free Dart Monkey placed!"); }
+            if (this._pendingMkFreebie) { this._pendingMkFreebie = false; this.log(`Monkey Knowledge: free ${stats.name || this.selectedTowerType} placed!`); }
             this.updateUI(); this.log("Tower placed!"); this.deselectAll(); 
             if (this.updateShopPrices) this.updateShopPrices();
             return; 
@@ -239,7 +249,18 @@ export default {
         if (!this.selectedPlacedTower) return;
         const t = this.selectedPlacedTower;
         if (t.stats.isHero || t.isMinion) return;
-        
+
+        // v1.4.2: once every Tier 5 of this type is owned, the upgrade
+        // buttons of a TIER 5 monkey ARE the Paragon purchase - clicking any
+        // of them opens the BTD6-style pre-purchase menu (power/degree preview
+        // + extra investment) instead of buying a normal upgrade. Non-T5
+        // monkeys upgrade normally even when the paragon is unlocked (BTD6:
+        // the Paragon icon appears on the tier 5 monkeys, owner ask v1.4.2).
+        if (PARAGON_POWER_RULES[t.type] && (t.upgrades || []).some(u => u >= 5)) {
+            const parOffer = canOfferParagon(this, t, t.type);
+            if (parOffer.eligible) { ParagonMenu.open(this, t); return; }
+        }
+
         const behavior = getBehavior(t.type);
         if (behavior?.preUpgrade && !behavior.preUpgrade(t, path, this)) return;
         
@@ -250,6 +271,37 @@ export default {
         const cost = this.getCost(upgradeData.cost);
         if (this.cash < cost) { this.log("Not enough cash!"); return; }
         t.upgrade(path, this); UI.showUpgradeUI(t, this);
+    },
+
+    // The convergence node click: same destination as the purple takeover
+    // paths - the pre-purchase menu (v1.4.0). The gate is re-checked here.
+    handleParagonUpgrade() {
+        const now = performance.now();
+        if (this._lastUpgradeTime && now - this._lastUpgradeTime < 100) return;
+        this._lastUpgradeTime = now;
+
+        if (!this.selectedPlacedTower) return;
+        const t = this.selectedPlacedTower;
+        if (t.isParagon || t.stats.isHero || t.isMinion) return;
+
+        // v1.4.1: works for every paragon type, not just darts - the selected
+        // tower's own rules entry drives the gate (falls back to dart only for
+        // a call made with no eligible type, which the convergence node's
+        // visibility rules already prevent). v1.4.2: the separate 4th
+        // convergence node is gone from the UI; this handler stays as the
+        // gate-rechecking entry point and now also enforces the T5-only rule.
+        const key = PARAGON_POWER_RULES[t.type] ? t.type : 'dart';
+        if (!(t.upgrades || []).some(u => u >= 5)) {
+            this.log(`Only a Tier 5 ${t.stats?.name || key} can become the Paragon!`);
+            return;
+        }
+        const offer = canOfferParagon(this, t, key);
+        if (!offer.eligible) {
+            if (!offer.checklist.noneExists) { this.log("Only one Paragon of each type can exist at a time!"); return; }
+            this.log(`All three ${t.stats?.name || key} Tier 5s must be owned to create the Paragon!`);
+            return;
+        }
+        ParagonMenu.open(this, t);
     },
 
     buyHeroLevel() {
@@ -268,6 +320,9 @@ export default {
 
     sellTower() {
         if (!this.selectedPlacedTower) return;
+        // v1.4.1: paragons are sellable again - no special case here. The only
+        // thing that can never sell a paragon is the Knight's Sword Strike
+        // (bosses/knightAttacks.js _hitTower exempts paragons from its sell).
         if (this.selectedPlacedTower.isMinion) return;
         if (this.difficulty && this.difficulty.noSelling) { this.log("Cannot sell in CHIMPS mode!"); return; }
         if (this.selectedPlacedTower.stats.isHero) this.hero = null;
