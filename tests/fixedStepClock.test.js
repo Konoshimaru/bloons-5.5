@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
     advanceFixedStepClock,
     FIXED_TIMESTEP_SECONDS,
+    MAX_ACCUMULATOR_SECONDS,
     MAX_SUBSTEPS_PER_FRAME
 } from '../js/fixedStepClock.js';
 
 describe('advanceFixedStepClock', () => {
-    it('uses fixed-size updates when frames are shorter than one simulation step', () => {
+    it('keeps fractional frame time until a complete fixed step is available', () => {
         const firstFrame = advanceFixedStepClock({ elapsedSeconds: 0.01 });
         expect(firstFrame.steps).toBe(0);
         expect(firstFrame.accumulatorSeconds).toBeCloseTo(0.01);
@@ -17,19 +18,19 @@ describe('advanceFixedStepClock', () => {
         });
         expect(secondFrame.steps).toBe(1);
         expect(secondFrame.stepDt).toBe(FIXED_TIMESTEP_SECONDS);
-        expect(secondFrame.accumulatorSeconds).toBeCloseTo(0.004);
+        expect(secondFrame.accumulatorSeconds).toBeCloseTo(0.02 - FIXED_TIMESTEP_SECONDS);
     });
 
-    it('combines variable render-frame durations into fixed simulation steps', () => {
+    it('combines uneven render frames into the correct number of fixed steps', () => {
         const firstFrame = advanceFixedStepClock({ elapsedSeconds: 0.01 });
         const secondFrame = advanceFixedStepClock({
-            elapsedSeconds: 0.022,
+            elapsedSeconds: 0.025,
             accumulatorSeconds: firstFrame.accumulatorSeconds
         });
 
         expect(secondFrame.steps).toBe(2);
         expect(secondFrame.stepDt).toBe(FIXED_TIMESTEP_SECONDS);
-        expect(secondFrame.accumulatorSeconds).toBeCloseTo(0);
+        expect(secondFrame.accumulatorSeconds).toBeCloseTo(0.035 - 2 * FIXED_TIMESTEP_SECONDS);
     });
 
     it('applies high game speed by scheduling more fixed steps, not by enlarging dt', () => {
@@ -40,17 +41,36 @@ describe('advanceFixedStepClock', () => {
 
         expect(result.steps).toBe(20);
         expect(result.stepDt).toBe(FIXED_TIMESTEP_SECONDS);
-        expect(result.accumulatorSeconds).toBeCloseTo((1 / 60) * 20 - 20 * FIXED_TIMESTEP_SECONDS);
+        expect(result.accumulatorSeconds).toBeCloseTo(0);
     });
 
-    it('carries excess time forward when the per-frame work limit is reached', () => {
+    it('supports 20x speed at 30 FPS without stretching the simulation timestep', () => {
         const result = advanceFixedStepClock({
-            elapsedSeconds: 0.1,
+            elapsedSeconds: 1 / 30,
             timeScale: 20
         });
 
-        expect(result.steps).toBe(MAX_SUBSTEPS_PER_FRAME);
-        expect(result.accumulatorSeconds).toBeCloseTo(2 - MAX_SUBSTEPS_PER_FRAME * FIXED_TIMESTEP_SECONDS);
+        expect(result.steps).toBe(40);
+        expect(result.stepDt).toBe(FIXED_TIMESTEP_SECONDS);
+        expect(result.accumulatorSeconds).toBeCloseTo(0);
+    });
+
+    it('limits work per frame and bounds accumulated catch-up time', () => {
+        const firstFrame = advanceFixedStepClock({
+            elapsedSeconds: 0.1,
+            timeScale: 20
+        });
+        const secondFrame = advanceFixedStepClock({
+            elapsedSeconds: 0.1,
+            timeScale: 20,
+            accumulatorSeconds: firstFrame.accumulatorSeconds
+        });
+
+        expect(firstFrame.steps).toBe(MAX_SUBSTEPS_PER_FRAME);
+        expect(firstFrame.accumulatorSeconds).toBeCloseTo(56 * FIXED_TIMESTEP_SECONDS);
+        expect(secondFrame.steps).toBe(MAX_SUBSTEPS_PER_FRAME);
+        expect(secondFrame.accumulatorSeconds).toBe(MAX_ACCUMULATOR_SECONDS);
+        expect(secondFrame.droppedSimulationSeconds).toBeCloseTo(48 * FIXED_TIMESTEP_SECONDS);
     });
 
     it('clamps long frame gaps to avoid simulating an unbounded tab-resume delay', () => {
@@ -58,7 +78,7 @@ describe('advanceFixedStepClock', () => {
 
         expect(result.frameDeltaSeconds).toBe(0.1);
         expect(result.steps).toBe(6);
-        expect(result.accumulatorSeconds).toBeCloseTo(0.004);
+        expect(result.accumulatorSeconds).toBeCloseTo(0);
     });
 
     it('ignores negative or non-finite elapsed time', () => {
