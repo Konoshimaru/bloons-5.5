@@ -228,10 +228,12 @@ export class GameMap {
     getTrackPointsInRange(x, y, radius) {
         const points = [];
         const radiusSq = radius * radius;
+        // Account for floating-point interpolation noise at the inclusive edge.
+        const edgeTolerance = Number.EPSILON * Math.max(1, radiusSq) * 8;
         for (let i = 0; i < this._pathSamples.length; i++) {
             const s = this._pathSamples[i];
             const distSq = Utils.distanceSq(x, y, s.x, s.y);
-            if (distSq <= radiusSq) {
+            if (distSq <= radiusSq + edgeTolerance) {
                 points.push({ 
                     x: s.x, 
                     y: s.y, 

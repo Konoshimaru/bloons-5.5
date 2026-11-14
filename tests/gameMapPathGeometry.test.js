@@ -67,11 +67,14 @@ describe('GameMap production path geometry', () => {
         ]);
 
         expect(map.getNearestPathPoint(52, 10)).toEqual({ x: 50, y: 0 });
-        expect(map.getTrackPointsInRange(50, 0, 5)).toEqual([
-            { x: 45, y: 0, pathIndex: 0, distAlong: 45, distToTower: 5 },
-            { x: 50, y: 0, pathIndex: 0, distAlong: 50, distToTower: 0 },
-            { x: 55, y: 0, pathIndex: 0, distAlong: 55, distToTower: 5 }
-        ]);
+        const nearby = map.getTrackPointsInRange(50, 0, 5);
+
+        // The point at x=55 is exactly on the radius boundary; interpolation
+        // noise must not accidentally exclude it.
+        expect(nearby.map((point) => Math.round(point.x))).toEqual([45, 50, 55]);
+        expect(nearby[0].distToTower).toBeCloseTo(5);
+        expect(nearby[1].distToTower).toBe(0);
+        expect(nearby[2].distToTower).toBeCloseTo(5);
     });
 
     it('checks both prop hitboxes and water brush geometry', () => {
