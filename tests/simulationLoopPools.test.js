@@ -20,6 +20,34 @@ function createPool({ field, initialValue, stopValue }) {
 }
 
 describe('SimulationLoop pool integration', () => {
+    it('trims projectile and particle burst overflow back to the configured caps', () => {
+        const projectiles = Array.from({ length: 1525 }, (_, id) => ({ id }));
+        const particles = Array.from({ length: 425 }, (_, id) => ({ id }));
+        const engine = {
+            projectilePool: {
+                active: projectiles,
+                removeAt(index) {
+                    this.active.splice(index, 1);
+                },
+            },
+            particlePool: {
+                active: particles,
+                removeAt(index) {
+                    this.active.splice(index, 1);
+                },
+            },
+            explosions: [],
+            acidPools: [],
+            flavorTimer: 0,
+            leakFlash: 0,
+        };
+
+        SimulationLoop._updateLimitsAndTimers.call(engine, 1 / 60);
+
+        expect(engine.projectilePool.active).toHaveLength(1500);
+        expect(engine.particlePool.active).toHaveLength(400);
+    });
+
     it('removes dead projectiles without skipping live entries during reverse traversal', () => {
         const pool = createPool({ field: 'alive', initialValue: true, stopValue: true });
         const first = pool.get();

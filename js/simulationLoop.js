@@ -13,8 +13,11 @@ const _acidScratch = [];
 
 const SimulationLoop = {
     _updateLimitsAndTimers(dt) {
-        if (this.projectilePool.active.length > MAX_PROJECTILES) this.projectilePool.removeAt(0);
-        if (this.particlePool.active.length > MAX_PARTICLES) this.particlePool.removeAt(0);
+        // A single update can spawn a whole volley (for example, Sniper
+        // Shrapnel). Trim the complete overflow: removing only one object per
+        // tick lets burst-producing towers exceed these limits indefinitely.
+        while (this.projectilePool.active.length > MAX_PROJECTILES) this.projectilePool.removeAt(0);
+        while (this.particlePool.active.length > MAX_PARTICLES) this.particlePool.removeAt(0);
         // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"]
         // Swap-remove instead of shift() — shift() reindexes the whole array at the
         // effect cap every frame during heavy fights. Pinned by tests/gitsniperfixes.test.js.

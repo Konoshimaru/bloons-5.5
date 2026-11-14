@@ -289,6 +289,70 @@ describe('behavioral: fruitless scans park the cooldown (real tower fixture)', (
     });
 });
 
+describe('behavioral: high-rate Sniper target reacquisition throttle', () => {
+    it('does not rescan the full enemy list for every shot of an Elite Defender', async () => {
+        const { GameEngine } = await import('../js/engineRef.js');
+        const { Tower } = await import('../js/tower.js');
+
+        let enemyListScans = 0;
+        const target = {
+            alive: true,
+            invulnerable: false,
+            untargetable: false,
+            _spawnId: 1,
+            x: 500,
+            y: 300,
+            radius: 10,
+            distanceTraveled: 500,
+            isCamo: false,
+            tier: 1,
+            data: { rbe: 1000000, speed: 0, isMoab: false, isCeramic: false },
+            takeDamage: vi.fn(() => 2),
+        };
+        const enemies = {
+            [Symbol.iterator]() {
+                enemyListScans++;
+                return [target][Symbol.iterator]();
+            },
+        };
+
+        GameEngine.enemies = enemies;
+        GameEngine.towers = [];
+        GameEngine.waveManager = { currentWave: 1, waveActive: true };
+        GameEngine.hasLeakingEnemy = false;
+        GameEngine.nightAlpha = 0;
+        GameEngine.difficulty = undefined;
+        GameEngine.config = { data: {} };
+        GameEngine.lives = 150;
+        GameEngine.cash = 100000;
+        GameEngine.map = {
+            props: [],
+            getTotalLength: () => 1000,
+            getPositionAtDistance: () => ({ x: 500, y: 300, finished: true }),
+        };
+        GameEngine.enemyGrid = { query: () => [] };
+        GameEngine.projectilePool = { active: [] };
+        GameEngine.particlePool = { active: [] };
+        GameEngine.explosions = [];
+        GameEngine.floatingTexts = [];
+        GameEngine.mouse = { x: 400, y: 300 };
+
+        const sniper = new Tower(640, 300, 'sniper');
+        sniper.upgrades = [0, 0, 5];
+        sniper._recalculateStats();
+        GameEngine.towers.push(sniper);
+
+        for (let i = 0; i < 120; i++) sniper.update(1 / 60, GameEngine);
+
+        // It still fires repeatedly, but target selection is throttled to a
+        // short interval rather than scanning the full enemy list for every
+        // high-rate shot. Elite Defender's track-distance check also scans
+        // occasionally, so allow those extra passes in this upper bound.
+        expect(target.takeDamage.mock.calls.length).toBeGreaterThan(30);
+        expect(enemyListScans).toBeLessThan(35);
+    });
+});
+
 describe('behavioral: Elite Support re-buff throttle (real sniper module)', () => {
     it('4 seconds of updateSupport re-adds the buff ~10 times, not 240', async () => {
         const { GameEngine } = await import('../js/engineRef.js');

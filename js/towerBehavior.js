@@ -216,38 +216,42 @@ function _acquireAndFire(tower, dt, engine) {
 const TARGET_RESCAN_INTERVAL = 0.15; // s between fruitless scans
 
 function _getAcquireTarget(tower, engine) {
-    const firingReady = tower.cooldown <= 0 && tower.attackPointTimer <= 0;
     const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}`;
     const cached = tower._cachedTarget;
+    const cachedIsValid = cached &&
+        cached.alive &&
+        !cached.invulnerable &&
+        !cached.untargetable &&
+        cached._spawnId === tower._cachedTargetSpawnId &&
+        tower._cachedTargetingKey === targetingKey &&
+        (tower.stats.range === 9999 || Utils.withinRange(
+            tower.x,
+            tower.y,
+            cached.x,
+            cached.y,
+            Utils.getEffectiveRange(tower, engine) + (cached.radius || 10)
+        ));
 
-    if (!firingReady) {
-        // A recent scan found nothing (e.g. all-camo wave, no goggles): don't
-        // re-scan every tick — wait the interval out. Fires always re-scan,
-        // so a newly-spawned valid target is still picked up on time.
-        if (!cached && tower._targetRescanTimer > 0) return null;
-        // [REGRESSION GUARD | upstream 4e2bd10 "confirming knight fix update"] invulnerable /
-        // untargetable (rolling Knight) must never stay cached — pinned by tests/gitsniperfixes.test.js.
-        if (cached && cached.alive && !cached.invulnerable && !cached.untargetable && cached._spawnId === tower._cachedTargetSpawnId && tower._cachedTargetingKey === targetingKey) {
-            if (tower.stats.range === 9999 || Utils.withinRange(tower.x, tower.y, cached.x, cached.y, Utils.getEffectiveRange(tower, engine) + (cached.radius || 10))) {
-                return cached;
-            }
-        }
-    }
+    // Keep a still-valid target for a short interval even when the firing
+    // cooldown is ready. Before this throttle, very fast Snipers re-scanned
+    // the ENTIRE enemy list for every shot (up to once per simulation tick).
+    // A dead/recycled/out-of-range target or a targeting-mode change still
+    // forces an immediate reacquisition.
+    if (cachedIsValid && tower._targetRescanTimer > 0) return cached;
+
+    // A fruitless scan parks the cooldown as well as the rescan timer. This
+    // avoids scanning every tick while the tower has no currently valid target.
+    if (!cached && tower._targetRescanTimer > 0 && tower.cooldown > 0) return null;
 
     tower._cachedTarget = _findTarget(tower, engine);
     tower._cachedTargetSpawnId = tower._cachedTarget ? tower._cachedTarget._spawnId : null;
     tower._cachedTargetingKey = targetingKey;
-    if (tower._cachedTarget) {
-        tower._targetRescanTimer = 0;
-    } else {
-        tower._targetRescanTimer = TARGET_RESCAN_INTERVAL;
+    tower._targetRescanTimer = TARGET_RESCAN_INTERVAL;
+
+    if (!tower._cachedTarget) {
         // [REGRESSION GUARD | upstream 2a7c064 "sniper lag improvement"] Cooldown parking on
         // fruitless scans — the #1 sniper-lag fix (idle 9999-range towers re-scanned EVERY tick).
         // Pinned behaviorally by tests/gitsniperfixes.test.js — DO NOT DELETE.
-        // Park the cooldown so firingReady is false for the whole throttle
-        // window. Without this an idle tower (cooldown stays <= 0 because
-        // nothing ever resets it on a fruitless scan) never enters the
-        // `!firingReady` branch above and re-scans on every single tick.
         tower.cooldown = Math.max(tower.cooldown, TARGET_RESCAN_INTERVAL);
     }
     return tower._cachedTarget;
