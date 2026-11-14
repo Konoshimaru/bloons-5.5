@@ -74,10 +74,8 @@ describe('tower aim on enemies that do not follow the map path (Black Knight)', 
 });
 
 // ---------------------------------------------------------------------------
-// Audit report chapter-10 fixes 1-5 (all were verified live-code criticals).
-// Each test reproduces the pre-fix failure mode first-hand.
 // ---------------------------------------------------------------------------
-describe('audit critical fixes (chapter-10 fixes 1-5)', () => {
+describe('critical regression fixes', () => {
   beforeAll(async () => {
     await import('../js/engine.js');   // populates the engineRef GameEngine singleton
   });

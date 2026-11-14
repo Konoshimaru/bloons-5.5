@@ -72,7 +72,7 @@ Run npm test and npm run build before submitting changes. Gameplay changes also 
 
 ## Contributing
 
-Read CONTRIBUTING.md and the guides in docs/. Make focused changes, add regression tests and describe how you verified them.
+Read CONTRIBUTING.md, the guides in docs/, and docs/IMPLEMENTATION_CHECKLIST.md. Make focused changes, add regression tests and describe how you verified them.
 
 ## License and third-party assets
 

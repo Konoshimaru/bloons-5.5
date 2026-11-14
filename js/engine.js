@@ -574,7 +574,6 @@ Object.assign(GameEngine, EngineInput);
 Object.assign(GameEngine, GameSession);
 Object.assign(GameEngine, SimulationLoop);
 
-// ADD THIS LINE AT THE VERY BOTTOM:
 window.GameEngine = GameEngine;
 
 export { GameEngine };

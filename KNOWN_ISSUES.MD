@@ -11,14 +11,14 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Explosive damage not reaching MOAB-class targets: EXPLOSION damage now carries canHitMoab while DDT-specific immunity remains in effect.
 - [x] Explosive overlap ignored large enemy hitboxes: blast checks now include the target enemy radius.
 - [x] Knight front sprite alias missing from the editor library: the fallback sprite index now includes the single canonical alias entry.
+- [x] Optional Pixi draw-method failures: use bounded retries and disable repeatedly failing optional passes; failures in core world-rendering passes are escalated to the engine.
 - [x] Stale tower interface documentation: js/towers/TOWER_INTERFACE.md now describes registry-based behavior lookup rather than prototype mixins.
 - [x] Contributor documentation and CI checks have been added on this branch.
 
-GitHub Actions run 43598895661 completed successfully: all 36 Vitest files (412 tests) passed and the Vite production build completed. Browser gameplay checks are still required before merging.
+GitHub Actions run 43599420290 completed successfully before the optional draw-failure policy was added: 36 Vitest files (412 tests) passed and the Vite production build completed. The newer draw-failure policy has its own unit tests; its current CI run must be checked before merging. Browser gameplay checks are still required.
 
 ## Active technical debt
 
-- [ ] Individual Pixi draw-module failures: PixiRenderer._safeDraw logs a failing draw method once but continues retrying it every frame. Decide which failures are safe to isolate and which should disable that layer or stop rendering.
 - [ ] GameEngine singleton and mixins: engine.js combines core state with EngineInput, GameSession and SimulationLoop via Object.assign(). Refactor incrementally with explicit ownership; do not replace working systems in one rewrite.
 - [ ] Main controller composition: js/main.js composes menu and game controllers with Object.assign(); make ownership and public methods easier to trace.
 - [ ] Large editor/rendering modules: split files only where a clear responsibility boundary exists. Preserve the Cutscene Editor and other development tools.
