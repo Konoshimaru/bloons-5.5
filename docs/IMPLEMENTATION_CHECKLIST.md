@@ -106,13 +106,14 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 - [x] Add a package description and relevant keywords.
 - [x] Remove the unused `main: index.js` entry and mark the browser app package as private.
+- [x] Upgrade Vite from 8.1.5 to 8.1.7 and refresh package-lock.json; CI confirmed npm audit reports zero vulnerabilities.
 - [ ] Confirm whether ISC is the intended source-code license before adding a root `LICENSE` file.
 - [ ] Review third-party sprite, audio, font, and other asset permissions separately; do not assume the source-code license covers them.
 - [ ] Review the package homepage and repository metadata once the project landing page is settled.
 
 ## 8. Final acceptance
 
-- [x] Confirm latest CI after renderer policy and documentation updates is green: dependency install, all 40 Vitest files (435 tests), and production build. (Run 43601978436.)
+- [x] Confirm latest CI after the Vite security update is green: npm audit zero vulnerabilities, syntax check 212 files, core type-check, all 43 Vitest files (448 tests), and production build. (Run 43603764539.)
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
 - [ ] Verify the game, Cutscene Editor, Map Editor, Sprite Editor, Bloon Editor, and browser test page still work.
@@ -123,9 +124,9 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 ## Recommended next order
 
 1. Complete browser acceptance tests for the runtime fixes.
-2. Remove remaining temporary audit/instruction comments.
-3. Improve the Windows helper scripts.
-4. Configure linting and type checking.
-5. Refactor `GameEngine`/controller composition in small steps.
-6. Complete browser acceptance tests.
-7. Decide the source-code license and asset attribution policy.
+2. Review and remove remaining temporary audit/instruction comments.
+3. Configure ESLint and broaden type-checking beyond the five pure helper modules.
+4. Continue reducing the `GameEngine` singleton/method-bag design in small steps.
+5. Run browser acceptance tests for gameplay, rendering failures, saves, and every development-tool entry point.
+6. Manually test the Windows batch scripts on Windows.
+7. Confirm the source-code license and asset attribution policy.
