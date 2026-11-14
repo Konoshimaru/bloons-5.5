@@ -10,7 +10,7 @@ The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and 
 
 ## Incremental linting
 
-The ESLint flat config currently checks 28 production modules, including fixed-step/collision/save helpers, engine composition and tower factory, damage/status/spatial helpers, GameMap, Enemy/EnemyDamage, ObjectPool, Map Editor modules, Cutscene runtime, map metadata, names, projectile subtype configuration, projectile hit resolution, and the staged LoadGate. It also checks 26 regression-test files. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
+The ESLint flat config currently checks 29 production modules, including fixed-step/collision/save helpers, engine composition and tower factory, damage/status/spatial helpers, GameMap, Enemy/EnemyDamage, ObjectPool, SimulationLoop, Map Editor modules, Cutscene runtime, map metadata, names, projectile subtype configuration, projectile hit resolution, and the staged LoadGate. It also checks 27 regression-test files. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
 
 ## Dependency security audit
 
@@ -37,6 +37,7 @@ tests.html is explicitly labelled as a manual/legacy browser harness. It runs th
 ## What to test
 
 - Simulation clock and high-speed behavior.
+- ObjectPool identity/release rules, active-list synchronization, and SimulationLoop removal during projectile/particle iteration.
 - Projectile hits, pierce, collision immunity and special projectile types.
 - Tower upgrades, damage, support buffs and abilities.
 - Bloon HP, splitting, regrow and damage interactions.
