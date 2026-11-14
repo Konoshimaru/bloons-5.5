@@ -58,7 +58,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm run check:syntax`, `npm test`, and `npm run build` for pushes and pull requests.
 - [x] Add a dependency-free syntax scanner that parsed all 224 source/test/tool files successfully in CI.
-- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 55 test files and 523 tests passed; all 225 syntax-checked files passed; the fourteen-module core type-check passed; ESLint passed on 27 production modules and 25 test files; npm audit reported zero advisories; production build passed.
+- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 56 test files and 529 tests passed; all 226 syntax-checked files passed; the fourteen-module core type-check passed; ESLint passed on 28 production modules and 26 test files; npm audit reported zero advisories; production build passed.
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
@@ -106,7 +106,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Fix fortified Lead carry-over damage: child bloons now receive only damage beyond the Lead shell's remaining HP; add tests for non-lethal, exact-threshold, and overkill hits.
 - [x] Prevent zero or negative damage from popping split bloons; add production EnemyDamage regression tests so status-only/zero-damage hits cannot spawn children.
 - [x] Clamp negative damage before enemy-type handlers so a negative hit cannot heal MOAB HP; cover zero and negative damage on the real EnemyDamage implementation.
-- [x] Fix ObjectPool release semantics: direct release now removes an object from the active list, duplicate releases are ignored, and clear/removeAt reuse the same safe path; add production pool regression tests.
+- [x] Fix ObjectPool release tracking and lifecycle: an object-index map makes active-list swap-removal O(1), direct release removes the object from the active list, duplicate releases are ignored, and `removeAt`/`clear` share the safe path; validate factory outputs and cover the production pool with regression tests.
 - [ ] Review remaining temporary, audit-report, and patch-history comments throughout the codebase.
 - [ ] Remove unused imports only after linting confirms they are not side-effect imports.
 - [ ] Consolidate duplicate imports from the same module where appropriate.
@@ -132,7 +132,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43612203405 is green on commit `54ed1118b39f8069c73317f0f7d7fd2bd6afec8d`: zero npm advisories, 225 syntax-checked files, fourteen type-checked modules, 27 ESLint production modules plus 25 test files, 55 Vitest files (523 tests), and production build.
+- [x] Confirm CI run 43612497938 is green on commit `519bcaf4a149acc887cfcef0f4dd2bd2a253b8e9`: zero npm advisories, 226 syntax-checked files, fourteen type-checked modules, 28 ESLint production modules plus 26 test files, 56 Vitest files (529 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
