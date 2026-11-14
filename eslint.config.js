@@ -9,6 +9,7 @@ const coreFiles = [
     'js/damageTypes.js',
     'js/statusEffects.js',
     'js/spatialGrid.js',
+    'js/mapEditorHistory.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -16,7 +17,8 @@ const coreFiles = [
     'tests/engineComposition.test.js',
     'tests/towerFactory.test.js',
     'tests/renderFailurePolicy.test.js',
-    'tests/projectileCollisionBroadphase.test.js'
+    'tests/projectileCollisionBroadphase.test.js',
+    'tests/mapEditorHistory.test.js'
 ];
 
 export default [
@@ -34,6 +36,7 @@ export default [
             ecmaVersion: 'latest',
             sourceType: 'module',
             globals: {
+                beforeEach: 'readonly',
                 describe: 'readonly',
                 expect: 'readonly',
                 it: 'readonly',
