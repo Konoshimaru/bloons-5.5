@@ -57,21 +57,23 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add a shared module-composition helper with tests for duplicate names, explicitly permitted overrides, getter preservation, and no partial application.
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm run check:syntax`, `npm test`, and `npm run build` for pushes and pull requests.
-- [x] Add a dependency-free syntax scanner that parsed all 220 source/test/tool files successfully in CI.
-- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 50 test files and 485 tests passed; all 220 syntax-checked files passed; the eleven-module core type-check passed; ESLint passed on 19 production modules and 17 test files; npm audit reported zero advisories; production build passed.
+- [x] Add a dependency-free syntax scanner that parsed all 224 source/test/tool files successfully in CI.
+- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 54 test files and 505 tests passed; all 224 syntax-checked files passed; the fourteen-module core type-check passed; ESLint passed on 23 production modules and 21 test files; npm audit reported zero advisories; production build passed.
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
-- [x] Expand the ESLint allowlist to 19 production modules and 17 associated regression-test files, covering the Cutscene runtime and Map Editor composition, state, input, renderer, validation/I/O, and drawing modules; the CI lint step passes.
+- [x] Expand the ESLint allowlist to 23 production modules and 21 associated regression-test files, covering Cutscene runtime, map metadata, naming helpers, projectile configuration/resolution, and Map Editor composition, state, input, renderer, validation/I/O, and drawing modules; the CI lint step passes.
 - [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
-- [x] Run the expanded type-check in CI successfully for eleven selected core modules, including MapEditorState, MapRenderCore, and Cutscene runtime normalization.
+- [x] Run the expanded type-check in CI successfully for fourteen selected core modules, including MapEditorState, MapRenderCore, Cutscene runtime normalization, map metadata, naming helpers, and projectile configuration.
 - [ ] Expand type-check coverage gradually as JSDoc and dependency boundaries are improved; do not treat the initial subset as a whole-project type check.
 - [x] Add Map Editor document validation and I/O regression tests for malformed paths, waypoints, curves, hitboxes, water strokes, and background metadata; retain support for legacy single-path documents. Also fix the mouse-wheel priority so selected hitboxes resize rather than triggering canvas zoom, with coverage for circles, boxes, minimum sizes, ordinary zoom, and reference-image scaling.
 - [x] Replace Map Editor object-spread composition with guarded module attachment and test the assembled API; apply JSON only after successful validation so invalid documents do not create undo snapshots.
 - [x] Ignore malformed first-waypoint curve handles in the Map Editor and reject those documents during normalization.
 - [x] Normalize duplicate, blank, and missing Cutscene actor IDs to unique non-empty identifiers; test the shared Cutscene runtime helper.
+- [x] Add regression tests against production `ProjectileHitResolution._checkCollisions()` for swept travel, the largest declared enemy hitbox, immunity/camo filters, and projectile hit-tracking exceptions.
+- [x] Add production tests for map metadata, asset-key naming helpers, and projectile subtype configuration.
 - [ ] Expand tests for save migration and renderer error paths where practical.
 
 ## 4. Documentation and contributor onboarding
@@ -121,7 +123,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43608134611 is green on commit `74b3687176bf52a8a5c8285efe36cd789520dd2a`: zero npm advisories, 220 syntax-checked files, eleven type-checked modules, 19 ESLint production modules plus 17 test files, 50 Vitest files (485 tests), and production build.
+- [x] Confirm CI run 43609102296 is green on commit `ebbc2f96cca9e2a89f3a042f4b7d412d271e7314`: zero npm advisories, 224 syntax-checked files, fourteen type-checked modules, 23 ESLint production modules plus 21 test files, 54 Vitest files (505 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.

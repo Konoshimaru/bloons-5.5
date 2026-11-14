@@ -28,8 +28,8 @@ The Vite server is configured for 127.0.0.1:5500 and opens the browser automatic
 | npm run dev | Start the local development server. |
 | npm test | Run the Vitest automated suite. |
 | npm run check:syntax | Parse all source, test, and tool JavaScript files with Node.js. |
-| npm run typecheck:core | Type-check selected core helpers (not the whole project). |
-| npm run lint:core | Lint 19 selected production modules and 17 regression-test files. |
+| npm run typecheck:core | Type-check 14 selected core modules (not the whole project). |
+| npm run lint:core | Lint 23 selected production modules and 21 regression-test files. |
 | npm run audit:deps | Print a structured summary of npm dependency advisories. |
 | npm run build | Create the production build in dist/. |
 | npm run gen:manifest | Regenerate the sprite manifest. |
