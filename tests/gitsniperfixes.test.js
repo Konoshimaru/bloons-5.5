@@ -141,7 +141,7 @@ describe('GitHub sniper-fix lineage: 4e2bd10 "confirming knight fix update"', ()
     it('the cached-target fast path also rejects invulnerable/untargetable', () => {
         const src = read('js/towerBehavior.js');
         expect(src).toMatch(
-            /cachedIsValid = cached &&\s+cached\.alive &&\s+!cached\.invulnerable &&\s+!cached\.untargetable &&\s+cached\._spawnId/
+            /cachedIsValid = shouldReuseCached && cached &&\s+cached\.alive &&\s+!cached\.invulnerable &&\s+!cached\.untargetable &&\s+cached\._spawnId/
         );
     });
 });

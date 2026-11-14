@@ -138,23 +138,27 @@ export default {
         let dmgDealt = target.takeDamage(actualDmg, dmgType, { stun: stunDur });
         if (dmgDealt > 0) tower.damageDealt += dmgDealt;
         tower.hitscans.push({ x1: tower.x, y1: tower.y, x2: target.x, y2: target.y, life: 0.1 });
-        let bounces = tower.stats.bounces || 0;
-        let hitSet = new Set([target]);
+        const bounces = tower.stats.bounces || 0;
         let currentTarget = target;
-        for (let i = 0; i <= bounces; i++) {
-            if (tower.stats.shrapnel) {
-                this._fireShrapnel(tower, currentTarget, dmgType, engine);
-            }
-            if (i >= bounces) break;
-            const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40, _sniperBounceScratch);
-            let nextTarget = null;
-            let bestDistSq = Infinity;
-            for (let e of nearby) {
-                if (!e.alive || hitSet.has(e)) continue;
-                let distSq = Utils.distanceSq(currentTarget.x, currentTarget.y, e.x, e.y);
-                if (distSq < bestDistSq) { bestDistSq = distSq; nextTarget = e; }
-            }
-            if (nextTarget) {
+        if (tower.stats.shrapnel) {
+            this._fireShrapnel(tower, currentTarget, dmgType, engine);
+        }
+
+        // Most Snipers have no bounce upgrade. Avoid allocating a Set and
+        // entering the bounce loop at all for those common direct-hit shots.
+        if (bounces > 0) {
+            const hitSet = new Set([target]);
+            for (let i = 0; i < bounces; i++) {
+                const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40, _sniperBounceScratch);
+                let nextTarget = null;
+                let bestDistSq = Infinity;
+                for (let e of nearby) {
+                    if (!e.alive || hitSet.has(e)) continue;
+                    let distSq = Utils.distanceSq(currentTarget.x, currentTarget.y, e.x, e.y);
+                    if (distSq < bestDistSq) { bestDistSq = distSq; nextTarget = e; }
+                }
+                if (!nextTarget) break;
+
                 tower.hitscans.push({ x1: currentTarget.x, y1: currentTarget.y, x2: nextTarget.x, y2: nextTarget.y, life: 0.1 });
                 hitSet.add(nextTarget);
                 currentTarget = nextTarget;
@@ -175,8 +179,10 @@ export default {
                 }
                 let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, { stun: bounceStun });
                 if (bounceDmgDealt > 0) tower.damageDealt += bounceDmgDealt;
-            } else {
-                break;
+
+                if (tower.stats.shrapnel) {
+                    this._fireShrapnel(tower, currentTarget, dmgType, engine);
+                }
             }
         }
     },

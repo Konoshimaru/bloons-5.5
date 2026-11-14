@@ -217,7 +217,9 @@ function _getAcquireTarget(tower, engine) {
     const firingReady = tower.cooldown <= 0 && tower.attackPointTimer <= 0;
     const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}`;
     const cached = tower._cachedTarget;
-    const cachedIsValid = cached &&
+    const shouldReuseCached = !firingReady ||
+        (tower.stats.range === 9999 && tower._targetRescanTimer > 0);
+    const cachedIsValid = shouldReuseCached && cached &&
         cached.alive &&
         !cached.invulnerable &&
         !cached.untargetable &&
@@ -231,14 +233,11 @@ function _getAcquireTarget(tower, engine) {
             Utils.getEffectiveRange(tower, engine) + (cached.radius || 10)
         ));
 
-    // Keep a still-valid target for a short interval even when the firing
-    // cooldown is ready. Before this throttle, very fast Snipers re-scanned
-    // the ENTIRE enemy list for every shot (up to once per simulation tick).
-    // A dead/recycled/out-of-range target or a targeting-mode change still
-    // forces an immediate reacquisition.
-    if (cachedIsValid && (!firingReady || (tower.stats.range === 9999 && tower._targetRescanTimer > 0))) {
-        return cached;
-    }
+    // Keep a still-valid global-range target for a short interval even when
+    // the firing cooldown is ready. Very fast Snipers used to re-scan the
+    // ENTIRE enemy list for every shot. Local-range towers retain their prior
+    // per-shot retargeting. Invalid targets and mode changes always rescan.
+    if (cachedIsValid) return cached;
 
     // A fruitless scan parks the cooldown as well as the rescan timer. This
     // avoids scanning every tick while the tower has no currently valid target.
