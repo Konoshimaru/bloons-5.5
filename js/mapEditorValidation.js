@@ -158,6 +158,7 @@ export function normalizeMapEditorDocument(input) {
         }
     }
 
+    /** @type {Record<string, any>} */
     const mapData = { ...input, paths, props, waterBrushes };
     delete mapData.waypoints;
     return { valid: true, mapData };
