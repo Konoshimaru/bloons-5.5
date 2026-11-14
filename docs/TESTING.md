@@ -60,4 +60,4 @@ tests.html is explicitly labelled as a manual/legacy browser harness. It runs th
 - Map metadata tier lookups, sprite-key naming, and projectile subtype flags.
 - Rendering asset keys and first-load behavior where practical.
 
-Latest verified CI run 43642151302 passes npm ci, the dependency audit report (zero vulnerabilities), syntax scanning (234 files), the fourteen-module core type-check, ESLint (44 production modules and 32 tests), Vitest (61 files / 564 tests), and the production build. The build output contains all five configured HTML entry points. Browser verification is still required for gameplay/UI changes.
+Latest verified CI run 43642591076 passes npm ci, the dependency audit report (zero vulnerabilities), syntax scanning (234 files), the fourteen-module core type-check, ESLint (44 production modules and 32 tests), Vitest (61 files / 568 tests), and the production build. The build output contains all five configured HTML entry points. Browser verification is still required for gameplay/UI changes.

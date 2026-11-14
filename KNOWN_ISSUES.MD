@@ -19,7 +19,7 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Contributor documentation and CI checks have been added on this branch.
 - [x] Map Editor JSON import, direct JSON apply, saved-map loading, and save operations validate document structure before replacing editor data or writing to player config; legacy top-level `waypoints` documents normalize to a single path. Scroll handling prioritizes resizing a selected hitbox instead of allowing the generic zoom handler to swallow the action. Editor module composition is guarded against duplicate method names; invalid JSON does not add an undo snapshot; malformed first-waypoint curves are rejected.
 
-GitHub Actions run 43642151302 completed successfully on commit `1c1a8517675a51d66230e75b8235aeccae736946`: dependency audit reported zero findings; JavaScript syntax passed for all 234 files; the fourteen-module core TypeScript check and ESLint step passed (44 production modules and 32 test files); all 61 Vitest files (564 tests) passed; and the Vite production build completed with all five HTML entry points. Browser acceptance checks and Windows batch-script checks remain outstanding.
+GitHub Actions run 43642591076 completed successfully on commit `e8ce20e08f2d8aa3dba35b37c4c3e8c53aafa3a7`: dependency audit reported zero findings; JavaScript syntax passed for all 234 files; the fourteen-module core TypeScript check and ESLint step passed (44 production modules and 32 test files); all 61 Vitest files (568 tests) passed; and the Vite production build completed with all five HTML entry points. Browser acceptance checks and Windows batch-script checks remain outstanding.
 
 ## Active technical debt
 
