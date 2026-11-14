@@ -67,21 +67,13 @@ export const TUNING = {
             exitY: -160,    // y below which he's off-screen and gets removed
             fadeInTime: 0.6, // sec to fade back in after the dying fade-out
         },
-        // Knight after-image trail: one ghost clone every trailInterval
-        // seconds WHEN the knight has actually moved since the last ghost
-        // (knight.js gates on displacement - the idle hover-bob used to spawn
-        // a stacked pile of silhouettes). v1.4.2 (owner: "the knight should
-        // have double the trail, so like, 1.5x more trail and it lasts 1.5x
-        // times longer"): interval 0.11 -> 0.073 (~1.5x denser, ~13.6
-        // ghosts/s), fade rate 1.5 -> 1.0/s (~0.7s per ghost, 1.5x longer),
-        // and the ghost cap 15 -> 34 so the denser, longer trail is never
-        // clipped mid-motion.
+        // Emit after-images only while the knight is moving. The interval
+        // controls trail density, the fade rate controls lifetime, and the
+        // cap prevents the longer trail from being clipped during motion.
         trailInterval: 0.073,
         trailFadeRate: 1.0,
         trailCap: 34,
-        // Screen-split ("Reality shatters!"): how long the split-screen rift
-        // stays open. v1.3.2: 5.0s felt long, shortened to 3.5s (also set as
-        // the split_active state duration so the fight keeps flowing).
+        // Duration of the screen-split rift and its split_active state.
         splitActive: 3.5,
         // Fixed-duration cutscene beats, in seconds.
         phases: {
@@ -93,11 +85,8 @@ export const TUNING = {
         },
     },
 
-    // v1.3.5: the loading-screen sword-pull minigame is back (v1.3.4 deleted
-    // it — over-pruned). It is a LONG-LOAD guest: loadGate.js shows the plain
-    // status + bar immediately as usual, and only after the screen has been
-    // up this long does the minigame fade in behind it. Quick loads (cold
-    // cache excluded) never see it at all.
+    // The minigame joins only long loads. The status and progress bar appear
+    // first; LoadGate reveals the minigame after this delay.
     minigame: {
         appearAfterMs: 1500,    // screen-time before the minigame joins a load
         swordCount: 20,

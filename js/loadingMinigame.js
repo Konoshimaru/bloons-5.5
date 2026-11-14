@@ -7,12 +7,10 @@
 // decorative — the loading sequence never waits on it. The caller may set
 // `onComplete`, fired once per xpMilestone swords taken (e.g. to grant +1 XP).
 //
-// v1.3.5: RESTORED after v1.3.4 excised it (that over-pruned — the intent was
-// "only on long loads", not "gone"). loadGate.js now arms a timer when the
-// loading screen appears and only calls start() once the load outlives
-// TUNING.minigame.appearAfterMs, so quick loads never see it. The canvas
-// fades in via the .live class (css/menus.css). forceMinigame()/
-// closeMinigame() console commands still work for on-demand play.
+// LoadGate starts this only after the loading screen has remained visible for
+// TUNING.minigame.appearAfterMs. Quick loads never show it; the canvas fades
+// in via the .live class (css/menus.css). forceMinigame()/closeMinigame()
+// console commands remain available for on-demand play.
 import { AudioEngine } from './audio.js';
 import { TUNING } from './tuning.js';
 

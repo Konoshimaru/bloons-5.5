@@ -1,22 +1,15 @@
 // js/fadeVeil.js
-// A global fade-through-black transition (v1.3.6, owner ask: "no transitions,
-// no fading to black or anything similar"). One full-screen black veil sits
-// over everything; `through(mid)` fades it in, lets `mid()` swap screens
-// behind the cover, then fades it back out. Used for title -> main menu,
-// menu -> battle and quit -> menu, where before the swap was a hard cut.
+// Shared fade-through-black transition. One full-screen veil covers the page;
+// `through(mid)` fades it in, lets `mid()` swap screens behind the cover,
+// then fades it back out. Used for title -> menu, menu -> battle and quit -> menu.
 //
 // Deliberately import-free (DOM + timers only) so any module can use it
 // without import cycles. The veil element lives in index.html (#fade-veil),
 // its look in css/menus.css.
 //
-// v1.4.2 COHESION FIX (owner: "the fade to black before the main menu should
-// be cohesive, there's a point where it's not fully opaque before clearing
-// up"): the old through() went straight from fade-in to fade-out with at
-// most one frame at peak opacity - with `ease` curves and a dropped frame the
-// black phase never read as fully opaque. Now every through() HOLDS the veil
-// at 100% black for HOLD_MS after the fade-in completes and before the
-// fade-out starts, and overlapping transitions are serialized with a
-// generation counter (a stale off() can never lift a newer fade).
+// Keep the veil fully opaque for HOLD_MS between the fade-in and fade-out.
+// A generation counter serializes overlapping transitions, preventing a stale
+// off() call from lifting a newer transition.
 
 const VEL_MS = 280;   // matches #fade-veil CSS (opacity 0.28s, menus.css)
 const HOLD_MS = 150;   // guaranteed full-black plateau between the fades

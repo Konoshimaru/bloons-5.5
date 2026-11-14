@@ -219,9 +219,8 @@ window.addEventListener('load', () => {
     LoadGate.prefetch('boot');
     LoadGate.prefetch('portraits');
     LoadGate.prefetch('game');
-    // v1.3.5: the restored loading minigame quietly farms XP — every
-    // xpMilestone swords pulled fires onComplete once (only reachable on
-    // genuinely long loads, or via forceMinigame()).
+    // Each completed sword-pull milestone grants one XP; the minigame only
+    // appears after a load has remained visible for its configured delay.
     LoadingMinigame.onComplete = () => LevelManager.addXP(1, { autoGrantCategory: true });
     const titleMeta = document.getElementById('title-meta');
     if (titleMeta) titleMeta.innerText = `v${pkg.version} · ${GameEngine.rendererName}`;
@@ -233,10 +232,8 @@ window.addEventListener('load', () => {
 
     titlePlayBtn.addEventListener('click', async () => {
         try {
-            // v1.3.6: the title -> menu swap now goes through a fade to black
-            // (owner: "no transitions, no fading to black"). The title still
-            // fades out on its own; the veil covers the loading gap so the
-            // menu never pops in over a bare background.
+            // The title fades out while the veil covers the loading gap, so
+            // the main menu never appears over an unprepared background.
             LoadGate.fadeHide(titleScreen);
             await FadeVeil.through(async () => {
                 // The pre-menu gate: audio + knowledge + menu portraits. Both groups

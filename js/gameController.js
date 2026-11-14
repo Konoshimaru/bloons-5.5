@@ -18,13 +18,9 @@ export const gameController = {
         if (this._starting) return;
         this._starting = true;
         try {
-            // v1.3.6: menu -> battle now fades to black first (owner ask).
-            // v1.4.2 BUGFIX: the veil used to stay on until the ENTIRE load
-            // + battle setup finished, hiding the loading screen (and its
-            // minigame) behind black. Now the veil lifts the moment the
-            // loading screen shows (onScreen), so progress and the minigame
-            // are visible on slow loads; on instant loads nothing ever shows
-            // and the veil simply covers the battle swap (lifted in finally).
+            // Cover the menu-to-battle transition. On slow loads, lift the veil
+            // when the loading screen appears so progress remains visible;
+            // instant loads keep the transition covered through battle setup.
             await FadeVeil.on();
             menuController.showMainMenuUI(false);
             UI.toggleMenus(null);
@@ -62,11 +58,8 @@ export const gameController = {
         document.getElementById('sidebar').classList.remove('hidden');
         document.getElementById('top-ui-left').classList.remove('hidden');
         document.getElementById('top-ui-right').classList.remove('hidden');
-        // v1.3.2: the level/XP shower starts FULLY hidden (display:none - not
-        // even the collapsed handle). Hovering the bottom-right corner reveals
-        // it (see the #game-area mousemove wiring in setupGameListeners); it
-        // also stays z-indexed UNDER the upgrade panel in game-ui.css.
-        // document.getElementById('level-bar').classList.remove('hidden');
+        // Keep the level/XP bar fully hidden initially. The game-area corner
+        // hover zone reveals it without covering canvas interactions.
         UI.toggleLevelBar(true);
         UI.updateMetaStats();
         const sandboxControls = document.getElementById('sandbox-controls');
@@ -106,10 +99,8 @@ export const gameController = {
     setupGameListeners() {
         dom.pauseBtn?.addEventListener('click', () => GameEngine.pauseGame());
         dom.levelBarToggle?.addEventListener('click', () => UI.toggleLevelBar());
-        // Level-bar corner reveal (v1.3.2): the bar starts display:none; the
-        // bottom-right corner of the play area is a hover zone. We listen on
-        // #game-area mousemove instead of overlaying a hover div so the zone
-        // never swallows canvas clicks (tower placement in that corner).
+        // Listen on the game area instead of adding an overlay, so the reveal
+        // zone never intercepts canvas clicks near the bottom-right corner.
         const gameArea = document.getElementById('game-area');
         const levelBar = document.getElementById('level-bar');
         if (gameArea && levelBar) {
@@ -134,8 +125,7 @@ export const gameController = {
         dom.resumeBtn?.addEventListener('click', () => GameEngine.resumeGame());
         dom.pauseSettingsBtn?.addEventListener('click', () => { GameEngine.lastMenu = 'pause-menu'; UI.toggleMenus('settings-menu'); });
         dom.quitBtn?.addEventListener('click', async () => {
-            // v1.3.6: battle -> menu goes through the fade-to-black veil so
-            // the swap is a transition instead of a hard cut.
+            // Use the shared veil so the battle-to-menu swap is not a hard cut.
             await FadeVeil.through(async () => {
                 GameEngine.deselectAll();
                 GameEngine.saveGame();
