@@ -322,7 +322,6 @@ export { DEFAULTS as CHANNEL_DEFAULTS };
 // editor) so tests can assert parity with the real state machine.
 
 import { TUNING } from './tuning.js';
-import { GLOBAL_SCALE } from './constants.js';
 
 export const VANILLA_INTRO = {
     knightX0: -400,  // CutsceneManager spawn: new KnightEnemy(-400, 300)
