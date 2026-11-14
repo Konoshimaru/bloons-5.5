@@ -28,6 +28,7 @@ describe('capture-only performance diagnostics',()=>{
         Profiler.record(engine,{sim:24,render:1,total:16.7,steps:2});
         expect(Profiler.session[0].counts['sniper.shots']).toBe(2);
         expect(Profiler.session[0].counts['sniper.targetScans']).toBe(1);
+        expect(Profiler.session[0]).toHaveProperty('heapUsedMB');
         Profiler.stopCapture();
         const report=Profiler.buildReport(engine,Profiler.session);
         expect(report.hotspots.timingMs['sniper.targetDamage']).toHaveProperty('p95');
