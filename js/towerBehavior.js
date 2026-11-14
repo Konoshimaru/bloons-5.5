@@ -214,6 +214,7 @@ function _acquireAndFire(tower, dt, engine) {
 const TARGET_RESCAN_INTERVAL = 0.15; // minimum interval between target scans
 
 function _getAcquireTarget(tower, engine) {
+    const firingReady = tower.cooldown <= 0 && tower.attackPointTimer <= 0;
     const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}`;
     const cached = tower._cachedTarget;
     const cachedIsValid = cached &&
@@ -235,7 +236,9 @@ function _getAcquireTarget(tower, engine) {
     // the ENTIRE enemy list for every shot (up to once per simulation tick).
     // A dead/recycled/out-of-range target or a targeting-mode change still
     // forces an immediate reacquisition.
-    if (cachedIsValid && tower._targetRescanTimer > 0) return cached;
+    if (cachedIsValid && (!firingReady || (tower.stats.range === 9999 && tower._targetRescanTimer > 0))) {
+        return cached;
+    }
 
     // A fruitless scan parks the cooldown as well as the rescan timer. This
     // avoids scanning every tick while the tower has no currently valid target.
@@ -244,7 +247,9 @@ function _getAcquireTarget(tower, engine) {
     tower._cachedTarget = _findTarget(tower, engine);
     tower._cachedTargetSpawnId = tower._cachedTarget ? tower._cachedTarget._spawnId : null;
     tower._cachedTargetingKey = targetingKey;
-    tower._targetRescanTimer = TARGET_RESCAN_INTERVAL;
+    tower._targetRescanTimer = tower._cachedTarget && tower.stats.range !== 9999
+        ? 0
+        : TARGET_RESCAN_INTERVAL;
 
     if (!tower._cachedTarget) {
         // [REGRESSION GUARD | upstream 2a7c064 "sniper lag improvement"] Cooldown parking on
