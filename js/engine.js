@@ -251,14 +251,20 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         if (UI && typeof UI.showCashDeduction === 'function') UI.showCashDeduction(amt);
     },
 
-    startGame(isSandbox = false) {
+    startGame(isSandbox = false, { showLoadError = true } = {}) {
         this._popCashFrac = 0;
         this.isSandbox = isSandbox;
         try { this.map = new GameMap(this.currentMap); }
         catch (e) {
-            this.log("Error loading map: " + e.message); this.gameState = 'gameover';
-            UI.toggleMenus('game-over-menu');
-            document.getElementById('go-wave-stat').innerText = `Map Load Error: ${e.message}`; return;
+            this.log("Error loading map: " + e.message);
+            this.map = null;
+            this.gameState = showLoadError ? 'gameover' : 'menu';
+            if (showLoadError) {
+                UI.toggleMenus('game-over-menu');
+                const stat = document.getElementById('go-wave-stat');
+                if (stat) stat.innerText = `Map Load Error: ${e.message}`;
+            }
+            return false;
         }
         this.gameState = 'playing';
         const diff = isSandbox ? Difficulties.medium : Difficulties[Config.data.currentDifficulty];
@@ -319,6 +325,7 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         // restartLoop() cancels any live rAF first, so no double-scheduling.
         this.restartLoop();
         this.updateUI();
+        return true;
     },
 
     pauseGame() { if (this.gameState !== 'playing') return; this.gameState = 'paused'; UI.showPause(); },

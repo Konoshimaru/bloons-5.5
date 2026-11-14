@@ -13,7 +13,8 @@ import { Hero } from './hero.js';
 import { Tower } from './tower.js';
 import { UI } from './ui.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js'; 
-import { LevelManager } from './levelManager.js'; 
+import { LevelManager } from './levelManager.js';
+import { validateSavedRun } from './savedRunValidation.js'; 
 
 const GameSession = {
     saveGame() {
@@ -52,17 +53,37 @@ const GameSession = {
     loadGame() {
         if (!Config.data.savedRun) return false;
         const state = Config.data.savedRun;
-        this.currentMap = state.mapIndex;
-        
-        if (state.difficultyKey) {
-            Config.data.currentDifficulty = state.difficultyKey;
-        } else if (state.difficulty) {
-            Config.data.currentDifficulty = state.difficulty.toLowerCase().replace(/\s+/g, '');
-        } else {
-            Config.data.currentDifficulty = 'medium';
+        const validation = validateSavedRun(state, {
+            mapCount: this.maps.length,
+            difficulties: Difficulties,
+            towerStats: TowerStats,
+            heroStats: HeroStats,
+            paragonTypes: Object.keys(PARAGON_STAT_APPLIERS)
+        });
+        if (!validation.valid) {
+            this.lastSaveLoadError = validation.reason;
+            console.warn('[save] Refusing to load invalid saved run:', validation.reason);
+            return false;
         }
-        
-        this.startGame(false);
+
+        const previousMap = this.currentMap;
+        const previousDifficulty = Config.data.currentDifficulty;
+        this.currentMap = state.mapIndex;
+        Config.data.currentDifficulty = validation.difficultyKey;
+
+        // startGame() returns false when the selected map cannot be built.
+        // Do not restore any tower/run state on top of an uninitialized game.
+        if (!this.startGame(false, { showLoadError: false })) {
+            this.currentMap = previousMap;
+            Config.data.currentDifficulty = previousDifficulty;
+            this.gameState = 'menu';
+            this.map = null;
+            this.lastSaveLoadError = 'The saved map could not be initialized.';
+            console.warn('[save] Refusing to continue: saved map initialization failed.');
+            return false;
+        }
+
+        this.lastSaveLoadError = null;
         this.lives = state.lives; this.cash = state.cash;
         this.waveManager.currentWave = state.wave - 1;
         for (const tData of state.towers) {
