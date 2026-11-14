@@ -286,6 +286,40 @@ describe('shared global-range Sniper targeting', () => {
         expect(snipers.map(tower => tower._cachedTarget)).toEqual([fourth, fourth]);
     });
 
+    it('does not keep an empty-target cooldown cache after targeting rules change', async () => {
+        let scans = 0;
+        const first = makeTarget(31);
+        const second = makeTarget(32);
+        first.distanceTraveled = 900;
+        first.data.rbe = 100;
+        second.distanceTraveled = 200;
+        second.data.rbe = 10000;
+        const candidates = [];
+        const enemies = {
+            [Symbol.iterator]() {
+                scans++;
+                return candidates[Symbol.iterator]();
+            },
+        };
+        const { G, Tower, SimulationLoop } = await setupEngine(enemies);
+        const sniper = new Tower(100, 100, 'sniper');
+        sniper.targetingMode = 'First';
+        sniper.cooldown = 10;
+        G.towers = [sniper];
+
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(sniper._cachedTarget).toBeNull();
+        expect(scans).toBe(1);
+
+        // New targets enter while the empty-result cooldown is still parked.
+        // A rule change must invalidate that empty result immediately.
+        candidates.push(first, second);
+        sniper.targetingMode = 'Strong';
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(sniper._cachedTarget).toBe(second);
+        expect(scans).toBe(2);
+    });
+
     it('invalidates a cached Sniper target immediately when its targeting mode changes', async () => {
         let scans = 0;
         const first = makeTarget(21);
