@@ -444,7 +444,7 @@ describe('Elite Support shared sweep', () => {
 
             // First Elite Sniper refreshes both other Snipers. The second
             // source skips its duplicate sweep during the same simulation step.
-            expect(secondElite.addBuff).not.toHaveBeenCalled();
+            expect(secondElite.addBuff).toHaveBeenCalledOnce();
             expect(target.addBuff).toHaveBeenCalledTimes(1);
             expect(secondElite.buffedFireRate).toBe(0.33);
             expect(target.buffedFireRate).toBe(0.33);
