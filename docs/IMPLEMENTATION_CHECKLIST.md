@@ -28,6 +28,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [ ] Verify projectile collision behavior for every special projectile type, including pierce, ricochet, split, explosive, and returning projectiles.
 - [ ] Manually test valid, invalid, old-format, and custom-map saves through the actual Continue UI.
 - [ ] Test WebGL unavailable/startup failure and simulated render failure in a browser, not only through unit tests.
+- [ ] **User-reported bug (2026-11-14):** Sniper Monkey firing causes severe lag/freezes, especially at high attack speed, and can stall/crash the game loop. Profile rapid target reacquisition, Shrapnel projectile bursts/cap enforcement, and hitscan rendering; add production regression/stress tests before marking this resolved.
 
 ## 2. Architecture and maintainability
 
