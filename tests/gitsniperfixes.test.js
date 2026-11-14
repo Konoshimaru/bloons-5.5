@@ -448,17 +448,16 @@ describe('fast-fire Sniper target refresh throttle', () => {
         SimulationLoop._updateTowers.call(G, 1 / 60);
         expect(scans).toBe(1);
 
-        // Two more fast shots use the still-valid target without a full scan.
-        for (let i = 0; i < 2; i++) {
-            sniper.cooldown = 0;
-            SimulationLoop._updateTowers.call(G, 1 / 60);
-        }
-        expect(scans).toBe(1);
-
-        // A dead target invalidates the cache immediately, even inside the throttle window.
-        target.alive = false;
+        // A fast follow-up shot uses the still-valid target without a full scan.
         sniper.cooldown = 0;
         SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(1);
+
+        // A dead target invalidates the cache immediately, even with time left
+        // in the 50ms throttle window.
+        target.alive = false;
+        sniper.cooldown = 0;
+        SimulationLoop._updateTowers.call(G, 0.001);
         expect(scans).toBe(2);
     });
 

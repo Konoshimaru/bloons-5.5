@@ -214,35 +214,23 @@ function _acquireAndFire(tower, dt, engine) {
 // shots the angle still tracks the cached target's position, so barrels keep
 // sweeping like before.
 const TARGET_RESCAN_INTERVAL = 0.15; // s between fruitless scans
-const GLOBAL_SNIPER_RESCAN_INTERVAL = 0.05; // s between successful global Sniper target rankings
 
 function _getAcquireTarget(tower, engine) {
     const firingReady = tower.cooldown <= 0 && tower.attackPointTimer <= 0;
-    const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}:camo:${(tower.stats.canSeeCamo || tower.buffedCamo) ? 1 : 0}`;
+    const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}`;
     const cached = tower._cachedTarget;
 
-    if (!firingReady && !cached && tower._targetRescanTimer > 0) {
+    if (!firingReady) {
         // A recent scan found nothing (e.g. all-camo wave, no goggles): don't
-        // re-scan every tick — wait the interval out.
-        return null;
-    }
-
-    // [REGRESSION GUARD | upstream 4e2bd10 "confirming knight fix update"] invulnerable /
-    // untargetable (rolling Knight) must never stay cached — pinned by tests/gitsniperfixes.test.js.
-    const cachedIsValid = cached && cached.alive && !cached.invulnerable && !cached.untargetable &&
-        cached._spawnId === tower._cachedTargetSpawnId &&
-        tower._cachedTargetingKey === targetingKey && !isHiddenFrom(tower, cached) &&
-        (tower.stats.range === 9999 ||
-            Utils.withinRange(tower.x, tower.y, cached.x, cached.y, Utils.getEffectiveRange(tower, engine) + (cached.radius || 10)));
-
-    if (cachedIsValid) {
-        if (!firingReady) return cached;
-        // Fast global Snipers can fire every simulation tick. Re-ranking the
-        // entire bloon list for every shot is wasteful while the current target
-        // is still valid. Reuse it briefly; invalid/dead targets bypass this
-        // throttle and are replaced immediately.
-        if (tower.type === 'sniper' && tower.stats.range === 9999 && tower._targetRescanTimer > 0) {
-            return cached;
+        // re-scan every tick — wait the interval out. Fires always re-scan,
+        // so a newly-spawned valid target is still picked up on time.
+        if (!cached && tower._targetRescanTimer > 0) return null;
+        // [REGRESSION GUARD | upstream 4e2bd10 "confirming knight fix update"] invulnerable /
+        // untargetable (rolling Knight) must never stay cached — pinned by tests/gitsniperfixes.test.js.
+        if (cached && cached.alive && !cached.invulnerable && !cached.untargetable && cached._spawnId === tower._cachedTargetSpawnId && tower._cachedTargetingKey === targetingKey) {
+            if (tower.stats.range === 9999 || Utils.withinRange(tower.x, tower.y, cached.x, cached.y, Utils.getEffectiveRange(tower, engine) + (cached.radius || 10))) {
+                return cached;
+            }
         }
     }
 
@@ -250,9 +238,7 @@ function _getAcquireTarget(tower, engine) {
     tower._cachedTargetSpawnId = tower._cachedTarget ? tower._cachedTarget._spawnId : null;
     tower._cachedTargetingKey = targetingKey;
     if (tower._cachedTarget) {
-        tower._targetRescanTimer = (tower.type === 'sniper' && tower.stats.range === 9999)
-            ? GLOBAL_SNIPER_RESCAN_INTERVAL
-            : 0;
+        tower._targetRescanTimer = 0;
     } else {
         tower._targetRescanTimer = TARGET_RESCAN_INTERVAL;
         // [REGRESSION GUARD | upstream 2a7c064 "sniper lag improvement"] Cooldown parking on
