@@ -29,9 +29,12 @@ import { Beast } from './beastEntity.js';
 import { Profiler } from './profiler.js';
 import { advanceFixedStepClock } from './fixedStepClock.js';
 import { attachModuleMethods } from './engineComposition.js';
+import { runFixedStepsWithinBudget } from './simulationBudget.js';
 
 const FPS_UPDATE_INTERVAL = 1000;
-const HANG_THRESHOLD_MS = 500; 
+// A busy catch-up frame must yield instead of turning CPU overload into a fatal
+// game-over. Remaining steps are dropped; exceptions from update() still fail loudly.
+const MAX_SIMULATION_UPDATE_BUDGET_MS = 500; 
 
 // Tower types that earn tower XP toward their paragon unlock (registered
 // towers only; addTowerXp maps paragon_* pops back onto the base type and
@@ -432,27 +435,48 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
                 });
                 this._simulationAccumulator = clock.accumulatorSeconds;
                 const updateStartTime = performance.now();
+                let stepRun;
                 try {
-                    for (let i = 0; i < clock.steps; i++) {
-                        this.update(clock.stepDt);
-                        if (performance.now() - updateStartTime > HANG_THRESHOLD_MS) { throw new Error("Game Freeze: Infinite loop detected."); }
-                    }
+                    stepRun = runFixedStepsWithinBudget(
+                        stepDt => this.update(stepDt),
+                        clock.steps,
+                        clock.stepDt,
+                        MAX_SIMULATION_UPDATE_BUDGET_MS
+                    );
                 } catch (err) {
-                    console.error("FATAL SIMULATION ERROR:", err); 
+                    console.error("FATAL SIMULATION ERROR:", err);
                     if (import.meta.env.DEV) throw err; // Fail loud in dev mode
                     this.gameState = 'gameover';
-                    try { 
-                        UI.toggleMenus('game-over-menu'); 
-                        document.getElementById('go-wave-stat').innerText = `Game Crash: ${err.message}.`; 
+                    try {
+                        UI.toggleMenus('game-over-menu');
+                        document.getElementById('go-wave-stat').innerText = 'Game Crash: ' + err.message + '.';
                     } catch(e) {
                         console.error("UI also crashed during game over:", e);
                     }
                 }
+
+                if (stepRun && stepRun.skippedSteps > 0) {
+                    // Do not preserve catch-up debt after exhausting this frame's
+                    // CPU budget: that would immediately trigger another overloaded
+                    // frame. Track the lost steps and resume on the next animation
+                    // frame rather than ending the run.
+                    this._simulationAccumulator = 0;
+                    this._simulationStepsDropped = (this._simulationStepsDropped || 0) + stepRun.skippedSteps;
+                    if (import.meta.env.DEV &&
+                        (!this._lastSimulationBudgetWarning || timestamp - this._lastSimulationBudgetWarning >= 5000)) {
+                        console.warn(
+                            '[GameEngine] Simulation budget exceeded; skipped ' + stepRun.skippedSteps +
+                            ' catch-up steps (' + this._simulationStepsDropped + ' total).'
+                        );
+                        this._lastSimulationBudgetWarning = timestamp;
+                    }
+                }
+
                 UI.updateAbilityBar(this); this.updateUI();
                 if (!this._frameMs) this._frameMs = {};
                 this._frameMs.sim = performance.now() - updateStartTime;
-                this._frameMs.steps = clock.steps;
-                // Clamp like targetDt so a hidden/backgrounded tab (huge rawDt)
+                this._frameMs.steps = stepRun ? stepRun.completedSteps : 0;
+                this._frameMs.skippedSteps = stepRun ? stepRun.skippedSteps : 0;                // Clamp like targetDt so a hidden/backgrounded tab (huge rawDt)
                 // can't poison the profiler's total/fps percentiles with one
                 // bogus multi-second sample.
                 this._frameMs.total = clock.frameDeltaSeconds * 1000;
