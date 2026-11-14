@@ -19,6 +19,7 @@ const coreFiles = [
     'js/mapEditorInput.js',
     'js/mapEditor.js',
     'js/cutsceneRuntime.js',
+    'js/mapMeta.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -36,7 +37,8 @@ const coreFiles = [
     'tests/mapEditorRenderer.test.js',
     'tests/mapEditorInput.test.js',
     'tests/mapEditorComposition.test.js',
-    'tests/cutsceneRuntime.test.js'
+    'tests/cutsceneRuntime.test.js',
+    'tests/mapMeta.test.js'
 ];
 
 export default [
