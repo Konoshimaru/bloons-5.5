@@ -254,8 +254,14 @@ function _getAcquireTarget(tower, engine) {
 }
 
 function _findTarget(tower, engine) {
-    const effRange = Utils.getEffectiveRange(tower, engine);
-    const candidates = tower.stats.range === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange, _targetScratch);
+    // Global-range towers (notably Snipers) can share a target scan when they
+    // use the same ranking and visibility rules. The cache is cleared once at
+    // the start of each simulation substep by SimulationLoop._updateTowers().
+    // Close targeting and minimum-range towers remain per-tower because their
+    // ranking/filter depends on tower position.
+    const isGlobal = tower.stats.range === 9999;
+    const effRange = isGlobal ? 0 : Utils.getEffectiveRange(tower, engine);
+    const candidates = isGlobal ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange, _targetScratch);
     
     let currentTargeting = tower.targetingMode;
     if (currentTargeting === 'Elite') {
@@ -273,6 +279,24 @@ function _findTarget(tower, engine) {
 
     const minRange = tower.stats.minRange ? (tower.stats.minRange * RANGE_SCALE * GS) : 0;
 
+    const cache = engine._globalTargetCache;
+    const canShareGlobalTarget = isGlobal && currentTargeting !== 'Close' &&
+        minRange === 0 && cache instanceof Map;
+    const cacheKey = canShareGlobalTarget
+        ? `${currentTargeting}|camo:${(tower.stats.canSeeCamo || tower.buffedCamo) ? 1 : 0}|glueMoab:${(tower.type === 'glue' && !tower.stats.canHitMoab) ? 1 : 0}`
+        : null;
+
+    if (canShareGlobalTarget && cache.has(cacheKey)) {
+        const cached = cache.get(cacheKey);
+        const violatesGlueFilter = tower.type === 'glue' && cached?.data?.isMoab && !tower.stats.canHitMoab;
+        if (cached && cached.alive && !cached.invulnerable && !cached.untargetable &&
+            !isHiddenFrom(tower, cached) && !violatesGlueFilter) {
+            return cached;
+        }
+        // A previous tower may have popped or otherwise invalidated it.
+        cache.delete(cacheKey);
+    }
+
     // [REGRESSION GUARD | upstream 0bad3c4 "fully fixed sniper lag"] Global-range fast path.
     // Pinned by tests/gitsniperfixes.test.js — DO NOT DELETE.
     // Global-range towers (range === 9999) never filter by distance, so the
@@ -281,7 +305,6 @@ function _findTarget(tower, engine) {
     // tower has a minRange. (Note: routing them through the spatial grid at a
     // huge radius would be far worse — the grid query would iterate every cell
     // in the map — so they keep scanning the live enemies array.)
-    const isGlobal = tower.stats.range === 9999;
     const needDist = !isGlobal || currentTargeting === 'Close' || minRange > 0;
 
     for (const e of candidates) {
@@ -320,13 +343,17 @@ function _findTarget(tower, engine) {
         }
     }
     
+    let selectedTarget = null;
     if (t1) {
-        if (_hasLineOfSight(tower, t1, engine)) return t1;
-        if (t2 && _hasLineOfSight(tower, t2, engine)) return t2;
-        if (t3 && _hasLineOfSight(tower, t3, engine)) return t3;
+        if (_hasLineOfSight(tower, t1, engine)) selectedTarget = t1;
+        else if (t2 && _hasLineOfSight(tower, t2, engine)) selectedTarget = t2;
+        else if (t3 && _hasLineOfSight(tower, t3, engine)) selectedTarget = t3;
     }
-    
-    return null;
+
+    // Do not cache a miss: an earlier tower or ability may make a target
+    // eligible later in this same substep (for example, removing camo).
+    if (canShareGlobalTarget && selectedTarget) cache.set(cacheKey, selectedTarget);
+    return selectedTarget;
 }
 
 function _getTargetValue(tower, enemy, dist, targetingMode) {

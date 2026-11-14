@@ -334,3 +334,74 @@ describe('v1.4.4 version badge wiring', () => {
         expect(read('index.html')).toMatch(/v1\.4\.5 — Regression armor/);
     });
 });
+
+
+// ---------------------------------------------------------------------------
+// v1.4.5+ global-target scan sharing and high-rate Sniper allocation guards.
+// ---------------------------------------------------------------------------
+describe('global-range target scan sharing', () => {
+    it('shares one compatible scan per simulation substep, then refreshes next step', async () => {
+        const { GameEngine: G } = await import('../js/engineRef.js');
+        const { Tower } = await import('../js/tower.js');
+        const SimulationLoop = (await import('../js/simulationLoop.js')).default;
+
+        G.config = { data: { mkActive: false, monkeyKnowledge: {} } };
+        G.waveManager = { currentWave: 1, waveActive: true };
+        G.hasLeakingEnemy = false;
+        G.nightAlpha = 0;
+        G.towerGrid = { clear: vi.fn(), insert: vi.fn() };
+        G.enemyGrid = { query: vi.fn(() => []) };
+
+        const target = {
+            alive: true,
+            invulnerable: false,
+            untargetable: false,
+            isCamo: false,
+            _spawnId: 7001,
+            x: 120,
+            y: 140,
+            radius: 10,
+            distanceTraveled: 100,
+            data: { isMoab: false, isCeramic: false, rbe: 100, speed: 0 },
+            takeDamage: vi.fn(() => 1),
+        };
+
+        let scans = 0;
+        G.enemies = {
+            *[Symbol.iterator]() {
+                scans++;
+                yield target;
+            },
+        };
+
+        const snipers = [
+            new Tower(100, 100, 'sniper'),
+            new Tower(200, 100, 'sniper'),
+        ];
+        G.towers = snipers;
+
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(1);
+
+        // Force both towers to reacquire. The cache must be refreshed for the
+        // next substep rather than retaining a target across enemy movement.
+        for (const sniper of snipers) sniper.cooldown = 0;
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(2);
+        expect(target.takeDamage).toHaveBeenCalledTimes(4);
+    });
+
+    it('does not share position-dependent Close or minimum-range targeting', () => {
+        const src = read('js/towerBehavior.js');
+        expect(src).toMatch(/currentTargeting !== 'Close'/);
+        expect(src).toMatch(/minRange === 0/);
+    });
+});
+
+describe('Sniper fast-fire allocation guard', () => {
+    it('does not allocate bounce tracking for a zero-bounce shot', () => {
+        const src = read('js/towers/sniper.js');
+        expect(src).toMatch(/let hitSet = bounces > 0 \? new Set\(\[target\]\) : null;/);
+        expect(src).toMatch(/hitSet && hitSet\.has\(e\)/);
+    });
+});

@@ -139,7 +139,9 @@ export default {
         if (dmgDealt > 0) tower.damageDealt += dmgDealt;
         tower.hitscans.push({ x1: tower.x, y1: tower.y, x2: target.x, y2: target.y, life: 0.1 });
         let bounces = tower.stats.bounces || 0;
-        let hitSet = new Set([target]);
+        // Standard Sniper shots do not bounce, so they do not need a Set.
+        // Keep the same duplicate-target protection for bounce upgrades.
+        let hitSet = bounces > 0 ? new Set([target]) : null;
         let currentTarget = target;
         for (let i = 0; i <= bounces; i++) {
             if (tower.stats.shrapnel) {
@@ -150,7 +152,7 @@ export default {
             let nextTarget = null;
             let bestDistSq = Infinity;
             for (let e of nearby) {
-                if (!e.alive || hitSet.has(e)) continue;
+                if (!e.alive || (hitSet && hitSet.has(e))) continue;
                 let distSq = Utils.distanceSq(currentTarget.x, currentTarget.y, e.x, e.y);
                 if (distSq < bestDistSq) { bestDistSq = distSq; nextTarget = e; }
             }

@@ -116,6 +116,13 @@ const SimulationLoop = {
     },
 
     _updateTowers(dt) {
+        // Global-range target selections are stable for the duration of this
+        // pass: enemies have already moved, and no enemy movement occurs while
+        // towers update. Reuse one Map across steps to avoid repeated full
+        // enemy-array scans by Snipers and other 9999-range towers.
+        if (!(this._globalTargetCache instanceof Map)) this._globalTargetCache = new Map();
+        else this._globalTargetCache.clear();
+
         for (const t of this.towers) {
             if (!t) continue;
             t.buffedRange = 0; t.buffedFireRate = 0; t.buffedCamo = false; t.buffedLead = false;
