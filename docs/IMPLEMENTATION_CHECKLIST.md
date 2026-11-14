@@ -56,18 +56,18 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add a shared module-composition helper with tests for duplicate names, explicitly permitted overrides, getter preservation, and no partial application.
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm run check:syntax`, `npm test`, and `npm run build` for pushes and pull requests.
-- [x] Add a dependency-free syntax scanner that parsed all 212 source/test/tool files successfully in CI.
-- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 43 test files and 448 tests passed; all 212 syntax-checked files passed; the core type-check passed; npm audit reported zero advisories; production build passed.
+- [x] Add a dependency-free syntax scanner that parsed all 215 source/test/tool files successfully in CI.
+- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 45 test files and 466 tests passed; all 215 syntax-checked files passed; the eight-module core type-check passed; ESLint passed on 13 production modules and 11 test files; npm audit reported zero advisories; production build passed.
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
-- [x] Expand the initial ESLint allowlist to 11 production modules and 9 associated regression-test files, including damage types, status effects, spatial grid, MapEditorHistory, and the DOM write throttle; the CI lint step passes.
+- [x] Expand the ESLint allowlist to 13 production modules and 11 associated regression-test files, including damage types, status effects, spatial grid, MapEditorHistory, the DOM write throttle, and Map Editor document validation/I/O; the CI lint step passes.
 - [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
-- [x] Run the expanded type-check in CI successfully for seven selected core modules.
+- [x] Run the expanded type-check in CI successfully for eight selected core modules.
 - [ ] Expand type-check coverage gradually as JSDoc and dependency boundaries are improved; do not treat the initial subset as a whole-project type check.
-- [ ] Expand tests for save migration, malformed editor documents, and renderer error paths where practical.
+- [ ] Add Map Editor document validation and I/O regression tests for malformed paths, waypoints, curves, hitboxes, water strokes, and background metadata; retain support for legacy single-path documents.\n- [ ] Expand tests for save migration and renderer error paths where practical.
 
 ## 4. Documentation and contributor onboarding
 
@@ -116,7 +116,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43606098136 is green on commit `c266509f320e678a1b010329f675da9a677a2797`: zero npm advisories, 212 syntax-checked files, seven type-checked modules, 11 ESLint production modules plus 9 test files, 43 Vitest files (448 tests), and production build.
+- [x] Confirm CI run 43606704054 is green on commit `3dd2a609666b4c2118eec49f98fb6d008b5ed936`: zero npm advisories, 215 syntax-checked files, eight type-checked modules, 13 ESLint production modules plus 11 test files, 45 Vitest files (466 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.

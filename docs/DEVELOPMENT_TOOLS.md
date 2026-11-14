@@ -10,7 +10,7 @@ The editor provides a stage preview, actor list, sprite library, key inspector a
 
 ## Map Editor
 
-Implementation is split across js/mapEditor.js and state/input/history/rendering/IO modules. It creates custom maps stored in player configuration. Test map save/load round-trips when changing the data format.
+Implementation is split across js/mapEditor.js and state/input/history/rendering/IO modules. It creates custom maps stored in player configuration. JSON imports, direct JSON edits, saved-map loads, and save operations validate document structure before modifying editor state or player data. Older maps that store a top-level `waypoints` array are normalized to a single path. Test valid and malformed map round-trips when changing the data format.
 
 ## Sprite Editor
 
