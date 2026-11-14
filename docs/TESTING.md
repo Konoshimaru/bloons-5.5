@@ -20,6 +20,17 @@ Run `npm run audit:deps` to print the package names, severities, advisory summar
 
 The `typecheck:core` command uses a pinned TypeScript compiler and currently checks fourteen selected core modules listed in `jsconfig.typecheck.json`. It remains a deliberately narrow check—not a claim that the entire JavaScript codebase is typed. Expand the file list only as modules gain accurate JSDoc and their external dependencies can be described without hiding real errors.
 
+## Performance capture
+
+Use the built-in profiler when frame time degrades during gameplay:
+
+1. Press F3 to start a capture.
+2. Reproduce the slowdown for a short, representative period.
+3. Press F3 again to stop the capture.
+4. Press F5 to download the JSON report. F4 also prints and copies a text summary.
+
+The report separates simulation and rendering time and includes worst-frame timings, update-step counts, entity counts, and spatial-grid occupancy. Capture only the period needed to reproduce the issue because the active session grows until it is stopped.
+
 ## Test production behavior
 
 A good regression test imports the actual function/class from js/ and verifies its observable result. Mock audio, rendering or local storage only when needed to isolate behavior.
