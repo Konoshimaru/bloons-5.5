@@ -352,6 +352,7 @@ export function buildVanillaIntroDoc() {
     const holds = BA.knight_back.holds || {};
     const r3 = (v) => Math.round(v * 1000) / 1000;
 
+    /** @type {Array<{t: number, x?: number, y?: number, scale?: number, rotation?: number, alpha?: number, mirror?: boolean, sprite?: string, easing?: string}>} */
     const knightKeys = [{
         t: 0, x: V.knightX0, y: V.knightY,
         // scale 1 = the entity renderer's own draw size (native × KNIGHT_SCALE)

@@ -120,6 +120,8 @@ export const TUNING = {
     },
 };
 
-// Console live-tweak handle (browser only — cutsceneRuntime imports this
-// module in node-env vitest too, where `window` doesn't exist).
-if (typeof window !== 'undefined') window.tuning = TUNING;
+// Console live-tweak handle (browser only — this module is also imported in
+// Node-based tests, where `window` does not exist).
+/** @type {(Window & { tuning?: typeof TUNING }) | undefined} */
+const browserWindow = typeof window === 'undefined' ? undefined : window;
+if (browserWindow) browserWindow.tuning = TUNING;
