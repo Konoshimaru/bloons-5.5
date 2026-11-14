@@ -364,42 +364,42 @@ function _findTarget(tower, engine) {
         ? Profiler.beginMeasure('sniper.targetScan')
         : null;
     try {
-    for (const e of candidates) {
-        if (tower.type === 'sniper') Profiler.count('sniper.targetCandidatesVisited');
-        if (!e.alive) continue;
-        // Never target an enemy while it is invulnerable or untargetable.
-        if (e.invulnerable || e.untargetable) continue;
-        if (isHiddenFrom(tower, e)) continue;
-        if (tower.type === 'glue' && e.data.isMoab && !tower.stats.canHitMoab) continue;
+        for (const e of candidates) {
+            if (tower.type === 'sniper') Profiler.count('sniper.targetCandidatesVisited');
+            if (!e.alive) continue;
+            // Never target an enemy while it is invulnerable or untargetable.
+            if (e.invulnerable || e.untargetable) continue;
+            if (isHiddenFrom(tower, e)) continue;
+            if (tower.type === 'glue' && e.data.isMoab && !tower.stats.canHitMoab) continue;
 
-        let distSq = 0;
-        if (needDist) {
-            distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
-            if (!isGlobal) {
-                const eRad = e.radius || 10;
-                const effRangeWithRad = effRange + eRad;
-                if (distSq > effRangeWithRad * effRangeWithRad) continue;
+            let distSq = 0;
+            if (needDist) {
+                distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
+                if (!isGlobal) {
+                    const eRad = e.radius || 10;
+                    const effRangeWithRad = effRange + eRad;
+                    if (distSq > effRangeWithRad * effRangeWithRad) continue;
+                }
+                if (minRange > 0) {
+                    const eRad = e.radius || 10;
+                    const minRangeWithRad = Math.max(0, minRange - eRad);
+                    if (distSq < minRangeWithRad * minRangeWithRad) continue;
+                }
             }
-            if (minRange > 0) {
-                const eRad = e.radius || 10;
-                const minRangeWithRad = Math.max(0, minRange - eRad);
-                if (distSq < minRangeWithRad * minRangeWithRad) continue;
+
+            const val = _getTargetValue(tower, e, (currentTargeting === 'Close' ? Math.sqrt(distSq) : 0), currentTargeting);
+
+            if (isBetter(val, v1)) {
+                t3 = t2; v3 = v2;
+                t2 = t1; v2 = v1;
+                t1 = e; v1 = val;
+            } else if (isBetter(val, v2)) {
+                t3 = t2; v3 = v2;
+                t2 = e; v2 = val;
+            } else if (isBetter(val, v3)) {
+                t3 = e; v3 = val;
             }
         }
-
-        const val = _getTargetValue(tower, e, (currentTargeting === 'Close' ? Math.sqrt(distSq) : 0), currentTargeting);
-
-        if (isBetter(val, v1)) {
-            t3 = t2; v3 = v2;
-            t2 = t1; v2 = v1;
-            t1 = e; v1 = val;
-        } else if (isBetter(val, v2)) {
-            t3 = t2; v3 = v2;
-            t2 = e; v2 = val;
-        } else if (isBetter(val, v3)) {
-            t3 = e; v3 = val;
-        }
-    }
     } finally {
         Profiler.endMeasure(targetScanMeasure);
     }
