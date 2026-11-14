@@ -37,7 +37,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [ ] Further reduce the shared Main controller method bag where clearer sub-objects would improve ownership.
 - [ ] Reduce new hidden dependencies on the global `GameEngine`; prefer supplied engine parameters.
 - [ ] Review the remaining singleton/engineRef dependency pattern without reintroducing circular imports.
-- [ ] Review the mutable late registration in `towerFactory.js`.
+- [x] Encapsulate the mutable tower factory slot behind a registration API with a clear uninitialized error and HMR-compatible re-registration.
+- [ ] Remove the remaining module-load-order dependency only if it can be done without reintroducing the tower behavior import cycle.
 - [ ] Split large files only where there is a clear responsibility boundary.
 - [ ] Keep the Cutscene Editor as a development tool; split its timeline, editor state, rendering, and import/export only if the boundaries make maintenance easier.
 - [ ] Review renderer modules for cohesive responsibilities rather than performing a broad renderer rewrite.
@@ -49,10 +50,11 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add saved-run validation tests.
 - [x] Update the Paragon save/load test to model successful engine initialization.
 - [x] Add tests for the Pixi optional-draw retry policy and critical-method classification.
+- [x] Add tests for tower factory initialization, argument forwarding, invalid registration, and HMR re-registration.
 - [x] Add a shared module-composition helper with tests for duplicate names, explicitly permitted overrides, getter preservation, and no partial application.
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm test`, and `npm run build` for pushes and pull requests.
-- [x] Re-run and confirm CI after renderer recovery and GameEngine composition changes: 38 test files and 426 tests passed; production build passed.
+- [x] Re-run and confirm CI after renderer recovery and GameEngine composition changes: 39 test files and 431 tests passed; production build passed.
 - [ ] Convert hand-written checks in `js/tests/tests.js` into tests of real production functions where applicable.
 - [ ] Keep `tests.html` explicitly labelled as a manual/legacy browser harness; it is separate from Vitest.
 - [ ] Configure ESLint and fix verified lint findings.

@@ -14,13 +14,15 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Optional Pixi draw-method failures: use bounded retries and disable repeatedly failing optional passes; failures in core world-rendering passes are escalated to the engine.
 - [x] Stale tower interface documentation: js/towers/TOWER_INTERFACE.md now describes registry-based behavior lookup rather than prototype mixins.
 - [x] Blind controller composition: GameEngine and Main now use attachModuleMethods(), which rejects undeclared duplicate names and requires explicit declarations for intentional selector wrappers.
+- [x] Fragile nullable tower factory slot: creation is now exposed through a frozen facade, registration is explicit, and early calls produce a descriptive error.
 - [x] Contributor documentation and CI checks have been added on this branch.
 
-GitHub Actions run 43601458849 completed successfully: all 38 Vitest files (426 tests) passed and the Vite production build completed. This includes the fixed-step clock, swept collisions, save validation, Pixi failure policy, and guarded GameEngine/Main composition. Browser gameplay checks and Windows batch-script checks are still required before merging.
+GitHub Actions run 43601675598 completed successfully: all 39 Vitest files (431 tests) passed and the Vite production build completed. This includes the fixed-step clock, swept collisions, save validation, Pixi failure policy, guarded GameEngine/Main composition, and tower factory registration tests. Browser gameplay checks and Windows batch-script checks are still required before merging.
 
 ## Active technical debt
 
-- [ ] GameEngine singleton/method-bag architecture: engine.js still attaches EngineInput, GameSession and SimulationLoop methods to one shared object. attachEngineModule() now checks duplicate names and prevents silent overwrites, but the singleton and implicit method dependencies remain. Refactor incrementally; do not replace working systems in one rewrite.
+- [ ] GameEngine singleton/method-bag architecture: engine.js still attaches EngineInput, GameSession and SimulationLoop methods to one shared object. attachModuleMethods() checks duplicate names and prevents silent overwrites, but the singleton and implicit method dependencies remain. Refactor incrementally; do not replace working systems in one rewrite.
+- [ ] Tower factory import-order dependency: towerFactory.create() now fails clearly before registration, but tower.js still needs to register the constructor before a behavior calls it. Keep the current cycle-breaking design until a safe dependency-free alternative exists.
 - [ ] Further reduce the shared Main controller method bag only if a clearer sub-object design can be introduced without changing menu behavior.
 - [ ] Large editor/rendering modules: split files only where a clear responsibility boundary exists. Preserve the Cutscene Editor and other development tools.
 - [ ] Legacy browser test harness: tests.html runs js/tests/tests.js, which includes hand-written simulations. Label it as a manual/legacy smoke harness and prefer Vitest tests that exercise production functions.

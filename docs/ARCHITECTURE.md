@@ -21,7 +21,7 @@ Vite also builds separate HTML entry points for the Cutscene Editor, Sprite Edit
 
 js/towers/index.js and js/heroes/index.js import definition objects and expose registries and derived stat tables. js/registry.js provides getBehavior(type).
 
-Tower is the shared base runtime entity. Hero extends it with XP and level progression. Generic attack/update behavior is in js/towerBehavior.js; specialized hooks live on registered definitions.
+Tower is the shared base runtime entity. Hero extends it with XP and level progression. Generic attack/update behavior is in js/towerBehavior.js; specialized hooks live on registered definitions. Village behavior requests new towers through the cycle-breaking js/towerFactory.js facade; js/tower.js registers the concrete constructor during module initialization.
 
 Bloon definitions are in js/bloons.js and re-exported by js/data.js. Wave definitions live in js/waves.js and js/abrWaves.js. Maps are data in js/data.js, with runtime path geometry in js/map.js.
 
