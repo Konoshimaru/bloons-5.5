@@ -449,8 +449,9 @@ describe('Elite Support shared sweep', () => {
             expect(secondElite.buffedFireRate).toBe(0.33);
             expect(target.buffedFireRate).toBe(0.33);
 
-            // A following simulation step permits one new shared sweep.
-            SimulationLoop._updateTowers.call(G, 1 / 60);
+            // After the existing 0.4s refresh interval, the next support
+            // pass performs one new shared sweep for all Elite Snipers.
+            SimulationLoop._updateTowers.call(G, 0.5);
             expect(target.addBuff).toHaveBeenCalledTimes(2);
         } finally {
             G.towers = previous.towers;
