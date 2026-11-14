@@ -1,6 +1,6 @@
 # Bloons 5.5
 
-**Current branch build:** `1.4.6` on `fix/fixed-timestep` (development branch, not a tagged release).
+**Current branch build:** `1.4.7` on `fix/fixed-timestep` (development branch, not a tagged release).
 
 Bloons 5.5 is a browser-based tower-defense project built with JavaScript, Vite and PixiJS. The repository also contains development tools used to create, inspect and prepare game content.
 
