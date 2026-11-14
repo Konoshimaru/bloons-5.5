@@ -510,9 +510,7 @@ export const menuController = {
         dom.btnSettings?.addEventListener('click', () => { GameEngine.lastMenu = 'main-menu-ui'; UI.toggleMenus('settings-menu'); });
         dom.btnMapEditor?.addEventListener('click', () => { MapEditor.init(); UI.toggleMenus('map-editor-menu'); });
         dom.btnContinue?.addEventListener('click', () => {
-            if (GameEngine.loadGame()) {
-                controllers.game.startGameUI(false);
-            }
+            controllers.game.startGameUI(false, { loadSavedRun: true });
         });
         dom.btnAbandon?.addEventListener('click', () => GameEngine.abandonRun());
         

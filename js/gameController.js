@@ -7,12 +7,13 @@ import { updateShopPrices } from './dragManager.js';
 import { menuController } from './menuController.js';
 import { LoadGate } from './loadGate.js';
 import { Maps } from './data.js';
+import { Config } from './config.js';
 import { FadeVeil } from './fadeVeil.js';
 
 import { controllers } from './controllers.js';
 
 export const gameController = {
-    async startGameUI(isSandbox) {
+    async startGameUI(isSandbox, { loadSavedRun = false } = {}) {
         // Ignore double-clicks while the pre-game loading screen is up.
         if (this._starting) return;
         this._starting = true;
@@ -36,11 +37,18 @@ export const gameController = {
             try {
                 // Gate: gameplay assets + this map's background. Instant when the
                 // background prefetch already finished; otherwise one loading screen.
+                const mapIndex = loadSavedRun
+                    ? Config.data.savedRun?.mapIndex
+                    : GameEngine.currentMap;
+                const mapData = Maps[mapIndex];
+                if (loadSavedRun && !mapData) {
+                    throw new Error('The saved run refers to a map that is no longer available.');
+                }
                 await LoadGate.ensureMany(
-                    [['game'], ['map', Maps[GameEngine.currentMap]]],
+                    [['game'], ['map', mapData]],
                     { label: 'Preparing the battlefield...', onScreen: liftVeil }
                 );
-                await this._startGameUI(isSandbox);
+                await this._startGameUI(isSandbox, { loadSavedRun });
             } finally {
                 liftVeil();
             }
@@ -49,7 +57,7 @@ export const gameController = {
         }
     },
 
-    async _startGameUI(isSandbox) {
+    async _startGameUI(isSandbox, { loadSavedRun = false } = {}) {
         menuController.showMainMenuUI(false);
         UI.toggleMenus(null);
         document.getElementById('sidebar').classList.remove('hidden');
@@ -75,7 +83,12 @@ export const gameController = {
         document.getElementById('enemy-view').classList.add('hidden');
         if (dom.sbViewToggle) dom.sbViewToggle.innerText = '🎈 Spawn Bloons';
         try {
-            GameEngine.startGame(isSandbox);
+            const started = loadSavedRun
+                ? GameEngine.loadGame()
+                : GameEngine.startGame(isSandbox);
+            if (!started) {
+                throw new Error(GameEngine.lastSaveLoadError || 'Unable to start the game.');
+            }
             updateShopPrices();
             await AudioEngine.init();
             AudioEngine.playGameMusic();
