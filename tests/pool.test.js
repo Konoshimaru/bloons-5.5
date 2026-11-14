@@ -1,0 +1,83 @@
+import { describe, expect, it, vi } from 'vitest';
+import { ObjectPool } from '../js/pool.js';
+
+describe('ObjectPool', () => {
+    it('tracks checked-out objects and removes them when released directly', () => {
+        let nextId = 0;
+        const reset = vi.fn((obj) => { obj.reset = true; });
+        const pool = new ObjectPool(() => ({ id: ++nextId }), reset, 0);
+
+        const obj = pool.get();
+        expect(pool.active).toEqual([obj]);
+        expect(pool.size).toBe(1);
+
+        pool.release(obj);
+
+        expect(pool.active).toHaveLength(0);
+        expect(pool.size).toBe(0);
+        expect(reset).toHaveBeenCalledExactlyOnceWith(obj);
+        expect(obj.reset).toBe(true);
+    });
+
+    it('reuses released instances without retaining them as active', () => {
+        const pool = new ObjectPool(() => ({}), undefined, 0);
+        const first = pool.get();
+
+        pool.release(first);
+        const reused = pool.get();
+
+        expect(reused).toBe(first);
+        expect(pool.active).toEqual([first]);
+        expect(pool.size).toBe(1);
+    });
+
+    it('ignores duplicate releases so an object cannot be checked out twice', () => {
+        let nextId = 0;
+        const pool = new ObjectPool(() => ({ id: ++nextId }), undefined, 0);
+        const first = pool.get();
+
+        pool.release(first);
+        pool.release(first);
+
+        const reused = pool.get();
+        const fresh = pool.get();
+
+        expect(reused).toBe(first);
+        expect(fresh).not.toBe(first);
+        expect(new Set(pool.active).size).toBe(pool.active.length);
+        expect(pool.size).toBe(2);
+    });
+
+    it('swap-removes released objects without disturbing the other active entries', () => {
+        const pool = new ObjectPool(() => ({}), undefined, 0);
+        const first = pool.get();
+        const middle = pool.get();
+        const last = pool.get();
+
+        pool.removeAt(1);
+
+        expect(pool.active).toEqual([first, last]);
+        expect(pool.size).toBe(2);
+        expect(pool.get()).toBe(middle);
+        expect(pool.active).toHaveLength(3);
+    });
+
+    it('clears and returns every active object to the free list', () => {
+        const pool = new ObjectPool(() => ({}), undefined, 0);
+        const first = pool.get();
+        const second = pool.get();
+
+        pool.clear();
+
+        expect(pool.active).toHaveLength(0);
+        expect(pool.size).toBe(0);
+        expect(new Set([pool.get(), pool.get()])).toEqual(new Set([first, second]));
+    });
+
+    it('rejects invalid release values', () => {
+        const pool = new ObjectPool(() => ({}), undefined, 0);
+
+        expect(() => pool.release(null)).toThrow(/only release objects/);
+        expect(() => pool.release(42)).toThrow(/only release objects/);
+    });
+});

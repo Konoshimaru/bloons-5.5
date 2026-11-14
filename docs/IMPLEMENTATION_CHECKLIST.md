@@ -106,6 +106,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Fix fortified Lead carry-over damage: child bloons now receive only damage beyond the Lead shell's remaining HP; add tests for non-lethal, exact-threshold, and overkill hits.
 - [x] Prevent zero or negative damage from popping split bloons; add production EnemyDamage regression tests so status-only/zero-damage hits cannot spawn children.
 - [x] Clamp negative damage before enemy-type handlers so a negative hit cannot heal MOAB HP; cover zero and negative damage on the real EnemyDamage implementation.
+- [x] Fix ObjectPool release semantics: direct release now removes an object from the active list, duplicate releases are ignored, and clear/removeAt reuse the same safe path; add production pool regression tests.
 - [ ] Review remaining temporary, audit-report, and patch-history comments throughout the codebase.
 - [ ] Remove unused imports only after linting confirms they are not side-effect imports.
 - [ ] Consolidate duplicate imports from the same module where appropriate.

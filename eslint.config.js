@@ -27,6 +27,7 @@ const coreFiles = [
     'js/map.js',
     'js/enemy.js',
     'js/enemyDamage.js',
+    'js/pool.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -52,7 +53,8 @@ const coreFiles = [
     'tests/loadGate.test.js',
     'tests/gameMapPathGeometry.test.js',
     'tests/v133audit.test.js',
-    'tests/damage.test.js'
+    'tests/damage.test.js',
+    'tests/pool.test.js'
 ];
 
 export default [
