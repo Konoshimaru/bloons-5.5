@@ -119,7 +119,11 @@ const ProjectileHitResolution = {
             if (e.data.isLead && !bombDmgType.canHitLead) continue;
             if (e.data.isMoab && !bombDmgType.canHitMoab) continue;
             
-            if (Utils.withinRange(this.x, this.y, e.x, e.y, expRadius)) {
+            // Explosion overlap uses the enemy's edge, not only its center.
+            // Large MOAB-class targets can be clipped by a blast even when
+            // their center is outside the nominal explosion radius.
+            const enemyRadius = e.radius || e.data.radius || 10;
+            if (Utils.withinRange(this.x, this.y, e.x, e.y, expRadius + enemyRadius)) {
                 // Effects (freeze/permafrost) apply BEFORE the damage block
                 // check, so Cold Sentry freezes Black/Zebra/DDT even though
                 // their explosion damage is blocked.
