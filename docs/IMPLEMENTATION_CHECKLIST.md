@@ -58,11 +58,11 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm run check:syntax`, `npm test`, and `npm run build` for pushes and pull requests.
 - [x] Add a dependency-free syntax scanner that parsed all 224 source/test/tool files successfully in CI.
-- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 55 test files and 514 tests passed; all 225 syntax-checked files passed; the fourteen-module core type-check passed; ESLint passed on 25 production modules and 23 test files; npm audit reported zero advisories; production build passed.
+- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 55 test files and 521 tests passed; all 225 syntax-checked files passed; the fourteen-module core type-check passed; ESLint passed on 27 production modules and 25 test files; npm audit reported zero advisories; production build passed.
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
-- [x] Expand the ESLint allowlist to 25 production modules and 23 associated regression-test files, now including the staged LoadGate and GameMap modules and their production regression tests, covering Cutscene runtime, map metadata, naming helpers, projectile configuration/resolution, and Map Editor composition, state, input, renderer, validation/I/O, and drawing modules; the CI lint step passes.
+- [x] Expand the ESLint allowlist to 27 production modules and 25 associated regression-test files, now including LoadGate, GameMap, Enemy, and EnemyDamage plus their production regression tests, covering Cutscene runtime, map metadata, naming helpers, projectile configuration/resolution, and Map Editor composition, state, input, renderer, validation/I/O, and drawing modules; the CI lint step passes.
 - [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
@@ -130,7 +130,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43610774150 is green on commit `e86c257449743e0d248a12d662771d774929dc91`: zero npm advisories, 225 syntax-checked files, fourteen type-checked modules, 25 ESLint production modules plus 23 test files, 55 Vitest files (514 tests), and production build.
+- [x] Confirm CI run 43611983008 is green on commit `e6d66f5ff0c73584413b0973f0c8fd1efb445041`: zero npm advisories, 225 syntax-checked files, fourteen type-checked modules, 27 ESLint production modules plus 25 test files, 55 Vitest files (521 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
