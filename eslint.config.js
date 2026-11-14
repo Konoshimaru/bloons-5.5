@@ -22,6 +22,7 @@ const coreFiles = [
     'js/mapMeta.js',
     'js/names.js',
     'js/projectileTypeConfig.js',
+    'js/projectilePoolLimits.js',
     'js/projectileHitResolution.js',
     'js/loadGate.js',
     'js/map.js',
@@ -61,6 +62,7 @@ const coreFiles = [
     'tests/damage.test.js',
     'tests/pool.test.js',
     'tests/simulationLoopPools.test.js',
+    'tests/sniperFirePerformance.test.js',
     'tests/moduleLoad.test.js'
 ];
 
