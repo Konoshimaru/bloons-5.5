@@ -39,7 +39,7 @@ describe('Config schema migration persistence', () => {
         expect(Config.data.savedRun).toEqual(savedRun);
         expect(Config.data.schemaVersion).toBe(17);
         expect(Config.data.towerXp).toEqual({});
-        expect(Config.data.paragonUnlocks).toEqual([]);
+        expect(Config.data.paragonUnlocks).toEqual({});
         expect(localStorage.getItem('td_config_v11')).toBeNull();
 
         const persisted = JSON.parse(localStorage.getItem('td_config'));
