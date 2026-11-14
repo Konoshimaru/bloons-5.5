@@ -29,6 +29,7 @@ The Vite server is configured for 127.0.0.1:5500 and opens the browser automatic
 | npm test | Run the Vitest automated suite. |
 | npm run check:syntax | Parse all source, test, and tool JavaScript files with Node.js. |
 | npm run typecheck:core | Type-check the initial set of isolated core helpers. |
+| npm run lint:core | Lint the initial set of core helpers and their regression tests. |
 | npm run audit:deps | Print a structured summary of npm dependency advisories. |
 | npm run build | Create the production build in dist/. |
 | npm run gen:manifest | Regenerate the sprite manifest. |
@@ -71,7 +72,7 @@ Check the Git diff carefully after saving editor output or generating assets. Th
 
 ## Testing
 
-Run npm test and npm run build before submitting changes. Gameplay changes also need browser testing; unit tests cannot prove the complete interaction of assets, input, rendering and timing.
+Run npm run check:syntax, npm run typecheck:core, npm run lint:core, npm test and npm run build before submitting changes. Gameplay changes also need browser testing; unit tests cannot prove the complete interaction of assets, input, rendering and timing.
 
 ## Contributing
 

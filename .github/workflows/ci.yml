@@ -27,6 +27,8 @@ jobs:
         run: npm run check:syntax
       - name: Type-check core JavaScript helpers
         run: npm run typecheck:core
+      - name: Lint core helpers and their tests
+        run: npm run lint:core
       - name: Run automated tests
         run: npm test
       - name: Build production site

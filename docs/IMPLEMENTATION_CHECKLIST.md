@@ -60,7 +60,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 43 test files and 448 tests passed; all 213 syntax-checked files passed; the core type-check passed; npm audit reported zero advisories; production build passed.
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [ ] Keep `tests.html` explicitly labelled as a manual/legacy browser harness; it is separate from Vitest.
-- [ ] Configure ESLint and fix verified lint findings.
+- [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
+- [ ] Expand ESLint coverage across the rest of `js/`, tests and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
 - [x] Run the initial type-check in CI successfully for the five selected pure modules.
@@ -113,7 +114,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm latest CI after the Vite security update is green: npm audit zero vulnerabilities, syntax check 212 files, core type-check, all 43 Vitest files (448 tests), and production build. (Run 43603764539.)
+- [x] Confirm latest CI after ESLint core checks were added is green: dependency audit, syntax scan, core type-check, ESLint core lint, 43 Vitest files (448 tests), and production build. (See the latest CI run for this branch.)
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
@@ -126,7 +127,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 1. Complete browser acceptance tests for the runtime fixes.
 2. Review and remove remaining temporary audit/instruction comments.
-3. Configure ESLint and broaden type-checking beyond the five pure helper modules.
+3. Expand ESLint and type-check coverage beyond the initial core helper modules.
 4. Continue reducing the `GameEngine` singleton/method-bag design in small steps.
 5. Run browser acceptance tests for gameplay, rendering failures, saves, and every development-tool entry point.
 6. Manually test the Windows batch scripts on Windows.

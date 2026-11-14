@@ -2,11 +2,15 @@
 
 ## Automated suite
 
-The automated suite uses Vitest. Run npm ci, then npm run check:syntax and npm test. Tests live in tests/*.test.js. The shared configuration is in vite.config.js; discovery excludes node_modules, scripts/ and js/backups/.
+The automated suite uses Vitest. Run npm ci, then npm run check:syntax, npm run typecheck:core, npm run lint:core and npm test. Tests live in tests/*.test.js. The shared configuration is in vite.config.js; discovery excludes node_modules, scripts/ and js/backups/.
 
 ## Syntax check
 
 The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and tools/, plus the root Vite config. It skips node_modules, dist, js/backups and scripts/ because those contain dependencies, generated output, historical backups or archived copies.
+
+## Incremental linting
+
+The initial ESLint flat config is intentionally limited to the fixed-step clock, collision geometry, saved-run validation, engine composition, tower factory, renderer failure policy and the tests that exercise those helpers. Run `npm run lint:core`. This is a starting scope; expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
 
 ## Dependency security audit
 
@@ -41,4 +45,4 @@ tests.html runs the older js/tests/tests.js harness. It is separate from npm tes
 - Cutscene document normalization, interpolation and playback.
 - Rendering asset keys and first-load behavior where practical.
 
-GitHub Actions runs npm ci, npm test and npm run build. Browser verification is still required for gameplay/UI changes.
+GitHub Actions runs npm ci, the dependency audit report, syntax scanning, the core type-check, `npm run lint:core`, npm test and npm run build. Browser verification is still required for gameplay/UI changes.

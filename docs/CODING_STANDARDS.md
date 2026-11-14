@@ -44,6 +44,10 @@ These are practical guidelines for the existing JavaScript codebase, not a manda
 
 Subsystem methods are attached to the shared engine through `attachModuleMethods()` in `js/engineComposition.js`. Declare module ownership there and do not reintroduce plain `Object.assign(GameEngine, module)` calls: duplicate property names must be detected before any mutation.
 
+## ESLint
+
+The initial flat config is in `eslint.config.js`. `npm run lint:core` checks the isolated core modules and their regression tests using the recommended ESLint rules. Add more files to the lint set only after resolving browser/Node globals and existing issues deliberately; do not blanket-disable rules to force the whole project through.
+
 ## JSDoc and types
 
 Add JSDoc types where they clarify public module boundaries. The current TypeScript check is intentionally limited to dependency-free helper modules; do not add broad `@ts-ignore` comments to make more files pass. Expand the checked set only after fixing the actual types and documenting external dependencies.

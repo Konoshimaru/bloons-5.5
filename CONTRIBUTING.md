@@ -34,7 +34,7 @@ For new towers, read docs/ADDING_TOWERS.md. For rendering, read docs/RENDERING.m
 
 ## 4. Tests and verification
 
-Run npm run check:syntax, npm run typecheck:core, npm test and npm run build. Run npm run audit:deps before proposing dependency updates. Add a Vitest regression test for bug fixes. Tests should exercise production functions whenever possible; avoid reimplementing the behavior only inside the test.
+Run npm run check:syntax, npm run typecheck:core, npm run lint:core, npm test and npm run build. Run npm run audit:deps before proposing dependency updates. Add a Vitest regression test for bug fixes. Tests should exercise production functions whenever possible; avoid reimplementing the behavior only inside the test.
 
 For gameplay changes, test in the browser too. Verify boundary conditions, high speed/low FPS where relevant, and nearby features that could regress.
 
