@@ -154,7 +154,11 @@ export default {
         // Most Snipers have no bounce upgrade. Avoid allocating a Set and
         // entering the bounce loop at all for those common direct-hit shots.
         if (bounces > 0) {
-            const hitSet = new Set([target]);
+            // Reuse one small per-tower Set instead of allocating one on every
+            // fast ricochet shot. Clear it after use so it does not retain bloons.
+            const hitSet = tower._sniperBounceHitSet || (tower._sniperBounceHitSet = new Set());
+            hitSet.clear();
+            hitSet.add(target);
             for (let i = 0; i < bounces; i++) {
                 const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40, _sniperBounceScratch);
                 let nextTarget = null;
@@ -192,6 +196,7 @@ export default {
                     this._fireShrapnel(tower, currentTarget, dmgType, engine);
                 }
             }
+            hitSet.clear();
         }
     },
     _fireShrapnel(tower, originTarget, dmgType, engine) {

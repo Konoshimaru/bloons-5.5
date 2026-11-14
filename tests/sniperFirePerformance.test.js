@@ -65,6 +65,40 @@ describe('Sniper firing workload safeguards', () => {
     });
 
 
+    it('reuses the bounce hit-set between fast shots and clears bloon references', async () => {
+        const sniper = (await import('../js/towers/sniper.js')).default;
+        const makeTarget = (x, y) => ({
+            x,
+            y,
+            alive: true,
+            data: { isMoab: false, isCeramic: false },
+            isCamo: false,
+            takeDamage: vi.fn(() => 2),
+        });
+        const first = makeTarget(200, 200);
+        const second = makeTarget(230, 205);
+        const tower = {
+            x: 100,
+            y: 100,
+            stats: { bounces: 1 },
+            upgrades: [0, 0, 0],
+            hitscans: [],
+            damageDealt: 0,
+        };
+        const engine = { enemyGrid: { query: vi.fn(() => [first, second]) } };
+
+        sniper.fire(tower, first, 2, { canHitLead: false }, false, {}, engine);
+        const hitSet = tower._sniperBounceHitSet;
+        expect(hitSet).toBeInstanceOf(Set);
+        expect(hitSet.size).toBe(0);
+
+        sniper.fire(tower, first, 2, { canHitLead: false }, false, {}, engine);
+        expect(tower._sniperBounceHitSet).toBe(hitSet);
+        expect(hitSet.size).toBe(0);
+        expect(first.takeDamage).toHaveBeenCalledTimes(2);
+        expect(second.takeDamage).toHaveBeenCalledTimes(2);
+    });
+
     it('keeps Shrapnel volleys on every successful ricochet', async () => {
         const sniper = (await import('../js/towers/sniper.js')).default;
         const makeTarget = (x, y) => ({
