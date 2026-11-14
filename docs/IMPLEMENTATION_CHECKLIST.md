@@ -61,7 +61,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
-- [x] Expand the initial ESLint allowlist to 10 production modules and 8 associated regression-test files, including damage types, status effects, spatial grid, and MapEditorHistory; the CI lint step passes.\n- [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
+- [x] Expand the initial ESLint allowlist to 10 production modules and 8 associated regression-test files, including damage types, status effects, spatial grid, and MapEditorHistory; the CI lint step passes.
+- [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
 - [x] Run the expanded type-check in CI successfully for seven selected core modules.
