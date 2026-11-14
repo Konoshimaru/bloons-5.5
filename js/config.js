@@ -78,7 +78,7 @@ const DEFAULT_DATA = {
     extremeSpeedEnabled: false,
     showTowerStats: false,
     uncapFps: false,
-    showHitboxes: false, // <-- ADD THIS
+    showHitboxes: false,
     knowledgePoints: 1,
     monkeyKnowledge: {},
     unlocks: {
