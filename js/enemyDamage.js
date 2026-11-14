@@ -102,6 +102,10 @@ const EnemyDamage = {
             this.isGoldified = true;
         }
         
+        // Damage values below zero must never heal a target, especially MOABs
+        // whose handler subtracts the raw amount from their HP.
+        damage = Math.max(0, damage);
+
         const canSpawn = GameEngine.enemies.length < 3500;
 
         let result;

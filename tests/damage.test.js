@@ -115,6 +115,28 @@ describe('Enemy Damage System', () => {
     });
   });
 
+  describe('Non-positive damage cannot heal MOABs', () => {
+    it('leaves MOAB HP unchanged for zero damage', () => {
+      const enemy = makeMockEnemy('moab', 200);
+
+      const dealt = enemy.takeDamage(0, {}, {});
+
+      expect(dealt).toBe(0);
+      expect(enemy.hp).toBe(200);
+      expect(enemy.alive).toBe(true);
+    });
+
+    it('clamps negative damage to zero instead of increasing MOAB HP', () => {
+      const enemy = makeMockEnemy('moab', 200);
+
+      const dealt = enemy.takeDamage(-25, {}, {});
+
+      expect(dealt).toBe(0);
+      expect(enemy.hp).toBe(200);
+      expect(enemy.alive).toBe(true);
+    });
+  });
+
   describe('Zero-damage split bloons', () => {
     it('does not pop a split bloon or spawn children when damage is zero', () => {
       const enemy = makeMockEnemy('black', 1);
