@@ -16,17 +16,9 @@ import { roundSpeedRamp, moabHpRamp, statusDurationFactor, cashMultForRound, tre
 const ENEMY_NAMES = [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
 const REGEN_INTERVAL = 2.0;
 
-// ---------------------------------------------------------------------------
-// REGEN chart (audit C-2 revival, v1.3.3). The old climb was _applyTier(tier+1)
-// against a numeric maxTier gate, which is wrong twice over: black(6)/white(7)
-// sit BELOW pink(5) in the pop hierarchy despite the higher tier number (so
-// black children could never regrow back to pink), and zebra must go straight
-// to rainbow (purple(10) is a side branch, not a regrow step - climbing
-// through it gave regen bloons a one-tick wrong sprite plus plasma immunity).
-// REGEN_NEXT is BTD6's canonical regrow chart; _REGEN_DEPTH orders side
-// branches (purple 8.5 between zebra/rainbow, DDT 11.5 between MOAB/BFB) so
-// the ceiling gate can never overshoot onto a branch above the wave's bloon.
-// ---------------------------------------------------------------------------
+// REGEN follows the canonical chart rather than numeric tier order: black
+// and white return to pink, zebra skips the purple side branch, and branch
+// depth prevents regrowth past the wave's original bloon.
 const _REGEN_DEPTH = [0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8.5, 9, 10, 11, 12, 13, 11.5, 14];
 const _REGEN_NEXT = { 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 11, 11: 12, 12: 13, 13: 14, 14: 15, 15: 17, 16: 17 };
 
@@ -58,15 +50,11 @@ export class Enemy {
         this.isCamo = isCamo;
         this.isRegen = isRegen;
         this.maxTier = maxTier;
-        // Audit C-2 (v1.3.3): the regen accumulator was never initialized
-        // anywhere - undefined + dt = NaN forever, so `NaN > REGEN_INTERVAL`
-        // was always false and NO regrow bloon ever regenerated. init() is
-        // the pool-reuse reset point, so this covers recycled objects too.
+// Reset the accumulator whenever a pooled enemy is initialized;
+// stale or non-finite state must not prevent regeneration.
         this.regenTimer = 0;
-        // Pooled-flag sweep (audit v1.3.3): Skywarden combo state lives on
-        // the enemy (_skyC_wind/storm/ice). A recycled pool object used to
-        // respawn still carrying the previous bloon's combo counters, giving
-        // the new bloon free combo stages (and the tower a stale watch ref).
+// Clear per-enemy Skywarden combo state so recycled objects cannot
+// inherit another bloon's counters or stale references.
         this._skyC_wind = null;
         this._skyC_storm = null;
         this._skyC_ice = null;
@@ -406,10 +394,9 @@ export class Enemy {
                 const childCamo = child.forceCamo !== undefined ? child.forceCamo : this.isCamo;
                 const childRegen = child.forceRegen !== undefined ? child.forceRegen : this.isRegen;
                 const c = GameEngine.enemyPool.get();
-                // Audit C-2 (v1.3.3): children inherit the parent's REGEN
-                // ceiling (the type the WAVE spawned), not their own tier -
-                // a regen ceramic's zebras must be able to climb back to
-                // ceramic. Non-regen bloons ignore maxTier entirely.
+// Inherit the wave's original REGEN ceiling so descendants can regrow
+// along their full lineage (e.g. ceramic -> zebras -> ceramic).
+// Non-REGEN bloons ignore maxTier.
                 c.init(child.tier, this.map, childCamo, childRegen, this.maxTier, this.isFortified, this.hpMod, this.pathIndex, this.isSuperCeramic);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
                 

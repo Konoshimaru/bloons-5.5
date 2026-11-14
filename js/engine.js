@@ -219,11 +219,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
             }
         } else {
             if (this.bgInterval) { clearInterval(this.bgInterval); this.bgInterval = null; }
-            // Audit C-5 (v1.3.3): reschedule whenever the tab comes back,
-            // whatever the run state. The loop itself is safe in the gameover
-            // state (it only skips sim+render), and refusing to reschedule
-            // here used to leave the page permanently dead after a run ended
-            // in a hidden tab (the only recovery was the uncap-FPS checkbox).
+// Resume the loop whenever the tab becomes visible, even after
+// game over; the loop safely skips simulation and rendering then.
             if (!this._rafId) {
                 this.lastTime = performance.now();
                 this._simulationAccumulator = 0;
@@ -272,11 +269,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         this.cash += rawAmount;
     },
 
-    // Direct cash PENALTY (boss Cursor Slash etc.). addCash() early-returns on
-    // non-positive amounts, so punishments routed through it were silently
-    // swallowed (audit C-4). Floors at 0 so cash can never go negative.
-    // Every deduction also flashes a red "-$N" over the cash display so the
-    // player SEES what the boss took (v1.3.2).
+// Direct penalties bypass addCash(), which ignores non-positive amounts.
+// Clamp the balance at zero and show the deduction to the player.
     removeCash(amount) {
         const amt = Math.floor(Math.max(0, amount));
         if (amt <= 0) return;
@@ -323,10 +317,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
             if (Config.data.unlocks.extraStartingCash) this.cash += 200;
         }
 
-        // Pooled-flag sweep (audit v1.3.3): these reset for BOTH modes - the
-        // singleton persists across games, and starting a sandbox run after a
-        // normal one used to inherit its mana shield (which then "refilled"
-        // every round, free tanking for sandbox experiments).
+// Reset run-scoped flags in every mode; this singleton persists across
+// sessions, so a new run must not inherit the previous shield.
         this.manaShield = 0;
         this.maxManaShield = 0;
         this.leakedThisRound = false;
@@ -345,22 +337,16 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         this.waveManager = new WaveManager();
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
         this.waveManager.currentWave = diff.startRound - 1;
-        // Pooled-flag sweep (audit v1.3.3): the engine is a singleton, so
-        // per-run caches must reset on EVERY start, both modes. A stale
-        // _postChimpsMoab from the previous run defeated the validity check
-        // (a dead pooled enemy reference kept the post-Chimps cutscene
-        // pointed at a recycled bloon).
+// Reset per-run references before the next session. Pooled enemies can
+// be recycled, so a previous run's MOAB reference is no longer safe.
         this._postChimpsMoab = null;
         this.tier5Bought = {};
         this.speedState = 0; this.timeScale = 1;
         this.freeDartMonkeyClaimed = false; 
         UI.updateWaveSpeedBtn(this.speedState);
         CutsceneManager.reset(); 
-        // Audit C-5 (v1.3.3): guarantee the render loop is running. If a
-        // previous run died in a hidden tab (gameover under the setInterval
-        // fallback), the visibility handler's old gameover guard left the
-        // page dead and a fresh run would boot into a game that never ticks.
-        // restartLoop() cancels any live rAF first, so no double-scheduling.
+// Restart the loop for every new session. restartLoop() cancels an
+// existing animation frame before scheduling, preventing duplicates.
         this.restartLoop();
         this.updateUI();
         return true;

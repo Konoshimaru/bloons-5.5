@@ -100,6 +100,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 ## 5. Source cleanup
 
 - [x] Replace owner/patch-specific benchmark and regression-guard comments in `js/uiWriteThrottle.js` with concise descriptions of its display-only throttling invariants.
+- [x] Replace version-history, owner-request, and audit-history comments with current behavior notes in the loading flow, transitions, GameEngine session lifecycle, cash penalties, and Enemy regeneration/pooling; preserve the useful invariants.
 - [ ] Review remaining temporary, audit-report, and patch-history comments throughout the codebase.
 - [ ] Remove unused imports only after linting confirms they are not side-effect imports.
 - [ ] Consolidate duplicate imports from the same module where appropriate.
