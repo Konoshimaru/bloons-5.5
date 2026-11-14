@@ -8,7 +8,10 @@
     "noEmit": true,
     "skipLibCheck": true,
     "strict": false,
-    "lib": ["ES2022", "DOM"]
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
   },
   "files": [
     "js/fixedStepClock.js",
@@ -20,6 +23,8 @@
     "js/mapRenderCore.js",
     "js/cutsceneRuntime.js",
     "js/mapMeta.js",
+    "js/names.js",
+    "js/projectileTypeConfig.js",
     "js/savedRunValidation.js",
     "js/engineComposition.js",
     "js/webgl/renderFailurePolicy.js"
