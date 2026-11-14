@@ -37,7 +37,7 @@ jobs:
 
       - name: Add pinned ESLint packages to the lockfile
         if: steps.guard.outputs.run_update == 'true'
-        run: npm install --save-dev --package-lock-only --ignore-scripts eslint@10.15.0 @eslint/js@10.15.0
+        run: npm install --save-dev --package-lock-only --ignore-scripts eslint@10.15.0 @eslint/js@10.0.1
 
       - name: Install refreshed lockfile
         if: steps.guard.outputs.run_update == 'true'
