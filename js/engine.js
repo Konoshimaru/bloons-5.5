@@ -511,12 +511,10 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
             if (this.sessionXpFlushTimer <= 0) { this.sessionXpFlushTimer = 0.5; this.flushSessionXp(); this.flushTowerXp(); }
         }
         if (this.difficulty && this.difficulty.isPostChimps && CutsceneManager.state === 'idle') {
-            // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"]
-            // Cached damaged-MOAB lookup — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
-            // Cache the first damaged MOAB instead of scanning every enemy
-            // every frame. Re-find only when the cached target dies, heals
-            // back to full, or hasn't been set — the same MOAB would win a
-            // fresh scan anyway (damage only accumulates, order is stable).
+            // Keep the first damaged MOAB cached to avoid scanning every
+            // enemy on each frame. Re-find it only when it dies, is no longer
+            // a MOAB, returns to full health, or no target has been cached.
+            // The regression test protects this behavior and its performance.
             let damagedMoab = this._postChimpsMoab;
             if (!damagedMoab || !damagedMoab.alive || !damagedMoab.data?.isMoab || damagedMoab.hp >= damagedMoab._maxHp) {
                 damagedMoab = this.enemies.find(e => e.alive && e.data.isMoab && e.hp < e._maxHp);
