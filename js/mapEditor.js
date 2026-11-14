@@ -6,6 +6,7 @@ import Renderer from './mapEditorRenderer.js';
 import Input from './mapEditorInput.js';
 import IO from './mapEditorIO.js';
 import History from './mapEditorHistory.js';
+import { attachModuleMethods } from './engineComposition.js';
 
 export const MapEditor = {
     canvas: null,
@@ -186,8 +187,9 @@ export const MapEditor = {
         if (deleted) MapEditorState.markDirty();
     },
 
-    ...Renderer,
-    ...Input,
-    ...IO,
-    ...History
 };
+
+attachModuleMethods(MapEditor, 'renderer', Renderer);
+attachModuleMethods(MapEditor, 'input', Input);
+attachModuleMethods(MapEditor, 'io', IO);
+attachModuleMethods(MapEditor, 'history', History);
