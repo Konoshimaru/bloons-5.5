@@ -26,10 +26,9 @@ import EngineInput from './engineInput.js';
 import GameSession from './gameSession.js';
 import SimulationLoop from './simulationLoop.js';
 import { Beast } from './beastEntity.js';
-import { Profiler } from './profiler.js'; 
+import { Profiler } from './profiler.js';
+import { advanceFixedStepClock } from './fixedStepClock.js'; 
 
-const MAX_SUBSTEPS = 10;
-const FIXED_TIMESTEP = 0.016;
 const FPS_UPDATE_INTERVAL = 1000;
 const HANG_THRESHOLD_MS = 500; 
 
@@ -44,6 +43,7 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
     canvas: null,
     ctx: null,
     lastTime: 0,
+    _simulationAccumulator: 0,
     bgInterval: null,
     ui: UI,
     _rafId: null,
@@ -193,6 +193,7 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
             // in a hidden tab (the only recovery was the uncap-FPS checkbox).
             if (!this._rafId) {
                 this.lastTime = performance.now();
+                this._simulationAccumulator = 0;
                 this._rafId = requestAnimationFrame(this._boundLoop);
             }
         }
@@ -377,7 +378,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         if (this._rafId) cancelAnimationFrame(this._rafId);
         if (this.bgInterval) clearInterval(this.bgInterval);
         this._rafId = null; this.bgInterval = null;
-        this.lastTime = performance.now(); 
+        this.lastTime = performance.now();
+        this._simulationAccumulator = 0;
         this._rafId = requestAnimationFrame(this._boundLoop);
     },
 
@@ -392,13 +394,16 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
                 if (this.fpsEl) this.fpsEl.innerText = `${this.fps} FPS`;
             }
             if (this.gameState === 'playing') {
-                const targetDt = Math.min(rawDt, 0.1) * this.timeScale;
-                const steps = Math.max(1, Math.min(Math.ceil(targetDt / FIXED_TIMESTEP), MAX_SUBSTEPS));
-                const stepDt = targetDt / steps;
+                const clock = advanceFixedStepClock({
+                    elapsedSeconds: rawDt,
+                    timeScale: this.timeScale,
+                    accumulatorSeconds: this._simulationAccumulator
+                });
+                this._simulationAccumulator = clock.accumulatorSeconds;
                 const updateStartTime = performance.now();
                 try {
-                    for (let i = 0; i < steps; i++) {
-                        this.update(stepDt);
+                    for (let i = 0; i < clock.steps; i++) {
+                        this.update(clock.stepDt);
                         if (performance.now() - updateStartTime > HANG_THRESHOLD_MS) { throw new Error("Game Freeze: Infinite loop detected."); }
                     }
                 } catch (err) {
@@ -415,11 +420,14 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
                 UI.updateAbilityBar(this); this.updateUI();
                 if (!this._frameMs) this._frameMs = {};
                 this._frameMs.sim = performance.now() - updateStartTime;
-                this._frameMs.steps = steps;
+                this._frameMs.steps = clock.steps;
                 // Clamp like targetDt so a hidden/backgrounded tab (huge rawDt)
                 // can't poison the profiler's total/fps percentiles with one
                 // bogus multi-second sample.
-                this._frameMs.total = Math.min(rawDt, 0.1) * 1000;
+                this._frameMs.total = clock.frameDeltaSeconds * 1000;
+            } else {
+                // Do not carry simulation time through menus, pauses, or game over.
+                this._simulationAccumulator = 0;
             }
             if (CutsceneManager.state !== 'idle' && this.gameState !== 'playing' && this.gameState !== 'paused' && this.gameState !== 'levelup') {
                 CutsceneManager.reset();
