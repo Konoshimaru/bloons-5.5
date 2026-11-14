@@ -1,5 +1,6 @@
 // js/webgl/pixiRenderer.js
 import { Texture } from 'pixi.js';
+import { canAttemptDraw, recordDrawFailure, isCriticalDrawMethod } from './renderFailurePolicy.js';
 import { PixiApp } from './pixiApp.js';
 import { PixiAssets } from './pixiAssets.js';
 import { TowersRenderer } from './renderTowers.js';
@@ -39,7 +40,8 @@ export const PixiRenderer = {
     _hitboxGraphics: null,
     _devOverlayText: null,
     _devOverlayBg: null,
-    _erroredMethods: new Set(),
+    _drawMethodStates: new Map(),
+    _renderFrame: 0,
 
     async init(canvasEl) {
         await PixiApp.init(canvasEl);
@@ -228,6 +230,7 @@ export const PixiRenderer = {
 
     // FIX: Added rawDt to pass to the dev overlay for FPS calculation
     render(engine, rawDt) {
+        this._renderFrame++;
         if (engine.canvas) {
             engine.canvas.style.cursor = (engine.gameState === 'playing') ? 'none' : 'auto';
         }
@@ -257,6 +260,7 @@ export const PixiRenderer = {
             // particles) keeps rendering behind the DOM menu every frame.
             PixiApp.worldContainer.visible = false;
             PixiApp.pannedContainer.x = 0;
+            this._applyDisabledDrawLayers();
             this._safeDraw('_drawMainMenuScenery', engine, rawDt);
             this._safeDraw('_drawDevOverlay', engine, rawDt);
             // Cursor/boss-bar/warning-line are meaningless outside a game
@@ -273,6 +277,7 @@ export const PixiRenderer = {
         PixiApp.compositeLayer.visible = true;
         PixiApp.cutsceneLayer.visible = true;
         PixiApp.worldContainer.visible = true;
+        this._applyDisabledDrawLayers();
 
         this._safeDraw('_drawBackground', engine);
         this._safeDraw('_drawAcidPools', engine);
@@ -312,15 +317,69 @@ export const PixiRenderer = {
         this._safeDraw('_compositeWorld', engine);
     },
 
-    // FIX: Updated _safeDraw to accept and spread extra arguments
+    // Isolate optional drawing failures with a bounded retry policy. Core
+    // world passes fail the renderer immediately because hiding one of them
+    // would make the active game misleading or unplayable.
     _safeDraw(methodName, ...args) {
+        const state = this._drawMethodStates.get(methodName);
+        if (!canAttemptDraw(state, this._renderFrame)) return false;
+
         try {
             this[methodName](...args);
+            if (state) this._drawMethodStates.delete(methodName);
+            return true;
         } catch (err) {
-            if (!this._erroredMethods.has(methodName)) {
-                this._erroredMethods.add(methodName);
-                console.error(`[PixiRenderer] ${methodName} threw (further errors from this method this session are suppressed, but it will keep being retried every frame):`, err);
+            if (isCriticalDrawMethod(methodName)) {
+                const fatal = new Error(`Critical Pixi draw pass ${methodName} failed.`);
+                fatal.cause = err;
+                throw fatal;
             }
+
+            const nextState = recordDrawFailure(state, this._renderFrame);
+            this._drawMethodStates.set(methodName, nextState);
+
+            if (nextState.disabled) {
+                this._hideDisabledDrawLayer(methodName);
+                console.error(
+                    `[PixiRenderer] Disabled optional draw pass ${methodName} after ${nextState.failures} failures. Its visual layer will remain unavailable for this renderer session.`,
+                    err
+                );
+            } else {
+                console.warn(
+                    `[PixiRenderer] Optional draw pass ${methodName} failed (attempt ${nextState.failures}/3); retrying after ${nextState.retryAtFrame - this._renderFrame} frames.`,
+                    err
+                );
+            }
+            return false;
+        }
+    },
+
+    _hideDisabledDrawLayer(methodName) {
+        const layerNames = {
+            _drawAcidPools: ['acidPools'],
+            _drawExplosions: ['explosions'],
+            _drawSelectedRange: ['selectionFill'],
+            _drawCutsceneBalls: ['cutsceneBalls']
+        };
+        for (const name of layerNames[methodName] || []) {
+            const layer = PixiApp.layer(name);
+            if (layer) layer.visible = false;
+        }
+
+        if (methodName === '_drawMainMenuScenery' && PixiApp.menuLayer) {
+            PixiApp.menuLayer.visible = false;
+        }
+        if (methodName === '_drawCutscene' && PixiApp.cutsceneLayer) {
+            PixiApp.cutsceneLayer.visible = false;
+        }
+        if (methodName === '_drawFloatingTexts' && this._floatingTextsLayer) {
+            this._floatingTextsLayer.visible = false;
+        }
+    },
+
+    _applyDisabledDrawLayers() {
+        for (const [methodName, state] of this._drawMethodStates) {
+            if (state.disabled) this._hideDisabledDrawLayer(methodName);
         }
     },
 
