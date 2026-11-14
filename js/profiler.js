@@ -156,9 +156,9 @@ export const Profiler = {
         // had to chew on) — often the true culprit behind slow frames.
         const peaks = {};
         for (const k of ['towers', 'enemies', 'projectiles', 'particles', 'explosions', 'texts']) {
-            let max = 0, at = null;
+            let max = 0;
             for (const s of samples) {
-                if (s[k] > max) { max = s[k]; at = s; }
+                if (s[k] > max) max = s[k];
             }
             peaks[k] = max;
         }
@@ -284,7 +284,7 @@ export const Profiler = {
     // Human-readable summary (for the dev overlay / quick glance). Reads the
     // newest sample directly from the ring/session instead of materializing
     // the whole window (this runs every frame while the overlay is on).
-    liveSummary(engine) {
+    liveSummary() {
         let count, last;
         if (this.session.length) {
             count = this.session.length;
@@ -425,7 +425,7 @@ export const Profiler = {
             document.execCommand('copy');
             document.body.removeChild(ta);
             console.log('[profiler] copied to clipboard (fallback)');
-        } catch (e) {
+        } catch {
             console.log('[profiler] clipboard unavailable');
         }
     },

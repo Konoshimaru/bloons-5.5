@@ -101,6 +101,9 @@ export default [
             sourceType: 'module',
             globals: {
                 beforeAll: 'readonly',
+                navigator: 'readonly',
+                URL: 'readonly',
+                Blob: 'readonly',
                 cancelAnimationFrame: 'readonly',
                 confirm: 'readonly',
                 beforeEach: 'readonly',
