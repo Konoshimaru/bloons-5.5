@@ -46,18 +46,18 @@ describe('validateSavedRun', () => {
     });
 
     it('rejects invalid map indices and unknown difficulties', () => {
-        expect(validate(makeSave({ mapIndex: 3 })).toMatchObject({ valid: false }));
-        expect(validate(makeSave({ difficultyKey: 'impossible' })).toMatchObject({ valid: false }));
+        expect(validate(makeSave({ mapIndex: 3 }))).toMatchObject({ valid: false });
+        expect(validate(makeSave({ difficultyKey: 'impossible' }))).toMatchObject({ valid: false });
     });
 
     it('rejects invalid economy and round values', () => {
-        expect(validate(makeSave({ lives: Number.NaN })).toMatchObject({ valid: false }));
-        expect(validate(makeSave({ cash: -1 })).toMatchObject({ valid: false }));
-        expect(validate(makeSave({ wave: 1.5 })).toMatchObject({ valid: false }));
+        expect(validate(makeSave({ lives: Number.NaN }))).toMatchObject({ valid: false });
+        expect(validate(makeSave({ cash: -1 }))).toMatchObject({ valid: false });
+        expect(validate(makeSave({ wave: 1.5 }))).toMatchObject({ valid: false });
     });
 
     it('rejects malformed tower lists and unknown tower types', () => {
-        expect(validate(makeSave({ towers: null })).toMatchObject({ valid: false }));
+        expect(validate(makeSave({ towers: null }))).toMatchObject({ valid: false });
         expect(validate(makeSave({ towers: [{ ...makeSave().towers[0], type: 'unknown' }] })))
             .toMatchObject({ valid: false });
     });
@@ -74,8 +74,8 @@ describe('validateSavedRun', () => {
 
     it('rejects multiple heroes and out-of-range hero levels', () => {
         const hero = { x: 10, y: 10, type: 'quincy', upgrades: [0, 0, 0], heroLevel: 10 };
-        expect(validate(makeSave({ towers: [hero, { ...hero }] })).toMatchObject({ valid: false }));
-        expect(validate(makeSave({ towers: [{ ...hero, heroLevel: 21 }] })).toMatchObject({ valid: false }));
+        expect(validate(makeSave({ towers: [hero, { ...hero }] }))).toMatchObject({ valid: false });
+        expect(validate(makeSave({ towers: [{ ...hero, heroLevel: 21 }] }))).toMatchObject({ valid: false });
     });
 
     it('validates paragon type, degree and investment', () => {
