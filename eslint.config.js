@@ -37,6 +37,8 @@ const coreFiles = [
     'js/webgl/renderFailurePolicy.js',
     'js/webgl/pixiRenderer.js',
     'js/webgl/renderProjectiles.js',
+    'js/webgl/renderEnemies.js',
+    'js/webgl/renderWorld.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
     'tests/savedRunValidation.test.js',
