@@ -45,8 +45,9 @@ tests.html is a separate legacy/manual browser harness. Its result is not the re
 - Create a branch for one coherent task.
 - Use descriptive commits, e.g. Fix projectile swept collision.
 - Avoid committing generated backups, local reports, unrelated editor output or personal configuration.
-- Review git status and git diff before committing.
-- Avoid broad staging commands without checking what they include.
+- Review git status, git diff, and git diff --cached before committing.
+- Stage only intended files manually; do not use broad staging commands without reviewing their contents.
+- On Windows, update.bat pushes the current branch and update teste.bat only accepts test-version. Both scripts refuse to commit when there are no staged changes.
 - Open a pull request with a summary, test results and screenshots/logs for UI changes.
 
 ## 6. Code conventions

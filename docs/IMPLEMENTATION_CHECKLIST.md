@@ -48,7 +48,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Update the Paragon save/load test to model successful engine initialization.
 - [x] Add tests for the Pixi optional-draw retry policy and critical-method classification.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm test`, and `npm run build` for pushes and pull requests.
-- [ ] Re-run and confirm the full CI result after the latest renderer failure-policy change.
+- [x] Re-run and confirm CI after the renderer failure-policy change: 37 test files and 419 tests passed; production build passed.
 - [ ] Convert hand-written checks in `js/tests/tests.js` into tests of real production functions where applicable.
 - [ ] Keep `tests.html` explicitly labelled as a manual/legacy browser harness; it is separate from Vitest.
 - [ ] Configure ESLint and fix verified lint findings.
@@ -85,10 +85,10 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 6. Windows scripts and Git workflow
 
-- [ ] Update `jogar.bat` so it does not run `npm ci` on every launch.
-- [ ] Review `update.bat` and `update teste.bat`.
-- [ ] Replace indiscriminate `git add .` with safer staging and a review of changed files.
-- [ ] Check the current branch and Git command exit status before pushing.
+- [x] Update `jogar.bat` to install dependencies only when Vite is missing.
+- [x] Review `update.bat` and `update teste.bat`.
+- [x] Remove automatic staging; both update scripts require manually staged files and show a staged diff summary.
+- [x] Check the current branch, remote, and Git command exit status before pushing.
 - [ ] Keep commits small and use descriptive commit messages.
 
 ## 7. Package and distribution
@@ -101,7 +101,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [ ] Confirm latest CI is green: dependency install, all Vitest tests, and production build.
+- [x] Confirm latest CI after renderer policy and documentation updates is green: dependency install, all Vitest tests, and production build.
+- [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
 - [ ] Verify the game, Cutscene Editor, Map Editor, Sprite Editor, Bloon Editor, and browser test page still work.
 - [ ] Confirm no development tool was removed or accidentally excluded from the build.

@@ -15,7 +15,7 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Stale tower interface documentation: js/towers/TOWER_INTERFACE.md now describes registry-based behavior lookup rather than prototype mixins.
 - [x] Contributor documentation and CI checks have been added on this branch.
 
-GitHub Actions run 43599420290 completed successfully before the optional draw-failure policy was added: 36 Vitest files (412 tests) passed and the Vite production build completed. The newer draw-failure policy has its own unit tests; its current CI run must be checked before merging. Browser gameplay checks are still required.
+GitHub Actions run 43600678763 completed successfully: all 37 Vitest files (419 tests) passed and the Vite production build completed. Browser gameplay checks and Windows batch-script checks are still required before merging.
 
 ## Active technical debt
 
@@ -25,7 +25,6 @@ GitHub Actions run 43599420290 completed successfully before the optional draw-f
 - [ ] Legacy browser test harness: tests.html runs js/tests/tests.js, which includes hand-written simulations. Label it as a manual/legacy smoke harness and prefer Vitest tests that exercise production functions.
 - [ ] Automated checks: GitHub Actions runs npm ci, npm test and npm run build, but linting and static type checking are not configured yet.
 - [ ] Package licensing: package.json declares ISC, but there is no root LICENSE file. Confirm the intended source-code license and separately review game art, audio, fonts and other asset rights before adding a blanket license file.
-- [ ] Windows helper scripts: jogar.bat runs npm ci on every launch; update scripts stage all files and push to hard-coded branches. Improve them with checks and safer staging.
 - [ ] Import/style cleanup: run a configured linter before removing suspected unused imports; some imports may be intentionally loaded for side effects.
 
 ## Follow-up verification

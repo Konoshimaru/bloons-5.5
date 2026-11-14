@@ -31,7 +31,7 @@ The Vite server is configured for 127.0.0.1:5500 and opens the browser automatic
 | npm run gen:manifest | Regenerate the sprite manifest. |
 | npm run gen:thumbs | Regenerate map thumbnails. |
 
-Run npm ci after cloning or changing dependencies, not every time the server starts.
+Run npm ci after cloning or changing dependencies, not every time the server starts. On Windows, jogar.bat checks for the Vite installation and skips npm ci when it is already present.
 
 ## Project map
 
@@ -64,7 +64,7 @@ Vite builds five HTML entry points: the game, Cutscene Editor, Sprite Editor, Bl
 - **Bloon Editor:** /blooneditor.html. Edits bloon sprite/configuration data through the development server.
 - **Browser test harness:** /tests.html runs older manual checks. Use npm test for Vitest.
 
-Check the Git diff carefully after saving editor output or generating assets.
+Check the Git diff carefully after saving editor output or generating assets. The Windows update.bat helper pushes the current branch; update teste.bat is restricted to test-version. Both require you to stage and review files manually before committing.
 
 ## Testing
 
