@@ -84,6 +84,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Expand production GameMap tests for placement-width checks, nearest/ranged path samples, prop hitboxes, water brushes, and frozen-water coverage; protect inclusive range edges from floating-point interpolation noise.
 - [x] Add LoadGate production regression tests for registration validation, unknown groups, concurrent prefetch deduplication, loader-failure retry behavior, malformed progress values, and loading-screen reentrancy when the DOM element is absent.
 - [x] Add a save-migration regression test proving the legacy `td_config_v11` backup remains available when writing the migrated `td_config` fails.
+- [x] Prevent repeated `Config.load()` calls from duplicating custom maps; replace the runtime custom-map suffix from the current saved config and cover reload/replacement behavior with Vitest.
 - [ ] Expand tests for renderer error paths where practical.
 
 ## 4. Documentation and contributor onboarding

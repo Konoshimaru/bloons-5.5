@@ -74,6 +74,37 @@ describe('Config schema migration persistence', () => {
         expect(persisted.paragonUnlocks).toEqual({});
     });
 
+
+    it('replaces loaded custom maps on repeated loads instead of duplicating them', () => {
+        const firstMap = {
+            name: 'Custom Meadow',
+            paths: [{ waypoints: [{ x: 0, y: 10 }, { x: 20, y: 10 }] }],
+            props: [],
+            waterBrushes: [],
+        };
+        localStorage.setItem('td_config', JSON.stringify({
+            schemaVersion: 17,
+            customMaps: [firstMap],
+        }));
+
+        const builtInMapCount = Maps.length;
+        Config.load();
+        expect(Maps).toHaveLength(builtInMapCount + 1);
+        expect(Maps.at(-1)).toEqual(firstMap);
+
+        Config.load();
+        expect(Maps).toHaveLength(builtInMapCount + 1);
+        expect(Maps.at(-1)).toEqual(firstMap);
+
+        const replacementMap = { ...firstMap, name: 'Custom Park' };
+        Config.data.customMaps = [replacementMap];
+        Config.save();
+        Config.load();
+
+        expect(Maps).toHaveLength(builtInMapCount + 1);
+        expect(Maps.at(-1)).toEqual(replacementMap);
+    });
+
     it('keeps the legacy save when persisting a migrated config fails', () => {
         localStorage.setItem('td_config_v11', JSON.stringify({
             schemaVersion: 11,

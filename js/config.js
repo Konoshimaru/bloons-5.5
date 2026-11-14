@@ -5,6 +5,11 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 export { CANVAS_WIDTH, CANVAS_HEIGHT };
 export const RANGE_SCALE = 3.0;
 
+// Maps is the built-in map list followed by custom maps loaded from config.
+// Keep this boundary so repeated Config.load() calls replace, rather than append,
+// the custom-map suffix.
+const BUILT_IN_MAP_COUNT = Maps.length;
+
 const STORAGE_KEY = 'td_config';
 const CURRENT_SCHEMA_VERSION = 17;
 
@@ -138,9 +143,11 @@ export const Config = {
             if (this.data.unlocks.extraStartingLives === undefined) this.data.unlocks.extraStartingLives = false;
             if (this.data.unlocks.freeFirstDartMonkey === undefined) this.data.unlocks.freeFirstDartMonkey = false;
             
-            if (this.data.customMaps.length > 0) {
-                Maps.push(...this.data.customMaps);
-            }
+            Maps.splice(
+                BUILT_IN_MAP_COUNT,
+                Maps.length - BUILT_IN_MAP_COUNT,
+                ...this.data.customMaps
+            );
             
             if (saved && (savedVersion < CURRENT_SCHEMA_VERSION || usingLegacyFallback)) {
                 this.save();
