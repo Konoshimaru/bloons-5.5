@@ -54,7 +54,7 @@ describe('SimulationLoop pool integration', () => {
         const pool = createPool({ field: 'alive', initialValue: true, stopValue: true });
         const parent = pool.get();
         let child;
-        parent.update.mockImplementation(() => {
+        parent.update.mockImplementationOnce(() => {
             child = pool.get();
         });
 
