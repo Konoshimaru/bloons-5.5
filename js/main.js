@@ -126,6 +126,10 @@ function showRendererFailure(error) {
     if (reloadButton) reloadButton.onclick = () => window.location.reload();
 }
 
+window.addEventListener('game-renderer-failure', (e) => {
+    showRendererFailure(e.detail);
+});
+
 window.addEventListener('error', (e) => {
     const errMsg = document.getElementById('error-message');
     if (errMsg) {

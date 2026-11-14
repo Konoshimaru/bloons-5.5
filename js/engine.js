@@ -164,16 +164,7 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
                     resolve(PixiRenderer);
                 });
             }).catch(err => {
-                this.rendererInitStatus = 'failed';
-                this.rendererError = err;
-                console.error('[renderer] Failed to init PixiJS renderer:', err);
-
-                // A game without its only renderer cannot be played. Stop the
-                // idle loop instead of scheduling frames that cannot be drawn.
-                if (this._rafId) cancelAnimationFrame(this._rafId);
-                this._rafId = null;
-                if (this.bgInterval) clearInterval(this.bgInterval);
-                this.bgInterval = null;
+                this._handleRendererFailure(err);
                 resolve(null);
             });
         });
@@ -188,6 +179,33 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         
         this._boundLoop = this.loop.bind(this);
         this.restartLoop(); 
+    },
+
+    _handleRendererFailure(error) {
+        if (this.rendererInitStatus === 'failed') return;
+
+        this.rendererInitStatus = 'failed';
+        this.rendererError = error;
+        this.lastStartError = 'The PixiJS renderer failed. Reload the page to try again.';
+
+        // Preserve a Continue save before stopping an active session.
+        if (this.gameState === 'playing' || this.gameState === 'paused') {
+            try { this.saveGame(); }
+            catch (saveError) { console.error('[renderer] Could not preserve the current run:', saveError); }
+        }
+
+        this.gameState = 'gameover';
+        this._simulationAccumulator = 0;
+        if (this._rafId) cancelAnimationFrame(this._rafId);
+        this._rafId = null;
+        if (this.bgInterval) clearInterval(this.bgInterval);
+        this.bgInterval = null;
+
+        console.error('[renderer] PixiJS renderer failure:', error);
+        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' &&
+            typeof CustomEvent === 'function') {
+            window.dispatchEvent(new CustomEvent('game-renderer-failure', { detail: error }));
+        }
     },
 
     _handleVisibilityChange() {
@@ -463,7 +481,7 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
             if (this._pixiRenderer) {
                 // FIX: Pass rawDt so the Dev Overlay can calculate FPS
                 try { this._pixiRenderer.render(this, rawDt); }
-                catch (err) { console.error('[webgl debug] PIXI RENDER ERROR:', err); }
+                catch (err) { this._handleRendererFailure(err); }
             }
             // else: Pixi still loading, skip this frame's draw silently.
                 if (!this._frameMs) this._frameMs = {};
