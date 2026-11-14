@@ -66,7 +66,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
-- [x] Expand the ESLint allowlist to 44 selected production modules and 32 associated regression-test files across core runtime, renderer, Map Editor, Cutscene, and supporting helpers; the CI lint step passes.
+- [x] Expand the ESLint allowlist to 46 selected production modules and 34 associated regression-test files across core runtime, renderer, Map Editor, Cutscene, and supporting helpers; the CI lint step passes.
 - [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
@@ -144,7 +144,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43642591076 is green on commit `e8ce20e08f2d8aa3dba35b37c4c3e8c53aafa3a7`: zero npm advisories, 234 syntax-checked files, fourteen type-checked modules, 44 ESLint production modules plus 32 test files, 61 Vitest files (568 tests), and production build.
+- [x] Confirm CI run 43642591076 is green on commit `e8ce20e08f2d8aa3dba35b37c4c3e8c53aafa3a7`: zero npm advisories, 234 syntax-checked files, fourteen type-checked modules, 46 ESLint production modules plus 34 test files, 61 Vitest files (568 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.

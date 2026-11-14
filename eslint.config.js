@@ -34,6 +34,8 @@ const coreFiles = [
     'js/pool.js',
     'js/projectile.js',
     'js/simulationLoop.js',
+    'js/engineInput.js',
+    'js/gameSession.js',
     'js/tower.js',
     'js/ui.js',
     'js/bosses/knight.js',
@@ -76,6 +78,8 @@ const coreFiles = [
     'tests/sniperFirePerformance.test.js',
     'tests/hitscanPool.test.js',
     'tests/simulationBudget.test.js',
+    'tests/paragonFlow.test.js',
+    'tests/bugfixes.test.js',
     'tests/moduleLoad.test.js'
 ];
 

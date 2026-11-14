@@ -10,7 +10,7 @@ The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and 
 
 ## Incremental linting
 
-The ESLint flat config currently checks 44 selected production modules and 32 regression-test files across core runtime helpers, renderer modules, Map Editor modules, Cutscene runtime, map metadata, and supporting code. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
+The ESLint flat config currently checks 46 selected production modules and 34 regression-test files across core runtime helpers, renderer modules, Map Editor modules, Cutscene runtime, map metadata, and supporting code. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
 
 ## Dependency security audit
 
