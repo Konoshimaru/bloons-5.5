@@ -223,8 +223,8 @@ export const Profiler = {
         const captureHeap = captureHeapValues.length ? {
             startMB: captureHeapValues[0],
             endMB: captureHeapValues[captureHeapValues.length - 1],
-            minMB: Math.min(...captureHeapValues),
-            maxMB: Math.max(...captureHeapValues),
+            minMB: captureHeapValues.reduce((min, value) => Math.min(min, value), Infinity),
+            maxMB: captureHeapValues.reduce((max, value) => Math.max(max, value), -Infinity),
         } : null;
         const memory = mem ? { ...mem, captureHeap } : (captureHeap ? { captureHeap } : null);
 
