@@ -110,7 +110,7 @@ describe('GitHub sniper-fix lineage: 7056779 "performance fix 2" (sniper rework)
 
     it('skips bounce-set allocation for normal Snipers and reuses the set for ricochets', () => {
         const src = read('js/towers/sniper.js');
-        expect(src).toMatch(/if \(bounces > 0\) \{\s+const hitSet = tower\._sniperBounceHitSet \|\| \(tower\._sniperBounceHitSet = new Set\(\)\);/);
+        expect(src).toMatch(/if \(bounces > 0\) \{[\s\S]*?const hitSet = tower\._sniperBounceHitSet \|\| \(tower\._sniperBounceHitSet = new Set\(\)\);/);
         expect(src).toMatch(/hitSet\.clear\(\);\s+hitSet\.add\(target\);/);
         expect(src).toMatch(/hitSet\.clear\(\);\s+\}\s+\},\s+_fireShrapnel/);
     });
