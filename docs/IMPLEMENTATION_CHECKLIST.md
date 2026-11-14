@@ -29,7 +29,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [ ] Verify projectile collision behavior for every special projectile type, including pierce, ricochet, split, explosive, and returning projectiles.
 - [ ] Manually test valid, invalid, old-format, and custom-map saves through the actual Continue UI.
 - [ ] Test WebGL unavailable/startup failure and simulated render failure in a browser, not only through unit tests.
-- [ ] The 2026-11-14 22:01:41Z capture still shows severe Sniper-related simulation spikes (max 556.4ms; `sniper.targeting` max 553.5ms). Version 1.4.7 adds a target fallback shortlist and finer acquisition timings; keep this open until a new browser capture confirms the improvement.
+- [ ] The 2026-11-14 22:13:18Z capture still shows severe Sniper-related simulation spikes (max 420.2ms; `sniper.targeting` max 414.2ms), but its measured candidate-scan max is only 0.3ms. Version 1.4.8 adds finer timings around previously unmeasured targeting stages, per-frame heap samples where supported, and removes per-tick target-rule string allocation. Keep this open until another browser capture localizes and verifies the fix.
 - [x] Add initial automated safeguards for high-load tower/effect updates and regression tests. Passing unit tests do not establish that the owner-reported FPS issue is resolved.
 - [x] Combine transient tower-buff resets and tower-grid insertion into one simulation traversal; cover the production SimulationLoop pass with a regression test.
 
@@ -86,6 +86,9 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add capture-only simulation-phase and Sniper substage timings/counts to the profiler; include per-tower loadouts and selected-tower metadata in exported diagnostics.
 - [x] Keep the three next ranked global-range targets in the shared Sniper acquisition cache; use a surviving candidate after a target pop, and test the fallback with two Snipers.
 - [x] Split Sniper acquisition timings into cached-target validation, shared-cache lookup, and full target scanning; count candidate visits and fallback-cache outcomes.
+- [x] Instrument the remaining Sniper acquisition gaps (rule setup, cooldown gate, whole find call, cache commit, scan setup, ranking, and cache storage); collect per-frame JavaScript heap samples when supported.
+- [x] Replace the per-tick targeting-rule string with primitive cache fields and test immediate invalidation when the targeting mode changes.
+- [ ] Use the 1.4.8 profiler output to determine whether the remaining pauses align with heap drops/GC or a specific unmeasured Sniper acquisition stage.
 - [ ] Repeat the same in-browser Sniper scenario on v1.4.7, export a new profiler capture, and verify that target-acquisition spikes fall.
 
 ## 4. Documentation and contributor onboarding
@@ -144,6 +147,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Upgrade Vite from 8.1.5 to 8.1.7 and refresh package-lock.json; CI confirmed npm audit reports zero vulnerabilities.
 - [x] Release branch build 1.4.6: synchronize package.json, package-lock.json, runtime GAME_VERSION and menu version badge; add root CHANGELOG.md and an in-game Update Log entry.
 - [x] Release branch build 1.4.7: synchronize package.json, package-lock.json and runtime GAME_VERSION; add the Sniper retargeting entry to CHANGELOG.md and the in-game Update Log.
+- [x] Release branch build 1.4.8: synchronize package/runtime versions, refine Sniper acquisition diagnostics, add capture heap observations, and document the remaining unresolved stall.
 - [ ] Confirm whether ISC is the intended source-code license before adding a root `LICENSE` file.
 - [ ] Review third-party sprite, audio, font, and other asset permissions separately; do not assume the source-code license covers them.
 - [x] Review the package homepage and repository metadata: repository, issues URL and homepage point to the project repository and its README.
