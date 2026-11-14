@@ -18,6 +18,7 @@
     "js/mapEditorValidation.js",
     "js/mapEditorState.js",
     "js/mapRenderCore.js",
+    "js/cutsceneRuntime.js",
     "js/savedRunValidation.js",
     "js/engineComposition.js",
     "js/webgl/renderFailurePolicy.js"
