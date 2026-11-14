@@ -19,6 +19,28 @@ describe('ObjectPool', () => {
         expect(obj.reset).toBe(true);
     });
 
+    it('rejects factories that return non-object values', () => {
+        const pool = new ObjectPool(() => null, undefined, 0);
+
+        expect(() => pool.get()).toThrow(/factories must return objects/);
+    });
+
+    it('rejects a factory that returns an already checked-out instance', () => {
+        const shared = {};
+        const pool = new ObjectPool(() => shared, undefined, 0);
+
+        expect(pool.get()).toBe(shared);
+        expect(() => pool.get()).toThrow(/fresh object each time/);
+        expect(pool.active).toEqual([shared]);
+    });
+
+    it('rejects repeated object identities during initial preallocation', () => {
+        const shared = {};
+
+        expect(() => new ObjectPool(() => shared, undefined, 2))
+            .toThrow(/fresh object each time/);
+    });
+
     it('reuses released instances without retaining them as active', () => {
         const pool = new ObjectPool(() => ({}), undefined, 0);
         const first = pool.get();

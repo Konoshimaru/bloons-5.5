@@ -110,6 +110,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Clear the Enemy ObjectPool at the start of every successful new session, alongside projectile and particle pools; cover a leftover active enemy reference in the GameEngine startGame integration test.
 - [x] Test the real SimulationLoop projectile/particle pool iteration against ObjectPool: dead entries are removed without skipping survivors, and projectiles spawned during a tick wait until the next simulation step.
 - [x] Make `ObjectPool.removeAt()` safely ignore fractional, non-finite, and out-of-range indices rather than passing an undefined entry into `release()`; add a regression test.
+- [x] Cover ObjectPool factory contracts: factories must return objects and must create distinct instances, both during lazy allocation and initial preallocation.
 - [ ] Review remaining temporary, audit-report, and patch-history comments throughout the codebase.
 - [ ] Remove unused imports only after linting confirms they are not side-effect imports.
 - [ ] Consolidate duplicate imports from the same module where appropriate.
