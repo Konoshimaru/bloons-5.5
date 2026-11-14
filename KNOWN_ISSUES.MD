@@ -18,7 +18,7 @@ GitHub Actions run 43598895661 completed successfully: all 36 Vitest files (412 
 
 ## Active technical debt
 
-- [ ] Renderer frame errors: the main loop logs Pixi render failures and continues. Decide which errors should stop gameplay and surface a clear diagnostic.
+- [ ] Individual Pixi draw-module failures: PixiRenderer._safeDraw logs a failing draw method once but continues retrying it every frame. Decide which failures are safe to isolate and which should disable that layer or stop rendering.
 - [ ] GameEngine singleton and mixins: engine.js combines core state with EngineInput, GameSession and SimulationLoop via Object.assign(). Refactor incrementally with explicit ownership; do not replace working systems in one rewrite.
 - [ ] Main controller composition: js/main.js composes menu and game controllers with Object.assign(); make ownership and public methods easier to trace.
 - [ ] Large editor/rendering modules: split files only where a clear responsibility boundary exists. Preserve the Cutscene Editor and other development tools.
