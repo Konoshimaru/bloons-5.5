@@ -25,14 +25,12 @@
  */
 // js/tower.js
 import { registerTowerFactory } from './towerFactory.js';
-import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
-import { HeroStats, HeroRegistry } from './heroes/index.js';
+import { TowerStats, Upgrades } from './towers/index.js';
+import { HeroStats } from './heroes/index.js';
 import { GameEngine } from './engineRef.js';
-import { Utils } from './utils.js';
 import Assets from './assets.js';
 import * as TowerBehavior from './towerBehavior.js';
-import { GLOBAL_SCALE, GS } from './constants.js';
-import { RANGE_SCALE } from './config.js'; 
+import { GS } from './constants.js';
 import { getBehavior } from './registry.js'; 
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
@@ -41,7 +39,6 @@ import { attachModuleMethods } from './engineComposition.js';
 
 
 const DEFAULT_HIT_RADIUS = 18;
-const MIN_FIRE_RATE = 0.05;
 
 export class Tower {
     constructor(x, y, type) {

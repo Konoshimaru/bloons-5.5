@@ -1,9 +1,8 @@
 // js/projectile.js
 import { spawnExplosion } from './combat.js';
-import { EnemyTypes } from './data.js';
 import { Utils, drawImageCentered } from './utils.js';
 import { GameEngine } from './engineRef.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE, GAME_AREA_WIDTH } from './constants.js';
+import { CANVAS_HEIGHT, GAME_AREA_WIDTH } from './constants.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
 import { ProjectileDrawers } from './projectileDrawers.js';
