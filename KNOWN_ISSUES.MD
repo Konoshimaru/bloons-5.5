@@ -6,6 +6,7 @@ Development tools and editors are intentional parts of this repository. They are
 
 - [x] Variable simulation step size: the engine now uses a 60 Hz fixed-step clock with a bounded accumulator and per-frame work limit.
 - [x] Projectile tunnelling between update positions: moving projectiles now test their swept segment against enemy circles.
+- [x] Large bloons missing the collision broadphase: the projectile grid query now includes the largest declared bloon radius, and regression tests cover BAD-sized targets.
 - [x] Unsafe saved-run restoration: save data is validated before changing engine state, and restoration stops if map initialization fails.
 - [x] Continue flow restarting a fresh game after loading a save: the UI starts the save-loading path once, without a second fresh session afterwards.
 - [x] Explosive damage not reaching MOAB-class targets: EXPLOSION damage now carries canHitMoab while DDT-specific immunity remains in effect.
@@ -17,7 +18,7 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Fragile nullable tower factory slot: creation is now exposed through a frozen facade, registration is explicit, and early calls produce a descriptive error.
 - [x] Contributor documentation and CI checks have been added on this branch.
 
-GitHub Actions run 43601675598 completed successfully: all 39 Vitest files (431 tests) passed and the Vite production build completed. This includes the fixed-step clock, swept collisions, save validation, Pixi failure policy, guarded GameEngine/Main composition, and tower factory registration tests. Browser gameplay checks and Windows batch-script checks are still required before merging.
+GitHub Actions run 43601978436 completed successfully: all 40 Vitest files (435 tests) passed and the Vite production build completed. This includes the fixed-step clock, swept collisions and large-target broadphase, save validation, Pixi failure policy, guarded GameEngine/Main composition, and tower factory registration tests. Browser gameplay checks and Windows batch-script checks are still required before merging.
 
 ## Active technical debt
 

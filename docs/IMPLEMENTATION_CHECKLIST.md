@@ -13,6 +13,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Bound per-frame catch-up work and cap accumulated simulation debt.
 - [x] Reset accumulated simulation time when leaving gameplay, restarting the loop, or resuming from a hidden tab.
 - [x] Prevent fast projectiles from skipping enemies by testing the complete previous-to-current movement segment.
+- [x] Size the spatial-grid broadphase query to include the largest declared bloon hitbox (including BAD-size targets), not an arbitrary 40 px padding.
 - [x] Resolve a projectile's swept collision before removing it for leaving the screen.
 - [x] Include enemy hitbox radius when testing whether an explosion overlaps a target.
 - [x] Restore the inherent MOAB damage flag for EXPLOSION damage while keeping DDT-specific immunities.
@@ -47,6 +48,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 - [x] Add fixed-step clock unit tests.
 - [x] Add swept-collision geometry unit tests.
+- [x] Add broadphase regression tests proving large bloon targets are returned by the spatial grid before the narrowphase segment test.
 - [x] Add saved-run validation tests.
 - [x] Update the Paragon save/load test to model successful engine initialization.
 - [x] Add tests for the Pixi optional-draw retry policy and critical-method classification.
@@ -54,7 +56,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add a shared module-composition helper with tests for duplicate names, explicitly permitted overrides, getter preservation, and no partial application.
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm test`, and `npm run build` for pushes and pull requests.
-- [x] Re-run and confirm CI after renderer recovery and GameEngine composition changes: 39 test files and 431 tests passed; production build passed.
+- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 40 test files and 435 tests passed; production build passed.
 - [ ] Convert hand-written checks in `js/tests/tests.js` into tests of real production functions where applicable.
 - [ ] Keep `tests.html` explicitly labelled as a manual/legacy browser harness; it is separate from Vitest.
 - [ ] Configure ESLint and fix verified lint findings.
@@ -107,7 +109,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm latest CI after renderer policy and documentation updates is green: dependency install, all Vitest tests, and production build.
+- [x] Confirm latest CI after renderer policy and documentation updates is green: dependency install, all 40 Vitest files (435 tests), and production build. (Run 43601978436.)
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
 - [ ] Verify the game, Cutscene Editor, Map Editor, Sprite Editor, Bloon Editor, and browser test page still work.
@@ -117,7 +119,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## Recommended next order
 
-1. Confirm CI for the optional Pixi draw-failure policy.
+1. Complete browser acceptance tests for the runtime fixes.
 2. Remove remaining temporary audit/instruction comments.
 3. Improve the Windows helper scripts.
 4. Configure linting and type checking.
