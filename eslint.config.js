@@ -34,7 +34,8 @@ export default [
                 describe: 'readonly',
                 expect: 'readonly',
                 it: 'readonly',
-                vi: 'readonly'
+                vi: 'readonly',
+                structuredClone: 'readonly'
             }
         },
         rules: {
