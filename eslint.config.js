@@ -39,6 +39,8 @@ const coreFiles = [
     'js/webgl/renderProjectiles.js',
     'js/webgl/renderEnemies.js',
     'js/webgl/renderWorld.js',
+    'js/webgl/renderMenu.js',
+    'js/webgl/renderBuffIcons.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
     'tests/savedRunValidation.test.js',
