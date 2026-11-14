@@ -3,7 +3,7 @@ import { deepFreeze } from './utils.js';
 
 export const DamageType = deepFreeze({
     SHARP:      { isSharp: true, canHitLead: false },
-    EXPLOSION:  { isExplosion: true, canHitLead: true },
+    EXPLOSION:  { isExplosion: true, canHitLead: true, canHitMoab: true },
     ICE:        { isIce: true, canHitLead: false },
     PLASMA:     { isPlasma: true, canHitLead: true },
     ENERGY:     { isEnergy: true, canHitLead: false },

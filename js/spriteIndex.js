@@ -1,27 +1,26 @@
-// js/spriteIndex.js — PLACEHOLDER (repo-side only)
+// js/spriteIndex.js — minimal repo-side sprite index.
 //
-// The real sprite index is generated from public/sprites/** by
-// tools/gen_sprite_index.py (shipped in btd-animator.zip). If you are seeing
-// this placeholder, the generator output was lost with the workspace — the
-// game and cutscenePlayback.js import findEntry from here, so this stub keeps
-// the module graph resolvable. Copy the generated js/spriteIndex.js from your
-// local copy (btd-animator.zip) over this file for full sprite resolution.
-//
-// Interface (must match the generated file):
-//   findEntry(key) -> { key, url, sx?, sy?, sw?, sh?, fw?, fh? } | null
-//   SPRITE_LIBRARY -> array of the same entries
+// The full generated sprite index is normally produced from the public sprite
+// tree. This small fallback keeps the Knight intro assets resolvable in source
+// checkouts that do not have the generated index available.
 
-export const SPRITE_LIBRARY = [];
+const KNIGHT_FRONT_ENTRY = Object.freeze({
+    key: 'enemy_knight_front',
+    url: 'sprites/sheets/enemies/knight_front.png',
+    fw: 122,
+    fh: 117
+});
+
+export const SPRITE_LIBRARY = [KNIGHT_FRONT_ENTRY];
 
 export function findEntry(key) {
     if (typeof key !== 'string' || !key) return null;
-    // Minimal resolution for the knight-intro assets so the cutscene keeps
-    // working even with this stub: boss frames + the static front view.
-    if (key === 'enemy_knight_front') {
-        return { key, url: 'sprites/sheets/enemies/knight_front.png', fw: 122, fh: 117 };
-    }
+
+    if (key === 'enemy_knight_front') return KNIGHT_FRONT_ENTRY;
+
     if (key.startsWith('boss_')) {
         return { key, url: `sprites/boss/${key.slice(5)}.png` };
     }
+
     return null;
 }
