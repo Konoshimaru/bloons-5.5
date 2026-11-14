@@ -22,7 +22,7 @@ describe('MapRenderCore production drawing helpers', () => {
 
         expect(ctx.stroke).toHaveBeenCalledTimes(2);
         expect(ctx.lineTo).toHaveBeenCalledTimes(2);
-        expect(ctx.lineWidth).toBeUndefined();
+        expect(ctx.lineWidth).toBe(45);
     });
 
     it('can draw hidden paths when the caller explicitly ignores visibility', () => {
