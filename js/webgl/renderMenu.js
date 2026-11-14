@@ -42,11 +42,13 @@ export const MenuRenderer = {
 
         const date = new Date();
         const hours = date.getHours() + date.getMinutes() / 60;
-        let phase = 'day';
-        if (hours >= 5 && hours < 8) phase = 'dawn';
-        else if (hours >= 8 && hours < 17) phase = 'day';
-        else if (hours >= 17 && hours < 20) phase = 'dusk';
-        else phase = 'night';
+        const phase = hours >= 5 && hours < 8
+            ? 'dawn'
+            : hours >= 8 && hours < 17
+                ? 'day'
+                : hours >= 17 && hours < 20
+                    ? 'dusk'
+                    : 'night';
 
         // Sky gradient
         let skyStops;
