@@ -13,6 +13,8 @@
   "files": [
     "js/fixedStepClock.js",
     "js/collisionGeometry.js",
+    "js/spatialGrid.js",
+    "js/statusEffects.js",
     "js/savedRunValidation.js",
     "js/engineComposition.js",
     "js/webgl/renderFailurePolicy.js"
