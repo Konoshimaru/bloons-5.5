@@ -28,6 +28,7 @@ describe('LoadGate', () => {
 
     afterEach(() => {
         vi.clearAllTimers();
+        vi.restoreAllMocks();
         vi.useRealTimers();
         document.body.innerHTML = '';
     });
@@ -54,6 +55,30 @@ describe('LoadGate', () => {
         await first.promise;
         expect(first.done).toBe(true);
         expect(first.progress).toBe(1);
+    });
+
+    it('opens failed loads and allows the next prefetch to retry', async () => {
+        const group = nextGroup();
+        const failure = new Error('initial asset load failed');
+        const load = vi.fn()
+            .mockRejectedValueOnce(failure)
+            .mockResolvedValueOnce(undefined);
+        const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+        LoadGate.register(group, { load });
+
+        const failedRun = LoadGate.prefetch(group);
+        await failedRun.promise;
+
+        expect(failedRun.done).toBe(true);
+        expect(LoadGate.isReady(group)).toBe(false);
+        expect(errorLog).toHaveBeenCalledTimes(1);
+
+        const retryRun = LoadGate.prefetch(group);
+        expect(retryRun).not.toBe(failedRun);
+        await retryRun.promise;
+
+        expect(load).toHaveBeenCalledTimes(2);
+        expect(LoadGate.isReady(group)).toBe(true);
     });
 
     it('normalizes progress reports to finite values between zero and one', async () => {
