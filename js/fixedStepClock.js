@@ -54,7 +54,7 @@ export function advanceFixedStepClock({
     let remainingTime = accumulatedTime - steps * FIXED_TIMESTEP_SECONDS;
     if (remainingTime < TIME_EPSILON) remainingTime = 0;
 
-    const accumulatorSeconds = Math.min(
+    const nextAccumulatorSeconds = Math.min(
         remainingTime,
         MAX_ACCUMULATOR_SECONDS
     );
@@ -62,8 +62,8 @@ export function advanceFixedStepClock({
     return {
         steps,
         stepDt: FIXED_TIMESTEP_SECONDS,
-        accumulatorSeconds,
-        droppedSimulationSeconds: remainingTime - accumulatorSeconds,
+        accumulatorSeconds: nextAccumulatorSeconds,
+        droppedSimulationSeconds: remainingTime - nextAccumulatorSeconds,
         frameDeltaSeconds
     };
 }
