@@ -4,6 +4,39 @@ import { describe, expect, it, vi } from 'vitest';
 import { MAX_ACTIVE_PROJECTILES } from '../js/projectilePoolLimits.js';
 
 describe('Sniper firing workload safeguards', () => {
+    it('reuses the real Sniper hitscan record after its visual lifetime expires', async () => {
+        const sniper = (await import('../js/towers/sniper.js')).default;
+        const { updateHitscans } = await import('../js/hitscanPool.js');
+        const target = {
+            x: 500,
+            y: 300,
+            data: { isMoab: false, isCeramic: false },
+            isCamo: false,
+            takeDamage: vi.fn(() => 2),
+        };
+        const tower = {
+            x: 100,
+            y: 100,
+            stats: { bounces: 0 },
+            upgrades: [0, 0, 0],
+            hitscans: [],
+            damageDealt: 0,
+        };
+        const engine = {};
+
+        sniper.fire(tower, target, 2, { canHitLead: false }, false, {}, engine);
+        const firstRecord = tower.hitscans[0];
+        expect(firstRecord).toMatchObject({ x1: 100, y1: 100, x2: 500, y2: 300, life: 0.1 });
+
+        updateHitscans(tower, 0.1);
+        expect(tower.hitscans).toHaveLength(0);
+        expect(tower._hitscanPool).toContain(firstRecord);
+
+        sniper.fire(tower, target, 2, { canHitLead: false }, false, {}, engine);
+        expect(tower.hitscans[0]).toBe(firstRecord);
+        expect(tower.hitscans[0].life).toBe(0.1);
+    });
+
     it('keeps direct hits working but skips Shrapnel allocation at the projectile cap', async () => {
         const sniper = (await import('../js/towers/sniper.js')).default;
         const target = {
