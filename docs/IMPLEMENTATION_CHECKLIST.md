@@ -29,13 +29,9 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [ ] Verify projectile collision behavior for every special projectile type, including pierce, ricochet, split, explosive, and returning projectiles.
 - [ ] Manually test valid, invalid, old-format, and custom-map saves through the actual Continue UI.
 - [ ] Test WebGL unavailable/startup failure and simulated render failure in a browser, not only through unit tests.
-- [ ] **User-reported bug (2026-11-14):** Sniper Monkey firing causes severe lag/freezes, especially at high attack speed, and can stall/crash the game loop. Profile rapid target reacquisition, Shrapnel projectile bursts/cap enforcement, and hitscan rendering; add production regression/stress tests before marking this resolved.
-- [x] Add first automated Sniper firing mitigations: throttle successful target reacquisition to 0.15 simulation seconds while retaining immediate reacquisition for invalid/recycled targets or targeting-mode changes, and trim projectile/particle burst overflow to their configured limits; cover both with production regression tests.
-- [x] Share the 0.15-second global-target ranking cache across compatible global-range Snipers, keyed by target mode and visibility rules; invalidate immediately when the target dies, is recycled, becomes hidden, or the targeting rules change.
-- [x] Handle a one-slot Shrapnel burst without producing a NaN projectile angle when the shared projectile pool is nearly full.
-- [x] Run Elite Support's all-tower buff sweep once per simulation step, regardless of how many Elite Snipers are present; retain the existing 0.4-second buff refresh throttle.
+- [ ] Owner confirmed on 2026-11-14 that severe FPS drops persist when using Sniper Monkey on the latest `fix/fixed-timestep` build. Previous automated mitigations did not resolve the real-browser issue; keep this open until profiling and repeatable browser verification demonstrate that it is fixed.
+- [x] Add initial automated safeguards for high-load tower/effect updates and regression tests. Passing unit tests do not establish that the owner-reported FPS issue is resolved.
 - [x] Combine transient tower-buff resets and tower-grid insertion into one simulation traversal; cover the production SimulationLoop pass with a regression test.
-- [x] Batch Sniper hitscan lines by fixed-step fade age so Pixi performs one stroke per active age bucket rather than one stroke per shot.
 
 ## 2. Architecture and maintainability
 
@@ -70,7 +66,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
-- [x] Expand the ESLint allowlist to 33 production modules and 28 associated regression-test files, now including LoadGate, GameMap, Enemy, EnemyDamage, ObjectPool, SimulationLoop, Projectile, Tower, UI, and KnightEnemy plus their regression tests, covering Cutscene runtime, map metadata, naming helpers, projectile configuration/resolution, and Map Editor composition, state, input, renderer, validation/I/O, and drawing modules; the CI lint step passes.
+- [x] Expand the ESLint allowlist to 33 production modules and 28 associated regression-test files, now covering 44 selected production modules and 32 associated regression-test files, covering Cutscene runtime, map metadata, naming helpers, projectile configuration/resolution, and Map Editor composition, state, input, renderer, validation/I/O, and drawing modules; the CI lint step passes.
 - [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
@@ -135,7 +131,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Review `update.bat` and `update teste.bat`.
 - [x] Remove automatic staging; both update scripts require manually staged files and show a staged diff summary.
 - [x] Check the current branch, remote, and Git command exit status before pushing.
-- [ ] Keep commits small and use descriptive commit messages.
+- [x] Keep commits small and use descriptive commit messages.
 
 ## 7. Package and distribution
 
@@ -144,16 +140,16 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Upgrade Vite from 8.1.5 to 8.1.7 and refresh package-lock.json; CI confirmed npm audit reports zero vulnerabilities.
 - [ ] Confirm whether ISC is the intended source-code license before adding a root `LICENSE` file.
 - [ ] Review third-party sprite, audio, font, and other asset permissions separately; do not assume the source-code license covers them.
-- [ ] Review the package homepage and repository metadata once the project landing page is settled.
+- [x] Review the package homepage and repository metadata: repository, issues URL and homepage point to the project repository and its README.
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43634592731 is green on commit `ef928ead48a605fe10aaa8e79dce7820590629ef`: zero npm advisories, 229 syntax-checked files, fourteen type-checked modules, 34 ESLint production modules plus 29 test files, 58 Vitest files (544 tests), and production build.
+- [x] Confirm CI run 43642151302 is green on commit `1c1a8517675a51d66230e75b8235aeccae736946`: zero npm advisories, 234 syntax-checked files, fourteen type-checked modules, 44 ESLint production modules plus 32 test files, 61 Vitest files (564 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
 - [ ] Verify the game, Cutscene Editor, Map Editor, Sprite Editor, Bloon Editor, and browser test page still work.
-- [ ] Confirm no development tool was removed or accidentally excluded from the build.
+- [x] Confirm no development tool was removed or accidentally excluded from the build: Vite explicitly includes all five HTML entry points, and CI produced all five in dist/.
 - [ ] Inspect the final Git diff for generated files, backups, and unrelated changes.
 - [ ] Merge the reviewed work into `test-version` only when the owner is ready.
 
