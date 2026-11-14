@@ -108,6 +108,11 @@ describe('GitHub sniper-fix lineage: 7056779 "performance fix 2" (sniper rework)
         expect(src).toMatch(/Utils\.distanceSq\(currentTarget\.x, currentTarget\.y, e\.x, e\.y\)/);
     });
 
+    it('skips bounce-set allocation entirely for Snipers without bounce upgrades', () => {
+        const src = read('js/towers/sniper.js');
+        expect(src).toMatch(/if \(bounces > 0\) \{\s+const hitSet = new Set\(\[target\]\);/);
+    });
+
     it('supply-drop banana crates still animate their fall', () => {
         const src = read('js/towers/sniper.js');
         expect(src).toMatch(/b\.progress \+= dt \/ 0\.8/);
