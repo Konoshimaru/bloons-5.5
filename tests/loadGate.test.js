@@ -98,6 +98,7 @@ describe('LoadGate', () => {
         await vi.advanceTimersByTimeAsync(150);
         expect(document.getElementById('loading-screen')).toBeNull();
         firstLoad.resolve();
+        await vi.advanceTimersByTimeAsync(700);
         await firstEnsure;
 
         document.body.innerHTML = `
