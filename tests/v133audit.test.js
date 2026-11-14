@@ -2,7 +2,7 @@
 // v1.3.3 audit-fix wave: sandbox saveGame guard (C-6), rAF restart guarantee
 // (C-5), and the regrow revival (C-2: regenTimer NaN, canonical regrow chart,
 // child ceiling inheritance).
-import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 vi.mock('../js/audio.js', () => ({ AudioEngine: { playSfx: vi.fn(), pause: vi.fn(), playMusic: vi.fn(), playGameMusic: vi.fn() } }));
 vi.mock('../js/assets.js', () => ({
@@ -19,7 +19,6 @@ vi.mock('../js/map.js', () => ({
 }));
 
 import { Enemy } from '../js/enemy.js';
-import { EnemyTypes } from '../js/data.js';
 
 const FAKE_MAP = { paths: [{ segments: [{ p1: { x: 0, y: 0 } }] }] };
 
@@ -122,7 +121,6 @@ describe('v1.3.3 C-2: canonical regrow chart', () => {
 describe('v1.3.3 C-2: spawnChildren inherits the regen ceiling', () => {
     it('children of a regen ceramic carry maxTier=ceramic, not their own tier', () => {
         const parent = freshEnemy(12, { regen: true, maxTier: 12 }); // ceramic
-        const spawned = [];
         const fakeEngine = {
             enemyPool: { get: () => new Enemy() },
             enemies: [],

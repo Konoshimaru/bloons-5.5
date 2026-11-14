@@ -13,7 +13,6 @@ import { updateTimedEffects } from './statusEffects.js';
 import { roundSpeedRamp, moabHpRamp, statusDurationFactor, cashMultForRound, treeLayers, leakLives, singleChildSplit } from './btd6Rules.js';
 
 
-const ENEMY_NAMES = [null, 'red', 'blue', 'green', 'yellow', 'pink', 'black', 'white', 'lead', 'zebra', 'purple', 'rainbow', 'ceramic', 'moab', 'bfb', 'zomg', 'ddt', 'bad'];
 const REGEN_INTERVAL = 2.0;
 
 // REGEN follows the canonical chart rather than numeric tier order: black
