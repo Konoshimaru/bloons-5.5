@@ -41,7 +41,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Encapsulate the mutable tower factory slot behind a registration API with a clear uninitialized error and HMR-compatible re-registration.
 - [ ] Remove the remaining module-load-order dependency only if it can be done without reintroducing the tower behavior import cycle.
 - [ ] Split large files only where there is a clear responsibility boundary.
-- [ ] Keep the Cutscene Editor as a development tool; split its timeline, editor state, rendering, and import/export only if the boundaries make maintenance easier.
+- [x] Preserve the Cutscene Editor as a supported development tool and Vite build entry point.
+- [ ] Split its timeline, editor state, rendering, and import/export only where the boundaries improve maintainability.
 - [ ] Review renderer modules for cohesive responsibilities rather than performing a broad renderer rewrite.
 
 ## 3. Tests and automated quality checks
@@ -56,18 +57,21 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add a shared module-composition helper with tests for duplicate names, explicitly permitted overrides, getter preservation, and no partial application.
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm run check:syntax`, `npm test`, and `npm run build` for pushes and pull requests.
-- [x] Add a dependency-free syntax scanner that parsed all 219 source/test/tool files successfully in CI.
-- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 49 test files and 481 tests passed; all 219 syntax-checked files passed; the ten-module core type-check passed; ESLint passed on 17 production modules and 15 test files; npm audit reported zero advisories; production build passed.
+- [x] Add a dependency-free syntax scanner that parsed all 220 source/test/tool files successfully in CI.
+- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 50 test files and 485 tests passed; all 220 syntax-checked files passed; the eleven-module core type-check passed; ESLint passed on 19 production modules and 17 test files; npm audit reported zero advisories; production build passed.
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
 - [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
-- [x] Expand the ESLint allowlist to 17 production modules and 15 associated regression-test files, including the Map Editor state, input, renderer, document validation/I/O, and rendering-core modules; the CI lint step passes.
+- [x] Expand the ESLint allowlist to 19 production modules and 17 associated regression-test files, covering the Cutscene runtime and Map Editor composition, state, input, renderer, validation/I/O, and drawing modules; the CI lint step passes.
 - [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
-- [x] Run the expanded type-check in CI successfully for ten selected core modules, including MapEditorState and MapRenderCore.
+- [x] Run the expanded type-check in CI successfully for eleven selected core modules, including MapEditorState, MapRenderCore, and Cutscene runtime normalization.
 - [ ] Expand type-check coverage gradually as JSDoc and dependency boundaries are improved; do not treat the initial subset as a whole-project type check.
 - [x] Add Map Editor document validation and I/O regression tests for malformed paths, waypoints, curves, hitboxes, water strokes, and background metadata; retain support for legacy single-path documents. Also fix the mouse-wheel priority so selected hitboxes resize rather than triggering canvas zoom, with coverage for circles, boxes, minimum sizes, ordinary zoom, and reference-image scaling.
+- [x] Replace Map Editor object-spread composition with guarded module attachment and test the assembled API; apply JSON only after successful validation so invalid documents do not create undo snapshots.
+- [x] Ignore malformed first-waypoint curve handles in the Map Editor and reject those documents during normalization.
+- [x] Normalize duplicate, blank, and missing Cutscene actor IDs to unique non-empty identifiers; test the shared Cutscene runtime helper.
 - [ ] Expand tests for save migration and renderer error paths where practical.
 
 ## 4. Documentation and contributor onboarding
@@ -117,7 +121,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43607354057 is green on commit `23c82eebb85eac7f89f5b802ebd40bce91bb0d19`: zero npm advisories, 219 syntax-checked files, ten type-checked modules, 17 ESLint production modules plus 15 test files, 49 Vitest files (481 tests), and production build.
+- [x] Confirm CI run 43608134611 is green on commit `74b3687176bf52a8a5c8285efe36cd789520dd2a`: zero npm advisories, 220 syntax-checked files, eleven type-checked modules, 19 ESLint production modules plus 17 test files, 50 Vitest files (485 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.

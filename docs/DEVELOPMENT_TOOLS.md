@@ -6,7 +6,7 @@ These tools help create and maintain game content. They are intentional parts of
 
 Entry point: cutsceneeditor.html. Implementation: js/cutsceneEditor.js. Shared document/interpolation logic: js/cutsceneRuntime.js. Runtime playback: js/cutscenePlayback.js and js/cutscene.js.
 
-The editor provides a stage preview, actor list, sprite library, key inspector and timeline. It stores its document in browser local storage. The game uses a custom scene for the boss intro only when useForBossIntro is enabled. Keep editor and runtime normalization/sampling logic shared.
+The editor provides a stage preview, actor list, sprite library, key inspector and timeline. It stores its document in browser local storage. The game uses a custom scene for the boss intro only when useForBossIntro is enabled. Keep editor and runtime normalization/sampling logic shared. The shared runtime normalizes imported actor IDs to unique, non-empty values and is covered by Vitest.
 
 ## Map Editor
 

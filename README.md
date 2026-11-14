@@ -29,7 +29,7 @@ The Vite server is configured for 127.0.0.1:5500 and opens the browser automatic
 | npm test | Run the Vitest automated suite. |
 | npm run check:syntax | Parse all source, test, and tool JavaScript files with Node.js. |
 | npm run typecheck:core | Type-check selected core helpers (not the whole project). |
-| npm run lint:core | Lint 17 selected production modules and 15 regression-test files. |
+| npm run lint:core | Lint 19 selected production modules and 17 regression-test files. |
 | npm run audit:deps | Print a structured summary of npm dependency advisories. |
 | npm run build | Create the production build in dist/. |
 | npm run gen:manifest | Regenerate the sprite manifest. |
@@ -62,7 +62,7 @@ Vite builds five HTML entry points: the game, Cutscene Editor, Sprite Editor, Bl
 
 ## Development tools
 
-- **Cutscene Editor:** /cutsceneeditor.html. Authors keyframes and stores the document in browser local storage. A custom scene is used for the boss intro only when useForBossIntro is enabled.
+- **Cutscene Editor:** /cutsceneeditor.html. Authors keyframes and stores the document in browser local storage. Shared document normalization ensures actor IDs are unique. A custom scene is used for the boss intro only when useForBossIntro is enabled.
 - **Map Editor:** available from in-game menus; saves custom maps in player configuration. Imported JSON, direct JSON edits, loaded maps, and saves are structurally validated before changing editor state or player data.
 - **Sprite Editor:** /spriteeditor.html. Uses a Vite development endpoint to write sprite configuration and rotate backups.
 - **Bloon Editor:** /blooneditor.html. Edits bloon sprite/configuration data through the development server.
