@@ -23,7 +23,7 @@ GitHub Actions run 43645001512 completed successfully on commit `1b22a403218e98b
 
 ## Active technical debt
 
-- [ ] Sniper Monkey performance: the owner's 2026-11-14 profiler capture (42.4s, wave 2, three Snipers) shows simulation time p95 84.5ms, p99 234.6ms and max 327.2ms, while render max is 17.1ms; the captured peak was 37 enemies, zero projectiles and one particle. This localizes the observed spikes to main-thread simulation/update work, but the initial capture lacked per-subsystem timing. Version 1.4.6 adds capture-only phase and Sniper fire-path diagnostics. Keep this open until a new capture identifies the dominant substage and a browser retest confirms improvement.
+- [ ] Sniper Monkey performance: the 2026-11-14 22:01:41Z profiler capture (41.5s, wave 1, three Snipers) shows simulation p95 75.8ms, p99 232.8ms and max 556.4ms, versus render max 16.4ms. The targeting substage peaks at 553.5ms; the worst frame has 84 Sniper update calls, 9 target scans and 2 shots. Version 1.4.7 adds a three-target shared fallback shortlist to avoid a complete enemy-list scan after each of several consecutive target pops, plus separate cache-validation/shared-cache/full-scan timings and candidate counters. Keep this open until the owner repeats the same browser scenario and the profiler shows the targeting spikes have materially dropped.
 - [x] Dependency security: Vite 8.1.5 had two high-severity advisories (GHSA-9jrq-w75r-8gcw and GHSA-rq7h-c2jc-7f22). The lockfile now resolves Vite 8.1.7; `npm audit` reports zero vulnerabilities in CI run 43603764539.
 
 - [x] Dependency security: updated Vite from 8.1.5 to 8.1.7 and refreshed the lockfile. GitHub Actions confirmed `npm audit` reports zero vulnerabilities after the change.
