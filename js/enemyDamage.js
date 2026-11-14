@@ -21,7 +21,7 @@ const EnemyDamage = {
         if (!effects) effects = {};
         if (isNaN(damage)) damage = 0;
         
-        if (this._isImmune(dmgType, effects)) return -1;
+        if (this._isImmune(dmgType)) return -1;
         
         if (effects && typeof effects.onHit === 'function') {
             effects.onHit(this, dmgType, effects);
@@ -136,7 +136,7 @@ const EnemyDamage = {
         }
     },
 
-    _isImmune(dmgType, effects) {
+    _isImmune(dmgType) {
         if (!dmgType) dmgType = {}; 
 
         // Lead coating (or DDT, which has a lead core) blocks Sharp/Energy/Fire
