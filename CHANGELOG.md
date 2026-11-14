@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.8] - 2026-11-14
+
+### Improved
+- Removed the per-simulation-tick target-rule template-string allocation; cached targeting rules now compare primitive fields and still invalidate immediately when targeting mode, Elite leak state, Camo visibility, or MOAB targeting changes.
+- Expanded capture-only Sniper timings to cover target-rule setup, empty-target cooldown gating, the complete acquisition call, cache commit, target-scan setup, target selection, and shared-cache storage.
+- Added shared-cache eligibility/hit/miss/expiry counters so profiler captures can show whether Snipers actually reuse the shared ranked-target cache.
+- Added per-frame Chromium JavaScript heap samples to captured worst frames when the runtime exposes `performance.memory`, to help correlate remaining stalls with garbage-collection activity.
+
+### Verification note
+- The 22:13:18Z capture still shows unexplained pauses inside the broad Sniper targeting timer: its max is 414.2ms while the measured full candidate scan max is 0.3ms. This release adds instrumentation around the currently unmeasured gaps and does not claim the browser issue is fixed.
+
 ## [1.4.7] - 2026-11-14
 
 ### Fixed
