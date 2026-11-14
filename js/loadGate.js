@@ -71,9 +71,9 @@ function disarmMinigame() {
 }
 
 function showScreen(label, run) {
-    screenUsers++;
     const screen = el('loading-screen');
     if (!screen) return () => {};
+    screenUsers++;
     if (screenUsers === 1) {
         // Cancel any in-flight fade-out from the previous gate, then fade in:
         // start transparent (hidden just removed), force a reflow, release.
@@ -116,7 +116,15 @@ function showScreen(label, run) {
 }
 
 export const LoadGate = {
-    register(group, def) { loaders.set(group, def); },
+    register(group, def) {
+        if (typeof group !== 'string' || !group.trim()) {
+            throw new TypeError('[loadGate] A load group must have a non-empty string name.');
+        }
+        if (!def || typeof def.load !== 'function') {
+            throw new TypeError(`[loadGate] Load group "${group}" must provide a load(ctx, onProgress) function.`);
+        }
+        loaders.set(group, def);
+    },
 
     // Direct fade helpers for loading screens managed OUTSIDE the gate (e.g.
     // the pre-menu boot sequence in main.js) so every loading screen fades
@@ -143,11 +151,18 @@ export const LoadGate = {
     // Start (or join) a group's load without showing any UI.
     prefetch(group, ctx) {
         const def = loaders.get(group);
+        if (!def) {
+            throw new Error(`[loadGate] Cannot prefetch unregistered load group "${group}". Register it before use.`);
+        }
         const id = runId(group, ctx);
         let run = runs.get(id);
         if (run) return run;
         run = { done: false, progress: 0, listeners: new Set(), promise: null };
-        const onProgress = (p) => { run.progress = p; run.listeners.forEach(fn => fn(p)); };
+        const onProgress = (p) => {
+            const progress = Number.isFinite(p) ? Math.max(0, Math.min(1, p)) : 0;
+            run.progress = progress;
+            run.listeners.forEach(fn => fn(progress));
+        };
         run.promise = (async () => {
             if (!def) return;
             try { await def.load(ctx, onProgress); }

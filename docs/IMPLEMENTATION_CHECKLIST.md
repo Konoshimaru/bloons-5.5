@@ -74,6 +74,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Normalize duplicate, blank, and missing Cutscene actor IDs to unique non-empty identifiers; test the shared Cutscene runtime helper.
 - [x] Add regression tests against production `ProjectileHitResolution._checkCollisions()` for swept travel, the largest declared enemy hitbox, immunity/camo filters, and projectile hit-tracking exceptions.
 - [x] Add production tests for map metadata, asset-key naming helpers, and projectile subtype configuration.
+- [x] Add LoadGate production regression tests for registration validation, unknown groups, concurrent prefetch deduplication, malformed progress values, and loading-screen reentrancy when the DOM element is absent.
 - [ ] Expand tests for save migration and renderer error paths where practical.
 
 ## 4. Documentation and contributor onboarding
