@@ -50,7 +50,7 @@ export default {
         const path = MapEditorState.mapData.paths[MapEditorState.selectedPath];
         for (let i = 0; i < path.waypoints.length; i++) {
             const wp = path.waypoints[i];
-            if (wp.curve && Math.hypot(pos.x - wp.curve.cx, pos.y - wp.curve.cy) < 15) { MapEditorState.selectedPoints = [wp]; this.isDragging = 'curve'; this.dragStartPos = { x: pos.x, y: pos.y }; return; }
+            if (i > 0 && wp.curve && Math.hypot(pos.x - wp.curve.cx, pos.y - wp.curve.cy) < 15) { MapEditorState.selectedPoints = [wp]; this.isDragging = 'curve'; this.dragStartPos = { x: pos.x, y: pos.y }; return; }
         }
         for (let i = 0; i < path.waypoints.length; i++) {
             const wp = path.waypoints[i];

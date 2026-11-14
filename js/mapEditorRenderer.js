@@ -82,7 +82,7 @@ export default {
                     else if (i === path.waypoints.length - 1) { ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.moveTo(wp.x - 6, wp.y - 15); ctx.lineTo(wp.x + 6, wp.y - 10); ctx.lineTo(wp.x - 6, wp.y - 5); ctx.closePath(); ctx.fill(); ctx.fillRect(wp.x - 8, wp.y - 15, 2, 15); }
                     ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
                     ctx.beginPath(); ctx.arc(wp.x, wp.y, 8, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-                    if (wp.curve) {
+                    if (wp.curve && i > 0) {
                         ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = 2;
                         ctx.beginPath(); ctx.moveTo(path.waypoints[i-1].x, path.waypoints[i-1].y); ctx.lineTo(wp.curve.cx, wp.curve.cy); ctx.lineTo(wp.x, wp.y); ctx.stroke();
                         ctx.fillStyle = '#f1c40f'; ctx.beginPath(); ctx.arc(wp.curve.cx, wp.curve.cy, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();

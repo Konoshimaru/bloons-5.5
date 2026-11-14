@@ -91,4 +91,17 @@ describe('MapEditorRenderer production drawing behavior', () => {
         expect(ctx.arc).not.toHaveBeenCalled();
         expect(ctx.drawImage).not.toHaveBeenCalled();
     });
+
+    it('safely ignores a curve attached to the first waypoint', () => {
+        const ctx = createContext();
+        MapEditorState.mapData.paths = [{
+            waypoints: [
+                { x: 10, y: 20, curve: { cx: 15, cy: 25 } },
+                { x: 50, y: 60 }
+            ]
+        }];
+
+        expect(() => MapEditorRenderer.draw.call({ ...MapEditorRenderer, ctx })).not.toThrow();
+        expect(ctx.quadraticCurveTo).not.toHaveBeenCalled();
+    });
 });

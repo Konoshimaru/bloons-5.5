@@ -63,6 +63,9 @@ export function normalizeMapEditorDocument(input) {
             if (pointError) return { valid: false, error: pointError };
 
             if (point.curve) {
+                if (pointIndex === 0) {
+                    return { valid: false, error: `${pointLabel} cannot define a curve before the first segment.` };
+                }
                 if (!isRecord(point.curve)
                     || !isFiniteNumber(point.curve.cx)
                     || !isFiniteNumber(point.curve.cy)) {

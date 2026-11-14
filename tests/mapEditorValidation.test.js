@@ -91,7 +91,8 @@ describe('Map Editor document validation', () => {
             { waypoints: [], width: 0 },
             { waypoints: [], width: Number.NaN },
             { waypoints: [], visible: 'yes' },
-            { waypoints: [{ x: 1, y: 2 }, { x: 3, y: 4, curve: { cx: 5, cy: Number.NaN } }] }
+            { waypoints: [{ x: 1, y: 2 }, { x: 3, y: 4, curve: { cx: 5, cy: Number.NaN } }] },
+            { waypoints: [{ x: 1, y: 2, curve: { cx: 3, cy: 4 } }, { x: 5, y: 6 }] }
         ]) {
             expect(normalizeMapEditorDocument({ paths: [path] })).toMatchObject({ valid: false });
         }
