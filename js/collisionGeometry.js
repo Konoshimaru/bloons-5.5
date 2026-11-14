@@ -42,3 +42,21 @@ export function segmentIntersectsCircle(x1, y1, x2, y2, circleX, circleY, radius
         circleX, circleY, x1, y1, x2, y2
     ) <= safeRadius * safeRadius;
 }
+
+/**
+ * Returns a broadphase query radius that includes every target circle which
+ * could intersect the swept projectile segment. The spatial grid query uses
+ * this radius to gather candidate cells; segmentIntersectsCircle remains the
+ * precise narrowphase test.
+ */
+export function sweptSegmentQueryRadius(
+    startX, startY, endX, endY, projectileRadius, maxTargetRadius
+) {
+    const values = [startX, startY, endX, endY, projectileRadius, maxTargetRadius];
+    if (!values.every(Number.isFinite)) return 0;
+
+    const segmentLength = Math.hypot(endX - startX, endY - startY);
+    return segmentLength / 2
+        + Math.max(0, projectileRadius)
+        + Math.max(0, maxTargetRadius);
+}

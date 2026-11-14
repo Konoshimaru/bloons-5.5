@@ -6,12 +6,16 @@ import { GameEngine } from './engineRef.js';
 import { DamageType, createDmgType } from './damageTypes.js';
 import { ProjectileTypeConfig } from './projectileTypeConfig.js';
 import { GLOBAL_SCALE } from './constants.js';
-import { segmentIntersectsCircle } from './collisionGeometry.js';
+import { EnemyTypes } from './data.js';
+import { segmentIntersectsCircle, sweptSegmentQueryRadius } from './collisionGeometry.js';
 
 // Reusable scratch arrays for enemyGrid.query. Each call site gets its own array
 // because a query result may be iterated while a different query runs (e.g. an
 // explosion resolving inside a collision loop must not reuse the collision array).
 const _collideScratch = [];
+const MAX_ENEMY_COLLISION_RADIUS = Math.max(
+    ...Object.values(EnemyTypes).map(type => (type.radius || 10) * GLOBAL_SCALE)
+);
 const _explosionScratch = [];
 const _ricochetScratch = [];
 
@@ -19,15 +23,15 @@ const ProjectileHitResolution = {
     _checkCollisions(startX = this.x, startY = this.y) {
         const endX = this.x;
         const endY = this.y;
-        const dx = endX - startX;
-        const dy = endY - startY;
-        const segmentLength = Math.hypot(dx, dy);
         const centerX = (startX + endX) / 2;
         const centerY = (startY + endY) / 2;
 
-        // Query a circle that encloses the entire swept segment. The grid is a
-        // broadphase only; segmentIntersectsCircle performs the precise test.
-        const searchRadius = segmentLength / 2 + this.radius + 40;
+        // The broadphase must include the largest enemy hitbox, not just a
+        // small fixed padding: BADs are much larger than ordinary bloons.
+        // segmentIntersectsCircle performs the precise narrowphase test.
+        const searchRadius = sweptSegmentQueryRadius(
+            startX, startY, endX, endY, this.radius, MAX_ENEMY_COLLISION_RADIUS
+        );
         const nearby = GameEngine.enemyGrid.query(centerX, centerY, searchRadius, _collideScratch);
         const cfg = ProjectileTypeConfig[this.type] || {};
         
