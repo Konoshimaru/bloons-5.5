@@ -22,6 +22,7 @@ const coreFiles = [
     'js/mapMeta.js',
     'js/names.js',
     'js/projectileTypeConfig.js',
+    'js/projectileHitResolution.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -42,7 +43,8 @@ const coreFiles = [
     'tests/cutsceneRuntime.test.js',
     'tests/mapMeta.test.js',
     'tests/names.test.js',
-    'tests/projectileTypeConfig.test.js'
+    'tests/projectileTypeConfig.test.js',
+    'tests/projectileHitResolution.test.js'
 ];
 
 export default [
