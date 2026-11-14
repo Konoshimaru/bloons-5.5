@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Regression tests for bugs reported on test-version.
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { Config } from '../js/config.js';
 import { UIRenderer } from '../js/webgl/renderUI.js';
 import { computeLeadAim } from '../js/towerBehavior.js';

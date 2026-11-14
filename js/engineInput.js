@@ -13,8 +13,7 @@ import { Tower } from './tower.js';
 import { Hero } from './hero.js';
 import { applyBossEffects } from './input.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
-import { getSellRate } from './towerEconomy.js'; 
-import { GLOBAL_SCALE, GAME_AREA_WIDTH } from './constants.js';
+import { GAME_AREA_WIDTH } from './constants.js';
 
 const MAX_SPEED_NORMAL = 3;
 const MAX_SPEED_EXTREME = 6;
@@ -188,17 +187,20 @@ export default {
             });
             if (isOverlapping) { this.log("Cannot place on top of another monkey!"); return; }
             
-            let canPlace = false;
-            if (stats.waterOnly) {
-                // Lord of the Abyss (Mermonkey T5) lets water towers be placed on land within its radius.
-                const lotaInRange = this.towers.some(t => t && t.type === 'mermonkey' && t.upgrades[0] >= 5 && Utils.withinRange(t.x, t.y, x, y, Utils.getEffectiveRange(t, this)));
-                canPlace = this.map.isInWater(x, y) || lotaInRange;
-            } 
-            else if (stats.canPlaceOnWater) { canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < GAME_AREA_WIDTH; } 
-            else {
-                const isOnFrozenWater = this.map.isOnFrozenWater(x, y, this.towers);
-                canPlace = !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < GAME_AREA_WIDTH && (!this.map.isInWater(x, y) || isOnFrozenWater);
-            }
+            // Lord of the Abyss (Mermonkey T5) lets water-only towers be placed
+            // on land inside its effective range.
+            const canPlace = stats.waterOnly
+                ? this.map.isInWater(x, y) || this.towers.some(t =>
+                    t && t.type === 'mermonkey' && t.upgrades[0] >= 5 &&
+                    Utils.withinRange(t.x, t.y, x, y, Utils.getEffectiveRange(t, this)))
+                : stats.canPlaceOnWater
+                    ? !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) && y < CANVAS_HEIGHT && x < GAME_AREA_WIDTH
+                    : (() => {
+                        const isOnFrozenWater = this.map.isOnFrozenWater(x, y, this.towers);
+                        return !this.map.isOnPath(x, y) && !this.map.isOnProp(x, y) &&
+                            y < CANVAS_HEIGHT && x < GAME_AREA_WIDTH &&
+                            (!this.map.isInWater(x, y) || isOnFrozenWater);
+                    })();
             if (!canPlace) { this.log(stats.waterOnly ? "Must be placed on water!" : "Cannot place here!"); return; }
             if (stats.isHero && this.hero) { this.log("You can only place one Hero per game!"); return; }
             const newTower = stats.isHero ? new Hero(x, y, this.selectedTowerType) : new Tower(x, y, this.selectedTowerType);
