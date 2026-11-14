@@ -309,7 +309,7 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         this.beasts.length = 0; 
         this.sentries.length = 0; 
         this.acidPools.length = 0; this.menuClickables.length = 0;
-        this.projectilePool.clear(); this.particlePool.clear();
+        this.projectilePool.clear(); this.particlePool.clear(); this.enemyPool.clear();
         this.sessionXp = 0; this.sessionXpFlushTimer = 0;
         this.towerXpSession = {};
         if (!isSandbox && !diff.noSelling) {

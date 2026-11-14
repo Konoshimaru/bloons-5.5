@@ -226,7 +226,19 @@ describe('v1.3.3 pooled-flag sweep', () => {
         G.gameState = 'menu'; G.currentMap = 0; G.isSandbox = true;
         G._rafId = null; G.bgInterval = null;
         G._boundLoop = function () {}; // restartLoop schedules this via jsdom rAF
+
+        // A previous session may still have active pooled enemies that are
+        // no longer present in the gameplay array (e.g. after leaving early).
+        G.enemyPool.clear();
+        const orphanedEnemy = G.enemyPool.get();
+        orphanedEnemy.alive = true;
+        G.enemies.push(orphanedEnemy);
+        expect(G.enemyPool.active).toHaveLength(1);
+
         G.startGame(true);
+        expect(G.enemyPool.active).toHaveLength(0);
+        expect(orphanedEnemy.alive).toBe(false);
+        expect(G.enemies).toHaveLength(0);
         expect(G.manaShield).toBe(0);
         expect(G.maxManaShield).toBe(0);
         expect(G.leakedThisRound).toBe(false);
