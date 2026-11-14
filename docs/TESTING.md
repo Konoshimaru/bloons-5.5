@@ -32,7 +32,7 @@ Some tests use jsdom. Follow nearby tests when a module expects window, document
 
 ## Browser test page
 
-tests.html is explicitly labelled as a manual/legacy browser harness. It runs the older js/tests/tests.js checks, is separate from npm test, and does not represent Vitest coverage. Its results do not represent Vitest coverage.
+tests.html is explicitly labelled as a manual/legacy browser harness. It runs the older js/tests/tests.js checks, is separate from npm test, and does not represent Vitest coverage.
 
 ## What to test
 

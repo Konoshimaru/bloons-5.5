@@ -67,7 +67,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
 - [x] Run the expanded type-check in CI successfully for eight selected core modules.
 - [ ] Expand type-check coverage gradually as JSDoc and dependency boundaries are improved; do not treat the initial subset as a whole-project type check.
-- [ ] Add Map Editor document validation and I/O regression tests for malformed paths, waypoints, curves, hitboxes, water strokes, and background metadata; retain support for legacy single-path documents.\n- [ ] Expand tests for save migration and renderer error paths where practical.
+- [x] Add Map Editor document validation and I/O regression tests for malformed paths, waypoints, curves, hitboxes, water strokes, and background metadata; retain support for legacy single-path documents.
+- [ ] Expand tests for save migration and renderer error paths where practical.
 
 ## 4. Documentation and contributor onboarding
 
