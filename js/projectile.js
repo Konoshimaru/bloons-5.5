@@ -122,6 +122,11 @@ export class Projectile {
     }
 
     update(dt) {
+        // Keep the full movement segment so fast projectiles cannot skip over
+        // an enemy between the previous and current positions.
+        const previousX = this.x;
+        const previousY = this.y;
+
         switch (this.type) {
             case 'buff_potion': this._updateBuffPotion(dt); return;
             case 'shrink_potion': this._updateShrinkPotion(dt); return;
@@ -153,7 +158,7 @@ export class Projectile {
             return;
         }
 
-        this._checkCollisions();
+        this._checkCollisions(previousX, previousY);
     }
 
     _updateBuffPotion(dt) {

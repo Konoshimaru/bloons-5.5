@@ -5,7 +5,8 @@ import { Utils } from './utils.js';
 import { GameEngine } from './engineRef.js';
 import { DamageType, createDmgType } from './damageTypes.js';
 import { ProjectileTypeConfig } from './projectileTypeConfig.js';
-import { GLOBAL_SCALE } from './constants.js'; 
+import { GLOBAL_SCALE } from './constants.js';
+import { segmentIntersectsCircle } from './collisionGeometry.js';
 
 // Reusable scratch arrays for enemyGrid.query. Each call site gets its own array
 // because a query result may be iterated while a different query runs (e.g. an
@@ -15,8 +16,19 @@ const _explosionScratch = [];
 const _ricochetScratch = [];
 
 const ProjectileHitResolution = {
-    _checkCollisions() {
-        const nearby = GameEngine.enemyGrid.query(this.x, this.y, this.radius + 40, _collideScratch);
+    _checkCollisions(startX = this.x, startY = this.y) {
+        const endX = this.x;
+        const endY = this.y;
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const segmentLength = Math.hypot(dx, dy);
+        const centerX = (startX + endX) / 2;
+        const centerY = (startY + endY) / 2;
+
+        // Query a circle that encloses the entire swept segment. The grid is a
+        // broadphase only; segmentIntersectsCircle performs the precise test.
+        const searchRadius = segmentLength / 2 + this.radius + 40;
+        const nearby = GameEngine.enemyGrid.query(centerX, centerY, searchRadius, _collideScratch);
         const cfg = ProjectileTypeConfig[this.type] || {};
         
         for (const e of nearby) {
@@ -30,7 +42,7 @@ const ProjectileHitResolution = {
             if (e.isCamo && !(this.tower && (this.tower.stats.canSeeCamo || this.tower.buffedCamo))) continue;
             
             const eRad = e.radius || e.data.radius || 10;
-            if (Utils.withinRange(this.x, this.y, e.x, e.y, eRad + this.radius)) {
+            if (segmentIntersectsCircle(startX, startY, endX, endY, e.x, e.y, eRad + this.radius)) {
                 this.hit(e);
                 if (!cfg.exemptFromHitTracking) this.hitEnemies.add(e);
                 if (!this.alive) break;
