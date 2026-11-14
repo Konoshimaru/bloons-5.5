@@ -1,44 +1,7 @@
-// js/uiWriteThrottle.js
-//
-// [REGRESSION GUARD | local v1.4.3 sniper-lag fix — the owner-reported bug]
-// This module IS the v1.4.3 fix for "Sniper 0-0-5 lags the game when shooting the
-// Knight". Every HUD write that can churn at hit rate must go through it.
-// Pinned by tests/v143fixes.test.js — DO NOT DELETE OR BYPASS.
-//
-// DOM-write throttle for the per-frame HUD paths (v1.4.3).
-//
-// Root cause of the owner's "Sniper 0-0-5 lags the game when it shoots the
-// Knight" report: the SIMULATION is cheap (bench: ~0.011ms/tick with the
-// Elite Defender firing at the boss every tick — see worklog Task 37), but
-// several HUD strings change at HIT RATE. "Dmg Dealt: N" ticks up on every
-// shot, the boss HP-bar number ticks down on every hit, cash/lives tick with
-// every pop/leak. Each of those changes forces a DOM text write (parse +
-// layout invalidation) or, for the Pixi boss bar, a full Text re-raster +
-// GPU texture re-upload — EVERY FRAME while a fast-firing tower is shooting.
-//
-// Fix: route those writes through one helper that (a) skips identical values
-// outright and (b) for rapidly-changing counters, coalesces updates to a
-// fixed rate (10-20Hz) that reads identically to a human. The underlying
-// game state is never involved — this only affects how often the DISPLAY
-// repaints.
-//
-// Trailing-edge flush: skipped writes schedule a deferred flush of the final
-// value one window later. This matters for elements that are only written
-// on CHANGE (cash, lives — engine.updateUI gates the calls behind
-// lastCash/lastLives): without it, a change that landed inside a throttle
-// window and then stopped changing would leave the display stale forever.
-// For per-frame-refreshed elements (counters, boss bar) the flush usually
-// gets superseded by the next frame's direct write and never fires.
-//
-// Usage:
-//   writeThrottled(el, str)            — write only when the string changed
-//   writeThrottled(el, str, 100)       — + at most once per 100ms (10Hz)
-//   writeThrottled(el, html, 100, 'innerHTML') — same, for innerHTML nodes
-//   writeStyleThrottled(el, 'width', v, 100)   — same, for style properties
-//
-// Per-element state lives on the element itself (`_wt`, `_wtp`), so a node
-// that is ever replaced (innerHTML rebuilds elsewhere) simply starts fresh.
-// All state is display-only: nothing in the game logic reads these nodes.
+// Coalesces high-frequency, display-only DOM writes.
+// Repeated values are skipped; rapid changes are combined into a trailing
+// flush so change-only fields still display the final value after updates stop.
+// State is stored on each element and never feeds back into game simulation.
 
 const WT_STATE = '_wt';      // { value, at } — last value actually written
 const WT_PENDING = '_wtp';   // { timer, value } — trailing flush of a skipped value

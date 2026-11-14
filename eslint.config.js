@@ -10,6 +10,7 @@ const coreFiles = [
     'js/statusEffects.js',
     'js/spatialGrid.js',
     'js/mapEditorHistory.js',
+    'js/uiWriteThrottle.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -18,7 +19,8 @@ const coreFiles = [
     'tests/towerFactory.test.js',
     'tests/renderFailurePolicy.test.js',
     'tests/projectileCollisionBroadphase.test.js',
-    'tests/mapEditorHistory.test.js'
+    'tests/mapEditorHistory.test.js',
+    'tests/v143fixes.test.js'
 ];
 
 export default [
@@ -36,12 +38,19 @@ export default [
             ecmaVersion: 'latest',
             sourceType: 'module',
             globals: {
+                beforeAll: 'readonly',
                 beforeEach: 'readonly',
                 describe: 'readonly',
+                document: 'readonly',
                 expect: 'readonly',
                 it: 'readonly',
+                performance: 'readonly',
                 vi: 'readonly',
-                structuredClone: 'readonly'
+                structuredClone: 'readonly',
+                setTimeout: 'readonly',
+                clearTimeout: 'readonly',
+                test: 'readonly',
+                window: 'readonly'
             }
         },
         rules: {
