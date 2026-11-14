@@ -7,6 +7,9 @@ import { ProjectileDrawers } from '../projectileDrawers.js';
 import { Names } from '../names.js';
 import { GLOBAL_SCALE } from '../constants.js';
 import * as Const from './rendererConstants.js';
+import { FIXED_TIMESTEP_SECONDS } from '../fixedStepClock.js';
+
+const HITSCAN_AGE_BUCKETS = Math.max(1, Math.ceil(Const.HITSCAN_MAX_LIFE / FIXED_TIMESTEP_SECONDS));
 
 export const ProjectilesRenderer = {
     // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"] frameGen
@@ -112,18 +115,56 @@ export const ProjectilesRenderer = {
     },
 
     _drawHitscans(engine) {
-        if (!this._hitscansGraphics) {
-            this._hitscansGraphics = new Graphics(); PixiApp.layer('effects').addChild(this._hitscansGraphics);
+        const layer = PixiApp.layer('effects');
+        const buckets = this._hitscanGraphicsBuckets || (this._hitscanGraphicsBuckets = new Array(HITSCAN_AGE_BUCKETS));
+        const activeBuckets = this._hitscanActiveBuckets || (this._hitscanActiveBuckets = []);
+
+        // Only clear the buckets that were used last frame. Their Graphics
+        // instances stay attached to the layer and are reused for later shots.
+        for (const index of activeBuckets) {
+            const bucket = buckets[index];
+            bucket.graphics.clear();
+            bucket.active = false;
         }
-        const g = this._hitscansGraphics; g.clear();
+        activeBuckets.length = 0;
+
         for (const tower of engine.towers) {
             if (!tower || !tower.hitscans) continue;
             for (const h of tower.hitscans) {
                 if (!h) continue;
                 const alpha = Math.max(0, Math.min(1, h.life / Const.HITSCAN_MAX_LIFE));
                 if (alpha <= 0) continue;
-                g.moveTo(h.x1, h.y1).lineTo(h.x2, h.y2).stroke({ width: Const.HITSCAN_LINE_WIDTH, color: Const.HITSCAN_COLOR, alpha });
+
+                // The simulation advances in fixed 1/60s steps and hitscan
+                // records all live for 0.1s. That yields at most six distinct
+                // fade ages. Group those independent line subpaths so Pixi
+                // triangulates/strokes one batch per age, not once per shot.
+                const ageSteps = Math.max(0, Math.min(
+                    HITSCAN_AGE_BUCKETS - 1,
+                    Math.round((Const.HITSCAN_MAX_LIFE - h.life) / FIXED_TIMESTEP_SECONDS)
+                ));
+                let bucket = buckets[ageSteps];
+                if (!bucket) {
+                    const graphics = new Graphics();
+                    layer.addChild(graphics);
+                    bucket = buckets[ageSteps] = { graphics, active: false, alpha };
+                }
+                if (!bucket.active) {
+                    bucket.active = true;
+                    bucket.alpha = alpha;
+                    activeBuckets.push(ageSteps);
+                }
+                bucket.graphics.moveTo(h.x1, h.y1).lineTo(h.x2, h.y2);
             }
+        }
+
+        for (const index of activeBuckets) {
+            const bucket = buckets[index];
+            bucket.graphics.stroke({
+                width: Const.HITSCAN_LINE_WIDTH,
+                color: Const.HITSCAN_COLOR,
+                alpha: bucket.alpha,
+            });
         }
     },
 

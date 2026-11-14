@@ -301,3 +301,48 @@ describe('Sniper Shrapnel burst edge cases', () => {
         expect(initArgs[8]).toBeCloseTo(Math.atan2(target.y - tower.y, target.x - tower.x));
     });
 });
+
+
+describe('Pixi Sniper hitscan batching', () => {
+    it('draws all beams of the same fixed-step fade age in one stroke and reuses buckets', async () => {
+        const { Graphics } = await import('pixi.js');
+        const { PixiApp } = await import('../js/webgl/pixiApp.js');
+        const { ProjectilesRenderer } = await import('../js/webgl/renderProjectiles.js');
+        const { FIXED_TIMESTEP_SECONDS } = await import('../js/fixedStepClock.js');
+
+        const layer = { addChild: vi.fn() };
+        const layerSpy = vi.spyOn(PixiApp, 'layer').mockReturnValue(layer);
+        const moveSpy = vi.spyOn(Graphics.prototype, 'moveTo');
+        const lineSpy = vi.spyOn(Graphics.prototype, 'lineTo');
+        const strokeSpy = vi.spyOn(Graphics.prototype, 'stroke');
+        const renderer = Object.create(ProjectilesRenderer);
+
+        const tower = {
+            hitscans: [
+                { x1: 10, y1: 10, x2: 20, y2: 20, life: 0.1 },
+                { x1: 30, y1: 30, x2: 40, y2: 40, life: 0.1 },
+                { x1: 50, y1: 50, x2: 60, y2: 60, life: 0.1 - FIXED_TIMESTEP_SECONDS },
+            ],
+        };
+
+        try {
+            renderer._drawHitscans({ towers: [tower] });
+            expect(moveSpy).toHaveBeenCalledTimes(3);
+            expect(lineSpy).toHaveBeenCalledTimes(3);
+            expect(strokeSpy).toHaveBeenCalledTimes(2);
+            expect(layer.addChild).toHaveBeenCalledTimes(2);
+
+            // A later frame reuses the already-created graphics bucket.
+            tower.hitscans = [tower.hitscans[0]];
+            renderer._drawHitscans({ towers: [tower] });
+            expect(moveSpy).toHaveBeenCalledTimes(4);
+            expect(strokeSpy).toHaveBeenCalledTimes(3);
+            expect(layer.addChild).toHaveBeenCalledTimes(2);
+        } finally {
+            layerSpy.mockRestore();
+            moveSpy.mockRestore();
+            lineSpy.mockRestore();
+            strokeSpy.mockRestore();
+        }
+    });
+});
