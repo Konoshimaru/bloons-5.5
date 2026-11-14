@@ -327,9 +327,9 @@ function _findTarget(tower, engine) {
     }
 
     const setupMeasure = isSniper ? Profiler.beginMeasure('sniper.targetScanSetup') : null;
-    let isGlobal, effRange, candidates, currentTargeting, minRange, cache, canShareGlobalTarget, cacheKey;
+    const isGlobal = tower.stats.range === 9999;
+    let effRange, candidates, currentTargeting, minRange, cache, canShareGlobalTarget, cacheKey;
     try {
-        isGlobal = tower.stats.range === 9999;
         effRange = isGlobal ? 0 : Utils.getEffectiveRange(tower, engine);
         candidates = isGlobal ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange, _targetScratch);
 
