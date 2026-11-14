@@ -1,9 +1,9 @@
 // constants.js
 
-// v1.4.6: the running game's version, shown as a badge on the main menu.
+// v1.4.7: the running game's version, shown as a badge on the main menu.
 // Single source of truth for the runtime display; tests cross-check it
 // against package.json so the two can never drift apart.
-export const GAME_VERSION = '1.4.6';
+export const GAME_VERSION = '1.4.7';
 
 export const CANVAS_WIDTH = 1280;
 export const CANVAS_HEIGHT = 720;
