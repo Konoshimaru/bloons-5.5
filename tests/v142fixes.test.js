@@ -439,9 +439,9 @@ describe('v1.4.2 #8: the Glaive Dominus kit, behavioral', () => {
 // Version + changelog pin
 // ---------------------------------------------------------------------------
 describe('v1.4.2 release pin', () => {
-    it('the Update Log has the v1.4.2 gold entry (version pin moved to v1.4.5)', () => {
+    it('the Update Log retains the v1.4.2 entry and package version tracks the current release', () => {
         const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
-        expect(pkg.version).toBe('1.4.5');   // moved forward by the v1.4.5 guard wave
+        expect(pkg.version).toBe('1.4.6');   // current package release
         const htmlSrc = readFileSync(join(ROOT, 'index.html'), 'utf8');
         expect(htmlSrc).toContain('v1.4.2 — Paragon polish &amp; the Dominus rebalance');
     });

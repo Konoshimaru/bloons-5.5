@@ -112,7 +112,7 @@ describe('GitHub sniper-fix lineage: 7056779 "performance fix 2" (sniper rework)
         const src = read('js/towers/sniper.js');
         expect(src).toMatch(/if \(bounces > 0\) \{[\s\S]*?const hitSet = tower\._sniperBounceHitSet \|\| \(tower\._sniperBounceHitSet = new Set\(\)\);/);
         expect(src).toMatch(/hitSet\.clear\(\);\s+hitSet\.add\(target\);/);
-        expect(src).toMatch(/hitSet\.clear\(\);\s+\}\s+\},\s+_fireShrapnel/);
+        expect(src).toMatch(/hitSet\.clear\(\);\s+\} finally \{ Profiler\.endMeasure\(bounceMeasure\); \}\s+\}\s+finally \{ Profiler\.endMeasure\(fireMeasure\); \}\s+\},\s+_fireShrapnel/);
     });
 
     it('supply-drop banana crates still animate their fall', () => {
@@ -486,5 +486,10 @@ describe('v1.4.4 version badge wiring', () => {
 
     it('the Update Log has the v1.4.5 gold entry (guard-comment wave)', () => {
         expect(read('index.html')).toMatch(/v1\.4\.5 — Regression armor/);
+    });
+
+    it('the Update Log has the v1.4.6 simulation diagnostics entry', () => {
+        expect(read('index.html')).toMatch(/v1\.4\.6 — Simulation diagnostics/);
+        expect(read('index.html')).toMatch(/the reported Sniper FPS spikes are still being investigated/i);
     });
 });

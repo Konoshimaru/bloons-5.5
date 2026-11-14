@@ -80,6 +80,10 @@ Run npm run check:syntax, npm run typecheck:core, npm run lint:core, npm test an
 
 Read CONTRIBUTING.md, the guides in docs/, and docs/IMPLEMENTATION_CHECKLIST.md. Make focused changes, add regression tests and describe how you verified them.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
 ## License and third-party assets
 
 package.json declares ISC, but there is no root LICENSE file. Confirm the intended source-code license and review third-party sprite, music, font and other asset permissions before adding a blanket license.
