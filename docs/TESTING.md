@@ -2,7 +2,11 @@
 
 ## Automated suite
 
-The automated suite uses Vitest. Run npm ci, then npm test. Tests live in tests/*.test.js. The shared configuration is in vite.config.js; discovery excludes node_modules, scripts/ and js/backups/.
+The automated suite uses Vitest. Run npm ci, then npm run check:syntax and npm test. Tests live in tests/*.test.js. The shared configuration is in vite.config.js; discovery excludes node_modules, scripts/ and js/backups/.
+
+## Syntax check
+
+The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and tools/, plus the root Vite config. It skips node_modules, dist, js/backups and scripts/ because those contain dependencies, generated output, historical backups or archived copies.
 
 ## Test production behavior
 

@@ -7,7 +7,8 @@
     "build": "vite build",
     "test": "vitest run",
     "gen:manifest": "node tools/gen-manifest.mjs",
-    "gen:thumbs": "node tools/gen-map-thumbs.mjs"
+    "gen:thumbs": "node tools/gen-map-thumbs.mjs",
+    "check:syntax": "node tools/check-syntax.mjs"
   },
   "repository": {
     "type": "git",

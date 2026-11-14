@@ -27,6 +27,7 @@ The Vite server is configured for 127.0.0.1:5500 and opens the browser automatic
 | npm ci | Install exact dependencies from the lockfile. |
 | npm run dev | Start the local development server. |
 | npm test | Run the Vitest automated suite. |
+| npm run check:syntax | Parse all source, test, and tool JavaScript files with Node.js. |
 | npm run build | Create the production build in dist/. |
 | npm run gen:manifest | Regenerate the sprite manifest. |
 | npm run gen:thumbs | Regenerate map thumbnails. |
