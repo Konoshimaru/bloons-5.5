@@ -13,6 +13,18 @@ if errorlevel 1 (
     goto :fail
 )
 
+node -e "const [major, minor] = process.versions.node.split('.').map(Number); if (major < 22 || (major === 22 && minor < 12)) process.exit(1)"
+if errorlevel 1 (
+    echo [ERRO] Este projeto requer Node.js 22.12 ou superior.
+    echo Versao instalada:
+    node --version
+    goto :fail
+)
+
+echo Node.js:
+node --version
+echo.
+
 where npm >nul 2>nul
 if errorlevel 1 (
     echo [ERRO] npm nao foi encontrado. Reinstale o Node.js com npm.

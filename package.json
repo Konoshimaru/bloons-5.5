@@ -42,5 +42,8 @@
   "dependencies": {
     "pixi.js": "^8.19.0"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  }
 }

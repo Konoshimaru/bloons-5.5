@@ -6,7 +6,7 @@ Bloons 5.5 is a browser-based tower-defense project built with JavaScript, Vite 
 
 ## Requirements
 
-- Node.js 22 and npm.
+- Node.js 22.12 or newer and npm (Node.js 24 is used in CI).
 - Git, if you are contributing.
 
 ## Get started

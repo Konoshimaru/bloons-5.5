@@ -4,7 +4,7 @@ Thank you for helping with Bloons 5.5. This guide helps contributors understand 
 
 ## 1. Set up
 
-1. Install Node.js 22 and npm.
+1. Install Node.js 22.12 or newer and npm.
 2. Clone the repository.
 3. Run npm ci.
 4. Run npm run dev.
