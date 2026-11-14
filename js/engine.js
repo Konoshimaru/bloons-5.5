@@ -28,7 +28,7 @@ import SimulationLoop from './simulationLoop.js';
 import { Beast } from './beastEntity.js';
 import { Profiler } from './profiler.js';
 import { advanceFixedStepClock } from './fixedStepClock.js';
-import { attachEngineModule } from './engineComposition.js';
+import { attachModuleMethods } from './engineComposition.js';
 
 const FPS_UPDATE_INTERVAL = 1000;
 const HANG_THRESHOLD_MS = 500; 
@@ -573,9 +573,9 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
 
 // Attach each subsystem with an explicit owner. Duplicate property names
 // throw during startup instead of silently replacing another subsystem's method.
-attachEngineModule(GameEngine, 'EngineInput', EngineInput);
-attachEngineModule(GameEngine, 'GameSession', GameSession);
-attachEngineModule(GameEngine, 'SimulationLoop', SimulationLoop);
+attachModuleMethods(GameEngine, 'EngineInput', EngineInput);
+attachModuleMethods(GameEngine, 'GameSession', GameSession);
+attachModuleMethods(GameEngine, 'SimulationLoop', SimulationLoop);
 
 window.GameEngine = GameEngine;
 

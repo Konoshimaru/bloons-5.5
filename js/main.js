@@ -29,12 +29,17 @@ import { dom } from './dom.js';
 import { windowLayout } from './windowLayout.js';
 import { menuController } from './menuController.js';
 import { gameController } from './gameController.js';
+import { attachModuleMethods } from './engineComposition.js';
 
 export const Main = {};
-Object.assign(Main, selectorMenus);
-Object.assign(Main, settingsMenu);
-Object.assign(Main, menuController);
-Object.assign(Main, gameController);
+attachModuleMethods(Main, 'selectorMenus', selectorMenus);
+attachModuleMethods(Main, 'settingsMenu', settingsMenu);
+// menuController intentionally exposes selector wrappers so applyConfigToUI
+// can call them with the menu controller as its receiver.
+attachModuleMethods(Main, 'menuController', menuController, {
+    allowOverrides: ['refreshMapSelector', 'refreshHeroSelector', 'updateHeroShopCard']
+});
+attachModuleMethods(Main, 'gameController', gameController);
 
 // Canvas-side preload (js/assets.js Images). Mirrors the WebGL background
 // preload that PixiRenderer.init() fires at page load: it runs during the
