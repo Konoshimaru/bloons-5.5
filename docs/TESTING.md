@@ -10,7 +10,7 @@ The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and 
 
 ## Incremental linting
 
-The ESLint flat config currently checks 15 production modules: the fixed-step clock, collision geometry, saved-run validation, engine composition, tower factory, damage types, status effects, spatial grid, renderer failure policy, MapEditorHistory, the DOM write throttle, Map Editor document validation and I/O, MapEditorState, and MapRenderCore. It also checks 13 regression-test files for these modules and their related behavior. Run `npm run lint:core`. This remains an incremental subset; expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
+The ESLint flat config currently checks 17 production modules: the fixed-step clock, collision geometry, saved-run validation, engine composition, tower factory, damage types, status effects, spatial grid, renderer failure policy, MapEditorHistory, the DOM write throttle, Map Editor document validation and I/O, MapEditorState, MapRenderCore, MapEditorRenderer, and MapEditorInput. It also checks 15 regression-test files for these modules and their related behavior. Run `npm run lint:core`. This remains an incremental subset; expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
 
 ## Dependency security audit
 
@@ -41,7 +41,7 @@ tests.html is explicitly labelled as a manual/legacy browser harness. It runs th
 - Tower upgrades, damage, support buffs and abilities.
 - Bloon HP, splitting, regrow and damage interactions.
 - Economy and save/load.
-- Map Editor document validation, JSON import/apply, saved custom-map loading, and save behavior; cover malformed geometry and keep legacy single-path map compatibility. Also test MapEditorState camera/dirty-state transitions and MapRenderCore path visibility/curves, water strokes, and object hitboxes.
+- Map Editor document validation, JSON import/apply, saved custom-map loading, and save behavior; cover malformed geometry and keep legacy single-path map compatibility. Also test MapEditorState camera/dirty-state transitions, MapEditorInput hitbox wheel-resizing/canvas zoom/reference scaling, and MapRenderCore/MapEditorRenderer path visibility/curves, water strokes, object hitboxes, and background previews.
 - Cutscene document normalization, interpolation and playback.
 - Rendering asset keys and first-load behavior where practical.
 
