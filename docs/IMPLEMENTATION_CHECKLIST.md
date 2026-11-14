@@ -114,6 +114,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Make `ObjectPool.removeAt()` safely ignore fractional, non-finite, and out-of-range indices rather than passing an undefined entry into `release()`; add a regression test.
 - [x] Cover ObjectPool factory contracts: factories must return objects and must create distinct instances, both during lazy allocation and initial preallocation.
 - [x] Replace blind `Object.assign()` composition for Projectile/ProjectileHitResolution, Tower/TowerEconomy, UI/uiTowerPanel, and KnightEnemy/KnightAttacks with guarded `attachModuleMethods()` calls; assert their production methods load on the real owners.
+- [x] Replace blind `Object.assign()` in PixiRenderer with guarded per-subsystem attachment; give each renderer its own frame-generation counter and verify all ten renderer entry methods load.
 - [ ] Review remaining temporary, audit-report, and patch-history comments throughout the codebase.
 - [ ] Remove unused imports only after linting confirms they are not side-effect imports.
 - [ ] Consolidate duplicate imports from the same module where appropriate.
@@ -139,7 +140,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43634095968 is green on commit `da81d745c72f18c9693d4a17e63b79c0a416264a`: zero npm advisories, 229 syntax-checked files, fourteen type-checked modules, 34 ESLint production modules plus 29 test files, 58 Vitest files (543 tests), and production build.
+- [x] Confirm CI run 43634592731 is green on commit `ef928ead48a605fe10aaa8e79dce7820590629ef`: zero npm advisories, 229 syntax-checked files, fourteen type-checked modules, 34 ESLint production modules plus 29 test files, 58 Vitest files (544 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
