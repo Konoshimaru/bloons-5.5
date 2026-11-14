@@ -1,0 +1,77 @@
+name: Add ESLint core checks
+
+on:
+  push:
+    branches:
+      - fix/fixed-timestep
+
+permissions:
+  contents: write
+
+jobs:
+  add-eslint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the working branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/fixed-timestep
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Check whether this push requested ESLint
+        id: guard
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [ "$COMMIT_MESSAGE" = "chore(tooling): add ESLint core checks" ]; then
+            echo "run_update=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_update=false" >> "$GITHUB_OUTPUT"
+            echo "This push did not request the ESLint bootstrap; skipping."
+          fi
+
+      - name: Add pinned ESLint packages to the lockfile
+        if: steps.guard.outputs.run_update == 'true'
+        run: npm install --save-dev --package-lock-only --ignore-scripts eslint@10.15.0 @eslint/js@10.15.0
+
+      - name: Install refreshed lockfile
+        if: steps.guard.outputs.run_update == 'true'
+        run: npm ci
+
+      - name: Run the initial core lint
+        if: steps.guard.outputs.run_update == 'true'
+        run: npm run lint:core
+
+      - name: Check JavaScript syntax
+        if: steps.guard.outputs.run_update == 'true'
+        run: npm run check:syntax
+
+      - name: Type-check core helpers
+        if: steps.guard.outputs.run_update == 'true'
+        run: npm run typecheck:core
+
+      - name: Run automated tests
+        if: steps.guard.outputs.run_update == 'true'
+        run: npm test
+
+      - name: Build production site
+        if: steps.guard.outputs.run_update == 'true'
+        run: npm run build
+
+      - name: Commit the verified ESLint packages
+        if: steps.guard.outputs.run_update == 'true'
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "ESLint dependencies are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "chore(tooling): add ESLint dependencies"
+          git push origin HEAD:fix/fixed-timestep
