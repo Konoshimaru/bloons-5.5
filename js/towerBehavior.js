@@ -234,6 +234,10 @@ function _getAcquireTarget(tower, engine) {
     const cached = tower._cachedTarget;
     const shouldReuseCached = !firingReady ||
         (tower.stats.range === 9999 && tower._targetRescanTimer > 0);
+    const cachedRulesMatch = tower._cachedTargetingMode === targetingMode &&
+        tower._cachedTargetEliteLeakState === eliteLeakState &&
+        tower._cachedTargetCanSeeCamo === canSeeCamo &&
+        tower._cachedTargetCanHitMoab === canHitMoab;
     const targetCacheMeasure = isSniper
         ? Profiler.beginMeasure('sniper.targetCacheValidation')
         : null;
@@ -244,10 +248,7 @@ function _getAcquireTarget(tower, engine) {
             !cached.invulnerable &&
             !cached.untargetable &&
             cached._spawnId === tower._cachedTargetSpawnId &&
-            tower._cachedTargetingMode === targetingMode &&
-            tower._cachedTargetEliteLeakState === eliteLeakState &&
-            tower._cachedTargetCanSeeCamo === canSeeCamo &&
-            tower._cachedTargetCanHitMoab === canHitMoab &&
+            cachedRulesMatch &&
             !isHiddenFrom(tower, cached) &&
             !(tower.type === 'glue' && cached.data?.isMoab && !tower.stats.canHitMoab) &&
             (tower.stats.range === 9999 || Utils.withinRange(
@@ -276,7 +277,8 @@ function _getAcquireTarget(tower, engine) {
     const emptyGateMeasure = isSniper
         ? Profiler.beginMeasure('sniper.emptyTargetCooldownGate')
         : null;
-    const skipEmptyScan = !cached && tower._targetRescanTimer > 0 && tower.cooldown > 0;
+    const skipEmptyScan = !cached && cachedRulesMatch &&
+        tower._targetRescanTimer > 0 && tower.cooldown > 0;
     Profiler.endMeasure(emptyGateMeasure);
     if (skipEmptyScan) {
         if (isSniper) Profiler.count('sniper.emptyTargetCooldownSkips');
