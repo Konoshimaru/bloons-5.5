@@ -112,7 +112,12 @@ describe('GitHub sniper-fix lineage: 7056779 "performance fix 2" (sniper rework)
         const src = read('js/towers/sniper.js');
         expect(src).toMatch(/if \(bounces > 0\) \{[\s\S]*?const hitSet = tower\._sniperBounceHitSet \|\| \(tower\._sniperBounceHitSet = new Set\(\)\);/);
         expect(src).toMatch(/hitSet\.clear\(\);\s+hitSet\.add\(target\);/);
-        expect(src).toMatch(/hitSet\.clear\(\);\s+\} finally \{ Profiler\.endMeasure\(bounceMeasure\); \}\s+\}\s+finally \{ Profiler\.endMeasure\(fireMeasure\); \}\s+\},\s+_fireShrapnel/);
+        const bounceBlockStart = src.indexOf('if (bounces > 0) {');
+        const shrapnelMethodStart = src.indexOf('    _fireShrapnel', bounceBlockStart);
+        const bounceBlock = src.slice(bounceBlockStart, shrapnelMethodStart);
+        expect(bounceBlock).toContain('hitSet.clear();');
+        expect(bounceBlock).toContain('Profiler.endMeasure(bounceMeasure)');
+        expect(bounceBlock).toContain('Profiler.endMeasure(fireMeasure)');
     });
 
     it('supply-drop banana crates still animate their fall', () => {
