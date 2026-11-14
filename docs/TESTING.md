@@ -10,7 +10,7 @@ The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and 
 
 ## Incremental linting
 
-The ESLint flat config currently checks 34 production modules, including fixed-step/collision/save helpers, engine composition and tower factory, damage/status/spatial helpers, GameMap, Enemy/EnemyDamage, ObjectPool, SimulationLoop, Projectile, Tower, UI, KnightEnemy, Map Editor modules, Cutscene runtime, map metadata, names, projectile subtype configuration, projectile pool limits, projectile hit resolution, and the staged LoadGate. It also checks 29 regression-test files, including Sniper projectile-cap safeguards. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
+The ESLint flat config currently checks 44 selected production modules and 32 regression-test files across core runtime helpers, renderer modules, Map Editor modules, Cutscene runtime, map metadata, and supporting code. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
 
 ## Dependency security audit
 
@@ -39,7 +39,7 @@ tests.html is explicitly labelled as a manual/legacy browser harness. It runs th
 - Simulation clock and high-speed behavior.
 - ObjectPool identity/release rules, active-list synchronization, and SimulationLoop removal during projectile/particle iteration.
 - Projectile hits, pierce, collision immunity and special projectile types.
-- Sniper high-rate target acquisition, the no-bounce firing fast path, Shrapnel ricochet behavior, and enforcement of the shared active-projectile cap.
+- Simulation stability under high entity counts and accelerated game speed; capture profiler data when frame time degrades.
 - Tower upgrades, damage, support buffs and abilities.
 - Bloon HP, splitting, regrow and damage interactions.
 - Economy and save/load.
@@ -49,4 +49,4 @@ tests.html is explicitly labelled as a manual/legacy browser harness. It runs th
 - Map metadata tier lookups, sprite-key naming, and projectile subtype flags.
 - Rendering asset keys and first-load behavior where practical.
 
-Latest verified CI run 43634592731 passes npm ci, the dependency audit report (zero vulnerabilities), syntax scanning (229 files), the fourteen-module core type-check, ESLint (34 production modules and 29 tests), Vitest (58 files / 544 tests), and the production build. The module-load regression test also verifies that all Pixi rendering subsystems attach through guarded composition with independent frame-generation counters. Browser verification is still required for gameplay/UI changes. Browser verification is still required for gameplay/UI changes.
+Latest verified CI run 43642151302 passes npm ci, the dependency audit report (zero vulnerabilities), syntax scanning (234 files), the fourteen-module core type-check, ESLint (44 production modules and 32 tests), Vitest (61 files / 564 tests), and the production build. The build output contains all five configured HTML entry points. Browser verification is still required for gameplay/UI changes.

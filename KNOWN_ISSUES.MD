@@ -33,7 +33,7 @@ GitHub Actions run 43642151302 completed successfully on commit `1c1a8517675a51d
 - [ ] Further reduce the shared Main controller method bag only if a clearer sub-object design can be introduced without changing menu behavior.
 - [ ] Large editor/rendering modules: split files only where a clear responsibility boundary exists. Preserve the Cutscene Editor and other development tools.
 - [ ] Legacy browser test harness: tests.html remains a manual smoke page, separate from Vitest. Its duplicated undo/redo, curve-subdivision, and Ice Monkey simulations have been removed and replaced with production-module Vitest tests; review any remaining manual assertions for gaps.
-- [ ] Automated checks: GitHub Actions now runs dependency audit, syntax scanning, a fourteen-module TypeScript check, and ESLint on 33 production modules plus 28 test files, alongside Vitest and the production build. ESLint and TypeScript coverage still need to expand across the remaining application modules and development tools.
+- [ ] Automated checks: GitHub Actions now runs dependency audit, syntax scanning, a fourteen-module TypeScript check, and ESLint on 44 production modules plus 32 test files, alongside Vitest and the production build. ESLint and TypeScript coverage still need to expand across the remaining application modules and development tools.
 - [ ] Package licensing: package.json declares ISC, but there is no root LICENSE file. Confirm the intended source-code license and separately review game art, audio, fonts and other asset rights before adding a blanket license file.
 - [ ] Import/style cleanup: run a configured linter before removing suspected unused imports; some imports may be intentionally loaded for side effects.
 
