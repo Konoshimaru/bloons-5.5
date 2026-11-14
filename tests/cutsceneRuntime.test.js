@@ -317,3 +317,23 @@ describe('easings export', () => {
         expect(CHANNEL_DEFAULTS.x).toBe(0);
     });
 });
+
+
+describe('normalizeDoc actor identifiers', () => {
+    it('keeps actor IDs unique when imported documents contain duplicates or blanks', () => {
+        const doc = normalizeDoc({
+            actors: [
+                { id: 'same', name: 'First' },
+                { id: 'same', name: 'Second' },
+                { id: 'same-2', name: 'Third' },
+                { id: '   ', name: 'Fourth' },
+                { name: 'Fifth' }
+            ]
+        });
+        const ids = doc.actors.map(actor => actor.id);
+
+        expect(ids[0]).toBe('same');
+        expect(ids.every(id => typeof id === 'string' && id.trim().length > 0)).toBe(true);
+        expect(new Set(ids).size).toBe(ids.length);
+    });
+});

@@ -270,9 +270,17 @@ export function normalizeDoc(raw) {
         actors: [],
     };
     const actors = Array.isArray(raw?.actors) ? raw.actors : [];
+    const usedActorIds = new Set();
     for (const a of actors) {
+        const baseId = typeof a?.id === 'string' && a.id.trim() ? a.id.trim() : makeId();
+        let id = baseId;
+        let suffix = 2;
+        while (usedActorIds.has(id)) {
+            id = `${baseId}-${suffix++}`;
+        }
+        usedActorIds.add(id);
         const actor = {
-            id: typeof a?.id === 'string' ? a.id : makeId(),
+            id,
             name: typeof a?.name === 'string' && a.name.trim() ? a.name.trim() : 'Actor',
             sprite: typeof a?.sprite === 'string' ? a.sprite : null,
             visible: a?.visible !== false,
