@@ -145,11 +145,16 @@ export class Projectile {
             default: this._updateStandard(dt); break;
         }
 
-        if (this._isOffscreen()) {
-            // Apex Plasma Master: the ball detonates at the screen edge (its
-            // pierce-exhaustion split has usually already happened in the hit
-            // resolver; a ball that still has pierce left just explodes).
-            if (this.type === 'apex_ball') {
+        const offscreen = this._isOffscreen();
+
+        // Resolve the full movement segment even when the projectile ends this
+        // step beyond the screen edge; it may have crossed an enemy on its way out.
+        this._checkCollisions(previousX, previousY);
+
+        if (offscreen) {
+            // Apex Plasma Master: the ball detonates at the screen edge only if
+            // its swept collision did not already consume/destroy the projectile.
+            if (this.type === 'apex_ball' && this.alive) {
                 spawnExplosion(GameEngine,
                     Math.max(0, Math.min(GAME_AREA_WIDTH, this.x)),
                     Math.max(0, Math.min(CANVAS_HEIGHT, this.y)), 60, 0.3, '#ff9f43');
@@ -157,8 +162,6 @@ export class Projectile {
             this.alive = false;
             return;
         }
-
-        this._checkCollisions(previousX, previousY);
     }
 
     _updateBuffPotion(dt) {
