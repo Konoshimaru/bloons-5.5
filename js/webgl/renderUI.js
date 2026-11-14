@@ -16,15 +16,15 @@ import * as Const from './rendererConstants.js';
 export const UIRenderer = {
     // [REGRESSION GUARD | upstream d29d4af] frameGen sweep for floating texts + boss bars
     // (replaces per-frame `seen` Sets) — pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
-    _frameGen: 0,
+    _uiFrameGen: 0,
 
     _drawFloatingTexts(engine) {
         if (!this._floatingTextsLayer) {
             this._floatingTextsLayer = new Container(); PixiApp.layer('overlay').addChild(this._floatingTextsLayer);
         }
         const layer = this._floatingTextsLayer;
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._uiFrameGen = (this._uiFrameGen + 1) || 1;
+        const gen = this._uiFrameGen;
         for (const ft of engine.floatingTexts || []) {
             if (!ft) continue;
             let text = this._floatingTextSprites.get(ft);
@@ -216,8 +216,8 @@ export const UIRenderer = {
             BossHealthBarHandler.activeBosses = BossHealthBarHandler.activeBosses.filter(b => b.enemy && b.enemy.alive);
         }
         const bosses = BossHealthBarHandler.activeBosses; const layer = PixiApp.layer('screenUI');
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._uiFrameGen = (this._uiFrameGen + 1) || 1;
+        const gen = this._uiFrameGen;
         bosses.forEach((boss, index) => {
             let entry = this._bossBarEntries.get(boss);
             if (!entry) {

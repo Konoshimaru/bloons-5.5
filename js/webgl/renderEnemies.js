@@ -15,13 +15,13 @@ export const EnemiesRenderer = {
     // allocated + filled (1000+ inserts) every frame just to sweep dead
     // entries out of _enemySprites. Each entry carries the frame number that
     // touched it; the sweep below reclaims any entry whose stamp is stale.
-    _frameGen: 0,
+    _enemyFrameGen: 0,
 
     _drawEnemies(engine) {
         const layer = PixiApp.layer('enemies');
         const mscale = getSpriteScale();
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._enemyFrameGen = (this._enemyFrameGen + 1) || 1;
+        const gen = this._enemyFrameGen;
         const _t0 = performance.now();
 
         for (const enemy of engine.enemies) {

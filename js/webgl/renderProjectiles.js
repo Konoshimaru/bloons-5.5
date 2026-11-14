@@ -12,14 +12,14 @@ export const ProjectilesRenderer = {
     // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"] frameGen
     // sweep + pop-texture/banana caches below (no per-frame string keys or Map lookups) —
     // pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
-    _frameGen: 0,
+    _projectileFrameGen: 0,
 
     _drawProjectiles(engine) {
         const layer = PixiApp.layer('projectiles');
         const pool = engine.projectilePool?.active;
         if (!pool) return;
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._projectileFrameGen = (this._projectileFrameGen + 1) || 1;
+        const gen = this._projectileFrameGen;
 
         for (const p of pool) {
             if (!p) continue;
@@ -79,8 +79,8 @@ export const ProjectilesRenderer = {
     _drawParticles(engine) {
         const layer = PixiApp.layer('effects');
         const particles = engine.particlePool?.active || [];
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._projectileFrameGen = (this._projectileFrameGen + 1) || 1;
+        const gen = this._projectileFrameGen;
         for (const p of particles) {
             if (!p || p.life <= 0) continue;
             let sprite = this._particleSprites.get(p);
@@ -129,8 +129,8 @@ export const ProjectilesRenderer = {
 
     _drawBananas(engine) {
         const layer = PixiApp.layer('effects');
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._projectileFrameGen = (this._projectileFrameGen + 1) || 1;
+        const gen = this._projectileFrameGen;
         for (const tower of engine.towers) {
             if (!tower || !tower.bananas) continue;
             for (const b of tower.bananas) {

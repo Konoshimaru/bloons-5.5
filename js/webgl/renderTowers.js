@@ -21,8 +21,8 @@ export const TowersRenderer = {
     // Per-frame generation stamp replaces the fresh `seen` Set that was
     // allocated + filled every frame just to sweep dead entries. Each entry
     // carries the frame that touched it; the sweep reclaims stale stamps.
-    _frameGen: 0,
-    _frameGenEffects: 0,
+    _towerFrameGen: 0,
+    _towerFrameGenEffects: 0,
 
     _drawTowers(engine) {
         const layer = PixiApp.layer('towers');
@@ -34,8 +34,8 @@ export const TowersRenderer = {
         // times per tower. _applySpriteConfig falls back to getSpriteScale()
         // when called outside a draw frame (e.g. the placement preview).
         this._frameMscale = mscale;
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._towerFrameGen = (this._towerFrameGen + 1) || 1;
+        const gen = this._towerFrameGen;
 
         for (const tower of engine.towers) {
             if (!tower) continue;
@@ -251,8 +251,8 @@ export const TowersRenderer = {
 
     _drawTowerEffects(engine) {
         const layer = PixiApp.layer('towerUnderEffects');
-        this._frameGenEffects = (this._frameGenEffects + 1) || 1;
-        const gen = this._frameGenEffects;
+        this._towerFrameGenEffects = (this._towerFrameGenEffects + 1) || 1;
+        const gen = this._towerFrameGenEffects;
 
         for (const tower of engine.towers) {
             if (!tower) continue;

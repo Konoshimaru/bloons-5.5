@@ -15,6 +15,7 @@ import { BuffIconsRenderer } from './renderBuffIcons.js';
 import { TowerStats } from '../towers/index.js';
 import { HeroRegistry } from '../heroes/index.js';
 import { SPRITESHEETS } from '../spriteSheets.js';
+import { attachModuleMethods } from '../engineComposition.js';
 
 export const PixiRenderer = {
     _bgSprite: null,
@@ -393,4 +394,12 @@ export const PixiRenderer = {
 };
 
 // Merge all the rendering modules into the main PixiRenderer object
-Object.assign(PixiRenderer, TowersRenderer, EnemiesRenderer, ProjectilesRenderer, WorldRenderer, UIRenderer, HeroVFXRenderer, CutsceneRenderer, MenuRenderer, BuffIconsRenderer);
+attachModuleMethods(PixiRenderer, 'TowersRenderer', TowersRenderer);
+attachModuleMethods(PixiRenderer, 'EnemiesRenderer', EnemiesRenderer);
+attachModuleMethods(PixiRenderer, 'ProjectilesRenderer', ProjectilesRenderer);
+attachModuleMethods(PixiRenderer, 'WorldRenderer', WorldRenderer);
+attachModuleMethods(PixiRenderer, 'UIRenderer', UIRenderer);
+attachModuleMethods(PixiRenderer, 'HeroVFXRenderer', HeroVFXRenderer);
+attachModuleMethods(PixiRenderer, 'CutsceneRenderer', CutsceneRenderer);
+attachModuleMethods(PixiRenderer, 'MenuRenderer', MenuRenderer);
+attachModuleMethods(PixiRenderer, 'BuffIconsRenderer', BuffIconsRenderer);

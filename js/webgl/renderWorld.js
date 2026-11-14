@@ -8,7 +8,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE } from '../constants.js';
 import * as Const from './rendererConstants.js';
 
 export const WorldRenderer = {
-    _frameGen: 0,
+    _worldFrameGen: 0,
     _drawBackground(engine) {
         const map = engine.map;
         if (!map || !map.data.image) return;
@@ -91,8 +91,8 @@ export const WorldRenderer = {
         const layer = PixiApp.layer('acidPools');
         // [REGRESSION GUARD | upstream d29d4af] frameGen sweep (no per-frame Set) —
         // pinned by tests/gitsniperfixes.test.js. DO NOT DELETE.
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._worldFrameGen = (this._worldFrameGen + 1) || 1;
+        const gen = this._worldFrameGen;
         for (const pool of engine.acidPools || []) {
             if (!pool) continue;
             let g = this._acidPoolGraphics.get(pool);
@@ -110,8 +110,8 @@ export const WorldRenderer = {
     _drawBeasts(engine) {
         const layer = PixiApp.layer('minions');
         const beasts = engine.beasts || [];
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._worldFrameGen = (this._worldFrameGen + 1) || 1;
+        const gen = this._worldFrameGen;
         for (const beast of beasts) {
             if (!beast) continue;
             let entry = this._beastSprites.get(beast);
@@ -141,8 +141,8 @@ export const WorldRenderer = {
     _drawSentries(engine) {
         const layer = PixiApp.layer('minions');
         const sentries = engine.sentries || [];
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._worldFrameGen = (this._worldFrameGen + 1) || 1;
+        const gen = this._worldFrameGen;
         for (const sentry of sentries) {
             if (!sentry) continue;
             let entry = this._sentrySprites.get(sentry);

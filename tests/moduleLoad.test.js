@@ -29,6 +29,29 @@ it('attaches focused production subsystem methods to their owning classes and ob
   expect(KnightEnemy.prototype._updateState).toBeTypeOf('function');
 });
 
+it('attaches every Pixi rendering subsystem without duplicate shared methods', async () => {
+  const { PixiRenderer } = await import('../js/webgl/pixiRenderer.js');
+
+  expect(PixiRenderer._drawTowers).toBeTypeOf('function');
+  expect(PixiRenderer._drawEnemies).toBeTypeOf('function');
+  expect(PixiRenderer._drawProjectiles).toBeTypeOf('function');
+  expect(PixiRenderer._drawHitscans).toBeTypeOf('function');
+  expect(PixiRenderer._drawBackground).toBeTypeOf('function');
+  expect(PixiRenderer._drawFloatingTexts).toBeTypeOf('function');
+  expect(PixiRenderer._drawHeroVFX).toBeTypeOf('function');
+  expect(PixiRenderer._drawCutscene).toBeTypeOf('function');
+  expect(PixiRenderer._drawMainMenuScenery).toBeTypeOf('function');
+  expect(PixiRenderer._drawBuffIcons).toBeTypeOf('function');
+
+  expect(PixiRenderer).not.toHaveProperty('_frameGen');
+  expect(PixiRenderer._towerFrameGen).toBe(0);
+  expect(PixiRenderer._enemyFrameGen).toBe(0);
+  expect(PixiRenderer._projectileFrameGen).toBe(0);
+  expect(PixiRenderer._worldFrameGen).toBe(0);
+  expect(PixiRenderer._uiFrameGen).toBe(0);
+  expect(PixiRenderer._heroVfxFrameGen).toBe(0);
+});
+
 it('every game module loads', async () => {
   const entries = Object.entries(loaders).filter(([f]) =>
     !f.includes('/backups/') && !f.includes('/js/tests/') &&

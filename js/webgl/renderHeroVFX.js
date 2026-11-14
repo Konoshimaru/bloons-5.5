@@ -91,13 +91,13 @@ export const HeroVFXRenderer = {
     _getoVFXEntries: new Map(),
     // Per-frame generation stamp replaces the three fresh `seen` Sets that
     // were allocated every frame just to sweep dead hero VFX entries.
-    _frameGen: 0,
+    _heroVfxFrameGen: 0,
 
     _drawHeroVFX(engine) {
         const layer = PixiApp.layer('towerUnderEffects');
         const overlayLayer = PixiApp.layer('overlay');
-        this._frameGen = (this._frameGen + 1) || 1;
-        const gen = this._frameGen;
+        this._heroVfxFrameGen = (this._heroVfxFrameGen + 1) || 1;
+        const gen = this._heroVfxFrameGen;
 
         for (const tower of engine.towers) {
             if (!tower) continue;
@@ -138,7 +138,7 @@ export const HeroVFXRenderer = {
                 entry = { container, blueScreen, blueCore, redScreen, redCore, purpleScreen, purpleCore, aura, wellGfx: [] };
                 this._heroVFXEntries.set(tower, entry);
             }
-            entry.gen = this._frameGen;
+            entry.gen = this._heroVfxFrameGen;
 
             entry.blueScreen.clear(); entry.blueCore.clear();
             entry.redScreen.clear(); entry.redCore.clear();
@@ -178,7 +178,7 @@ export const HeroVFXRenderer = {
             entry = { container, aftersword, shadowLayer, slashLayer, shadowSprites: [], slashSprites: [] };
             this._saudaVFXEntries.set(tower, entry);
         }
-        entry.gen = this._frameGen;
+        entry.gen = this._heroVfxFrameGen;
 
         entry.aftersword.clear();
         if (tower.aftersword) {
@@ -257,7 +257,7 @@ export const HeroVFXRenderer = {
             entry = { container, spiritLayer, blast, hands, capture, captureBuff, squidLayer, ceField, spiritSlots: [], squidSlots: [] };
             this._getoVFXEntries.set(tower, entry);
         }
-        entry.gen = this._frameGen;
+        entry.gen = this._heroVfxFrameGen;
 
         entry.blast.clear(); entry.hands.clear(); entry.capture.clear(); entry.captureBuff.clear(); entry.ceField.clear();
 
