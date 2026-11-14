@@ -223,7 +223,9 @@ export default {
             ? { stun: tower.stats.stunMoab }
             : EMPTY_HIT_EFFECTS;
         for (let i = 0; i < count; i++) {
-            let a = startAngle + (i / (count - 1)) * spread;
+            // A one-projectile burst has no spread endpoints; aim that sole
+            // shard down the centerline instead of dividing by (count - 1).
+            const a = count === 1 ? baseAngle : startAngle + (i / (count - 1)) * spread;
             let p = engine.projectilePool.get();
             p.init(originTarget.x, originTarget.y, shrapDmg, null, 'nail', 600, shrapPierce, 0.5, a, shrapEffects, 0, tower, shrapDmgType);
         }

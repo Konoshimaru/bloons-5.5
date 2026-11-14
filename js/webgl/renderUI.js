@@ -211,7 +211,7 @@ export const UIRenderer = {
     // didn't matter before _compositeWorld existed (nothing was splitting
     // anything), so if you're seeing this comment while looking for why
     // something moved layers, that's why.
-    _drawBossHealthBar(engine) {
+    _drawBossHealthBar() {
         if (BossHealthBarHandler.activeBosses.length > 0) {
             BossHealthBarHandler.activeBosses = BossHealthBarHandler.activeBosses.filter(b => b.enemy && b.enemy.alive);
         }
@@ -259,7 +259,7 @@ export const UIRenderer = {
         }
     },
 
-    _drawBossWarningLine(engine) {
+    _drawBossWarningLine() {
         if (!this._bossWarningLineGraphics) { this._bossWarningLineGraphics = new Graphics(); PixiApp.layer('screenUI').addChild(this._bossWarningLineGraphics); }
         const g = this._bossWarningLineGraphics; g.clear();
         const boss = BossHealthBarHandler.activeBosses.length > 0 ? BossHealthBarHandler.activeBosses[0].enemy : null;

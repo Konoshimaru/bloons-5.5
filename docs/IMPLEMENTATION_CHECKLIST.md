@@ -30,6 +30,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [ ] Test WebGL unavailable/startup failure and simulated render failure in a browser, not only through unit tests.
 - [ ] **User-reported bug (2026-11-14):** Sniper Monkey firing causes severe lag/freezes, especially at high attack speed, and can stall/crash the game loop. Profile rapid target reacquisition, Shrapnel projectile bursts/cap enforcement, and hitscan rendering; add production regression/stress tests before marking this resolved.
 - [x] Add first automated Sniper firing mitigations: throttle successful target reacquisition to 0.15 simulation seconds while retaining immediate reacquisition for invalid/recycled targets or targeting-mode changes, and trim projectile/particle burst overflow to their configured limits; cover both with production regression tests.
+- [x] Share the 0.15-second global-target ranking cache across compatible global-range Snipers, keyed by target mode and visibility rules; invalidate immediately when the target dies, is recycled, becomes hidden, or the targeting rules change.
+- [x] Handle a one-slot Shrapnel burst without producing a NaN projectile angle when the shared projectile pool is nearly full.
 
 ## 2. Architecture and maintainability
 

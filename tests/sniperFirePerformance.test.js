@@ -172,3 +172,132 @@ describe('Sniper firing workload safeguards', () => {
         expect(target.takeDamage).toHaveBeenCalledOnce();
     });
 });
+
+
+describe('shared global-range Sniper targeting', () => {
+    const makeTarget = (spawnId, { camo = false } = {}) => ({
+        alive: true,
+        invulnerable: false,
+        untargetable: false,
+        _spawnId: spawnId,
+        x: 500,
+        y: 300,
+        radius: 10,
+        distanceTraveled: 500,
+        isCamo: camo,
+        tier: 1,
+        data: { rbe: 100000, speed: 0, isMoab: false, isCeramic: false },
+        takeDamage: vi.fn(() => 2),
+    });
+
+    async function setupEngine(enemies) {
+        const { GameEngine: G } = await import('../js/engineRef.js');
+        const { Tower } = await import('../js/tower.js');
+        const SimulationLoop = (await import('../js/simulationLoop.js')).default;
+
+        G.config = { data: { mkActive: false, monkeyKnowledge: {} } };
+        G.waveManager = { currentWave: 1, waveActive: true };
+        G.hasLeakingEnemy = false;
+        G.nightAlpha = 0;
+        G.towerGrid = { clear: vi.fn(), insert: vi.fn() };
+        G.enemyGrid = { query: vi.fn(() => []) };
+        G.enemies = enemies;
+        G._globalTargetCache = new Map();
+
+        return { G, Tower, SimulationLoop };
+    }
+
+    it('shares one enemy-list ranking across compatible Snipers for 0.15 simulation seconds', async () => {
+        let scans = 0;
+        let target = makeTarget(1);
+        const enemies = {
+            [Symbol.iterator]() {
+                scans++;
+                return [target][Symbol.iterator]();
+            },
+        };
+        const { G, Tower, SimulationLoop } = await setupEngine(enemies);
+        const snipers = [new Tower(100, 100, 'sniper'), new Tower(200, 100, 'sniper')];
+        G.towers = snipers;
+
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(1);
+        expect(snipers[0]._cachedTarget).toBe(target);
+        expect(snipers[1]._cachedTarget).toBe(target);
+
+        // Let both per-tower caches and the shared cache expire. A new full
+        // ranking is needed, but only the first Sniper should perform it.
+        for (const sniper of snipers) sniper.cooldown = 0;
+        SimulationLoop._updateTowers.call(G, 0.16);
+        expect(scans).toBe(2);
+        expect(snipers[0]._cachedTarget).toBe(target);
+        expect(snipers[1]._cachedTarget).toBe(target);
+
+        // Recycling/death invalidates the shared reference immediately.
+        const replacement = makeTarget(2);
+        target.alive = false;
+        target = replacement;
+        for (const sniper of snipers) sniper.cooldown = 0;
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(3);
+        expect(snipers[0]._cachedTarget).toBe(replacement);
+        expect(snipers[1]._cachedTarget).toBe(replacement);
+    });
+
+    it('does not share a Camo target with a Sniper that cannot see Camo', async () => {
+        let scans = 0;
+        const camoTarget = makeTarget(3, { camo: true });
+        const enemies = {
+            [Symbol.iterator]() {
+                scans++;
+                return [camoTarget][Symbol.iterator]();
+            },
+        };
+        const { G, Tower, SimulationLoop } = await setupEngine(enemies);
+        const hiddenSniper = new Tower(100, 100, 'sniper');
+        const camoSniper = new Tower(200, 100, 'sniper');
+        camoSniper.stats.canSeeCamo = true;
+        G.towers = [hiddenSniper, camoSniper];
+
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(2);
+        expect(hiddenSniper._cachedTarget).toBeNull();
+        expect(camoSniper._cachedTarget).toBe(camoTarget);
+    });
+});
+
+describe('Sniper Shrapnel burst edge cases', () => {
+    it('uses a finite centerline angle when only one projectile slot remains', async () => {
+        const sniper = (await import('../js/towers/sniper.js')).default;
+        const target = {
+            x: 300,
+            y: 250,
+            data: { isMoab: false, isCeramic: false },
+            isCamo: false,
+            takeDamage: vi.fn(() => 2),
+        };
+        const pool = {
+            active: Array.from({ length: MAX_ACTIVE_PROJECTILES - 1 }, () => ({})),
+            get: vi.fn(() => {
+                const projectile = { init: vi.fn() };
+                pool.active.push(projectile);
+                return projectile;
+            }),
+        };
+        const tower = {
+            x: 100,
+            y: 100,
+            stats: { shrapnel: true, shrapnelDmg: 1, shrapnelPierce: 3 },
+            upgrades: [0, 0, 0],
+            hitscans: [],
+            damageDealt: 0,
+        };
+
+        sniper.fire(tower, target, 2, { canHitLead: false }, false, {}, { projectilePool: pool });
+
+        expect(pool.get).toHaveBeenCalledOnce();
+        const initArgs = pool.active[pool.active.length - 1].init.mock.calls[0];
+        expect(Number.isFinite(initArgs[8])).toBe(true);
+        expect(initArgs[8]).toBeCloseTo(Math.atan2(target.y - tower.y, target.x - tower.x));
+    });
+});

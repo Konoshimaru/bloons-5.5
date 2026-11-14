@@ -119,6 +119,16 @@ const SimulationLoop = {
     },
 
     _updateTowers(dt) {
+        // Shared global-range targeting results expire in simulation time, not
+        // wall-clock time. This keeps the optimization deterministic at 1x/10x/20x.
+        if (!(this._globalTargetCache instanceof Map)) this._globalTargetCache = new Map();
+        else {
+            for (const [key, entry] of this._globalTargetCache) {
+                entry.remaining -= dt;
+                if (entry.remaining <= 0) this._globalTargetCache.delete(key);
+            }
+        }
+
         for (const t of this.towers) {
             if (!t) continue;
             t.buffedRange = 0; t.buffedFireRate = 0; t.buffedCamo = false; t.buffedLead = false;

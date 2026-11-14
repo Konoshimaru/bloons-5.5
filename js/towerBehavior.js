@@ -213,7 +213,7 @@ const TARGET_RESCAN_INTERVAL = 0.15; // minimum interval between target scans
 
 function _getAcquireTarget(tower, engine) {
     const firingReady = tower.cooldown <= 0 && tower.attackPointTimer <= 0;
-    const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}`;
+    const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}:camo:${(tower.stats.canSeeCamo || tower.buffedCamo) ? 1 : 0}:moab:${tower.stats.canHitMoab ? 1 : 0}`;
     const cached = tower._cachedTarget;
     const shouldReuseCached = !firingReady ||
         (tower.stats.range === 9999 && tower._targetRescanTimer > 0);
@@ -223,6 +223,8 @@ function _getAcquireTarget(tower, engine) {
         !cached.untargetable &&
         cached._spawnId === tower._cachedTargetSpawnId &&
         tower._cachedTargetingKey === targetingKey &&
+        !isHiddenFrom(tower, cached) &&
+        !(tower.type === 'glue' && cached.data?.isMoab && !tower.stats.canHitMoab) &&
         (tower.stats.range === 9999 || Utils.withinRange(
             tower.x,
             tower.y,
@@ -234,7 +236,8 @@ function _getAcquireTarget(tower, engine) {
     // Keep a still-valid global-range target for a short interval even when
     // the firing cooldown is ready. Very fast Snipers used to re-scan the
     // ENTIRE enemy list for every shot. Local-range towers retain their prior
-    // per-shot retargeting. Invalid targets and mode changes always rescan.
+    // per-shot retargeting. Invalid/recycled/hidden targets and mode changes
+    // always trigger an immediate replacement scan.
     if (cachedIsValid) return cached;
 
     // A fruitless scan parks the cooldown as well as the rescan timer. This
@@ -258,9 +261,10 @@ function _getAcquireTarget(tower, engine) {
 }
 
 function _findTarget(tower, engine) {
-    const effRange = Utils.getEffectiveRange(tower, engine);
-    const candidates = tower.stats.range === 9999 ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange, _targetScratch);
-    
+    const isGlobal = tower.stats.range === 9999;
+    const effRange = isGlobal ? 0 : Utils.getEffectiveRange(tower, engine);
+    const candidates = isGlobal ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange, _targetScratch);
+
     let currentTargeting = tower.targetingMode;
     if (currentTargeting === 'Elite') {
         currentTargeting = engine.hasLeakingEnemy ? 'First' : 'Strong';
@@ -276,25 +280,48 @@ function _findTarget(tower, engine) {
     };
 
     const minRange = tower.stats.minRange ? (tower.stats.minRange * RANGE_SCALE * GS) : 0;
+    const cache = engine._globalTargetCache;
+    const canShareGlobalTarget = isGlobal && currentTargeting !== 'Close' &&
+        minRange === 0 && cache instanceof Map;
+    const cacheKey = canShareGlobalTarget
+        ? `${tower.type}|${currentTargeting}|camo:${(tower.stats.canSeeCamo || tower.buffedCamo) ? 1 : 0}|moab:${tower.stats.canHitMoab ? 1 : 0}`
+        : null;
 
-    // [REGRESSION GUARD | upstream 0bad3c4 "fully fixed sniper lag"] Global-range fast path.
-    // Pinned by tests/gitsniperfixes.test.js — DO NOT DELETE.
+    // Same-type global-range towers with identical visibility/targeting rules
+    // can reuse one full-list ranking for the 0.15s acquisition window. The
+    // per-tower cache still handles tracking between shots; this shared cache
+    // prevents N Snipers from repeating the same O(enemy count) ranking N times.
+    if (canShareGlobalTarget && cache.has(cacheKey)) {
+        const entry = cache.get(cacheKey);
+        if (entry && entry.remaining > 0) {
+            const cached = entry.target;
+            const cachedIsValid = !cached || (
+                cached.alive &&
+                !cached.invulnerable &&
+                !cached.untargetable &&
+                cached._spawnId === entry.spawnId &&
+                !isHiddenFrom(tower, cached) &&
+                !(tower.type === 'glue' && cached.data?.isMoab && !tower.stats.canHitMoab)
+            );
+            if (cachedIsValid) return cached;
+        }
+        // A dead, recycled, newly hidden, or expired shared target must not
+        // survive in the shared cache. The current tower performs a fresh scan.
+        cache.delete(cacheKey);
+    }
+
     // Global-range towers (range === 9999) never filter by distance, so the
-    // distanceSq / range math below is pure waste for them — except when the
-    // targeting mode is 'Close' (needs the distance for its value) or the
-    // tower has a minRange. (Note: routing them through the spatial grid at a
-    // huge radius would be far worse — the grid query would iterate every cell
-    // in the map — so they keep scanning the live enemies array.)
-    const isGlobal = tower.stats.range === 9999;
+    // distanceSq / range math below is pure waste for them - except when Close
+    // targeting (which needs distance for ranking) or a minimum range is used.
     const needDist = !isGlobal || currentTargeting === 'Close' || minRange > 0;
 
     for (const e of candidates) {
         if (!e.alive) continue;
-        // [REGRESSION GUARD | upstream 4e2bd10] skip invulnerable/untargetable (rolling Knight).
-        if (e.invulnerable || e.untargetable) continue;   // e.g. the Knight while he rolls to a new spot
+        // Never target an enemy while it is invulnerable or untargetable.
+        if (e.invulnerable || e.untargetable) continue;
         if (isHiddenFrom(tower, e)) continue;
-        if (tower.type === 'glue' && e.data.isMoab && !tower.stats.canHitMoab) continue; 
-        
+        if (tower.type === 'glue' && e.data.isMoab && !tower.stats.canHitMoab) continue;
+
         let distSq = 0;
         if (needDist) {
             distSq = Utils.distanceSq(tower.x, tower.y, e.x, e.y);
@@ -306,12 +333,12 @@ function _findTarget(tower, engine) {
             if (minRange > 0) {
                 const eRad = e.radius || 10;
                 const minRangeWithRad = Math.max(0, minRange - eRad);
-                if (distSq < minRangeWithRad * minRangeWithRad) continue; 
+                if (distSq < minRangeWithRad * minRangeWithRad) continue;
             }
         }
 
         const val = _getTargetValue(tower, e, (currentTargeting === 'Close' ? Math.sqrt(distSq) : 0), currentTargeting);
-        
+
         if (isBetter(val, v1)) {
             t3 = t2; v3 = v2;
             t2 = t1; v2 = v1;
@@ -323,14 +350,25 @@ function _findTarget(tower, engine) {
             t3 = e; v3 = val;
         }
     }
-    
+
+    let selectedTarget = null;
     if (t1) {
-        if (_hasLineOfSight(tower, t1, engine)) return t1;
-        if (t2 && _hasLineOfSight(tower, t2, engine)) return t2;
-        if (t3 && _hasLineOfSight(tower, t3, engine)) return t3;
+        if (_hasLineOfSight(tower, t1, engine)) selectedTarget = t1;
+        else if (t2 && _hasLineOfSight(tower, t2, engine)) selectedTarget = t2;
+        else if (t3 && _hasLineOfSight(tower, t3, engine)) selectedTarget = t3;
     }
-    
-    return null;
+
+    // Cache misses too: the normal per-tower empty-target timer already parks
+    // acquisition for the same interval, so identical Snipers should not all
+    // rescan an empty enemy list in the same wave frame.
+    if (canShareGlobalTarget) {
+        cache.set(cacheKey, {
+            target: selectedTarget,
+            spawnId: selectedTarget ? selectedTarget._spawnId : null,
+            remaining: TARGET_RESCAN_INTERVAL
+        });
+    }
+    return selectedTarget;
 }
 
 function _getTargetValue(tower, enemy, dist, targetingMode) {
