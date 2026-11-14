@@ -2,6 +2,7 @@ import js from '@eslint/js';
 
 const coreFiles = [
     'js/fixedStepClock.js',
+    'js/profiler.js',
     'js/collisionGeometry.js',
     'js/config.js',
     'js/savedRunValidation.js',
@@ -80,6 +81,7 @@ const coreFiles = [
     'tests/simulationBudget.test.js',
     'tests/paragonFlow.test.js',
     'tests/bugfixes.test.js',
+    'tests/profiler.test.js',
     'tests/moduleLoad.test.js'
 ];
 

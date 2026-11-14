@@ -10,7 +10,7 @@ The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and 
 
 ## Incremental linting
 
-The ESLint flat config currently checks 46 selected production modules and 34 regression-test files across core runtime helpers, renderer modules, Map Editor modules, Cutscene runtime, map metadata, and supporting code. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
+The ESLint flat config currently checks 47 selected production modules and 35 regression-test files across core runtime helpers, renderer modules, Map Editor modules, Cutscene runtime, map metadata, and supporting code. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
 
 ## Dependency security audit
 
@@ -29,7 +29,7 @@ Use the built-in profiler when frame time degrades during gameplay:
 3. Press F3 again to stop the capture.
 4. Press F5 to download the JSON report. F4 also prints and copies a text summary.
 
-The report separates simulation and rendering time and includes worst-frame timings, update-step counts, entity counts, and spatial-grid occupancy. Capture only the period needed to reproduce the issue because the active session grows until it is stopped.
+Version 1.4.6 adds capture-only timing for simulation phases, Sniper targeting, animation lookup, the common firing pipeline, direct target damage, Shrapnel, ricochet/bounce handling, support updates, and selected-tower UI refresh. It also records Sniper event counts and placed tower loadouts. The `hotspots.timingMs` measurements are inclusive, so nested timings overlap; compare them to identify the costly substage rather than summing them.
 
 ## Test production behavior
 

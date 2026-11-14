@@ -1,5 +1,7 @@
 # Bloons 5.5
 
+**Current branch build:** `1.4.6` on `fix/fixed-timestep` (development branch, not a tagged release).
+
 Bloons 5.5 is a browser-based tower-defense project built with JavaScript, Vite and PixiJS. The repository also contains development tools used to create, inspect and prepare game content.
 
 > Editors and test pages are intentional development tools. They are not all player-facing screens, but they are part of the project workflow and should be preserved unless a change specifically concerns them.
@@ -29,7 +31,7 @@ The Vite server is configured for 127.0.0.1:5500 and opens the browser automatic
 | npm test | Run the Vitest automated suite. |
 | npm run check:syntax | Parse all source, test, and tool JavaScript files with Node.js. |
 | npm run typecheck:core | Type-check 14 selected core modules (not the whole project). |
-| npm run lint:core | Lint 46 selected production modules and 34 regression-test files. |
+| npm run lint:core | Lint 47 selected production modules and 35 regression-test files. |
 | npm run audit:deps | Print a structured summary of npm dependency advisories. |
 | npm run build | Create the production build in dist/. |
 | npm run gen:manifest | Regenerate the sprite manifest. |
