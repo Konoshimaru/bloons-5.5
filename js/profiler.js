@@ -93,6 +93,9 @@ export const Profiler = {
     record(engine, timing) {
         if (!this.enabled) return;
         const t = timing || {};
+        const heapUsedMB = this.capturing && typeof performance !== 'undefined' && performance.memory
+            ? Math.round((performance.memory.usedJSHeapSize / 1048576) * 10) / 10
+            : null;
         const s = {
             t: performance.now(),
             sim: t.sim || 0,
@@ -108,6 +111,7 @@ export const Profiler = {
             explosions: engine.explosions ? engine.explosions.length : 0,
             texts: engine.floatingTexts ? engine.floatingTexts.length : 0,
             wave: engine.waveManager ? engine.waveManager.currentWave : 0,
+            heapUsedMB,
             measures: this.capturing ? { ...this._frameMeasures } : null,
             counts: this.capturing ? { ...this._frameCounts } : null,
         };
@@ -215,6 +219,14 @@ export const Profiler = {
             usedJSHeapMB: Math.round(performance.memory.usedJSHeapSize / 1048576),
             totalJSHeapMB: Math.round(performance.memory.totalJSHeapSize / 1048576),
         } : null;
+        const captureHeapValues = samples.map(sample => sample.heapUsedMB).filter(Number.isFinite);
+        const captureHeap = captureHeapValues.length ? {
+            startMB: captureHeapValues[0],
+            endMB: captureHeapValues[captureHeapValues.length - 1],
+            minMB: Math.min(...captureHeapValues),
+            maxMB: Math.max(...captureHeapValues),
+        } : null;
+        const memory = mem ? { ...mem, captureHeap } : (captureHeap ? { captureHeap } : null);
 
         const report = {
             meta: {
@@ -268,10 +280,11 @@ export const Profiler = {
                 projectiles: s.projectiles,
                 particles: s.particles,
                 wave: s.wave,
+                heapUsedMB: s.heapUsedMB,
                 measures: s.measures || {},
                 counts: s.counts || {},
             })),
-            memory: mem,
+            memory,
         };
         return report;
     },
@@ -360,11 +373,16 @@ export const Profiler = {
         }
         L.push('Worst frames (sim+render):');
         for (const w of report.worstFrames) {
-            L.push(`  #${w.idx} @${w.t}ms sim=${w.sim} render=${w.render} total=${w.total} steps=${w.steps} | towers=${w.towers} enemies=${w.enemies} proj=${w.projectiles} particles=${w.particles} wave=${w.wave}`);
+            const heap = Number.isFinite(w.heapUsedMB) ? ` heap=${w.heapUsedMB}MB` : '';
+            L.push(`  #${w.idx} @${w.t}ms sim=${w.sim} render=${w.render} total=${w.total} steps=${w.steps} | towers=${w.towers} enemies=${w.enemies} proj=${w.projectiles} particles=${w.particles} wave=${w.wave}${heap}`);
         }
-        if (report.memory) {
+        if (report.memory?.usedJSHeapMB != null) {
             L.push('');
             L.push(`Memory: ${report.memory.usedJSHeapMB}MB used / ${report.memory.totalJSHeapMB}MB heap`);
+        }
+        if (report.memory?.captureHeap) {
+            const h = report.memory.captureHeap;
+            L.push(`Capture heap: start=${h.startMB}MB end=${h.endMB}MB min=${h.minMB}MB max=${h.maxMB}MB`);
         }
         return L.join('\n');
     },
