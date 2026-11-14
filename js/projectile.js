@@ -8,6 +8,7 @@ import Assets from './assets.js';
 import { Names } from './names.js';
 import { ProjectileDrawers } from './projectileDrawers.js';
 import ProjectileHitResolution from './projectileHitResolution.js';
+import { attachModuleMethods } from './engineComposition.js';
 import { MobileManager } from './mobile.js';
 
 const MORTAR_ARC_HEIGHT = 150;
@@ -402,4 +403,4 @@ export class Projectile {
     }
 }
 
-Object.assign(Projectile.prototype, ProjectileHitResolution);
+attachModuleMethods(Projectile.prototype, 'ProjectileHitResolution', ProjectileHitResolution);

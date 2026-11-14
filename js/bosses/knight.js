@@ -10,6 +10,7 @@ import { AudioEngine } from '../audio.js';
 import { TUNING } from '../tuning.js';
 import { getBossMusic } from './knightMusic.js';
 import KnightAttacks from './knightAttacks.js';
+import { attachModuleMethods } from '../engineComposition.js';
 
 // Silhouette tuning (v1.3.2): a ghost only spawns when the knight has moved
 // at least GHOST_MIN_DISPLACEMENT px since the previous ghost (the idle
@@ -269,6 +270,6 @@ export class KnightEnemy extends Enemy {
     }
 }
 
-Object.assign(KnightEnemy.prototype, KnightAttacks);
+attachModuleMethods(KnightEnemy.prototype, 'KnightAttacks', KnightAttacks);
 
 export { getBossMusic } from './knightMusic.js';

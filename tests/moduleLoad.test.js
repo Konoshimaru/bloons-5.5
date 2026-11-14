@@ -11,6 +11,24 @@ const entryPoints = new Set(
   Object.values(pages).flatMap((html) => [...html.matchAll(/<script[^>]*type="module"[^>]*src="\/?([^"]+)"/g)].map((m) => m[1]))
 );
 
+it('attaches focused production subsystem methods to their owning classes and objects', async () => {
+  const [{ Projectile }, { Tower }, { UI }, { KnightEnemy }] = await Promise.all([
+    import('../js/projectile.js'),
+    import('../js/tower.js'),
+    import('../js/ui.js'),
+    import('../js/bosses/knight.js')
+  ]);
+
+  expect(Projectile.prototype._checkCollisions).toBeTypeOf('function');
+  expect(Projectile.prototype._handleExplosiveHit).toBeTypeOf('function');
+  expect(Tower.prototype.canUpgrade).toBeTypeOf('function');
+  expect(Tower.prototype.activateAbility).toBeTypeOf('function');
+  expect(UI.refreshSelectedTower).toBeTypeOf('function');
+  expect(UI._updateUpgradeCards).toBeTypeOf('function');
+  expect(KnightEnemy.prototype._startSwordThrow).toBeTypeOf('function');
+  expect(KnightEnemy.prototype._updateState).toBeTypeOf('function');
+});
+
 it('every game module loads', async () => {
   const entries = Object.entries(loaders).filter(([f]) =>
     !f.includes('/backups/') && !f.includes('/js/tests/') &&

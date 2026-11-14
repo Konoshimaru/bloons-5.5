@@ -4,6 +4,7 @@ import { Config } from './config.js';
 import { HeroStats } from './heroes/index.js';
 import uiTowerPanel from './uiTowerPanel.js';
 import { writeThrottled } from './uiWriteThrottle.js';
+import { attachModuleMethods } from './engineComposition.js';
 
 const elements = {};
 function el(id) {
@@ -228,4 +229,4 @@ export const UI = {
     }
 };
 
-Object.assign(UI, uiTowerPanel);
+attachModuleMethods(UI, 'uiTowerPanel', uiTowerPanel);

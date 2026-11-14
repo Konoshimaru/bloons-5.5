@@ -37,6 +37,7 @@ import { getBehavior } from './registry.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 
 import TowerEconomy from './towerEconomy.js';
+import { attachModuleMethods } from './engineComposition.js';
 
 
 const DEFAULT_HIT_RADIUS = 18;
@@ -286,6 +287,6 @@ export class Tower {
     }
 }
 
-Object.assign(Tower.prototype, TowerEconomy);
+attachModuleMethods(Tower.prototype, 'TowerEconomy', TowerEconomy);
 
 registerTowerFactory((x, y, type) => new Tower(x, y, type));
