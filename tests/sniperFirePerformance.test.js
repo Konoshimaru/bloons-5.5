@@ -244,6 +244,48 @@ describe('shared global-range Sniper targeting', () => {
         expect(snipers[1]._cachedTarget).toBe(replacement);
     });
 
+    it('uses cached fallback targets after a Sniper pops its current target', async () => {
+        let scans = 0;
+        const first = makeTarget(11);
+        const second = makeTarget(12);
+        const third = makeTarget(13);
+        const fourth = makeTarget(14);
+        const candidates = [first, second, third, fourth];
+        const enemies = {
+            [Symbol.iterator]() {
+                scans++;
+                return candidates[Symbol.iterator]();
+            },
+        };
+        const { G, Tower, SimulationLoop } = await setupEngine(enemies);
+        const snipers = [new Tower(100, 100, 'sniper'), new Tower(200, 100, 'sniper')];
+        for (const sniper of snipers) sniper.cooldown = 10;
+        G.towers = snipers;
+
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(1);
+        expect(snipers.map(tower => tower._cachedTarget)).toEqual([first, first]);
+
+        // A direct Sniper hit can pop the shared target. Both towers should
+        // advance through the already-ranked shortlist instead of rescanning.
+        first.alive = false;
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(1);
+        expect(snipers.map(tower => tower._cachedTarget)).toEqual([second, second]);
+
+        second.alive = false;
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(1);
+        expect(snipers.map(tower => tower._cachedTarget)).toEqual([third, third]);
+
+        // Once every cached candidate is gone, the shared result is invalidated
+        // and a fresh ranking finds the next enemy in the live list.
+        third.alive = false;
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(2);
+        expect(snipers.map(tower => tower._cachedTarget)).toEqual([fourth, fourth]);
+    });
+
     it('does not share a Camo target with a Sniper that cannot see Camo', async () => {
         let scans = 0;
         const camoTarget = makeTarget(3, { camo: true });
