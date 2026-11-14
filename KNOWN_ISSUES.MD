@@ -22,6 +22,8 @@ GitHub Actions run 43603764539 completed successfully after the one-off refresh 
 
 ## Active technical debt
 
+- [x] Dependency security: Vite 8.1.5 had two high-severity advisories (GHSA-9jrq-w75r-8gcw and GHSA-rq7h-c2jc-7f22). The lockfile now resolves Vite 8.1.7; `npm audit` reports zero vulnerabilities in CI run 43603764539.
+
 - [x] Dependency security: updated Vite from 8.1.5 to 8.1.7 and refreshed the lockfile. GitHub Actions confirmed `npm audit` reports zero vulnerabilities after the change.
 
 - [ ] GameEngine singleton/method-bag architecture: engine.js still attaches EngineInput, GameSession and SimulationLoop methods to one shared object. attachModuleMethods() checks duplicate names and prevents silent overwrites, but the singleton and implicit method dependencies remain. Refactor incrementally; do not replace working systems in one rewrite.
@@ -29,7 +31,7 @@ GitHub Actions run 43603764539 completed successfully after the one-off refresh 
 - [ ] Further reduce the shared Main controller method bag only if a clearer sub-object design can be introduced without changing menu behavior.
 - [ ] Large editor/rendering modules: split files only where a clear responsibility boundary exists. Preserve the Cutscene Editor and other development tools.
 - [ ] Legacy browser test harness: tests.html remains a manual smoke page, separate from Vitest. Its duplicated undo/redo, curve-subdivision, and Ice Monkey simulations have been removed and replaced with production-module Vitest tests; review any remaining manual assertions for gaps.
-- [ ] Automated checks: GitHub Actions now runs syntax scanning and a narrow TypeScript check over five isolated helpers, as well as Vitest and the build. ESLint is not configured, and TypeScript coverage still needs to expand across the application.
+- [ ] Automated checks: GitHub Actions runs dependency audit, syntax scanning, a narrow TypeScript check over five isolated helpers, Vitest and the production build. ESLint is not configured, and TypeScript coverage still needs to expand across the application.
 - [ ] Package licensing: package.json declares ISC, but there is no root LICENSE file. Confirm the intended source-code license and separately review game art, audio, fonts and other asset rights before adding a blanket license file.
 - [ ] Import/style cleanup: run a configured linter before removing suspected unused imports; some imports may be intentionally loaded for side effects.
 
