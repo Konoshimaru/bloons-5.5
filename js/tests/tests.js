@@ -32,14 +32,8 @@ function assertEqual(actual, expected, label) {
     }
 }
 
-// 1. Cash-per-round formula
-console.log("\n── Cash-per-round formula ──");
-function cashPerRound(round) { return 100 + round; }
-assertEqual(cashPerRound(1), 101, "Round 1 → $101");
-assertEqual(cashPerRound(5), 105, "Round 5 → $105");
-assertEqual(cashPerRound(20), 120, "Round 20 → $120");
-assertEqual(cashPerRound(50), 150, "Round 50 → $150");
-assertEqual(cashPerRound(100), 200, "Round 100 → $200");
+// Cash-per-round logic is no longer simulated here. Add a Vitest test that
+// imports the actual economy function when/if this formula becomes a runtime feature.
 
 // 2. blocksDamageType immunity matrix
 console.log("\n── blocksDamageType immunity matrix ──");
@@ -164,113 +158,14 @@ console.log("\n── CutsceneManager state machine ──");
     assertEqual(CutsceneManager.state, 'idle', "Trigger ignores non-MOAB tier");
 }
 
-// ─── 6. Map Editor Undo/Redo & Bounds ──────────────────────────────────────
-console.log("\n── Map Editor Undo/Redo Logic ──");
-{
-    let mapData = { paths: [], props: [] };
-    let undoStack = [];
-    let redoStack = [];
+// Map Editor history behavior is tested against js/mapEditorHistory.js in
+// tests/mapEditorHistory.test.js. Do not duplicate undo/redo implementations here.
 
-    const pushUndo = () => {
-        undoStack.push(JSON.parse(JSON.stringify(mapData)));
-        if (undoStack.length > 25) undoStack.shift();
-        redoStack = [];
-    };
-    const undo = () => {
-        if (undoStack.length === 0) return;
-        redoStack.push(JSON.parse(JSON.stringify(mapData)));
-        mapData = undoStack.pop();
-    };
-    const redo = () => {
-        if (redoStack.length === 0) return;
-        undoStack.push(JSON.parse(JSON.stringify(mapData)));
-        mapData = redoStack.pop();
-    };
+// Runtime path subdivision and sampling are tested against GameMap in
+// tests/gameMapPathGeometry.test.js. Do not reproduce the curve algorithm here.
 
-    pushUndo(); mapData.paths.push({ waypoints: [{x:1,y:1}] });
-    pushUndo(); mapData.props.push({ type: 'tree', x: 10, y: 10 });
-    
-    assertEqual(mapData.paths.length, 1, "Map has 1 path after actions");
-    assertEqual(mapData.props.length, 1, "Map has 1 prop after actions");
-    
-    undo();
-    assertEqual(mapData.props.length, 0, "Undo removes prop");
-    assertEqual(mapData.paths.length, 1, "Undo keeps path");
-    
-    redo();
-    assertEqual(mapData.props.length, 1, "Redo restores prop");
-    
-    pushUndo(); mapData.paths.push({ waypoints: [{x:2,y:2}] });
-    assertEqual(redoStack.length, 0, "New action clears redo stack");
-}
-
-// ─── 7. Map Curve Pathfinding ──────────────────────────────────────────────
-console.log("\n── Map Curve Pathfinding ──");
-{
-    // Simulate the curve subdivision logic from map.js
-    const waypoints = [
-        { x: 0, y: 0 },
-        { x: 100, y: 0, curve: { cx: 50, cy: 50 } }
-    ];
-    
-    const p1 = waypoints[0];
-    const p2 = waypoints[1];
-    const cp = p2.curve;
-    const subdiv = 15;
-    let prevPt = p1;
-    let totalLength = 0;
-    const segments = [];
-    
-    for (let s = 1; s <= subdiv; s++) {
-        const t = s / subdiv;
-        const x = (1 - t) * (1 - t) * p1.x + 2 * (1 - t) * t * cp.x + t * t * p2.x;
-        const y = (1 - t) * (1 - t) * p1.y + 2 * (1 - t) * t * cp.y + t * t * p2.y;
-        const dist = Math.hypot(x - prevPt.x, y - prevPt.y);
-        segments.push({ p1: prevPt, p2: {x, y}, dist });
-        totalLength += dist;
-        prevPt = {x, y};
-    }
-    
-    assertEqual(segments.length, subdiv, "Curve subdivided into 15 segments");
-    assert(totalLength > 100, "Curve total length is greater than straight line (100)");
-}
-
-// ─── 8. Ice Monkey Status Effects ──────────────────────────────────────────
-console.log("\n── Ice Monkey Status Effects ──");
-{
-    // Mock enemy to test status effect application
-    let mockEnemy = {
-        isFrozen: false,
-        slowFactor: 1.0,
-        slowTimer: 0,
-        brittle: false,
-        brittleBonus: 0,
-        permafrostSlow: 1.0,
-        isCamo: true,
-        isRegen: true,
-        applySlow(factor, dur, isIce) {
-            this.slowFactor = factor;
-            this.slowTimer = dur;
-            this.isFrozen = isIce;
-        }
-    };
-
-    // Simulate Embrittlement hit
-    mockEnemy.brittle = true;
-    mockEnemy.brittleBonus = 1;
-    mockEnemy.brittleTimer = 4.0;
-    mockEnemy.isCamo = false; // Embrittlement strips Camo
-    mockEnemy.isRegen = false; // Embrittlement strips Regrow
-
-    assert(mockEnemy.brittle === true, "Embrittlement applied brittle status");
-    assertEqual(mockEnemy.brittleBonus, 1, "Embrittle bonus is +1");
-    assert(mockEnemy.isCamo === false, "Embrittlement stripped Camo");
-    assert(mockEnemy.isRegen === false, "Embrittlement stripped Regrow");
-
-    // Simulate Permafrost
-    mockEnemy.permafrostSlow = 0.5;
-    assertEqual(mockEnemy.permafrostSlow, 0.5, "Permafrost slow set to 50%");
-}
+// Ice Monkey freeze, Embrittlement and Permafrost behavior are tested against
+// the real tower behavior and Enemy.applySlow in tests/iceMonkeyBehavior.test.js.
 
 // Summary
 console.log(`\n═══════════════════════════════════`);
