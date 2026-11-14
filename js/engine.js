@@ -476,7 +476,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
                 if (!this._frameMs) this._frameMs = {};
                 this._frameMs.sim = performance.now() - updateStartTime;
                 this._frameMs.steps = stepRun ? stepRun.completedSteps : 0;
-                this._frameMs.skippedSteps = stepRun ? stepRun.skippedSteps : 0;                // Clamp like targetDt so a hidden/backgrounded tab (huge rawDt)
+                this._frameMs.skippedSteps = stepRun ? stepRun.skippedSteps : 0;
+                // Clamp like targetDt so a hidden/backgrounded tab (huge rawDt)
                 // can't poison the profiler's total/fps percentiles with one
                 // bogus multi-second sample.
                 this._frameMs.total = clock.frameDeltaSeconds * 1000;
