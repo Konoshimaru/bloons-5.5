@@ -82,7 +82,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add LoadGate production regression tests for registration validation, unknown groups, concurrent prefetch deduplication, loader-failure retry behavior, malformed progress values, and loading-screen reentrancy when the DOM element is absent.
 - [x] Add a save-migration regression test proving the legacy `td_config_v11` backup remains available when writing the migrated `td_config` fails.
 - [x] Prevent repeated `Config.load()` calls from duplicating custom maps; replace the runtime custom-map suffix from the current saved config and cover reload/replacement behavior with Vitest.
-- [ ] Expand tests for renderer error paths where practical.
+- [x] Expand renderer error-path tests against the production PixiRenderer `_safeDraw()` method, covering retry timing, optional-pass disabling/layer hiding, recovery after success, and escalation of critical-pass failures.
 
 ## 4. Documentation and contributor onboarding
 
