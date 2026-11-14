@@ -286,6 +286,37 @@ describe('shared global-range Sniper targeting', () => {
         expect(snipers.map(tower => tower._cachedTarget)).toEqual([fourth, fourth]);
     });
 
+    it('invalidates a cached Sniper target immediately when its targeting mode changes', async () => {
+        let scans = 0;
+        const first = makeTarget(21);
+        const second = makeTarget(22);
+        first.distanceTraveled = 900;
+        first.data.rbe = 100;
+        second.distanceTraveled = 200;
+        second.data.rbe = 10000;
+        const candidates = [first, second];
+        const enemies = {
+            [Symbol.iterator]() {
+                scans++;
+                return candidates[Symbol.iterator]();
+            },
+        };
+        const { G, Tower, SimulationLoop } = await setupEngine(enemies);
+        const sniper = new Tower(100, 100, 'sniper');
+        sniper.targetingMode = 'First';
+        sniper.cooldown = 10;
+        G.towers = [sniper];
+
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(sniper._cachedTarget).toBe(first);
+        expect(scans).toBe(1);
+
+        sniper.targetingMode = 'Strong';
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(sniper._cachedTarget).toBe(second);
+        expect(scans).toBe(2);
+    });
+
     it('does not share a Camo target with a Sniper that cannot see Camo', async () => {
         let scans = 0;
         const camoTarget = makeTarget(3, { camo: true });
