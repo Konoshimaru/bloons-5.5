@@ -21,8 +21,9 @@ afterEach(() => {
             customMaps: [],
         }));
 
-        const originalSetItem = Storage.prototype.setItem;
-        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+        const storagePrototype = Object.getPrototypeOf(localStorage);
+        const originalSetItem = storagePrototype.setItem;
+        vi.spyOn(storagePrototype, 'setItem').mockImplementation(function (key, value) {
             if (key === 'td_config') {
                 throw new Error('simulated storage quota failure');
             }
