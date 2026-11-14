@@ -15,6 +15,7 @@
     "js/collisionGeometry.js",
     "js/spatialGrid.js",
     "js/statusEffects.js",
+    "js/mapEditorValidation.js",
     "js/savedRunValidation.js",
     "js/engineComposition.js",
     "js/webgl/renderFailurePolicy.js"

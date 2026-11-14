@@ -127,4 +127,71 @@ describe('Map Editor I/O validation', () => {
         expect(Config.save).not.toHaveBeenCalled();
         expect(globalThis.alert).toHaveBeenCalledWith(expect.stringContaining('Cannot save map'));
     });
+
+    it('loads a valid stored custom map after normalizing optional arrays', () => {
+        Config.data.customMaps = [makeValidMap()];
+        vi.stubGlobal('prompt', vi.fn(() => 'Valid Map'));
+
+        editor.loadMap();
+
+        expect(MapEditorState.mapData).toMatchObject({
+            id: 'valid-map',
+            paths: makeValidMap().paths,
+            props: [],
+            waterBrushes: []
+        });
+        expect(editor.pushUndo).toHaveBeenCalledOnce();
+        expect(editor.applyLoadedMapData).toHaveBeenCalledOnce();
+    });
+
+    it('saves valid map data after checking the complete document', () => {
+        MapEditorState.mapData.id = 'saved-map';
+        MapEditorState.mapData.paths.push({
+            waypoints: [{ x: 10, y: 20 }, { x: 30, y: 40 }],
+            width: 45
+        });
+        vi.stubGlobal('document', {
+            getElementById: vi.fn(id => id === 'editor-map-name' ? { value: 'Saved Map' } : null)
+        });
+
+        editor.saveMap();
+
+        expect(Config.data.customMaps).toHaveLength(1);
+        expect(Config.data.customMaps[0]).toMatchObject({
+            id: 'saved-map',
+            name: 'Saved Map',
+            paths: [{ waypoints: [{ x: 10, y: 20 }, { x: 30, y: 40 }], width: 45 }],
+            props: [],
+            waterBrushes: []
+        });
+        expect(Maps).toHaveLength(1);
+        expect(Config.save).toHaveBeenCalledOnce();
+        expect(MapEditorState.isDirty).toBe(false);
+        expect(globalThis.alert).toHaveBeenCalledWith('Map saved successfully!');
+    });
+
+    it('rejects invalid file imports without changing the current editor map', () => {
+        vi.stubGlobal('FileReader', class {
+            readAsText(file) {
+                this.onload({ target: { result: file.contents } });
+            }
+        });
+        const previousMap = MapEditorState.mapData;
+        const target = {
+            files: [{
+                contents: JSON.stringify({
+                    paths: [{ waypoints: [{ x: 10, y: 'bad' }] }]
+                })
+            }],
+            value: 'broken-map.json'
+        };
+
+        editor.importJSON({ target });
+
+        expect(target.value).toBe('');
+        expect(MapEditorState.mapData).toBe(previousMap);
+        expect(editor.pushUndo).not.toHaveBeenCalled();
+        expect(editor.applyLoadedMapData).not.toHaveBeenCalled();
+        expect(globalThis.alert).toHaveBeenCalledWith(expect.stringContaining('Invalid map JSON'));
+    });
 });

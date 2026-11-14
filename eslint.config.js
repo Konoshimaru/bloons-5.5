@@ -11,6 +11,8 @@ const coreFiles = [
     'js/spatialGrid.js',
     'js/mapEditorHistory.js',
     'js/uiWriteThrottle.js',
+    'js/mapEditorValidation.js',
+    'js/mapEditorIO.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -20,7 +22,9 @@ const coreFiles = [
     'tests/renderFailurePolicy.test.js',
     'tests/projectileCollisionBroadphase.test.js',
     'tests/mapEditorHistory.test.js',
-    'tests/v143fixes.test.js'
+    'tests/v143fixes.test.js',
+    'tests/mapEditorValidation.test.js',
+    'tests/mapEditorIOValidation.test.js'
 ];
 
 export default [
@@ -41,15 +45,20 @@ export default [
                 beforeAll: 'readonly',
                 beforeEach: 'readonly',
                 describe: 'readonly',
+                alert: 'readonly',
                 document: 'readonly',
                 expect: 'readonly',
+                FileReader: 'readonly',
                 it: 'readonly',
+                Image: 'readonly',
                 performance: 'readonly',
                 vi: 'readonly',
                 structuredClone: 'readonly',
+                crypto: 'readonly',
                 setTimeout: 'readonly',
                 clearTimeout: 'readonly',
                 test: 'readonly',
+                prompt: 'readonly',
                 window: 'readonly'
             }
         },
