@@ -8,6 +8,10 @@ The automated suite uses Vitest. Run npm ci, then npm run check:syntax and npm t
 
 The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and tools/, plus the root Vite config. It skips node_modules, dist, js/backups and scripts/ because those contain dependencies, generated output, historical backups or archived copies.
 
+## Incremental type-checking
+
+The initial `typecheck:core` command uses a pinned TypeScript compiler and checks a small set of dependency-free helpers listed in `jsconfig.typecheck.json`. It is an initial, deliberately narrow check—not a claim that the entire JavaScript codebase is typed. Expand the file list only as modules gain accurate JSDoc and their external dependencies can be described without hiding real errors.
+
 ## Test production behavior
 
 A good regression test imports the actual function/class from js/ and verifies its observable result. Mock audio, rendering or local storage only when needed to isolate behavior.

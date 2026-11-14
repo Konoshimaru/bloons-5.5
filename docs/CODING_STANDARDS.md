@@ -43,3 +43,7 @@ These are practical guidelines for the existing JavaScript codebase, not a manda
 ## Engine module composition
 
 Subsystem methods are attached to the shared engine through `attachModuleMethods()` in `js/engineComposition.js`. Declare module ownership there and do not reintroduce plain `Object.assign(GameEngine, module)` calls: duplicate property names must be detected before any mutation.
+
+## JSDoc and types
+
+Add JSDoc types where they clarify public module boundaries. The current TypeScript check is intentionally limited to dependency-free helper modules; do not add broad `@ts-ignore` comments to make more files pass. Expand the checked set only after fixing the actual types and documenting external dependencies.

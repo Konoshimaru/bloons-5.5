@@ -8,7 +8,8 @@
     "test": "vitest run",
     "gen:manifest": "node tools/gen-manifest.mjs",
     "gen:thumbs": "node tools/gen-map-thumbs.mjs",
-    "check:syntax": "node tools/check-syntax.mjs"
+    "check:syntax": "node tools/check-syntax.mjs",
+    "typecheck:core": "npx --yes --package typescript@7.0.2 tsc --noEmit -p jsconfig.typecheck.json"
   },
   "repository": {
     "type": "git",

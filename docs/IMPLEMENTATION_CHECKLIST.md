@@ -62,7 +62,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [ ] Keep `tests.html` explicitly labelled as a manual/legacy browser harness; it is separate from Vitest.
 - [ ] Configure ESLint and fix verified lint findings.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
-- [ ] Add an actual type-check command; review `checkJs` and validate it on the project's current JavaScript.
+- [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
+- [ ] Expand type-check coverage gradually as JSDoc and dependency boundaries are improved; do not treat the initial subset as a whole-project type check.
 - [ ] Expand tests for save migration, malformed editor documents, and renderer error paths where practical.
 
 ## 4. Documentation and contributor onboarding
