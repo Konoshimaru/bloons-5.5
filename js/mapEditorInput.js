@@ -126,29 +126,41 @@ export default {
     },
 
     handleWheel(e) {
+        // When an object hitbox is selected, the wheel changes its size rather
+        // than zooming the canvas. Keep this before the general zoom handler.
+        if (MapEditorState.currentTool === 'objects' && MapEditorState.selectedProps.length > 0) {
+            e.preventDefault();
+            const sizeDelta = e.deltaY > 0 ? -1 : 1;
+            MapEditorState.selectedProps.forEach(prop => {
+                if (prop.shape === 'box') {
+                    prop.w = Math.max(10, (prop.w || 30) + sizeDelta * 5);
+                    prop.h = Math.max(10, (prop.h || 30) + sizeDelta * 5);
+                } else {
+                    prop.r = Math.max(5, (prop.r || 15) + sizeDelta * 2);
+                }
+            });
+            MapEditorState.markDirty();
+            return;
+        }
+
         if (MapEditorState.currentTool !== 'reference' && !this.isDragging) {
             e.preventDefault();
             const rect = this.canvas.getBoundingClientRect();
             const scaleX = this.canvas.width / rect.width;
             const screenX = (e.clientX - rect.left) * scaleX;
             const mouseWorldBefore = MapEditorState.screenToWorld(screenX, 0);
-            let newZoom = Math.max(0.5, Math.min(4.0, MapEditorState.camera.zoom * (e.deltaY > 0 ? 0.9 : 1.1)));
+            const newZoom = Math.max(
+                0.5,
+                Math.min(4.0, MapEditorState.camera.zoom * (e.deltaY > 0 ? 0.9 : 1.1))
+            );
             MapEditorState.camera.x = screenX - mouseWorldBefore.x * newZoom;
             MapEditorState.camera.zoom = newZoom;
             return;
         }
-        if (MapEditorState.currentTool === 'reference' && MapEditorState.refImage) { e.preventDefault(); MapEditorState.refScale *= e.deltaY > 0 ? 0.9 : 1.1; }
-        if (MapEditorState.currentTool === 'objects' && MapEditorState.selectedProps.length > 0) {
+
+        if (MapEditorState.currentTool === 'reference' && MapEditorState.refImage) {
             e.preventDefault();
-            MapEditorState.selectedProps.forEach(p => {
-                if (p.shape === 'box') {
-                    p.w = Math.max(10, (p.w || 30) + (e.deltaY > 0 ? -5 : 5));
-                    p.h = Math.max(10, (p.h || 30) + (e.deltaY > 0 ? -5 : 5));
-                } else {
-                    p.r = Math.max(5, (p.r || 15) + (e.deltaY > 0 ? -2 : 2));
-                }
-            });
-            MapEditorState.markDirty();
+            MapEditorState.refScale *= e.deltaY > 0 ? 0.9 : 1.1;
         }
     },
 
