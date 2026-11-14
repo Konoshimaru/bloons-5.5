@@ -6,6 +6,7 @@ export class ObjectPool {
     #reset;
     #pool = [];
     #active = [];
+    #activeIndices = new Map();
     #pooled = new WeakSet();
 
     constructor(factory, resetFn, initialSize = 100) {
@@ -16,16 +17,33 @@ export class ObjectPool {
         this.#reset = resetFn;
 
         for (let i = 0; i < initialSize; i++) {
-            const obj = this.#factory();
+            const obj = this.#createObject();
             this.#pool.push(obj);
             this.#pooled.add(obj);
         }
     }
 
+    #createObject() {
+        const obj = this.#factory();
+        if (!obj || (typeof obj !== 'object' && typeof obj !== 'function')) {
+            throw new TypeError("ObjectPool factories must return objects.");
+        }
+        if (this.#pooled.has(obj) || this.#activeIndices.has(obj)) {
+            throw new Error("ObjectPool factories must return a fresh object each time.");
+        }
+        return obj;
+    }
+
     get() {
         // Reuse an inactive object when possible so the game does not churn through allocations.
-        const obj = this.#pool.pop() ?? this.#factory();
-        this.#pooled.delete(obj);
+        let obj = this.#pool.pop();
+        if (obj === undefined) {
+            obj = this.#createObject();
+        } else {
+            this.#pooled.delete(obj);
+        }
+
+        this.#activeIndices.set(obj, this.#active.length);
         this.#active.push(obj);
         return obj;
     }
@@ -38,19 +56,23 @@ export class ObjectPool {
         // allowing two callers to receive the same instance concurrently.
         if (this.#pooled.has(obj)) return;
 
-        // Some gameplay systems release directly after removing their object
-        // from a separate game array. Keep the pool's own active list in sync.
-        const activeIndex = this.#active.indexOf(obj);
-        if (activeIndex !== -1) {
-            const last = this.#active.pop();
-            if (activeIndex < this.#active.length) {
-                this.#active[activeIndex] = last;
-            }
-        }
-
         if (this.#reset) {
             this.#reset(obj);
         }
+
+        // Some gameplay systems release directly after removing their object
+        // from a separate game array. Keep the pool's own active list in sync.
+        // The index map makes this swap-removal O(1), including large bloon waves.
+        const activeIndex = this.#activeIndices.get(obj);
+        if (activeIndex !== undefined) {
+            const last = this.#active.pop();
+            this.#activeIndices.delete(obj);
+            if (activeIndex < this.#active.length) {
+                this.#active[activeIndex] = last;
+                this.#activeIndices.set(last, activeIndex);
+            }
+        }
+
         this.#pool.push(obj);
         this.#pooled.add(obj);
     }
