@@ -62,6 +62,19 @@ describe('ObjectPool', () => {
         expect(pool.active).toHaveLength(3);
     });
 
+    it('ignores non-integer and out-of-range removal indices', () => {
+        const pool = new ObjectPool(() => ({}), undefined, 0);
+        const only = pool.get();
+
+        pool.removeAt(Number.NaN);
+        pool.removeAt(0.5);
+        pool.removeAt(-1);
+        pool.removeAt(1);
+
+        expect(pool.active).toEqual([only]);
+        expect(pool.size).toBe(1);
+    });
+
     it('clears and returns every active object to the free list', () => {
         const pool = new ObjectPool(() => ({}), undefined, 0);
         const first = pool.get();

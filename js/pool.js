@@ -78,7 +78,7 @@ export class ObjectPool {
     }
 
     removeAt(index) {
-        if (index < 0 || index >= this.#active.length) return;
+        if (!Number.isInteger(index) || index < 0 || index >= this.#active.length) return;
 
         this.release(this.#active[index]);
     }
