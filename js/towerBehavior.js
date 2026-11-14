@@ -221,21 +221,29 @@ function _getAcquireTarget(tower, engine) {
     const cached = tower._cachedTarget;
     const shouldReuseCached = !firingReady ||
         (tower.stats.range === 9999 && tower._targetRescanTimer > 0);
-    const cachedIsValid = shouldReuseCached && cached &&
-        cached.alive &&
-        !cached.invulnerable &&
-        !cached.untargetable &&
-        cached._spawnId === tower._cachedTargetSpawnId &&
-        tower._cachedTargetingKey === targetingKey &&
-        !isHiddenFrom(tower, cached) &&
-        !(tower.type === 'glue' && cached.data?.isMoab && !tower.stats.canHitMoab) &&
-        (tower.stats.range === 9999 || Utils.withinRange(
-            tower.x,
-            tower.y,
-            cached.x,
-            cached.y,
-            Utils.getEffectiveRange(tower, engine) + (cached.radius || 10)
-        ));
+    const targetCacheMeasure = tower.type === 'sniper'
+        ? Profiler.beginMeasure('sniper.targetCacheValidation')
+        : null;
+    let cachedIsValid;
+    try {
+        cachedIsValid = shouldReuseCached && cached &&
+            cached.alive &&
+            !cached.invulnerable &&
+            !cached.untargetable &&
+            cached._spawnId === tower._cachedTargetSpawnId &&
+            tower._cachedTargetingKey === targetingKey &&
+            !isHiddenFrom(tower, cached) &&
+            !(tower.type === 'glue' && cached.data?.isMoab && !tower.stats.canHitMoab) &&
+            (tower.stats.range === 9999 || Utils.withinRange(
+                tower.x,
+                tower.y,
+                cached.x,
+                cached.y,
+                Utils.getEffectiveRange(tower, engine) + (cached.radius || 10)
+            ));
+    } finally {
+        Profiler.endMeasure(targetCacheMeasure);
+    }
 
     // Keep a still-valid global-range target for a short interval even when
     // the firing cooldown is ready. Very fast Snipers used to re-scan the
@@ -296,23 +304,55 @@ function _findTarget(tower, engine) {
     // can reuse one full-list ranking for the 0.15s acquisition window. The
     // per-tower cache still handles tracking between shots; this shared cache
     // prevents N Snipers from repeating the same O(enemy count) ranking N times.
-    if (canShareGlobalTarget && cache.has(cacheKey)) {
-        const entry = cache.get(cacheKey);
-        if (entry && entry.remaining > 0) {
-            const cached = entry.target;
-            const cachedIsValid = !cached || (
-                cached.alive &&
-                !cached.invulnerable &&
-                !cached.untargetable &&
-                cached._spawnId === entry.spawnId &&
-                !isHiddenFrom(tower, cached) &&
-                !(tower.type === 'glue' && cached.data?.isMoab && !tower.stats.canHitMoab)
-            );
-            if (cachedIsValid) return cached;
+    const sharedCacheMeasure = tower.type === 'sniper'
+        ? Profiler.beginMeasure('sniper.sharedTargetCache')
+        : null;
+    try {
+        if (canShareGlobalTarget && cache.has(cacheKey)) {
+            const entry = cache.get(cacheKey);
+            if (entry && entry.remaining > 0) {
+                // Keep the top three ranked, line-of-sight-valid targets for
+                // this short acquisition window. When a Sniper pops its current
+                // target, the next live candidate can be selected without
+                // repeating the full enemy-list scan.
+                const sharedTargets = Array.isArray(entry.targets) && entry.targets.length
+                    ? entry.targets
+                    : entry.target
+                        ? [{ target: entry.target, spawnId: entry.spawnId }]
+                        : [];
+
+                // An empty candidate list is a cached "no target" result. Do
+                // not turn that into one full-list scan per compatible tower.
+                if (sharedTargets.length === 0) {
+                    if (tower.type === 'sniper') Profiler.count('sniper.sharedTargetEmptyHits');
+                    return null;
+                }
+
+                for (let i = 0; i < sharedTargets.length; i++) {
+                    const candidate = sharedTargets[i];
+                    const cached = candidate?.target;
+                    if (!cached || !cached.alive || cached.invulnerable || cached.untargetable ||
+                        cached._spawnId !== candidate.spawnId || isHiddenFrom(tower, cached) ||
+                        (tower.type === 'glue' && cached.data?.isMoab && !tower.stats.canHitMoab)) {
+                        continue;
+                    }
+
+                    entry.target = cached;
+                    entry.spawnId = candidate.spawnId;
+                    if (tower.type === 'sniper') {
+                        Profiler.count('sniper.sharedTargetCacheHits');
+                        if (i > 0) Profiler.count('sniper.sharedTargetFallbacks');
+                    }
+                    return cached;
+                }
+            }
+            // Every cached candidate was killed, recycled, hidden or made
+            // untargetable. Only then is a new full-list scan necessary.
+            cache.delete(cacheKey);
+            if (tower.type === 'sniper') Profiler.count('sniper.sharedTargetInvalidations');
         }
-        // A dead, recycled, newly hidden, or expired shared target must not
-        // survive in the shared cache. The current tower performs a fresh scan.
-        cache.delete(cacheKey);
+    } finally {
+        Profiler.endMeasure(sharedCacheMeasure);
     }
 
     // Global-range towers (range === 9999) never filter by distance, so the
@@ -320,7 +360,12 @@ function _findTarget(tower, engine) {
     // targeting (which needs distance for ranking) or a minimum range is used.
     const needDist = !isGlobal || currentTargeting === 'Close' || minRange > 0;
 
+    const targetScanMeasure = tower.type === 'sniper'
+        ? Profiler.beginMeasure('sniper.targetScan')
+        : null;
+    try {
     for (const e of candidates) {
+        if (tower.type === 'sniper') Profiler.count('sniper.targetCandidatesVisited');
         if (!e.alive) continue;
         // Never target an enemy while it is invulnerable or untargetable.
         if (e.invulnerable || e.untargetable) continue;
@@ -355,9 +400,21 @@ function _findTarget(tower, engine) {
             t3 = e; v3 = val;
         }
     }
+    } finally {
+        Profiler.endMeasure(targetScanMeasure);
+    }
 
     let selectedTarget = null;
-    if (t1) {
+    let sharedTargets = null;
+    if (canShareGlobalTarget) {
+        sharedTargets = [];
+        for (const candidate of [t1, t2, t3]) {
+            if (candidate && _hasLineOfSight(tower, candidate, engine)) {
+                sharedTargets.push({ target: candidate, spawnId: candidate._spawnId });
+            }
+        }
+        selectedTarget = sharedTargets.length ? sharedTargets[0].target : null;
+    } else if (t1) {
         if (_hasLineOfSight(tower, t1, engine)) selectedTarget = t1;
         else if (t2 && _hasLineOfSight(tower, t2, engine)) selectedTarget = t2;
         else if (t3 && _hasLineOfSight(tower, t3, engine)) selectedTarget = t3;
@@ -370,6 +427,7 @@ function _findTarget(tower, engine) {
         cache.set(cacheKey, {
             target: selectedTarget,
             spawnId: selectedTarget ? selectedTarget._spawnId : null,
+            targets: sharedTargets,
             remaining: TARGET_RESCAN_INTERVAL
         });
     }
