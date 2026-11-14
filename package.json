@@ -1,8 +1,7 @@
 {
   "name": "btd",
   "version": "1.4.5",
-  "description": "",
-  "main": "index.js",
+  "description": "A browser-based tower-defense project with custom development tools and editors.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -14,7 +13,13 @@
     "type": "git",
     "url": "git+https://github.com/Konoshimaru/bloons-5.5.git"
   },
-  "keywords": [],
+  "keywords": [
+    "tower-defense",
+    "browser-game",
+    "pixi.js",
+    "vite",
+    "game-development"
+  ],
   "author": "",
   "license": "ISC",
   "type": "module",
@@ -30,5 +35,6 @@
   },
   "dependencies": {
     "pixi.js": "^8.19.0"
-  }
+  },
+  "private": true
 }
