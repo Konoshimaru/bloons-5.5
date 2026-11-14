@@ -134,17 +134,19 @@ const SimulationLoop = {
             }
         }
 
+        this.hasIceShardTower = false;
+        this.towerGrid.clear();
+        // Clear transient buffs and rebuild the spatial index in one traversal.
+        // Both operations previously scanned the complete tower array separately.
         for (const t of this.towers) {
             if (!t) continue;
             t.buffedRange = 0; t.buffedFireRate = 0; t.buffedCamo = false; t.buffedLead = false;
             t.discount = 0; t.buffedDmg = 0; t.buffedPierce = 0; t.buffedValueMult = 0;
             t.freeTier1 = false; t.freeTier2 = false;
-            t.buffedProjSpeed = 1.0; 
+            t.buffedProjSpeed = 1.0;
             t.abilityCdMult = 1.0;
+            this.towerGrid.insert(t);
         }
-        this.hasIceShardTower = false;
-        this.towerGrid.clear();
-        for (const t of this.towers) { if (t) this.towerGrid.insert(t); }
         this._updatingTowerSupport = true;
         try {
             for (const t of this.towers) {

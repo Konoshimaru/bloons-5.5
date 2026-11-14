@@ -34,6 +34,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Share the 0.15-second global-target ranking cache across compatible global-range Snipers, keyed by target mode and visibility rules; invalidate immediately when the target dies, is recycled, becomes hidden, or the targeting rules change.
 - [x] Handle a one-slot Shrapnel burst without producing a NaN projectile angle when the shared projectile pool is nearly full.
 - [x] Run Elite Support's all-tower buff sweep once per simulation step, regardless of how many Elite Snipers are present; retain the existing 0.4-second buff refresh throttle.
+- [x] Combine transient tower-buff resets and tower-grid insertion into one simulation traversal; cover the production SimulationLoop pass with a regression test.
 - [x] Batch Sniper hitscan lines by fixed-step fade age so Pixi performs one stroke per active age bucket rather than one stroke per shot.
 
 ## 2. Architecture and maintainability

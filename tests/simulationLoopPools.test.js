@@ -98,3 +98,61 @@ describe('SimulationLoop pool integration', () => {
         expect(child.update).toHaveBeenCalledOnce();
     });
 });
+
+
+describe('SimulationLoop tower update pass', () => {
+    it('clears transient buffs and rebuilds the tower grid in one pass', () => {
+        const makeTower = () => ({
+            type: '__unknown_test_type__',
+            upgrades: [0, 0, 0],
+            buffedRange: 50,
+            buffedFireRate: 2,
+            buffedCamo: true,
+            buffedLead: true,
+            discount: 3,
+            buffedDmg: 4,
+            buffedPierce: 5,
+            buffedValueMult: 6,
+            freeTier1: true,
+            freeTier2: true,
+            buffedProjSpeed: 7,
+            abilityCdMult: 8,
+            update: vi.fn(),
+        });
+        const first = makeTower();
+        const second = makeTower();
+        const towerGrid = { clear: vi.fn(), insert: vi.fn() };
+        const engine = {
+            towers: [first, null, second],
+            towerGrid,
+            _globalTargetCache: new Map(),
+            _towerUpdateStep: 0,
+            hasIceShardTower: false,
+            _updatingTowerSupport: false,
+        };
+
+        SimulationLoop._updateTowers.call(engine, 1 / 60);
+
+        expect(towerGrid.clear).toHaveBeenCalledOnce();
+        expect(towerGrid.insert).toHaveBeenCalledTimes(2);
+        expect(towerGrid.insert).toHaveBeenNthCalledWith(1, first);
+        expect(towerGrid.insert).toHaveBeenNthCalledWith(2, second);
+        for (const tower of [first, second]) {
+            expect(tower.buffedRange).toBe(0);
+            expect(tower.buffedFireRate).toBe(0);
+            expect(tower.buffedCamo).toBe(false);
+            expect(tower.buffedLead).toBe(false);
+            expect(tower.discount).toBe(0);
+            expect(tower.buffedDmg).toBe(0);
+            expect(tower.buffedPierce).toBe(0);
+            expect(tower.buffedValueMult).toBe(0);
+            expect(tower.freeTier1).toBe(false);
+            expect(tower.freeTier2).toBe(false);
+            expect(tower.buffedProjSpeed).toBe(1);
+            expect(tower.abilityCdMult).toBe(1);
+            expect(tower.update).toHaveBeenCalledOnce();
+        }
+        expect(engine._updatingTowerSupport).toBe(false);
+        expect(engine._towerUpdateStep).toBe(1);
+    });
+});
