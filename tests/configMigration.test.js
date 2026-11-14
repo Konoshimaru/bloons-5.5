@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Config } from '../js/config.js';
 import { Maps } from '../js/data.js';
 
@@ -11,6 +11,32 @@ afterEach(() => {
     localStorage.clear();
     Config.data = structuredClone(originalData);
     Maps.length = originalMapCount;
+    vi.restoreAllMocks();
+
+    it('keeps the legacy save when persisting a migrated config fails', () => {
+        localStorage.setItem('td_config_v11', JSON.stringify({
+            schemaVersion: 11,
+            playerName: 'Recoverable Player',
+            monkeyMoney: 987,
+            customMaps: [],
+        }));
+
+        const originalSetItem = Storage.prototype.setItem;
+        vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (key, value) {
+            if (key === 'td_config') {
+                throw new Error('simulated storage quota failure');
+            }
+            return originalSetItem.call(this, key, value);
+        });
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        Config.load();
+
+        expect(Config.data.playerName).toBe('Recoverable Player');
+        expect(Config.data.monkeyMoney).toBe(987);
+        expect(localStorage.getItem('td_config')).toBeNull();
+        expect(localStorage.getItem('td_config_v11')).not.toBeNull();
+    });
 });
 
 describe('Config schema migration persistence', () => {
