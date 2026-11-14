@@ -29,7 +29,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [ ] Verify projectile collision behavior for every special projectile type, including pierce, ricochet, split, explosive, and returning projectiles.
 - [ ] Manually test valid, invalid, old-format, and custom-map saves through the actual Continue UI.
 - [ ] Test WebGL unavailable/startup failure and simulated render failure in a browser, not only through unit tests.
-- [ ] Owner confirmed on 2026-11-14 that severe FPS drops persist when using Sniper Monkey on the latest `fix/fixed-timestep` build. Previous automated mitigations did not resolve the real-browser issue; keep this open until profiling and repeatable browser verification demonstrate that it is fixed.
+- [ ] The 2026-11-14 22:01:41Z capture still shows severe Sniper-related simulation spikes (max 556.4ms; `sniper.targeting` max 553.5ms). Version 1.4.7 adds a target fallback shortlist and finer acquisition timings; keep this open until a new browser capture confirms the improvement.
 - [x] Add initial automated safeguards for high-load tower/effect updates and regression tests. Passing unit tests do not establish that the owner-reported FPS issue is resolved.
 - [x] Combine transient tower-buff resets and tower-grid insertion into one simulation traversal; cover the production SimulationLoop pass with a regression test.
 
@@ -84,6 +84,9 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Prevent repeated `Config.load()` calls from duplicating custom maps; replace the runtime custom-map suffix from the current saved config and cover reload/replacement behavior with Vitest.
 - [x] Expand renderer error-path tests against the production PixiRenderer `_safeDraw()` method, covering retry timing, optional-pass disabling/layer hiding, recovery after success, and escalation of critical-pass failures.
 - [x] Add capture-only simulation-phase and Sniper substage timings/counts to the profiler; include per-tower loadouts and selected-tower metadata in exported diagnostics.
+- [x] Keep the three next ranked global-range targets in the shared Sniper acquisition cache; use a surviving candidate after a target pop, and test the fallback with two Snipers.
+- [x] Split Sniper acquisition timings into cached-target validation, shared-cache lookup, and full target scanning; count candidate visits and fallback-cache outcomes.
+- [ ] Repeat the same in-browser Sniper scenario on v1.4.7, export a new profiler capture, and verify that target-acquisition spikes fall.
 
 ## 4. Documentation and contributor onboarding
 
@@ -140,6 +143,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Remove the unused `main: index.js` entry and mark the browser app package as private.
 - [x] Upgrade Vite from 8.1.5 to 8.1.7 and refresh package-lock.json; CI confirmed npm audit reports zero vulnerabilities.
 - [x] Release branch build 1.4.6: synchronize package.json, package-lock.json, runtime GAME_VERSION and menu version badge; add root CHANGELOG.md and an in-game Update Log entry.
+- [x] Release branch build 1.4.7: synchronize package.json, package-lock.json and runtime GAME_VERSION; add the Sniper retargeting entry to CHANGELOG.md and the in-game Update Log.
 - [ ] Confirm whether ISC is the intended source-code license before adding a root `LICENSE` file.
 - [ ] Review third-party sprite, audio, font, and other asset permissions separately; do not assume the source-code license covers them.
 - [x] Review the package homepage and repository metadata: repository, issues URL and homepage point to the project repository and its README.
