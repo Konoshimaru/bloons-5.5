@@ -79,6 +79,7 @@ export default [
                 vi: 'readonly',
                 structuredClone: 'readonly',
                 crypto: 'readonly',
+                console: 'readonly',
                 setTimeout: 'readonly',
                 clearTimeout: 'readonly',
                 test: 'readonly',

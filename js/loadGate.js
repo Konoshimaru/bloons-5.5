@@ -37,7 +37,6 @@ const loaders = new Map();   // group -> { load(ctx, onProgress), key(ctx) }
 const runs = new Map();      // "group:key" -> { promise, done, progress, listeners }
 
 let screenUsers = 0;
-let screenSetup = false;
 let fadeTimer = null;        // a pending fade-out; cancelled if a gate re-shows
 let minigameTimer = null;    // pending minigame summon; cancelled on release
 
@@ -67,7 +66,7 @@ function disarmMinigame() {
     if (minigameTimer) { clearTimeout(minigameTimer); minigameTimer = null; }
     const cv = el('loading-minigame');
     if (cv) cv.classList.remove('live');
-    try { LoadingMinigame.stop(); } catch (e) { /* ignore */ }
+    try { LoadingMinigame.stop(); } catch { /* ignore */ }
 }
 
 function showScreen(label, run) {
