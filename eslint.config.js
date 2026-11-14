@@ -36,6 +36,7 @@ const coreFiles = [
     'js/bosses/knight.js',
     'js/webgl/renderFailurePolicy.js',
     'js/webgl/pixiRenderer.js',
+    'js/webgl/renderProjectiles.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
     'tests/savedRunValidation.test.js',
