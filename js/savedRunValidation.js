@@ -24,16 +24,29 @@ function resolveDifficulty(state, difficulties) {
 }
 
 /**
+ * @typedef {Object} SavedRunValidationOptions
+ * @property {number} [mapCount] Number of maps currently available.
+ * @property {Record<string, {name: string}>} [difficulties] Known difficulty definitions.
+ * @property {Record<string, {isHero?: boolean}>} [towerStats] Known tower definitions.
+ * @property {Record<string, {isHero?: boolean}>} [heroStats] Known hero definitions.
+ * @property {string[]} [paragonTypes] Supported Paragon base tower types.
+ */
+
+/**
  * Validates a persisted save before it mutates the live singleton engine.
  * Returns a canonical difficulty key with the validation result.
+ *
+ * @param {*} state Persisted save data from local storage.
+ * @param {SavedRunValidationOptions} [options]
  */
-export function validateSavedRun(state, {
-    mapCount,
-    difficulties,
-    towerStats,
-    heroStats,
-    paragonTypes = []
-} = {}) {
+export function validateSavedRun(state, options = {}) {
+    const {
+        mapCount,
+        difficulties,
+        towerStats,
+        heroStats,
+        paragonTypes = []
+    } = options;
     const invalid = (reason) => ({ valid: false, reason });
 
     if (!isRecord(state)) return invalid('Save data is not an object.');
