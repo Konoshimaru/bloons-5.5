@@ -15,7 +15,7 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Stale tower interface documentation: js/towers/TOWER_INTERFACE.md now describes registry-based behavior lookup rather than prototype mixins.
 - [x] Contributor documentation and CI checks have been added on this branch.
 
-GitHub Actions run 43600678763 completed successfully: all 37 Vitest files (419 tests) passed and the Vite production build completed. Browser gameplay checks and Windows batch-script checks are still required before merging.
+GitHub Actions run 43601229284 completed successfully: all 38 Vitest files (424 tests) passed and the Vite production build completed. This includes the fixed-step clock, swept collisions, save validation, Pixi failure policy, and GameEngine composition guard. Browser gameplay checks and Windows batch-script checks are still required before merging.
 
 ## Active technical debt
 

@@ -51,7 +51,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add a GameEngine composition helper with tests for duplicate names, getter preservation, and no partial application.
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm test`, and `npm run build` for pushes and pull requests.
-- [x] Re-run and confirm CI after the renderer failure-policy change: 37 test files and 419 tests passed; production build passed.
+- [x] Re-run and confirm CI after renderer recovery and GameEngine composition changes: 38 test files and 424 tests passed; production build passed.
 - [ ] Convert hand-written checks in `js/tests/tests.js` into tests of real production functions where applicable.
 - [ ] Keep `tests.html` explicitly labelled as a manual/legacy browser harness; it is separate from Vitest.
 - [ ] Configure ESLint and fix verified lint findings.
