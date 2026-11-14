@@ -24,7 +24,7 @@
  * @property {Array<Object>} 3
  */
 // js/tower.js
-import { towerFactory } from './towerFactory.js';
+import { registerTowerFactory } from './towerFactory.js';
 import { TowerStats, Upgrades, TowerRegistry } from './towers/index.js';
 import { HeroStats, HeroRegistry } from './heroes/index.js';
 import { GameEngine } from './engineRef.js';
@@ -288,4 +288,4 @@ export class Tower {
 
 Object.assign(Tower.prototype, TowerEconomy);
 
-towerFactory.create = (x, y, type) => new Tower(x, y, type);
+registerTowerFactory((x, y, type) => new Tower(x, y, type));
