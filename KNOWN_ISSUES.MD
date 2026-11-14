@@ -8,10 +8,13 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Projectile tunnelling between update positions: moving projectiles now test their swept segment against enemy circles.
 - [x] Unsafe saved-run restoration: save data is validated before changing engine state, and restoration stops if map initialization fails.
 - [x] Continue flow restarting a fresh game after loading a save: the UI starts the save-loading path once, without a second fresh session afterwards.
+- [x] Explosive damage not reaching MOAB-class targets: EXPLOSION damage now carries canHitMoab while DDT-specific immunity remains in effect.
+- [x] Explosive overlap ignored large enemy hitboxes: blast checks now include the target enemy radius.
+- [x] Knight front sprite alias missing from the editor library: the fallback sprite index now includes the single canonical alias entry.
 - [x] Stale tower interface documentation: js/towers/TOWER_INTERFACE.md now describes registry-based behavior lookup rather than prototype mixins.
 - [x] Contributor documentation and CI checks have been added on this branch.
 
-Source-level tests have been added for the new pure helpers and save validation. The full Vitest suite, production build and browser gameplay checks still need to be run before merging.
+GitHub Actions run 43598895661 completed successfully: all 36 Vitest files (412 tests) passed and the Vite production build completed. Browser gameplay checks are still required before merging.
 
 ## Active technical debt
 
