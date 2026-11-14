@@ -139,13 +139,14 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add a package description and relevant keywords.
 - [x] Remove the unused `main: index.js` entry and mark the browser app package as private.
 - [x] Upgrade Vite from 8.1.5 to 8.1.7 and refresh package-lock.json; CI confirmed npm audit reports zero vulnerabilities.
+- [x] Release branch build 1.4.6: synchronize package.json, package-lock.json, runtime GAME_VERSION and menu version badge; add root CHANGELOG.md and an in-game Update Log entry.
 - [ ] Confirm whether ISC is the intended source-code license before adding a root `LICENSE` file.
 - [ ] Review third-party sprite, audio, font, and other asset permissions separately; do not assume the source-code license covers them.
 - [x] Review the package homepage and repository metadata: repository, issues URL and homepage point to the project repository and its README.
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43642844236 is green on commit `32fa90684fe7b94b44d60b1e54e826c6ff336e9e`: zero npm advisories, 234 syntax-checked files, fourteen type-checked modules, 47 ESLint production modules plus 35 test files, 61 Vitest files (568 tests), and production build.
+- [x] Confirm CI run 43644888798 is green on commit `6fb052c3fde6f1a9dec021e137c9eb0922feed14`: zero npm advisories, 235 syntax-checked files, fourteen type-checked modules, 47 ESLint production modules plus 35 test files, 62 Vitest files (572 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
