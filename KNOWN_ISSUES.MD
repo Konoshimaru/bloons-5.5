@@ -19,7 +19,7 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Contributor documentation and CI checks have been added on this branch.
 - [x] Map Editor JSON import, direct JSON apply, saved-map loading, and save operations validate document structure before replacing editor data or writing to player config; legacy top-level `waypoints` documents normalize to a single path. Scroll handling prioritizes resizing a selected hitbox instead of allowing the generic zoom handler to swallow the action. Editor module composition is guarded against duplicate method names; invalid JSON does not add an undo snapshot; malformed first-waypoint curves are rejected.
 
-GitHub Actions run 43642591076 completed successfully on commit `e8ce20e08f2d8aa3dba35b37c4c3e8c53aafa3a7`: dependency audit reported zero findings; JavaScript syntax passed for all 234 files; the fourteen-module core TypeScript check and ESLint step passed (46 production modules and 34 test files); all 61 Vitest files (568 tests) passed; and the Vite production build completed with all five HTML entry points. Browser acceptance checks and Windows batch-script checks remain outstanding.
+GitHub Actions run 43642844236 completed successfully on commit `32fa90684fe7b94b44d60b1e54e826c6ff336e9e`: dependency audit reported zero findings; JavaScript syntax passed for all 234 files; the fourteen-module core TypeScript check and ESLint step passed (46 production modules and 34 test files); all 61 Vitest files (568 tests) passed; and the Vite production build completed with all five HTML entry points. Browser acceptance checks and Windows batch-script checks remain outstanding.
 
 ## Active technical debt
 
@@ -33,7 +33,7 @@ GitHub Actions run 43642591076 completed successfully on commit `e8ce20e08f2d8aa
 - [ ] Further reduce the shared Main controller method bag only if a clearer sub-object design can be introduced without changing menu behavior.
 - [ ] Large editor/rendering modules: split files only where a clear responsibility boundary exists. Preserve the Cutscene Editor and other development tools.
 - [ ] Legacy browser test harness: tests.html remains a manual smoke page, separate from Vitest. Its duplicated undo/redo, curve-subdivision, and Ice Monkey simulations have been removed and replaced with production-module Vitest tests; review any remaining manual assertions for gaps.
-- [ ] Automated checks: GitHub Actions now runs dependency audit, syntax scanning, a fourteen-module TypeScript check, and ESLint on 44 production modules plus 32 test files, alongside Vitest and the production build. ESLint and TypeScript coverage still need to expand across the remaining application modules and development tools.
+- [ ] Automated checks: GitHub Actions now runs dependency audit, syntax scanning, a fourteen-module TypeScript check, and ESLint on 46 production modules plus 34 test files, alongside Vitest and the production build. ESLint and TypeScript coverage still need to expand across the remaining application modules and development tools.
 - [ ] Package licensing: package.json declares ISC, but there is no root LICENSE file. Confirm the intended source-code license and separately review game art, audio, fonts and other asset rights before adding a blanket license file.
 - [ ] Import/style cleanup: run a configured linter before removing suspected unused imports; some imports may be intentionally loaded for side effects.
 
