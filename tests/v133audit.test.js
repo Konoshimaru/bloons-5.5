@@ -198,6 +198,11 @@ describe('v1.3.3 pooled-flag sweep', () => {
         expect(e.stunOnPop).toBe(0);
     });
 
+    it('exposes EnemyDamage behavior through guarded prototype composition', () => {
+        expect(Enemy.prototype.takeDamage).toBeTypeOf('function');
+        expect(Enemy.prototype._handleMoabDamage).toBeTypeOf('function');
+    });
+
     it('enemy init() purges stale Skywarden combo state from the pool', () => {
         const e = freshEnemy(3, { regen: false });
         e._skyC_wind = { hits: 3, reset: 1 };

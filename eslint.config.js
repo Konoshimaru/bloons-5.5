@@ -25,6 +25,7 @@ const coreFiles = [
     'js/projectileHitResolution.js',
     'js/loadGate.js',
     'js/map.js',
+    'js/enemy.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -48,7 +49,8 @@ const coreFiles = [
     'tests/projectileTypeConfig.test.js',
     'tests/projectileHitResolution.test.js',
     'tests/loadGate.test.js',
-    'tests/gameMapPathGeometry.test.js'
+    'tests/gameMapPathGeometry.test.js',
+    'tests/v133audit.test.js'
 ];
 
 export default [

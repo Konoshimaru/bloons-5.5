@@ -1,13 +1,13 @@
 ﻿// js/enemy.js
 import { EnemyTypes } from './data.js';
-import { AudioEngine } from './audio.js';
 import { GameEngine } from './engineRef.js';
 import Assets from './assets.js';
 import { Names } from './names.js';
 import { Utils } from './utils.js';
 import { Config } from './config.js';
-import { GLOBAL_SCALE, GS } from './constants.js';
+import { GS } from './constants.js';
 import EnemyDamage from './enemyDamage.js';
+import { attachModuleMethods } from './engineComposition.js';
 import { MKEffects } from './monkeyKnowledgeEffects.js';
 import { updateTimedEffects } from './statusEffects.js';
 import { roundSpeedRamp, moabHpRamp, statusDurationFactor, cashMultForRound, treeLayers, leakLives, singleChildSplit } from './btd6Rules.js';
@@ -30,7 +30,6 @@ function _regenNextTier(tier, maxTier) {
     if (next === undefined || d[next] > d[maxTier]) return null; // no on-chart step below the ceiling
     return next;
 }
-const STORM_HIT_INTERVAL = 0.05;
 const FORTIFIED_LEAD_HP = 3;
 
 // Scratch results for getPositionAtDistance. The movement hot path runs once
@@ -447,4 +446,4 @@ export class Enemy {
     }
 }
 
-Object.assign(Enemy.prototype, EnemyDamage);
+attachModuleMethods(Enemy.prototype, 'EnemyDamage', EnemyDamage);
