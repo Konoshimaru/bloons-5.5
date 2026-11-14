@@ -1,8 +1,8 @@
 // js/mapEditorIO.js
 import { Config } from './config.js';
 import { Maps } from './data.js';
-import { UI } from './ui.js';
 import { MapEditorState } from './mapEditorState.js';
+import { normalizeMapEditorDocument } from './mapEditorValidation.js';
 
 export default {
     loadBackgroundPreview() {
@@ -21,7 +21,7 @@ export default {
     clearBackground() { 
         MapEditorState.mapData.image = null; 
         MapEditorState.bgImage = null; 
-        document.getElementById('bg-image-name').value = ""; 
+        document.getElementById('bg-image-name').value = "";
         MapEditorState.markDirty(); 
     },
     
@@ -41,44 +41,76 @@ export default {
     clearNightBackground() { 
         MapEditorState.mapData.imageNight = null; 
         MapEditorState.bgNightImage = null; 
-        document.getElementById('bg-night-image-name').value = ""; 
+        document.getElementById('bg-night-image-name').value = "";
         MapEditorState.markDirty(); 
     },
 
     saveMap() {
         const nameInput = document.getElementById('editor-map-name');
-        MapEditorState.mapData.name = (nameInput && nameInput.value) ? nameInput.value : "Custom Map";
+        const name = (nameInput && nameInput.value) ? nameInput.value : "Custom Map";
+        const validation = normalizeMapEditorDocument({
+            ...MapEditorState.mapData,
+            name
+        });
+        if (!validation.valid) {
+            alert(`Cannot save map: ${validation.error}`);
+            return;
+        }
+        MapEditorState.mapData = validation.mapData;
         if (!MapEditorState.mapData.id) MapEditorState.mapData.id = crypto.randomUUID();
-        MapEditorState.mapData.paths = MapEditorState.mapData.paths.filter(p => p && p.waypoints && p.waypoints.length > 0);
+        MapEditorState.mapData.paths = MapEditorState.mapData.paths.filter(
+            path => path.waypoints.length > 0
+        );
         
-        for (let p of MapEditorState.mapData.paths) {
-            // Paths keep their visibility state!
-            if (p.waypoints.length < 2) { alert("Each path must have at least 2 waypoints."); return; }
-            for (let wp of p.waypoints) {
-                if (typeof wp.x !== 'number' || typeof wp.y !== 'number') { alert("Invalid waypoint coordinates."); return; }
-                if (wp.curve && (typeof wp.curve.cx !== 'number' || typeof wp.curve.cy !== 'number')) { alert("Invalid curve coordinates."); return; }
+        for (const path of MapEditorState.mapData.paths) {
+            if (path.waypoints.length < 2) {
+                alert("Each path must have at least 2 waypoints.");
+                return;
             }
         }
-        if (MapEditorState.mapData.paths.length === 0) { alert("Please draw at least one path."); return; }
+        if (MapEditorState.mapData.paths.length === 0) {
+            alert("Please draw at least one path.");
+            return;
+        }
         
         const existingIdx = Config.data.customMaps.findIndex(m => m.id === MapEditorState.mapData.id);
         const mapCopy = JSON.parse(JSON.stringify(MapEditorState.mapData));
-        if (existingIdx > -1) { Config.data.customMaps[existingIdx] = mapCopy; if (Maps[existingIdx + 6]) Maps[existingIdx + 6] = mapCopy; }
-        else { Config.data.customMaps.push(mapCopy); Maps.push(mapCopy); }
+        if (existingIdx > -1) {
+            Config.data.customMaps[existingIdx] = mapCopy;
+            if (Maps[existingIdx + 6]) Maps[existingIdx + 6] = mapCopy;
+        } else {
+            Config.data.customMaps.push(mapCopy);
+            Maps.push(mapCopy);
+        }
         Config.save();
         MapEditorState.markClean();
         alert("Map saved successfully!");
     },
     
     loadMap() {
-        const names = Config.data.customMaps.map(m => m.name);
-        if (names.length === 0) { alert("No custom maps saved."); return; }
-        const name = prompt("Enter map name to load:\n" + names.join(", "));
-        if (name) {
-            const map = Config.data.customMaps.find(m => m.name === name);
-            if (map) { this.pushUndo(); MapEditorState.mapData = JSON.parse(JSON.stringify(map)); this.applyLoadedMapData(); }
-            else { alert("Map not found."); }
+        const names = Config.data.customMaps.map(map => map.name);
+        if (names.length === 0) {
+            alert("No custom maps saved.");
+            return;
         }
+        const name = prompt("Enter map name to load:\n" + names.join(", "));
+        if (!name) return;
+
+        const map = Config.data.customMaps.find(entry => entry.name === name);
+        if (!map) {
+            alert("Map not found.");
+            return;
+        }
+
+        const validation = normalizeMapEditorDocument(map);
+        if (!validation.valid) {
+            alert(`Saved map is invalid: ${validation.error}`);
+            return;
+        }
+
+        this.pushUndo();
+        MapEditorState.mapData = validation.mapData;
+        this.applyLoadedMapData();
     },
     
     applyLoadedMapData() {
@@ -109,29 +141,51 @@ export default {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const data = JSON.parse(e.target.result);
-                if (!data || !Array.isArray(data.paths)) { alert("Invalid map JSON."); return; }
-                this.pushUndo(); MapEditorState.mapData = data; this.applyLoadedMapData();
-            } catch (err) { alert("Failed to import: " + err.message); }
+                const parsed = JSON.parse(e.target.result);
+                const validation = normalizeMapEditorDocument(parsed);
+                if (!validation.valid) {
+                    alert(`Invalid map JSON: ${validation.error}`);
+                    return;
+                }
+                this.pushUndo();
+                MapEditorState.mapData = validation.mapData;
+                this.applyLoadedMapData();
+            } catch (error) {
+                alert(`Failed to import: ${error.message}`);
+            }
         };
         reader.readAsText(file);
-        event.target.value = ""; 
+        event.target.value = "";
     },
     
     toggleJSON() {
         const viewer = document.getElementById('editor-json-viewer');
         const textArea = document.getElementById('editor-json-text');
         if (!viewer || !textArea) return;
-        if (viewer.classList.contains('hidden')) { textArea.value = JSON.stringify(MapEditorState.mapData, null, 2); viewer.classList.remove('hidden'); }
-        else { viewer.classList.add('hidden'); }
+        if (viewer.classList.contains('hidden')) {
+            textArea.value = JSON.stringify(MapEditorState.mapData, null, 2);
+            viewer.classList.remove('hidden');
+        } else {
+            viewer.classList.add('hidden');
+        }
     },
     
     applyJSON() {
         try {
             const textArea = document.getElementById('editor-json-text');
-            MapEditorState.mapData = JSON.parse(textArea.value);
+            if (!textArea) throw new Error('JSON editor is not available.');
+            const parsed = JSON.parse(textArea.value);
+            const validation = normalizeMapEditorDocument(parsed);
+            if (!validation.valid) {
+                alert(`Invalid JSON: ${validation.error}`);
+                return;
+            }
+            this.pushUndo();
+            MapEditorState.mapData = validation.mapData;
             this.applyLoadedMapData();
             alert("JSON applied!");
-        } catch (e) { alert("Invalid JSON: " + e.message); }
+        } catch (error) {
+            alert(`Invalid JSON: ${error.message}`);
+        }
     }
 };
