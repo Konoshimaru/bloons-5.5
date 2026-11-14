@@ -386,7 +386,7 @@ describe('global-range target scan sharing', () => {
         // Force both towers to reacquire. The cache must be refreshed for the
         // next substep rather than retaining a target across enemy movement.
         for (const sniper of snipers) sniper.cooldown = 0;
-        SimulationLoop._updateTowers.call(G, 1 / 60);
+        SimulationLoop._updateTowers.call(G, 0.06);
         expect(scans).toBe(2);
         expect(target.takeDamage).toHaveBeenCalledTimes(4);
     });
@@ -403,5 +403,68 @@ describe('Sniper fast-fire allocation guard', () => {
         const src = read('js/towers/sniper.js');
         expect(src).toMatch(/let hitSet = bounces > 0 \? new Set\(\[target\]\) : null;/);
         expect(src).toMatch(/hitSet && hitSet\.has\(e\)/);
+    });
+});
+
+
+describe('fast-fire Sniper target refresh throttle', () => {
+    it('reuses a living target briefly but rescans immediately when it dies', async () => {
+        const { GameEngine: G } = await import('../js/engineRef.js');
+        const { Tower } = await import('../js/tower.js');
+        const SimulationLoop = (await import('../js/simulationLoop.js')).default;
+
+        G.config = { data: { mkActive: false, monkeyKnowledge: {} } };
+        G.waveManager = { currentWave: 1, waveActive: true };
+        G.hasLeakingEnemy = false;
+        G.nightAlpha = 0;
+        G.towerGrid = { clear: vi.fn(), insert: vi.fn() };
+        G.enemyGrid = { query: vi.fn(() => []) };
+
+        const target = {
+            alive: true,
+            invulnerable: false,
+            untargetable: false,
+            isCamo: false,
+            _spawnId: 7002,
+            x: 120,
+            y: 140,
+            radius: 10,
+            distanceTraveled: 100,
+            data: { isMoab: false, isCeramic: false, rbe: 100, speed: 0 },
+            takeDamage: vi.fn(() => 1),
+        };
+
+        let scans = 0;
+        G.enemies = {
+            *[Symbol.iterator]() {
+                scans++;
+                yield target;
+            },
+        };
+
+        const sniper = new Tower(100, 100, 'sniper');
+        G.towers = [sniper];
+
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(1);
+
+        // Two more fast shots use the still-valid target without a full scan.
+        for (let i = 0; i < 2; i++) {
+            sniper.cooldown = 0;
+            SimulationLoop._updateTowers.call(G, 1 / 60);
+        }
+        expect(scans).toBe(1);
+
+        // A dead target invalidates the cache immediately, even inside the throttle window.
+        target.alive = false;
+        sniper.cooldown = 0;
+        SimulationLoop._updateTowers.call(G, 1 / 60);
+        expect(scans).toBe(2);
+    });
+
+    it('keeps the Sniper refresh window short and explicit', () => {
+        const src = read('js/towerBehavior.js');
+        expect(src).toMatch(/GLOBAL_SNIPER_RESCAN_INTERVAL = 0\.05/);
+        expect(src).toMatch(/tower\.type === 'sniper' && tower\.stats\.range === 9999 && tower\._targetRescanTimer > 0/);
     });
 });
