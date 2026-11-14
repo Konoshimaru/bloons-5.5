@@ -28,7 +28,7 @@ describe('MapEditorRenderer production drawing behavior', () => {
         MapEditorState.mapData = null;
         const ctx = createContext();
 
-        MapEditorRenderer.draw.call({ ctx });
+        MapEditorRenderer.draw.call({ ...MapEditorRenderer, ctx });
 
         expect(ctx.clearRect).not.toHaveBeenCalled();
         expect(ctx.save).not.toHaveBeenCalled();
@@ -37,7 +37,7 @@ describe('MapEditorRenderer production drawing behavior', () => {
     it('draws the fallback background, play-area boundary and grid', () => {
         const ctx = createContext();
 
-        MapEditorRenderer.draw.call({ ctx });
+        MapEditorRenderer.draw.call({ ...MapEditorRenderer, ctx });
 
         expect(ctx.clearRect).toHaveBeenCalledWith(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         expect(ctx.fillRect).toHaveBeenCalledWith(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -61,7 +61,7 @@ describe('MapEditorRenderer production drawing behavior', () => {
         MapEditorState.refY = 50;
         MapEditorState.refScale = 2;
 
-        MapEditorRenderer.draw.call({ ctx });
+        MapEditorRenderer.draw.call({ ...MapEditorRenderer, ctx });
 
         expect(ctx.drawImage).toHaveBeenCalledTimes(2);
         const backgroundCall = ctx.drawImage.mock.calls[0];
@@ -86,7 +86,7 @@ describe('MapEditorRenderer production drawing behavior', () => {
             r: 10
         }];
 
-        MapEditorRenderer.draw.call({ ctx });
+        MapEditorRenderer.draw.call({ ...MapEditorRenderer, ctx });
 
         expect(ctx.arc).not.toHaveBeenCalled();
         expect(ctx.drawImage).not.toHaveBeenCalled();
