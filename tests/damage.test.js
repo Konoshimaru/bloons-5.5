@@ -27,6 +27,7 @@ vi.mock('../js/data.js', () => ({
     red: { name: 'Red', color: 'red', nextTier: null, maxHp: 1 },
     blue: { name: 'Blue', color: 'blue', nextTier: 'red', maxHp: 1 },
     lead: { name: 'Lead', color: 'gray', nextTier: null, isLead: true, maxHp: 3 },
+    black: { name: 'Black', color: 'black', nextTier: null, maxHp: 1, splitsInto: [{ tier: 'red', count: 2 }] },
     moab: { name: 'MOAB', color: 'blue', nextTier: null, isMoab: true, maxHp: 200 }
   }
 }));
@@ -111,6 +112,29 @@ describe('Enemy Damage System', () => {
       const dmgDealt = enemy.takeDamage(1, { isExplosion: true }, {});
       expect(dmgDealt).toBeGreaterThan(0);
       expect(enemy.alive).toBe(false);
+    });
+  });
+
+  describe('Zero-damage split bloons', () => {
+    it('does not pop a split bloon or spawn children when damage is zero', () => {
+      const enemy = makeMockEnemy('black', 1);
+
+      const damageDealt = enemy.takeDamage(0, {}, {});
+
+      expect(damageDealt).toBe(0);
+      expect(enemy.alive).toBe(true);
+      expect(enemy.spawnChildren).not.toHaveBeenCalled();
+      expect(enemy.giveCash).not.toHaveBeenCalled();
+    });
+
+    it('does not let negative damage pop a split bloon', () => {
+      const enemy = makeMockEnemy('black', 1);
+
+      const damageDealt = enemy.takeDamage(-1, {}, {});
+
+      expect(damageDealt).toBe(0);
+      expect(enemy.alive).toBe(true);
+      expect(enemy.spawnChildren).not.toHaveBeenCalled();
     });
   });
 

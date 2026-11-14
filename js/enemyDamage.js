@@ -107,7 +107,7 @@ const EnemyDamage = {
         let result;
         if (this.data.isMoab) result = this._handleMoabDamage(damage, dmgType, effects, canSpawn, killerTower);
         else if (this.data.isCeramic) result = this._handleCeramicDamage(damage, dmgType, effects, canSpawn, killerTower);
-        else if (this.data.isLead && this.isFortified) result = this._handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn, killerTower);
+        else if (this.data.isLead && this.isFortified) result = this._handleFortifiedLeadDamage(damage, dmgType, canSpawn, killerTower);
         else if (this.data.splitsInto) result = this._handleSplitDamage(damage, dmgType, effects, canSpawn, killerTower);
         else result = this._handleStandardDamage(damage, dmgType, effects, killerTower);
         
@@ -205,7 +205,7 @@ const EnemyDamage = {
         return Math.ceil(dmgDealt);
     },
 
-    _handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn, killerTower) {
+    _handleFortifiedLeadDamage(damage, dmgType, canSpawn, killerTower) {
         const previousLeadHp = this.leadHp;
         this.leadHp -= damage;
         if (this.leadHp > 0) {
@@ -222,6 +222,7 @@ const EnemyDamage = {
     },
 
     _handleSplitDamage(damage, dmgType, effects, canSpawn, killerTower) {
+        if (damage <= 0) return 0;
         if (this.isFrozen) this._spawnIceShards();
         
         this._die(canSpawn, killerTower, 'pop');
