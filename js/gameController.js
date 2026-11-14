@@ -41,9 +41,8 @@ export const gameController = {
                     ? Config.data.savedRun?.mapIndex
                     : GameEngine.currentMap;
                 const mapData = Maps[mapIndex];
-                if (loadSavedRun && !mapData) {
-                    throw new Error('The saved run refers to a map that is no longer available.');
-                }
+                // An invalid/missing saved map is rejected by loadGame() itself,
+                // which can provide a useful save-load error without mutating state.
                 await LoadGate.ensureMany(
                     [['game'], ['map', mapData]],
                     { label: 'Preparing the battlefield...', onScreen: liftVeil }
