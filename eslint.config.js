@@ -28,7 +28,11 @@ const coreFiles = [
     'js/enemy.js',
     'js/enemyDamage.js',
     'js/pool.js',
+    'js/projectile.js',
     'js/simulationLoop.js',
+    'js/tower.js',
+    'js/ui.js',
+    'js/bosses/knight.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -56,7 +60,8 @@ const coreFiles = [
     'tests/v133audit.test.js',
     'tests/damage.test.js',
     'tests/pool.test.js',
-    'tests/simulationLoopPools.test.js'
+    'tests/simulationLoopPools.test.js',
+    'tests/moduleLoad.test.js'
 ];
 
 export default [
