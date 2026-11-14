@@ -5,14 +5,6 @@ vi.mock('../js/combat.js', () => ({
     canBeAoeTarget: vi.fn(() => true),
     creditDamage: vi.fn()
 }));
-vi.mock('../js/utils.js', () => ({
-    Utils: {
-        withinRange: vi.fn(),
-        distanceSq: vi.fn(),
-        angle: vi.fn()
-    }
-}));
-
 import ProjectileHitResolution from '../js/projectileHitResolution.js';
 import { GameEngine } from '../js/engineRef.js';
 import { EnemyTypes } from '../js/data.js';
