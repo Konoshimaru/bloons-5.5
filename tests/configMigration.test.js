@@ -12,32 +12,6 @@ afterEach(() => {
     Config.data = structuredClone(originalData);
     Maps.length = originalMapCount;
     vi.restoreAllMocks();
-
-    it('keeps the legacy save when persisting a migrated config fails', () => {
-        localStorage.setItem('td_config_v11', JSON.stringify({
-            schemaVersion: 11,
-            playerName: 'Recoverable Player',
-            monkeyMoney: 987,
-            customMaps: [],
-        }));
-
-        const storagePrototype = Object.getPrototypeOf(localStorage);
-        const originalSetItem = storagePrototype.setItem;
-        vi.spyOn(storagePrototype, 'setItem').mockImplementation(function (key, value) {
-            if (key === 'td_config') {
-                throw new Error('simulated storage quota failure');
-            }
-            return originalSetItem.call(this, key, value);
-        });
-        vi.spyOn(console, 'error').mockImplementation(() => {});
-
-        Config.load();
-
-        expect(Config.data.playerName).toBe('Recoverable Player');
-        expect(Config.data.monkeyMoney).toBe(987);
-        expect(localStorage.getItem('td_config')).toBeNull();
-        expect(localStorage.getItem('td_config_v11')).not.toBeNull();
-    });
 });
 
 describe('Config schema migration persistence', () => {
@@ -98,5 +72,31 @@ describe('Config schema migration persistence', () => {
         expect(persisted.claimedLevels).toEqual([2, 3, 4]);
         expect(persisted.towerXp).toEqual({});
         expect(persisted.paragonUnlocks).toEqual({});
+    });
+
+    it('keeps the legacy save when persisting a migrated config fails', () => {
+        localStorage.setItem('td_config_v11', JSON.stringify({
+            schemaVersion: 11,
+            playerName: 'Recoverable Player',
+            monkeyMoney: 987,
+            customMaps: [],
+        }));
+
+        const storagePrototype = Object.getPrototypeOf(localStorage);
+        const originalSetItem = storagePrototype.setItem;
+        vi.spyOn(storagePrototype, 'setItem').mockImplementation(function (key, value) {
+            if (key === 'td_config') {
+                throw new Error('simulated storage quota failure');
+            }
+            return originalSetItem.call(this, key, value);
+        });
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        Config.load();
+
+        expect(Config.data.playerName).toBe('Recoverable Player');
+        expect(Config.data.monkeyMoney).toBe(987);
+        expect(localStorage.getItem('td_config')).toBeNull();
+        expect(localStorage.getItem('td_config_v11')).not.toBeNull();
     });
 });
