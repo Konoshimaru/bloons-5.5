@@ -757,6 +757,16 @@
 
     </div>
 
+    <div id="renderer-error-overlay" class="hidden" role="alertdialog" aria-modal="true" aria-labelledby="renderer-error-title">
+        <div class="renderer-error-panel">
+            <h2 id="renderer-error-title">Graphics renderer unavailable</h2>
+            <p>The game could not initialize PixiJS/WebGL, so a playable session cannot start.</p>
+            <p id="renderer-error-detail" class="renderer-error-detail"></p>
+            <p>Check that hardware acceleration and WebGL are enabled in your browser, then reload the page.</p>
+            <button id="renderer-reload-btn" class="large-btn">RELOAD PAGE</button>
+        </div>
+    </div>
+
     <script type="module" src="/js/main.js"></script>
 </body>
 </html>

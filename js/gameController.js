@@ -82,6 +82,10 @@ export const gameController = {
         document.getElementById('enemy-view').classList.add('hidden');
         if (dom.sbViewToggle) dom.sbViewToggle.innerText = '🎈 Spawn Bloons';
         try {
+            const renderer = await GameEngine.rendererReady;
+            if (!renderer) {
+                throw new Error(GameEngine.lastStartError || 'The graphics renderer is unavailable. Reload the page to try again.');
+            }
             const started = loadSavedRun
                 ? GameEngine.loadGame()
                 : GameEngine.startGame(isSandbox);

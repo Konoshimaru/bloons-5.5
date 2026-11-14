@@ -112,6 +112,20 @@ LoadGate.register('map', {
     },
 });
 
+function showRendererFailure(error) {
+    const overlay = document.getElementById('renderer-error-overlay');
+    const detail = document.getElementById('renderer-error-detail');
+    if (detail) {
+        detail.textContent = error && error.message
+            ? `Technical details: ${error.message}`
+            : 'The browser did not provide an initialization error message.';
+    }
+    if (overlay) overlay.classList.remove('hidden');
+
+    const reloadButton = document.getElementById('renderer-reload-btn');
+    if (reloadButton) reloadButton.onclick = () => window.location.reload();
+}
+
 window.addEventListener('error', (e) => {
     const errMsg = document.getElementById('error-message');
     if (errMsg) {
@@ -185,6 +199,9 @@ windowLayout.init();
 
 window.addEventListener('load', () => {
     GameEngine.init();
+    GameEngine.rendererReady.then(renderer => {
+        if (!renderer) showRendererFailure(GameEngine.rendererError);
+    });
     // Start every group loading in the background right away (portraits are small
     // so they go first); each is gated only where it is actually needed.
     // 'boot' (audio + knowledge) also starts HERE, not on Play-click: the

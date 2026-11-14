@@ -48,6 +48,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
     ui: UI,
     _rafId: null,
     fpsEl: null,
+    rendererInitStatus: 'idle',
+    rendererError: null,
     
     get config() { return Config; }, 
     
@@ -151,15 +153,27 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         // Resolved with the PixiRenderer once init finishes (null on
         // failure), so the loading screen can await the WebGL asset
         // preload before showing the menu.
+        this.rendererInitStatus = 'loading';
+        this.rendererError = null;
         this.rendererReady = new Promise((resolve) => {
             import('./webgl/pixiRenderer.js').then(({ PixiRenderer }) => {
                 return PixiRenderer.init(this.canvas).then(() => {
                     this._pixiRenderer = PixiRenderer;
+                    this.rendererInitStatus = 'ready';
                     console.log('[renderer] PixiJS WebGL renderer ready.');
                     resolve(PixiRenderer);
                 });
             }).catch(err => {
+                this.rendererInitStatus = 'failed';
+                this.rendererError = err;
                 console.error('[renderer] Failed to init PixiJS renderer:', err);
+
+                // A game without its only renderer cannot be played. Stop the
+                // idle loop instead of scheduling frames that cannot be drawn.
+                if (this._rafId) cancelAnimationFrame(this._rafId);
+                this._rafId = null;
+                if (this.bgInterval) clearInterval(this.bgInterval);
+                this.bgInterval = null;
                 resolve(null);
             });
         });
@@ -252,6 +266,11 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
     },
 
     startGame(isSandbox = false, { showLoadError = true } = {}) {
+        if (this.rendererInitStatus === 'failed') {
+            this.lastStartError = 'The PixiJS renderer could not be initialized.';
+            return false;
+        }
+        this.lastStartError = null;
         this._popCashFrac = 0;
         this.isSandbox = isSandbox;
         try { this.map = new GameMap(this.currentMap); }
