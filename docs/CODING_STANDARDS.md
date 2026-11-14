@@ -38,3 +38,8 @@ These are practical guidelines for the existing JavaScript codebase, not a manda
 - Avoid unrelated formatting churn.
 - Review generated files and assets before committing.
 - Run tests and build before asking for review.
+
+
+## Engine module composition
+
+Subsystem methods are attached to the shared engine through `attachEngineModule()` in `js/engineComposition.js`. Declare module ownership there and do not reintroduce plain `Object.assign(GameEngine, module)` calls: duplicate property names must be detected before any mutation.

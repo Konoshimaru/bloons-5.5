@@ -31,7 +31,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 ## 2. Architecture and maintainability
 
 - [ ] Reduce the responsibilities held by `js/engine.js` gradually.
-- [ ] Replace implicit `Object.assign()` mixin composition on `GameEngine` with clearer, documented module ownership.
+- [x] Replace blind `Object.assign()` composition on `GameEngine` with `attachEngineModule()`, which declares module ownership and rejects duplicate property names before mutation.
+- [ ] Continue reducing the shared singleton/method-bag design and make module dependencies explicit.
 - [ ] Improve the `js/main.js` controller composition and make menu/game controller ownership explicit.
 - [ ] Reduce new hidden dependencies on the global `GameEngine`; prefer supplied engine parameters.
 - [ ] Review the remaining singleton/engineRef dependency pattern without reintroducing circular imports.
@@ -47,6 +48,8 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add saved-run validation tests.
 - [x] Update the Paragon save/load test to model successful engine initialization.
 - [x] Add tests for the Pixi optional-draw retry policy and critical-method classification.
+- [x] Add a GameEngine composition helper with tests for duplicate names, getter preservation, and no partial application.
+- [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm test`, and `npm run build` for pushes and pull requests.
 - [x] Re-run and confirm CI after the renderer failure-policy change: 37 test files and 419 tests passed; production build passed.
 - [ ] Convert hand-written checks in `js/tests/tests.js` into tests of real production functions where applicable.

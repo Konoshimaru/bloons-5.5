@@ -15,7 +15,7 @@ Vite also builds separate HTML entry points for the Cutscene Editor, Sprite Edit
 - js/engineInput.js contains player commands such as placement, upgrades, targeting and abilities.
 - js/gameSession.js contains save/load and end-of-run persistence.
 - js/simulationLoop.js contains update passes for entities and transient effects.
-- These modules are currently composed onto GameEngine with Object.assign(). This is existing architecture; change it incrementally rather than through a broad rewrite.
+- These modules attach to the shared GameEngine object through js/engineComposition.js. The helper preserves property descriptors and rejects duplicate names before applying any methods, preventing silent overrides. This is still a method-bag composition over one singleton, so future refactoring should make ownership/dependencies clearer incrementally rather than through a broad rewrite.
 
 ## Entity definitions and behavior
 

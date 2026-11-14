@@ -19,7 +19,7 @@ GitHub Actions run 43600678763 completed successfully: all 37 Vitest files (419 
 
 ## Active technical debt
 
-- [ ] GameEngine singleton and mixins: engine.js combines core state with EngineInput, GameSession and SimulationLoop via Object.assign(). Refactor incrementally with explicit ownership; do not replace working systems in one rewrite.
+- [ ] GameEngine singleton/method-bag architecture: engine.js still attaches EngineInput, GameSession and SimulationLoop methods to one shared object. attachEngineModule() now checks duplicate names and prevents silent overwrites, but the singleton and implicit method dependencies remain. Refactor incrementally; do not replace working systems in one rewrite.
 - [ ] Main controller composition: js/main.js composes menu and game controllers with Object.assign(); make ownership and public methods easier to trace.
 - [ ] Large editor/rendering modules: split files only where a clear responsibility boundary exists. Preserve the Cutscene Editor and other development tools.
 - [ ] Legacy browser test harness: tests.html runs js/tests/tests.js, which includes hand-written simulations. Label it as a manual/legacy smoke harness and prefer Vitest tests that exercise production functions.
