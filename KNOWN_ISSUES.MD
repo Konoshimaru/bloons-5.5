@@ -18,7 +18,6 @@ GitHub Actions run 43598895661 completed successfully: all 36 Vitest files (412 
 
 ## Active technical debt
 
-- [ ] Renderer initialization failure: GameEngine.init() currently resolves rendererReady with null when Pixi initialization fails; the game may continue without the world renderer. Add a visible fatal state or supported fallback.
 - [ ] Renderer frame errors: the main loop logs Pixi render failures and continues. Decide which errors should stop gameplay and surface a clear diagnostic.
 - [ ] GameEngine singleton and mixins: engine.js combines core state with EngineInput, GameSession and SimulationLoop via Object.assign(). Refactor incrementally with explicit ownership; do not replace working systems in one rewrite.
 - [ ] Main controller composition: js/main.js composes menu and game controllers with Object.assign(); make ownership and public methods easier to trace.

@@ -18,6 +18,6 @@ The project uses named sprite references and a generated manifest. Check js/asse
 
 ## Error handling
 
-Renderer initialization is asynchronous. The engine currently logs initialization errors and resolves its readiness promise with null; handling this as a visible startup failure remains technical debt. Do not assume a missing renderer is a valid gameplay fallback.
+Renderer initialization is asynchronous. The engine records loading/ready/failed status. If PixiJS initialization fails, the main page displays a blocking startup error with the technical message, stops the idle render loop and refuses to start a gameplay session. There is no Canvas fallback, because PixiJS is the only supported runtime renderer.
 
 Test first-load assets, upgraded assets, editor views and production builds. Dev-server paths can hide packaging errors that only appear in dist/.
