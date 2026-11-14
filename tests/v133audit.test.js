@@ -179,6 +179,25 @@ describe('v1.3.3 C-6: sandbox never becomes the Continue save', () => {
 });
 
 describe('v1.3.3 pooled-flag sweep', () => {
+    it('enemy init() clears spawn-scoped combat timers and pop effects on pool reuse', () => {
+        const e = freshEnemy(3, { regen: false });
+        e.dotTimer = 2.5;
+        e.dotDmg = 4;
+        e.dotTick = 0.8;
+        e.dotTickInterval = 0.25;
+        e.knockbackCd = 0.4;
+        e.stunOnPop = 2;
+
+        e.init(3, FAKE_MAP, false, false, 3, false, 1.0, 0, false);
+
+        expect(e.dotTimer).toBe(0);
+        expect(e.dotDmg).toBe(0);
+        expect(e.dotTick).toBe(0);
+        expect(e.dotTickInterval).toBe(1.0);
+        expect(e.knockbackCd).toBe(0);
+        expect(e.stunOnPop).toBe(0);
+    });
+
     it('enemy init() purges stale Skywarden combo state from the pool', () => {
         const e = freshEnemy(3, { regen: false });
         e._skyC_wind = { hits: 3, reset: 1 };

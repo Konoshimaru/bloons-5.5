@@ -219,8 +219,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
             }
         } else {
             if (this.bgInterval) { clearInterval(this.bgInterval); this.bgInterval = null; }
-// Resume the loop whenever the tab becomes visible, even after
-// game over; the loop safely skips simulation and rendering then.
+            // Resume the loop whenever the tab becomes visible, even after
+            // game over; the loop safely skips simulation and rendering then.
             if (!this._rafId) {
                 this.lastTime = performance.now();
                 this._simulationAccumulator = 0;
@@ -269,8 +269,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         this.cash += rawAmount;
     },
 
-// Direct penalties bypass addCash(), which ignores non-positive amounts.
-// Clamp the balance at zero and show the deduction to the player.
+    // Direct penalties bypass addCash(), which ignores non-positive amounts.
+    // Clamp the balance at zero and show the deduction to the player.
     removeCash(amount) {
         const amt = Math.floor(Math.max(0, amount));
         if (amt <= 0) return;
@@ -317,8 +317,8 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
             if (Config.data.unlocks.extraStartingCash) this.cash += 200;
         }
 
-// Reset run-scoped flags in every mode; this singleton persists across
-// sessions, so a new run must not inherit the previous shield.
+        // Reset run-scoped flags in every mode; this singleton persists across
+        // sessions, so a new run must not inherit the previous shield.
         this.manaShield = 0;
         this.maxManaShield = 0;
         this.leakedThisRound = false;
@@ -337,16 +337,16 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         this.waveManager = new WaveManager();
         this.waveManager.autoWaveEnabled = Config.data.autoStart;
         this.waveManager.currentWave = diff.startRound - 1;
-// Reset per-run references before the next session. Pooled enemies can
-// be recycled, so a previous run's MOAB reference is no longer safe.
+        // Reset per-run references before the next session. Pooled enemies can
+        // be recycled, so a previous run's MOAB reference is no longer safe.
         this._postChimpsMoab = null;
         this.tier5Bought = {};
         this.speedState = 0; this.timeScale = 1;
         this.freeDartMonkeyClaimed = false; 
         UI.updateWaveSpeedBtn(this.speedState);
         CutsceneManager.reset(); 
-// Restart the loop for every new session. restartLoop() cancels an
-// existing animation frame before scheduling, preventing duplicates.
+        // Restart the loop for every new session. restartLoop() cancels an
+        // existing animation frame before scheduling, preventing duplicates.
         this.restartLoop();
         this.updateUI();
         return true;

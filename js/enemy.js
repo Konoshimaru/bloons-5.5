@@ -50,11 +50,11 @@ export class Enemy {
         this.isCamo = isCamo;
         this.isRegen = isRegen;
         this.maxTier = maxTier;
-// Reset the accumulator whenever a pooled enemy is initialized;
-// stale or non-finite state must not prevent regeneration.
+        // Reset the accumulator whenever a pooled enemy is initialized;
+        // stale or non-finite state must not prevent regeneration.
         this.regenTimer = 0;
-// Clear per-enemy Skywarden combo state so recycled objects cannot
-// inherit another bloon's counters or stale references.
+        // Clear per-enemy Skywarden combo state so recycled objects cannot
+        // inherit another bloon's counters or stale references.
         this._skyC_wind = null;
         this._skyC_storm = null;
         this._skyC_ice = null;
@@ -136,6 +136,9 @@ export class Enemy {
         this.dotTimer = 0;
         this.dotDmg = 0;
         this.dotTick = 0;
+        this.dotTickInterval = 1.0;
+        this.stunOnPop = 0;
+        this.knockbackCd = 0;
         this.dipped = false;
         this.stormHitTimer = 0;
         this.offsetX = 0;
@@ -394,9 +397,9 @@ export class Enemy {
                 const childCamo = child.forceCamo !== undefined ? child.forceCamo : this.isCamo;
                 const childRegen = child.forceRegen !== undefined ? child.forceRegen : this.isRegen;
                 const c = GameEngine.enemyPool.get();
-// Inherit the wave's original REGEN ceiling so descendants can regrow
-// along their full lineage (e.g. ceramic -> zebras -> ceramic).
-// Non-REGEN bloons ignore maxTier.
+                // Inherit the wave's original REGEN ceiling so descendants can regrow
+                // along their full lineage (e.g. ceramic -> zebras -> ceramic).
+                // Non-REGEN bloons ignore maxTier.
                 c.init(child.tier, this.map, childCamo, childRegen, this.maxTier, this.isFortified, this.hpMod, this.pathIndex, this.isSuperCeramic);
                 c.distanceTraveled = Math.max(0, this.distanceTraveled - i * 15);
                 
