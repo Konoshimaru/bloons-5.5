@@ -18,7 +18,6 @@ export const EnemiesRenderer = {
     _enemyFrameGen: 0,
 
     _drawEnemies(engine) {
-        const layer = PixiApp.layer('enemies');
         const mscale = getSpriteScale();
         this._enemyFrameGen = (this._enemyFrameGen + 1) || 1;
         const gen = this._enemyFrameGen;
@@ -40,7 +39,7 @@ export const EnemiesRenderer = {
             entry.gen = gen;
             entry.container.visible = true;
 
-            const { container, base, crack, blade, frozenSprite, camoRegenSprite, statusGraphics, statusAdapter, tintSprite, stun } = entry;
+            const { container, base, frozenSprite, camoRegenSprite, statusGraphics, statusAdapter, tintSprite, stun } = entry;
             const baseName = ENEMY_NAMES[enemy.tier];
 
             // Base texture + size only re-resolve when the fields that select
