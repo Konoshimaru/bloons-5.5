@@ -114,6 +114,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 ## 8. Final acceptance
 
 - [x] Confirm latest CI after the Vite security update is green: npm audit zero vulnerabilities, syntax check 212 files, core type-check, all 43 Vitest files (448 tests), and production build. (Run 43603764539.)
+- [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
 - [ ] Verify the game, Cutscene Editor, Map Editor, Sprite Editor, Bloon Editor, and browser test page still work.
