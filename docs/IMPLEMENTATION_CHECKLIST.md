@@ -18,6 +18,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Include enemy hitbox radius when testing whether an explosion overlaps a target.
 - [x] Restore the inherent MOAB damage flag for EXPLOSION damage while keeping DDT-specific immunities.
 - [x] Validate saved-run shape, map index, difficulty, economy values, towers, upgrade tiers, heroes, and Paragon fields before applying them.
+- [x] Persist config schema migrations to the current storage key before removing the legacy `td_config_v11` fallback; cover legacy-key promotion and current-key upgrades with Vitest.
 - [x] Stop save restoration if the selected map fails to initialize.
 - [x] Make `startGame()` report success/failure so callers can detect initialization failure.
 - [x] Fix the Continue flow so it loads the save once instead of starting a second fresh game afterwards.

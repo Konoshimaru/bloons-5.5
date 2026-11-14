@@ -101,10 +101,20 @@ export const Config = {
     data: structuredClone(DEFAULT_DATA),
     load() {
         try {
-            const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('td_config_v11');
+            const primarySaved = localStorage.getItem(STORAGE_KEY);
+            const legacySaved = localStorage.getItem('td_config_v11');
+            const usingLegacyFallback = !primarySaved && !!legacySaved;
+            const saved = primarySaved || legacySaved;
             let parsed = saved ? JSON.parse(saved) : {};
-            
-            const savedVersion = parsed.schemaVersion || 1;
+
+            // Treat malformed/missing schema versions as the oldest supported
+            // format. A successful migration is written under td_config before
+            // the legacy fallback is removed, preventing progress loss on the
+            // next browser restart.
+            const rawVersion = parsed.schemaVersion;
+            const savedVersion = Number.isInteger(rawVersion) && rawVersion >= 1
+                ? rawVersion
+                : 1;
             for (let v = savedVersion + 1; v <= CURRENT_SCHEMA_VERSION; v++) {
                 if (migrations[v]) {
                     parsed = migrations[v](parsed);
@@ -132,7 +142,14 @@ export const Config = {
                 Maps.push(...this.data.customMaps);
             }
             
-            if (localStorage.getItem('td_config_v11')) {
+            if (saved && (savedVersion < CURRENT_SCHEMA_VERSION || usingLegacyFallback)) {
+                this.save();
+            }
+
+            // Only remove the old fallback after the current key exists.
+            // Config.save() handles storage errors internally; in that case
+            // this check leaves the legacy copy available for the next load.
+            if (legacySaved && localStorage.getItem(STORAGE_KEY) !== null) {
                 localStorage.removeItem('td_config_v11');
             }
         } catch (e) {

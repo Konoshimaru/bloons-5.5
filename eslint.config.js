@@ -3,6 +3,7 @@ import js from '@eslint/js';
 const coreFiles = [
     'js/fixedStepClock.js',
     'js/collisionGeometry.js',
+    'js/config.js',
     'js/savedRunValidation.js',
     'js/engineComposition.js',
     'js/towerFactory.js',
@@ -47,6 +48,7 @@ const coreFiles = [
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
     'tests/savedRunValidation.test.js',
+    'tests/configMigration.test.js',
     'tests/engineComposition.test.js',
     'tests/towerFactory.test.js',
     'tests/renderFailurePolicy.test.js',
@@ -107,6 +109,7 @@ export default [
                 vi: 'readonly',
                 structuredClone: 'readonly',
                 crypto: 'readonly',
+                localStorage: 'readonly',
                 console: 'readonly',
                 fetch: 'readonly',
                 setTimeout: 'readonly',
