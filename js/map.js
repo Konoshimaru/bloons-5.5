@@ -1,15 +1,13 @@
 import { Utils } from './utils.js';
 import { GameEngine } from './engineRef.js';
 import Assets from './assets.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GLOBAL_SCALE, GS } from './constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GS } from './constants.js';
 import { RANGE_SCALE } from './config.js'; 
 import { MapRenderCore } from './mapRenderCore.js';
 
 
-const GRID_SIZE = 40;
 const DEFAULT_PATH_WIDTH = 45;
 const PLACEMENT_PADDING = 18;
-const PROP_RADIUS_SMALL = 15;
 
 export class GameMap {
     constructor(mapDataOrIndex) {
@@ -156,12 +154,7 @@ export class GameMap {
             MapRenderCore.drawWater(ctx, this.waterBrushes);
         }
 
-        // Hitboxes are purely for placement logic. We DO NOT draw them during actual gameplay!
-        // if (this.data.propsVisible !== false) {
-        //     MapRenderCore.drawProps(ctx, this.props);
-        // }
-
-        // Hidden paths stay hidden! Removed the 'true' flag.
+        // Placement hitboxes are queried by the placement helpers, not drawn in gameplay.
         MapRenderCore.drawPaths(ctx, this.data.paths);
     }
 
@@ -252,7 +245,7 @@ export class GameMap {
     }
 
     isInWater(x, y) {
-        for (let p of this.props) {
+        for (const p of this.props) {
             if (!p) continue;
             const isWater = p.type === 'pond' || p.collision === 'water';
             if (isWater) {
@@ -260,7 +253,7 @@ export class GameMap {
                 if (Utils.withinRange(x, y, p.x, p.y, r)) return true;
             }
         }
-        for (let brush of this.waterBrushes) {
+        for (const brush of this.waterBrushes) {
             const r = brush.thickness / 2;
             if (brush.points.length === 1) {
                 if (Utils.withinRange(x, y, brush.points[0].x, brush.points[0].y, r)) return true;
@@ -294,7 +287,7 @@ export class GameMap {
 
     isOnFrozenWater(x, y, towers) {
         if (!this.isInWater(x, y)) return false;
-        for (let t of towers) {
+        for (const t of towers) {
             if (t && t.type === 'ice' && t.upgrades[1] >= 3) {
                 const range = (t.stats.range || 20) * RANGE_SCALE * GS;
                 if (Utils.withinRange(x, y, t.x, t.y, range + 35)) return true;
