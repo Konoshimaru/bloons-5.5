@@ -53,6 +53,8 @@ export default [
             sourceType: 'module',
             globals: {
                 beforeAll: 'readonly',
+                cancelAnimationFrame: 'readonly',
+                confirm: 'readonly',
                 beforeEach: 'readonly',
                 describe: 'readonly',
                 alert: 'readonly',
@@ -69,6 +71,7 @@ export default [
                 clearTimeout: 'readonly',
                 test: 'readonly',
                 prompt: 'readonly',
+                requestAnimationFrame: 'readonly',
                 window: 'readonly'
             }
         },

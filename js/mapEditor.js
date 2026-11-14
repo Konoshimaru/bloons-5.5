@@ -1,5 +1,5 @@
 // js/mapEditor.js
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_AREA_WIDTH } from './constants.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT } from './constants.js';
 import { UI } from './ui.js';
 import { MapEditorState } from './mapEditorState.js';
 import Renderer from './mapEditorRenderer.js';
