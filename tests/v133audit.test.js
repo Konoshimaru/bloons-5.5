@@ -157,7 +157,6 @@ describe('v1.3.3 C-6: sandbox never becomes the Continue save', () => {
         const { default: GameSession } = await import('../js/gameSession.js');
         const { Config } = await import('../js/config.js');
         Config.load();
-        Object.assign(G, GameSession); // engine.js mixes GameSession in the same way
         const before = Config.data.savedRun;
         G.gameState = 'playing';
         G.waveManager = { currentWave: 3 };
@@ -166,7 +165,7 @@ describe('v1.3.3 C-6: sandbox never becomes the Continue save', () => {
         G.isSandbox = true;
         G.lives = 999999;
         G.cash = 10000000;
-        G.saveGame();
+        GameSession.saveGame.call(G);
         expect(Config.data.savedRun).toBe(before);
         // Normal mode still persists (pre-fix, the sandbox numbers landed here).
         G.isSandbox = false;
