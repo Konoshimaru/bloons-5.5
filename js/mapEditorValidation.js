@@ -1,6 +1,7 @@
 // js/mapEditorValidation.js
 // Validates and normalizes documents entering the Map Editor.
 
+/** @param {unknown} value @returns {value is Record<string, any>} */
 const isRecord = value =>
     value !== null && typeof value === 'object' && !Array.isArray(value);
 
