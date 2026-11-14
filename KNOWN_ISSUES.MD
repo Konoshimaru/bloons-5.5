@@ -18,16 +18,18 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Fragile nullable tower factory slot: creation is now exposed through a frozen facade, registration is explicit, and early calls produce a descriptive error.
 - [x] Contributor documentation and CI checks have been added on this branch.
 
-GitHub Actions run 43602564189 completed successfully: the dependency-free syntax check passed for 211 files, all 43 Vitest files (448 tests) passed, and the Vite production build completed. This includes the fixed-step clock, swept collisions and large-target broadphase, save validation, Pixi failure policy, guarded GameEngine/Main composition, tower factory registration, Map Editor history, GameMap path geometry, and Ice Monkey behavior. Browser gameplay checks and Windows batch-script checks are still required before merging.
+GitHub Actions run 43602873171 completed successfully: the dependency-free syntax check passed for 211 files, the initial core TypeScript check passed, all 43 Vitest files (448 tests) passed, and the Vite production build completed. This includes the fixed-step clock, swept collisions and large-target broadphase, save validation, Pixi failure policy, guarded GameEngine/Main composition, tower factory registration, Map Editor history, GameMap path geometry, and Ice Monkey behavior. Browser gameplay checks and Windows batch-script checks are still required before merging.
 
 ## Active technical debt
+
+- [ ] Dependency security: `npm ci` reports one high-severity vulnerability in the installed dependency tree. Run `npm audit`, identify the affected package and compatible fix, then update the lockfile deliberately; do not run `npm audit fix` blindly.
 
 - [ ] GameEngine singleton/method-bag architecture: engine.js still attaches EngineInput, GameSession and SimulationLoop methods to one shared object. attachModuleMethods() checks duplicate names and prevents silent overwrites, but the singleton and implicit method dependencies remain. Refactor incrementally; do not replace working systems in one rewrite.
 - [ ] Tower factory import-order dependency: towerFactory.create() now fails clearly before registration, but tower.js still needs to register the constructor before a behavior calls it. Keep the current cycle-breaking design until a safe dependency-free alternative exists.
 - [ ] Further reduce the shared Main controller method bag only if a clearer sub-object design can be introduced without changing menu behavior.
 - [ ] Large editor/rendering modules: split files only where a clear responsibility boundary exists. Preserve the Cutscene Editor and other development tools.
 - [ ] Legacy browser test harness: tests.html remains a manual smoke page, separate from Vitest. Its duplicated undo/redo, curve-subdivision, and Ice Monkey simulations have been removed and replaced with production-module Vitest tests; review any remaining manual assertions for gaps.
-- [ ] Automated checks: GitHub Actions runs npm ci, npm test and npm run build, but linting and static type checking are not configured yet.
+- [ ] Automated checks: GitHub Actions now runs syntax scanning and a narrow TypeScript check over five isolated helpers, as well as Vitest and the build. ESLint is not configured, and TypeScript coverage still needs to expand across the application.
 - [ ] Package licensing: package.json declares ISC, but there is no root LICENSE file. Confirm the intended source-code license and separately review game art, audio, fonts and other asset rights before adding a blanket license file.
 - [ ] Import/style cleanup: run a configured linter before removing suspected unused imports; some imports may be intentionally loaded for side effects.
 
