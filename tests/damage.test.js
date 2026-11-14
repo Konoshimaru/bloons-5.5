@@ -114,6 +114,42 @@ describe('Enemy Damage System', () => {
     });
   });
 
+  describe('Fortified Lead carry-over damage', () => {
+    function makeFortifiedLead() {
+      const enemy = makeMockEnemy('lead', 3, true);
+      enemy.leadHp = 3;
+      return enemy;
+    }
+
+    it('does not pass damage through when exactly the shell HP is dealt', () => {
+      const enemy = makeFortifiedLead();
+
+      enemy.takeDamage(3, {}, {});
+
+      expect(enemy.alive).toBe(false);
+      expect(enemy.spawnChildren).toHaveBeenCalledWith(true, 0, {});
+    });
+
+    it('passes only damage beyond the remaining fortified shell HP to children', () => {
+      const enemy = makeFortifiedLead();
+
+      enemy.takeDamage(5, {}, {});
+
+      expect(enemy.alive).toBe(false);
+      expect(enemy.spawnChildren).toHaveBeenCalledWith(true, 2, {});
+    });
+
+    it('does not spawn children while the fortified shell still has HP', () => {
+      const enemy = makeFortifiedLead();
+
+      enemy.takeDamage(2, {}, {});
+
+      expect(enemy.alive).toBe(true);
+      expect(enemy.leadHp).toBe(1);
+      expect(enemy.spawnChildren).not.toHaveBeenCalled();
+    });
+  });
+
   describe('MOAB Damage', () => {
     it('should take damage and survive if HP > damage', () => {
       const enemy = makeMockEnemy('moab', 200);

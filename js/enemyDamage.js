@@ -5,7 +5,6 @@ import { spawnExplosion } from './combat.js';
 import { EnemyTypes } from './data.js';
 import { AudioEngine } from './audio.js';
 import { GameEngine } from './engineRef.js';
-import { GLOBAL_SCALE, GS } from './constants.js';
 
 const SAFETY_LOOP_LIMIT = 100;
 
@@ -207,6 +206,7 @@ const EnemyDamage = {
     },
 
     _handleFortifiedLeadDamage(damage, dmgType, effects, canSpawn, killerTower) {
+        const previousLeadHp = this.leadHp;
         this.leadHp -= damage;
         if (this.leadHp > 0) {
             if (damage > 0) AudioEngine.playSfx('pop');
@@ -216,7 +216,7 @@ const EnemyDamage = {
         if (this.isFrozen) this._spawnIceShards();
         
         this._die(canSpawn, killerTower, 'pop');
-        const carryOver = damage - this.leadHp;
+        const carryOver = damage - previousLeadHp;
         this.spawnChildren(canSpawn, carryOver, dmgType);
         return 1;
     },
