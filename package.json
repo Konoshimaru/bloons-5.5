@@ -11,7 +11,7 @@
     "check:syntax": "node tools/check-syntax.mjs",
     "typecheck:core": "npx --yes --package typescript@7.0.2 tsc --noEmit -p jsconfig.typecheck.json",
     "audit:deps": "node tools/audit-dependencies.mjs",
-    "lint:core": "eslint js/fixedStepClock.js js/collisionGeometry.js js/savedRunValidation.js js/engineComposition.js js/towerFactory.js js/webgl/renderFailurePolicy.js tests/fixedStepClock.test.js tests/collisionGeometry.test.js tests/savedRunValidation.test.js tests/engineComposition.test.js tests/towerFactory.test.js tests/renderFailurePolicy.test.js tests/projectileCollisionBroadphase.test.js"
+    "lint:core": "eslint js/fixedStepClock.js js/collisionGeometry.js js/savedRunValidation.js js/engineComposition.js js/towerFactory.js js/damageTypes.js js/statusEffects.js js/spatialGrid.js js/webgl/renderFailurePolicy.js tests/fixedStepClock.test.js tests/collisionGeometry.test.js tests/savedRunValidation.test.js tests/engineComposition.test.js tests/towerFactory.test.js tests/renderFailurePolicy.test.js tests/projectileCollisionBroadphase.test.js"
   },
   "repository": {
     "type": "git",
