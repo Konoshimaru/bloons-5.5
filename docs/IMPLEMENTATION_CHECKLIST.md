@@ -139,7 +139,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm CI run 43614587918 is green on commit `12196c8aba14b3868576c5eb209cb5134ee7c6d3`: zero npm advisories, 227 syntax-checked files, fourteen type-checked modules, 33 ESLint production modules plus 28 test files, 57 Vitest files (537 tests), and production build.
+- [x] Confirm CI run 43634095968 is green on commit `da81d745c72f18c9693d4a17e63b79c0a416264a`: zero npm advisories, 229 syntax-checked files, fourteen type-checked modules, 34 ESLint production modules plus 29 test files, 58 Vitest files (543 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.
