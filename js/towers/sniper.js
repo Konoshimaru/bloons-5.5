@@ -4,6 +4,11 @@ import { Utils } from '../utils.js';
 import Assets from '../assets.js';
 import { GLOBAL_SCALE, GS } from '../constants.js';
 import { MAX_ACTIVE_PROJECTILES } from '../projectilePoolLimits.js';
+import { addHitscan } from '../hitscanPool.js';
+
+const EMPTY_HIT_EFFECTS = Object.freeze({});
+const SHARP_HIT_NO_LEAD = Object.freeze({ isSharp: true, canHitLead: false });
+const SHARP_HIT_CAN_LEAD = Object.freeze({ isSharp: true, canHitLead: true });
 
 
 const _sniperBounceScratch = [];
@@ -136,9 +141,10 @@ export default {
             else if (target.tier === 15) stunDur = tower.stats.stunZomg || 0;
             else if (target.tier === 16) stunDur = tower.stats.stunDdt || 0;
         }
-        let dmgDealt = target.takeDamage(actualDmg, dmgType, { stun: stunDur });
+        const hitEffects = stunDur > 0 ? { stun: stunDur } : EMPTY_HIT_EFFECTS;
+        let dmgDealt = target.takeDamage(actualDmg, dmgType, hitEffects);
         if (dmgDealt > 0) tower.damageDealt += dmgDealt;
-        tower.hitscans.push({ x1: tower.x, y1: tower.y, x2: target.x, y2: target.y, life: 0.1 });
+        addHitscan(tower, tower.x, tower.y, target.x, target.y, 0.1);
         const bounces = tower.stats.bounces || 0;
         let currentTarget = target;
         if (tower.stats.shrapnel) {
@@ -160,7 +166,7 @@ export default {
                 }
                 if (!nextTarget) break;
 
-                tower.hitscans.push({ x1: currentTarget.x, y1: currentTarget.y, x2: nextTarget.x, y2: nextTarget.y, life: 0.1 });
+                addHitscan(tower, currentTarget.x, currentTarget.y, nextTarget.x, nextTarget.y, 0.1);
                 hitSet.add(nextTarget);
                 currentTarget = nextTarget;
                 let bounceDmg = actualDmg;
@@ -178,7 +184,8 @@ export default {
                     else if (currentTarget.tier === 15) bounceStun = tower.stats.stunZomg || 0;
                     else if (currentTarget.tier === 16) bounceStun = tower.stats.stunDdt || 0;
                 }
-                let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, { stun: bounceStun });
+                const bounceEffects = bounceStun > 0 ? { stun: bounceStun } : EMPTY_HIT_EFFECTS;
+                let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, bounceEffects);
                 if (bounceDmgDealt > 0) tower.damageDealt += bounceDmgDealt;
 
                 if (tower.stats.shrapnel) {
@@ -206,11 +213,10 @@ export default {
         if (tower.upgrades[0] >= 5) shrapDmg = 12;
         if (tower.stats.shrapnelDmg) shrapDmg += tower.stats.shrapnelDmg;
         let shrapPierce = tower.upgrades[0] >= 5 ? 3 : (tower.stats.shrapnelPierce || 3);
-        let shrapDmgType = { isSharp: true, canHitLead: dmgType.canHitLead };
-        let shrapEffects = {};
-        if (tower.stats.stunMoab) {
-            shrapEffects.stun = tower.stats.stunMoab;
-        }
+        const shrapDmgType = dmgType.canHitLead ? SHARP_HIT_CAN_LEAD : SHARP_HIT_NO_LEAD;
+        const shrapEffects = tower.stats.stunMoab
+            ? { stun: tower.stats.stunMoab }
+            : EMPTY_HIT_EFFECTS;
         for (let i = 0; i < count; i++) {
             let a = startAngle + (i / (count - 1)) * spread;
             let p = engine.projectilePool.get();

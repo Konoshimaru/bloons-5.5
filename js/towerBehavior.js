@@ -1,5 +1,6 @@
 // js/towerBehavior.js
 import { isHiddenFrom } from './combat.js';
+import { updateHitscans } from './hitscanPool.js';
 import { RANGE_SCALE } from './config.js';
 import { GLOBAL_SCALE, GS } from './constants.js';
 import { TowerRegistry, Upgrades } from './towers/index.js';
@@ -89,10 +90,7 @@ function _updateTimers(tower, dt, engine) {
         if (tower.alchDip.timer <= 0 || tower.alchDip.shotsLeft <= 0) tower.alchDip = null;
     }
     
-    for (let i = tower.hitscans.length - 1; i >= 0; i--) { 
-        tower.hitscans[i].life -= dt; 
-        if (tower.hitscans[i].life <= 0) tower.hitscans.splice(i, 1); 
-    }
+    updateHitscans(tower, dt);
     
     tower.animTimer += dt;
     if (tower.animTimer > 0.2) { 

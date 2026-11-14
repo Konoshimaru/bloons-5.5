@@ -23,6 +23,7 @@ const coreFiles = [
     'js/names.js',
     'js/projectileTypeConfig.js',
     'js/projectilePoolLimits.js',
+    'js/hitscanPool.js',
     'js/projectileHitResolution.js',
     'js/loadGate.js',
     'js/map.js',
@@ -69,6 +70,7 @@ const coreFiles = [
     'tests/pool.test.js',
     'tests/simulationLoopPools.test.js',
     'tests/sniperFirePerformance.test.js',
+    'tests/hitscanPool.test.js',
     'tests/moduleLoad.test.js'
 ];
 
