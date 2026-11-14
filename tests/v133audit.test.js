@@ -169,7 +169,7 @@ describe('v1.3.3 C-6: sandbox never becomes the Continue save', () => {
         expect(Config.data.savedRun).toBe(before);
         // Normal mode still persists (pre-fix, the sandbox numbers landed here).
         G.isSandbox = false;
-        G.saveGame();
+        GameSession.saveGame.call(G);
         expect(Config.data.savedRun).not.toBe(before);
         expect(Config.data.savedRun.wave).toBe(3);
         expect(Config.data.savedRun.lives).toBe(999999);
