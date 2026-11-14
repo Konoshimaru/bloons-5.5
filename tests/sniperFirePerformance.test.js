@@ -37,6 +37,7 @@ describe('Sniper firing workload safeguards', () => {
         const makeTarget = (x, y) => ({
             x,
             y,
+            alive: true,
             data: { isMoab: false, isCeramic: false },
             isCamo: false,
             takeDamage: vi.fn(() => 2),
