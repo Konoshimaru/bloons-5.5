@@ -9,7 +9,8 @@
     "gen:manifest": "node tools/gen-manifest.mjs",
     "gen:thumbs": "node tools/gen-map-thumbs.mjs",
     "check:syntax": "node tools/check-syntax.mjs",
-    "typecheck:core": "npx --yes --package typescript@7.0.2 tsc --noEmit -p jsconfig.typecheck.json"
+    "typecheck:core": "npx --yes --package typescript@7.0.2 tsc --noEmit -p jsconfig.typecheck.json",
+    "audit:deps": "node tools/audit-dependencies.mjs"
   },
   "repository": {
     "type": "git",
