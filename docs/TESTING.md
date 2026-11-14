@@ -10,7 +10,7 @@ The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and 
 
 ## Incremental linting
 
-The ESLint flat config currently checks 29 production modules, including fixed-step/collision/save helpers, engine composition and tower factory, damage/status/spatial helpers, GameMap, Enemy/EnemyDamage, ObjectPool, SimulationLoop, Map Editor modules, Cutscene runtime, map metadata, names, projectile subtype configuration, projectile hit resolution, and the staged LoadGate. It also checks 27 regression-test files. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
+The ESLint flat config currently checks 33 production modules, including fixed-step/collision/save helpers, engine composition and tower factory, damage/status/spatial helpers, GameMap, Enemy/EnemyDamage, ObjectPool, SimulationLoop, Projectile, Tower, UI, KnightEnemy, Map Editor modules, Cutscene runtime, map metadata, names, projectile subtype configuration, projectile hit resolution, and the staged LoadGate. It also checks 28 regression-test files. Run `npm run lint:core`; this is an incremental subset, not a whole-project lint. Expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
 
 ## Dependency security audit
 
@@ -48,4 +48,4 @@ tests.html is explicitly labelled as a manual/legacy browser harness. It runs th
 - Map metadata tier lookups, sprite-key naming, and projectile subtype flags.
 - Rendering asset keys and first-load behavior where practical.
 
-GitHub Actions runs npm ci, the dependency audit report, syntax scanning, the core type-check, `npm run lint:core`, npm test and npm run build. Browser verification is still required for gameplay/UI changes.
+Latest verified CI run 43614587918 passes npm ci, the dependency audit report, syntax scanning (227 files), the fourteen-module core type-check, ESLint (33 production modules and 28 tests), Vitest (57 files / 537 tests), and the production build. Browser verification is still required for gameplay/UI changes.
