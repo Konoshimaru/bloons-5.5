@@ -18,7 +18,7 @@ Development tools and editors are intentional parts of this repository. They are
 - [x] Fragile nullable tower factory slot: creation is now exposed through a frozen facade, registration is explicit, and early calls produce a descriptive error.
 - [x] Contributor documentation and CI checks have been added on this branch.
 
-GitHub Actions run 43602370200 completed successfully: all 43 Vitest files (448 tests) passed and the Vite production build completed. This includes the fixed-step clock, swept collisions and large-target broadphase, save validation, Pixi failure policy, guarded GameEngine/Main composition, tower factory registration, Map Editor history, GameMap path geometry, and Ice Monkey behavior. Browser gameplay checks and Windows batch-script checks are still required before merging.
+GitHub Actions run 43602564189 completed successfully: the dependency-free syntax check passed for 211 files, all 43 Vitest files (448 tests) passed, and the Vite production build completed. This includes the fixed-step clock, swept collisions and large-target broadphase, save validation, Pixi failure policy, guarded GameEngine/Main composition, tower factory registration, Map Editor history, GameMap path geometry, and Ice Monkey behavior. Browser gameplay checks and Windows batch-script checks are still required before merging.
 
 ## Active technical debt
 
