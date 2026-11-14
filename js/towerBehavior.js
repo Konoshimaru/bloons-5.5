@@ -10,6 +10,7 @@ import { Utils } from './utils.js';
 import { AudioEngine } from './audio.js';
 import Assets from './assets.js';
 import { DamageType, createDmgType, resolveDmgType } from './damageTypes.js';
+import { Profiler } from './profiler.js';
 
 
 const MIN_FIRE_RATE = 0.01;
@@ -187,7 +188,10 @@ function _acquireAndFire(tower, dt, engine) {
         return; // Skip standard targeting and angle snapping
     }
 
-    const target = _getAcquireTarget(tower, engine);
+    const targetMeasure = tower.type === 'sniper' ? Profiler.beginMeasure('sniper.targeting') : null;
+    let target;
+    try { target = _getAcquireTarget(tower, engine); }
+    finally { Profiler.endMeasure(targetMeasure); }
     if (!target) return;
     
     if (!tower.stats.isStaticRotation) {
@@ -261,6 +265,7 @@ function _getAcquireTarget(tower, engine) {
 }
 
 function _findTarget(tower, engine) {
+    if (tower.type === 'sniper') Profiler.count('sniper.targetScans');
     const isGlobal = tower.stats.range === 9999;
     const effRange = isGlobal ? 0 : Utils.getEffectiveRange(tower, engine);
     const candidates = isGlobal ? engine.enemies : engine.enemyGrid.query(tower.x, tower.y, effRange, _targetScratch);
@@ -401,8 +406,11 @@ function _hasLineOfSight(tower, e, engine) {
 }
 
 function _triggerAttack(tower, target, effFireRate, engine) {
-    const animAsset = _getAnimationAsset(tower);
-    
+    const animationMeasure = tower.type === 'sniper' ? Profiler.beginMeasure('sniper.animationLookup') : null;
+    let animAsset;
+    try { animAsset = _getAnimationAsset(tower); }
+    finally { Profiler.endMeasure(animationMeasure); }
+
     if (!animAsset || !animAsset.loaded) {
         _executeFire(tower, target, engine);
         tower.cooldown = effFireRate;
@@ -518,24 +526,25 @@ function _getAnimationAsset(tower) {
 }
 
 export function fire(tower, target, engine, aim = null) {
-    if (target && !target.alive) return; 
-    AudioEngine.playSfx('shoot'); 
-    
-    tower._aim = aim;
+    if (target && !target.alive) return;
+    const sniperFire = tower.type === 'sniper';
+    if (sniperFire) Profiler.count('sniper.shots');
+    const fireMeasure = sniperFire ? Profiler.beginMeasure('sniper.firePipeline') : null;
     try {
-        const { damage, isCrit } = _rollDamage(tower);
-        const dmgTypeStr = tower.stats.dmgType;
-        const canHitLead = _canHitLead(tower);
-        const projType = tower.stats.projectileType || 'dart';
-        const pierce = _calculatePierce(tower);
-        const dmgType = _createDamageType(dmgTypeStr, canHitLead, tower);
-        const effects = _gatherEffects(tower);
-        
-        _decrementBuffs(tower);
-        _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine);
-    } finally {
-        tower._aim = null;
-    }
+        AudioEngine.playSfx('shoot');
+        tower._aim = aim;
+        try {
+            const { damage, isCrit } = _rollDamage(tower);
+            const dmgTypeStr = tower.stats.dmgType;
+            const canHitLead = _canHitLead(tower);
+            const projType = tower.stats.projectileType || 'dart';
+            const pierce = _calculatePierce(tower);
+            const dmgType = _createDamageType(dmgTypeStr, canHitLead, tower);
+            const effects = _gatherEffects(tower);
+            _decrementBuffs(tower);
+            _delegateFire(tower, target, damage, dmgType, isCrit, effects, projType, pierce, engine);
+        } finally { tower._aim = null; }
+    } finally { Profiler.endMeasure(fireMeasure); }
 }
 
 function _rollDamage(tower) {

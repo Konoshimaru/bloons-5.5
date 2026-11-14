@@ -2,6 +2,7 @@
 import { Utils } from './utils.js';
 import { getBehavior } from './registry.js';
 import { AudioEngine } from './audio.js';
+import { Profiler } from './profiler.js';
 
 import { MAX_ACTIVE_PROJECTILES, MAX_ACTIVE_PARTICLES } from './projectilePoolLimits.js';
 
@@ -152,13 +153,25 @@ const SimulationLoop = {
             for (const t of this.towers) {
                 if (!t) continue;
                 const behavior = getBehavior(t.type);
-                if (behavior && behavior.updateSupport) { behavior.updateSupport(t, dt); }
+                if (behavior && behavior.updateSupport) {
+                    const supportMeasure = t.type === 'sniper' ? Profiler.beginMeasure('sniper.support') : null;
+                    try { behavior.updateSupport(t, dt); }
+                    finally { Profiler.endMeasure(supportMeasure); }
+                }
                 if (t.type === 'ice' && t.upgrades[0] >= 3) { this.hasIceShardTower = true; }
             }
         } finally {
             this._updatingTowerSupport = false;
         }
-        for (const t of this.towers) { if (t) t.update(dt, this); }
+        for (const t of this.towers) {
+            if (!t) continue;
+            if (t.type === 'sniper') {
+                Profiler.count('sniper.updateCalls');
+                const sniperMeasure = Profiler.beginMeasure('sniper.update');
+                try { t.update(dt, this); }
+                finally { Profiler.endMeasure(sniperMeasure); }
+            } else t.update(dt, this);
+        }
     },
 
     _updateBeasts(dt) {

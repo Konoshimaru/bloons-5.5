@@ -472,7 +472,13 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
                     }
                 }
 
-                UI.updateAbilityBar(this); this.updateUI();
+                const uiMeasure = Profiler.beginMeasure('ui.update');
+                try {
+                    UI.updateAbilityBar(this);
+                    this.updateUI();
+                } finally {
+                    Profiler.endMeasure(uiMeasure);
+                }
                 if (!this._frameMs) this._frameMs = {};
                 this._frameMs.sim = performance.now() - updateStartTime;
                 this._frameMs.steps = stepRun ? stepRun.completedSteps : 0;
@@ -537,23 +543,42 @@ Object.defineProperties(GameEngine, Object.getOwnPropertyDescriptors({
         
         const prevWaveActive = this.waveManager.waveActive;
         
-        this.waveManager.update(dt); this._updateAcidPools(dt);
-        const prevLives = this.lives; this._updateEnemies(dt);
+        let measure = Profiler.beginMeasure('sim.waveAndAcid');
+        try {
+            this.waveManager.update(dt);
+            this._updateAcidPools(dt);
+        } finally { Profiler.endMeasure(measure); }
+        const prevLives = this.lives;
+        measure = Profiler.beginMeasure('sim.enemies');
+        try { this._updateEnemies(dt); }
+        finally { Profiler.endMeasure(measure); }
         if (this.lives < prevLives) { this.leakFlash = 0.3; AudioEngine.playSfx('leak'); this.leakedThisRound = true; }
-        this.enemyGrid.clear();
-        for (const e of this.enemies) this.enemyGrid.insert(e);
+        measure = Profiler.beginMeasure('sim.enemyGrid');
+        try {
+            this.enemyGrid.clear();
+            for (const e of this.enemies) this.enemyGrid.insert(e);
+        } finally { Profiler.endMeasure(measure); }
+        measure = Profiler.beginMeasure('sim.towers');
+        try { this._updateTowers(dt); }
+        finally { Profiler.endMeasure(measure); }
+        measure = Profiler.beginMeasure('sim.beasts');
+        try {
+            this._updateBeasts(dt);
+            this.beastGrid.clear();
+            for (const b of this.beasts) this.beastGrid.insert(b);
+        } finally { Profiler.endMeasure(measure); } 
         
-        this._updateTowers(dt); 
-        this._updateBeasts(dt); 
-        this.beastGrid.clear(); 
-        for (const b of this.beasts) this.beastGrid.insert(b); 
-        
-        this._updateSentries(dt); 
-        this.sentryGrid.clear(); 
-        for (const s of this.sentries) this.sentryGrid.insert(s); 
-        
-        this._updateEconomy(dt); this._updateProjectiles(dt);
-        this._updateExplosions(dt); this._updateFloatingTexts(dt); this._updateParticles(dt);
+        measure = Profiler.beginMeasure('sim.sentriesAndEffects');
+        try {
+            this._updateSentries(dt);
+            this.sentryGrid.clear();
+            for (const s of this.sentries) this.sentryGrid.insert(s);
+            this._updateEconomy(dt);
+            this._updateProjectiles(dt);
+            this._updateExplosions(dt);
+            this._updateFloatingTexts(dt);
+            this._updateParticles(dt);
+        } finally { Profiler.endMeasure(measure); }
         
         if (!this.waveManager.waveActive && prevWaveActive) {
             if (this.maxManaShield > 0 && !this.leakedThisRound) {

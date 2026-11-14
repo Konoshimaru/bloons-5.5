@@ -36,12 +36,32 @@ export const Profiler = {
         this.capturing = false;
         this.sessionStart = 0;
         this.lastSessionSeconds = 0;
+        this._frameMeasures = {};
+        this._frameCounts = {};
     },
 
     startCapture() {
         this.capturing = true;
         this.session.length = 0;
         this.sessionStart = performance.now();
+        this._frameMeasures = {};
+        this._frameCounts = {};
+    },
+
+    beginMeasure(name) {
+        if (!this.enabled || !this.capturing) return null;
+        return { name, startedAt: performance.now() };
+    },
+
+    endMeasure(token) {
+        if (!token) return;
+        const elapsed = Math.max(0, performance.now() - token.startedAt);
+        this._frameMeasures[token.name] = (this._frameMeasures[token.name] || 0) + elapsed;
+    },
+
+    count(name, amount = 1) {
+        if (!this.enabled || !this.capturing || !Number.isFinite(amount) || amount === 0) return;
+        this._frameCounts[name] = (this._frameCounts[name] || 0) + amount;
     },
 
     stopCapture() {
@@ -88,11 +108,17 @@ export const Profiler = {
             explosions: engine.explosions ? engine.explosions.length : 0,
             texts: engine.floatingTexts ? engine.floatingTexts.length : 0,
             wave: engine.waveManager ? engine.waveManager.currentWave : 0,
+            measures: this.capturing ? { ...this._frameMeasures } : null,
+            counts: this.capturing ? { ...this._frameCounts } : null,
         };
         this.buffer[this._head] = s;
         this._head = (this._head + 1) % this.maxSamples;
         if (this._len < this.maxSamples) this._len++;
-        if (this.capturing) this.session.push(s);
+        if (this.capturing) {
+            this.session.push(s);
+            this._frameMeasures = {};
+            this._frameCounts = {};
+        }
         this._tick++;
     },
 
@@ -153,6 +179,35 @@ export const Profiler = {
             }
         }
 
+        const measureNames = new Set();
+        const countNames = new Set();
+        for (const sample of samples) {
+            for (const name of Object.keys(sample.measures || {})) measureNames.add(name);
+            for (const name of Object.keys(sample.counts || {})) countNames.add(name);
+        }
+        const timingMs = {};
+        for (const name of measureNames) timingMs[name] = this._metric(samples.map(sample => sample.measures?.[name] || 0));
+        const countTotals = {};
+        const countPeaks = {};
+        for (const name of countNames) {
+            countTotals[name] = samples.reduce((sum, sample) => sum + (sample.counts?.[name] || 0), 0);
+            countPeaks[name] = samples.reduce((peak, sample) => Math.max(peak, sample.counts?.[name] || 0), 0);
+        }
+        const towerDetails = (engine.towers || []).map((tower, index) => tower ? ({
+            index, type: tower.type || 'unknown',
+            upgrades: Array.isArray(tower.upgrades) ? [...tower.upgrades] : [],
+            targetingMode: tower.targetingMode || null,
+            eliteDefender: !!tower.stats?.eliteDefender,
+            shrapnel: !!tower.stats?.shrapnel,
+            bounces: Number(tower.stats?.bounces) || 0,
+        }) : null).filter(Boolean);
+        const selectedTower = engine.selectedPlacedTower;
+        const selectedTowerDetails = selectedTower ? {
+            type: selectedTower.type || 'unknown',
+            upgrades: Array.isArray(selectedTower.upgrades) ? [...selectedTower.upgrades] : [],
+            targetingMode: selectedTower.targetingMode || null,
+        } : null;
+
         const towerGrid = engine.towerGrid ? engine.towerGrid.stats() : null;
         const enemyGrid = engine.enemyGrid ? engine.enemyGrid.stats() : null;
 
@@ -174,6 +229,8 @@ export const Profiler = {
                 gameState: engine.gameState,
                 wave: engine.waveManager ? engine.waveManager.currentWave : 0,
                 fps: engine.fps,
+                towerDetails,
+                selectedTower: selectedTowerDetails,
             },
             timing: {
                 simMs: this._metric(samples.map(s => s.sim)),
@@ -192,6 +249,7 @@ export const Profiler = {
                 avgParticles: samples.reduce((a, s) => a + s.particles, 0) / samples.length,
             },
             towerTypes: typeCounts,
+            hotspots: { timingMs, countTotals, countPeaks },
             grids: {
                 towerGrid,
                 enemyGrid,
@@ -210,6 +268,8 @@ export const Profiler = {
                 projectiles: s.projectiles,
                 particles: s.particles,
                 wave: s.wave,
+                measures: s.measures || {},
+                counts: s.counts || {},
             })),
             memory: mem,
         };
@@ -258,6 +318,15 @@ export const Profiler = {
         L.push(`Window: ${report.meta.samples} frames over ${report.meta.windowSeconds}s` +
             (report.meta.isSession ? ` (session, ${report.meta.sessionSeconds}s)` : ' (rolling)'));
         L.push(`Game: state=${report.meta.gameState} wave=${report.meta.wave} fps=${report.meta.fps}`);
+        if (report.meta.towerDetails?.length) {
+            L.push('Towers: ' + report.meta.towerDetails.map(t =>
+                `#${t.index} ${t.type} [${t.upgrades.join('-')}] ${t.targetingMode || ''}${t.eliteDefender ? ' EliteDefender' : ''}${t.shrapnel ? ' Shrapnel' : ''}${t.bounces ? ` bounces=${t.bounces}` : ''}`
+            ).join(' | '));
+        }
+        if (report.meta.selectedTower) {
+            const t = report.meta.selectedTower;
+            L.push(`Selected tower: ${t.type} [${t.upgrades.join('-')}] ${t.targetingMode || ''}`);
+        }
         L.push('');
         L.push('Timing (ms):');
         L.push(`  sim    ${m(M.simMs, '')}`);
@@ -267,6 +336,14 @@ export const Profiler = {
         L.push(`  total  ${m(M.totalMs, '')}`);
         L.push(`  fps    ${M.fps.min} min / ${M.fps.avg} avg / ${M.fps.max} max   (avg substeps=${Math.round(M.avgSteps * 100) / 100})`);
         L.push('');
+        const hotspotEntries = Object.entries(report.hotspots?.timingMs || {}).sort((a, b) => b[1].p95 - a[1].p95);
+        if (hotspotEntries.length) {
+            L.push('Diagnostic timings (inclusive ms/frame; nested entries overlap):');
+            for (const [name, metric] of hotspotEntries) L.push(`  ${name}: avg=${metric.avg} p95=${metric.p95} p99=${metric.p99} max=${metric.max}`);
+            const countEntries = Object.entries(report.hotspots?.countTotals || {});
+            if (countEntries.length) L.push('Diagnostic event counts: ' + countEntries.map(([name, total]) => `${name}=${total} (peak/frame ${report.hotspots.countPeaks[name] || 0})`).join(' | '));
+            L.push('');
+        }
         L.push('Peak entity load:');
         const P = report.load.peaks;
         L.push(`  towers=${P.towers} enemies=${P.enemies} projectiles=${P.projectiles} particles=${P.particles} explosions=${P.explosions} texts=${P.texts}`);

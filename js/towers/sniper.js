@@ -5,6 +5,7 @@ import Assets from '../assets.js';
 import { GLOBAL_SCALE, GS } from '../constants.js';
 import { MAX_ACTIVE_PROJECTILES } from '../projectilePoolLimits.js';
 import { addHitscan } from '../hitscanPool.js';
+import { Profiler } from '../profiler.js';
 
 const EMPTY_HIT_EFFECTS = Object.freeze({});
 const SHARP_HIT_NO_LEAD = Object.freeze({ isSharp: true, canHitLead: false });
@@ -134,78 +135,92 @@ export default {
         }
     },
     fire(tower, target, damage, dmgType, isCrit, effects, engine) {
-        let actualDmg = damage;
-        if (tower.stats.eliteDefender && target.data.isMoab) actualDmg += 4; // BTD6: +4 MOAB damage
-        if (tower.stats.bonusCeramic && target.data.isCeramic) actualDmg += tower.stats.bonusCeramic;
-        if (tower.stats.bonusCamo && target.isCamo) actualDmg += tower.stats.bonusCamo;
-        if (tower.stats.crippleDebuff) {
-            target.crippled = true;
-            target.crippleTimer = 4.0;
-        }
-        let stunDur = 0;
-        if (target.data.isMoab) {
-            if (target.tier === 13) stunDur = tower.stats.stunMoab || 0;
-            else if (target.tier === 14) stunDur = tower.stats.stunBfb || 0;
-            else if (target.tier === 15) stunDur = tower.stats.stunZomg || 0;
-            else if (target.tier === 16) stunDur = tower.stats.stunDdt || 0;
-        }
-        const hitEffects = stunDur > 0 ? { stun: stunDur } : EMPTY_HIT_EFFECTS;
-        let dmgDealt = target.takeDamage(actualDmg, dmgType, hitEffects);
-        if (dmgDealt > 0) tower.damageDealt += dmgDealt;
-        addHitscan(tower, tower.x, tower.y, target.x, target.y, 0.1);
-        const bounces = tower.stats.bounces || 0;
-        let currentTarget = target;
-        if (tower.stats.shrapnel) {
-            this._fireShrapnel(tower, currentTarget, dmgType, engine);
-        }
-
-        // Most Snipers have no bounce upgrade. Avoid allocating a Set and
-        // entering the bounce loop at all for those common direct-hit shots.
-        if (bounces > 0) {
-            // Reuse one small per-tower Set instead of allocating one on every
-            // fast ricochet shot. Clear it after use so it does not retain bloons.
-            const hitSet = tower._sniperBounceHitSet || (tower._sniperBounceHitSet = new Set());
-            hitSet.clear();
-            hitSet.add(target);
-            for (let i = 0; i < bounces; i++) {
-                const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40, _sniperBounceScratch);
-                let nextTarget = null;
-                let bestDistSq = Infinity;
-                for (let e of nearby) {
-                    if (!e.alive || hitSet.has(e)) continue;
-                    let distSq = Utils.distanceSq(currentTarget.x, currentTarget.y, e.x, e.y);
-                    if (distSq < bestDistSq) { bestDistSq = distSq; nextTarget = e; }
-                }
-                if (!nextTarget) break;
-
-                addHitscan(tower, currentTarget.x, currentTarget.y, nextTarget.x, nextTarget.y, 0.1);
-                hitSet.add(nextTarget);
-                currentTarget = nextTarget;
-                let bounceDmg = actualDmg;
-                if (tower.stats.eliteDefender && currentTarget.data.isMoab) bounceDmg += 4;
-                if (tower.stats.bonusCeramic && currentTarget.data.isCeramic) bounceDmg += tower.stats.bonusCeramic;
-                if (tower.stats.bonusCamo && currentTarget.isCamo) bounceDmg += tower.stats.bonusCamo;
-                if (tower.stats.crippleDebuff) {
-                    currentTarget.crippled = true;
-                    currentTarget.crippleTimer = 4.0;
-                }
-                let bounceStun = 0;
-                if (currentTarget.data.isMoab) {
-                    if (currentTarget.tier === 13) bounceStun = tower.stats.stunMoab || 0;
-                    else if (currentTarget.tier === 14) bounceStun = tower.stats.stunBfb || 0;
-                    else if (currentTarget.tier === 15) bounceStun = tower.stats.stunZomg || 0;
-                    else if (currentTarget.tier === 16) bounceStun = tower.stats.stunDdt || 0;
-                }
-                const bounceEffects = bounceStun > 0 ? { stun: bounceStun } : EMPTY_HIT_EFFECTS;
-                let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, bounceEffects);
-                if (bounceDmgDealt > 0) tower.damageDealt += bounceDmgDealt;
-
-                if (tower.stats.shrapnel) {
-                    this._fireShrapnel(tower, currentTarget, dmgType, engine);
-                }
+        Profiler.count('sniper.damageEvents');
+        const fireMeasure = Profiler.beginMeasure('sniper.behaviorFire');
+        try {
+            let actualDmg = damage;
+            if (tower.stats.eliteDefender && target.data.isMoab) actualDmg += 4; // BTD6: +4 MOAB damage
+            if (tower.stats.bonusCeramic && target.data.isCeramic) actualDmg += tower.stats.bonusCeramic;
+            if (tower.stats.bonusCamo && target.isCamo) actualDmg += tower.stats.bonusCamo;
+            if (tower.stats.crippleDebuff) {
+                target.crippled = true;
+                target.crippleTimer = 4.0;
             }
-            hitSet.clear();
-        }
+            let stunDur = 0;
+            if (target.data.isMoab) {
+                if (target.tier === 13) stunDur = tower.stats.stunMoab || 0;
+                else if (target.tier === 14) stunDur = tower.stats.stunBfb || 0;
+                else if (target.tier === 15) stunDur = tower.stats.stunZomg || 0;
+                else if (target.tier === 16) stunDur = tower.stats.stunDdt || 0;
+            }
+            const hitEffects = stunDur > 0 ? { stun: stunDur } : EMPTY_HIT_EFFECTS;
+            const damageMeasure = Profiler.beginMeasure('sniper.targetDamage');
+            let dmgDealt;
+            try { dmgDealt = target.takeDamage(actualDmg, dmgType, hitEffects); }
+            finally { Profiler.endMeasure(damageMeasure); }
+            if (dmgDealt > 0) tower.damageDealt += dmgDealt;
+            addHitscan(tower, tower.x, tower.y, target.x, target.y, 0.1);
+            const bounces = tower.stats.bounces || 0;
+            let currentTarget = target;
+            if (tower.stats.shrapnel) {
+                Profiler.count('sniper.shrapnelCalls');
+                const measure = Profiler.beginMeasure('sniper.shrapnel');
+                try { this._fireShrapnel(tower, currentTarget, dmgType, engine); }
+                finally { Profiler.endMeasure(measure); }
+            }
+
+            // Most Snipers have no bounce upgrade. Avoid allocating a Set and
+            // entering the bounce loop at all for those common direct-hit shots.
+            if (bounces > 0) {
+                Profiler.count('sniper.bounceChains');
+                const bounceMeasure = Profiler.beginMeasure('sniper.bounces');
+                try {
+                // Reuse one small per-tower Set instead of allocating one on every
+                // fast ricochet shot. Clear it after use so it does not retain bloons.
+                const hitSet = tower._sniperBounceHitSet || (tower._sniperBounceHitSet = new Set());
+                hitSet.clear();
+                hitSet.add(target);
+                for (let i = 0; i < bounces; i++) {
+                    const nearby = engine.enemyGrid.query(currentTarget.x, currentTarget.y, 40, _sniperBounceScratch);
+                    let nextTarget = null;
+                    let bestDistSq = Infinity;
+                    for (let e of nearby) {
+                        if (!e.alive || hitSet.has(e)) continue;
+                        let distSq = Utils.distanceSq(currentTarget.x, currentTarget.y, e.x, e.y);
+                        if (distSq < bestDistSq) { bestDistSq = distSq; nextTarget = e; }
+                    }
+                    if (!nextTarget) break;
+
+                    addHitscan(tower, currentTarget.x, currentTarget.y, nextTarget.x, nextTarget.y, 0.1);
+                    hitSet.add(nextTarget);
+                    currentTarget = nextTarget;
+                    let bounceDmg = actualDmg;
+                    if (tower.stats.eliteDefender && currentTarget.data.isMoab) bounceDmg += 4;
+                    if (tower.stats.bonusCeramic && currentTarget.data.isCeramic) bounceDmg += tower.stats.bonusCeramic;
+                    if (tower.stats.bonusCamo && currentTarget.isCamo) bounceDmg += tower.stats.bonusCamo;
+                    if (tower.stats.crippleDebuff) {
+                        currentTarget.crippled = true;
+                        currentTarget.crippleTimer = 4.0;
+                    }
+                    let bounceStun = 0;
+                    if (currentTarget.data.isMoab) {
+                        if (currentTarget.tier === 13) bounceStun = tower.stats.stunMoab || 0;
+                        else if (currentTarget.tier === 14) bounceStun = tower.stats.stunBfb || 0;
+                        else if (currentTarget.tier === 15) bounceStun = tower.stats.stunZomg || 0;
+                        else if (currentTarget.tier === 16) bounceStun = tower.stats.stunDdt || 0;
+                    }
+                    const bounceEffects = bounceStun > 0 ? { stun: bounceStun } : EMPTY_HIT_EFFECTS;
+                    let bounceDmgDealt = currentTarget.takeDamage(bounceDmg, dmgType, bounceEffects);
+                    if (bounceDmgDealt > 0) tower.damageDealt += bounceDmgDealt;
+
+                    if (tower.stats.shrapnel) {
+                        this._fireShrapnel(tower, currentTarget, dmgType, engine);
+                    }
+                }
+                hitSet.clear();
+                } finally { Profiler.endMeasure(bounceMeasure); }
+            }
+        } finally { Profiler.endMeasure(fireMeasure); }
     },
     _fireShrapnel(tower, originTarget, dmgType, engine) {
         const activeProjectiles = engine.projectilePool?.active;
@@ -214,6 +229,7 @@ export default {
             : 5;
         const count = Math.min(5, availableSlots);
         if (count === 0) return;
+        Profiler.count('sniper.shrapnelProjectiles', count);
 
         let baseAngle = Math.atan2(originTarget.y - tower.y, originTarget.x - tower.x);
         let spread = Math.PI / 4;
