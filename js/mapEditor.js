@@ -104,7 +104,7 @@ export const MapEditor = {
         document.getElementById('editor-redo')?.addEventListener('click', () => this.redo());
         document.getElementById('editor-delete-sel')?.addEventListener('click', () => this.deleteSelected());
         document.getElementById('editor-toggle-json')?.addEventListener('click', () => this.toggleJSON());
-        document.getElementById('editor-apply-json')?.addEventListener('click', () => { this.pushUndo(); this.applyJSON(); });
+        document.getElementById('editor-apply-json')?.addEventListener('click', () => this.applyJSON());
         document.getElementById('editor-import-json-btn')?.addEventListener('click', () => document.getElementById('editor-import-json')?.click());
         document.getElementById('editor-import-json')?.addEventListener('change', (e) => this.importJSON(e));
     },

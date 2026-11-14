@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { MapEditor } from '../js/mapEditor.js';
 
 describe('MapEditor module composition', () => {
@@ -13,5 +13,29 @@ describe('MapEditor module composition', () => {
         expect(MapEditor.pushUndo).toBeTypeOf('function');
         expect(MapEditor.undo).toBeTypeOf('function');
         expect(MapEditor.redo).toBeTypeOf('function');
+    });
+
+    it('defers the JSON undo snapshot until the document passes validation', () => {
+        const button = {
+            addEventListener: vi.fn()
+        };
+        vi.stubGlobal('document', {
+            querySelectorAll: () => [],
+            getElementById: id => id === 'editor-apply-json' ? button : null
+        });
+        const pushUndo = vi.spyOn(MapEditor, 'pushUndo');
+        const applyJSON = vi.spyOn(MapEditor, 'applyJSON').mockImplementation(() => {});
+
+        MapEditor._setupDOMListeners();
+        const clickHandler = button.addEventListener.mock.calls
+            .find(([eventName]) => eventName === 'click')[1];
+        clickHandler();
+
+        expect(applyJSON).toHaveBeenCalledOnce();
+        expect(pushUndo).not.toHaveBeenCalled();
+
+        applyJSON.mockRestore();
+        pushUndo.mockRestore();
+        vi.unstubAllGlobals();
     });
 });
