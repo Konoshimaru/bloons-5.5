@@ -1,6 +1,4 @@
 // js/mapRenderCore.js
-import { GLOBAL_SCALE, GS } from './constants.js';
-
 
 export const MapRenderCore = {
     drawPaths(ctx, paths, ignoreVisibility = false) {
@@ -40,7 +38,7 @@ export const MapRenderCore = {
 
     drawWater(ctx, waterBrushes) {
         if (!waterBrushes) return;
-        for (let brush of waterBrushes) {
+        for (const brush of waterBrushes) {
             if (!brush || !brush.points || brush.points.length === 0) continue;
             ctx.strokeStyle = brush.color || '#3498db';
             ctx.lineWidth = brush.thickness;
@@ -56,7 +54,7 @@ export const MapRenderCore = {
 
     drawProps(ctx, props) {
         if (!props) return;
-        for (let p of props) {
+        for (const p of props) {
             if (!p) continue;
             ctx.save();
             ctx.translate(p.x, p.y);

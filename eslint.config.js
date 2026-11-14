@@ -13,6 +13,8 @@ const coreFiles = [
     'js/uiWriteThrottle.js',
     'js/mapEditorValidation.js',
     'js/mapEditorIO.js',
+    'js/mapEditorState.js',
+    'js/mapRenderCore.js',
     'js/webgl/renderFailurePolicy.js',
     'tests/fixedStepClock.test.js',
     'tests/collisionGeometry.test.js',
@@ -24,7 +26,9 @@ const coreFiles = [
     'tests/mapEditorHistory.test.js',
     'tests/v143fixes.test.js',
     'tests/mapEditorValidation.test.js',
-    'tests/mapEditorIOValidation.test.js'
+    'tests/mapEditorIOValidation.test.js',
+    'tests/mapEditorState.test.js',
+    'tests/mapRenderCore.test.js'
 ];
 
 export default [
