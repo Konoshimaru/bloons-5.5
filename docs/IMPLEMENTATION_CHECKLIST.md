@@ -29,6 +29,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [ ] Manually test valid, invalid, old-format, and custom-map saves through the actual Continue UI.
 - [ ] Test WebGL unavailable/startup failure and simulated render failure in a browser, not only through unit tests.
 - [ ] **User-reported bug (2026-11-14):** Sniper Monkey firing causes severe lag/freezes, especially at high attack speed, and can stall/crash the game loop. Profile rapid target reacquisition, Shrapnel projectile bursts/cap enforcement, and hitscan rendering; add production regression/stress tests before marking this resolved.
+- [x] Add first automated Sniper firing mitigations: throttle successful target reacquisition to 0.15 simulation seconds while retaining immediate reacquisition for invalid/recycled targets or targeting-mode changes, and trim projectile/particle burst overflow to their configured limits; cover both with production regression tests.
 
 ## 2. Architecture and maintainability
 

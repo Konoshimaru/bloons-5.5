@@ -203,17 +203,15 @@ function _acquireAndFire(tower, dt, engine) {
 }
 
 // [REGRESSION GUARD | upstream 088355e "going down" -> 2a7c064 "sniper lag improvement"]
-// Cached target acquisition. Previously every tower re-ran _findTarget on
-// every simulation tick — a full scan of every live enemy for infinite-range
-// towers like the Sniper/Dartling/Mortar (range 9999 bypasses the spatial
-// grid). Cache the target and only re-scan when it's actually stale: no
-// target yet (and enough time has passed since the last fruitless scan), the
-// current one died/leaked or was recycled by the enemy pool, the fire
-// cooldown is ready (so each shot re-picks the then-current best target), the
-// targeting mode changed, or the cached target drifted out of range. Between
-// shots the angle still tracks the cached target's position, so barrels keep
-// sweeping like before.
-const TARGET_RESCAN_INTERVAL = 0.15; // s between fruitless scans
+// Cached target acquisition. Global-range towers like Sniper/Dartling/Mortar
+// scan the entire live enemy list rather than using the spatial grid. Keep a
+// valid target for at least 0.15 simulation seconds: a fast Sniper can fire
+// several shots during that window, and rescanning the entire list for every
+// shot makes its CPU cost scale directly with attack speed. Dead/recycled,
+// invulnerable, out-of-range targets and targeting-mode changes still trigger
+// an immediate reacquisition; otherwise the barrel keeps tracking the target.
+// The earlier empty-target cooldown parking remains in place below.
+const TARGET_RESCAN_INTERVAL = 0.15; // minimum interval between target scans
 
 function _getAcquireTarget(tower, engine) {
     const targetingKey = `${tower.targetingMode || 'First'}:${tower.targetingMode === 'Elite' ? (engine.hasLeakingEnemy ? 1 : 0) : ''}`;

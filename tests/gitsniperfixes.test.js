@@ -141,7 +141,7 @@ describe('GitHub sniper-fix lineage: 4e2bd10 "confirming knight fix update"', ()
     it('the cached-target fast path also rejects invulnerable/untargetable', () => {
         const src = read('js/towerBehavior.js');
         expect(src).toMatch(
-            /cached\.alive && !cached\.invulnerable && !cached\.untargetable && cached\._spawnId/
+            /cachedIsValid = cached &&\s+cached\.alive &&\s+!cached\.invulnerable &&\s+!cached\.untargetable &&\s+cached\._spawnId/
         );
     });
 });
@@ -295,11 +295,11 @@ describe('behavioral: high-rate Sniper target reacquisition throttle', () => {
         const { Tower } = await import('../js/tower.js');
 
         let enemyListScans = 0;
-        const target = {
+        const makeTarget = (spawnId) => ({
             alive: true,
             invulnerable: false,
             untargetable: false,
-            _spawnId: 1,
+            _spawnId: spawnId,
             x: 500,
             y: 300,
             radius: 10,
@@ -308,11 +308,13 @@ describe('behavioral: high-rate Sniper target reacquisition throttle', () => {
             tier: 1,
             data: { rbe: 1000000, speed: 0, isMoab: false, isCeramic: false },
             takeDamage: vi.fn(() => 2),
-        };
+        });
+        const target = makeTarget(1);
+        let currentTarget = target;
         const enemies = {
             [Symbol.iterator]() {
                 enemyListScans++;
-                return [target][Symbol.iterator]();
+                return [currentTarget][Symbol.iterator]();
             },
         };
 
@@ -350,6 +352,15 @@ describe('behavioral: high-rate Sniper target reacquisition throttle', () => {
         // occasionally, so allow those extra passes in this upper bound.
         expect(target.takeDamage.mock.calls.length).toBeGreaterThan(30);
         expect(enemyListScans).toBeLessThan(35);
+
+        // A dead/recycled target must bypass the throttle immediately.
+        const replacement = makeTarget(2);
+        const scansBeforeReplacement = enemyListScans;
+        target.alive = false;
+        currentTarget = replacement;
+        sniper.update(1 / 60, GameEngine);
+        expect(enemyListScans).toBeGreaterThan(scansBeforeReplacement);
+        expect(sniper._cachedTarget).toBe(replacement);
     });
 });
 
