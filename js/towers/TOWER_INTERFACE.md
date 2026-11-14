@@ -1,93 +1,60 @@
-# Tower Module Interface
+# Tower and Hero Module Interface
 
-This document defines the implicit interface that tower modules (e.g., `towers/dart.js`) 
-and hero modules (e.g., `heroes/quincy.js`) implement. 
+This describes the current implementation. Tower and hero definitions are data/behavior objects; they are not mixed into the Tower prototype.
 
-A tower module is simply an object exported as `default` from a file in the `towers/` or `heroes/` 
-directory. It is registered in `towers/index.js` (or `heroes/index.js`) and mixed into the 
-`Tower` or `Hero` class prototype via `Object.assign`.
+- Tower definitions are registered in js/towers/index.js.
+- Hero definitions are registered in js/heroes/index.js.
+- js/registry.js exposes getBehavior(type), which resolves a definition against those registries.
+- Placed entities are instances of Tower. Hero extends Tower.
+- Generic attack/update behavior lives in js/towerBehavior.js. Rendering is handled by Pixi modules under js/webgl/.
 
-## Required Properties
+## Tower definition
 
-### `stats: Object`
-The base statistics object for the tower.
-- `name` (String): Display name.
-- `cost` (Number): Base cost to place the tower.
-- `range` (Number): Base targeting range in game units (before `RANGE_SCALE` and `GLOBAL_SCALE`).
-- `fireRate` (Number): Base attack cooldown in seconds.
-- `damage` (Number): Base damage per hit.
-- `pierce` (Number): Base pierce per projectile.
-- `dmgType` (String): The damage type (e.g., 'sharp', 'explosion', 'energy', 'normal', 'fire').
-- `projectileType` (String): The sprite key used for projectiles (e.g., 'dart', 'bomb', 'laser').
-- `hitRadius` (Number): The radius used for click-selection and placement overlap checks.
-- `category` (String): 'Primary', 'Military', 'Magic', or 'Support'. Used for MK and Village buffs.
+A tower module exports one default object. At minimum it should provide:
+- stats: base name, cost, range, cooldown/fire rate, damage, pierce, damage type, projectile type and tower-specific values used by the engine.
+- upgrades: paths 1, 2 and 3, normally arrays of five upgrade definitions.
 
-### `upgrades: Object`
-An object defining the upgrade tree. Keys are paths (`1`, `2`, `3`), and values are arrays of 5 upgrade objects.
-- Each upgrade object typically contains:
-  - `name` (String)
-  - `cost` (Number)
-  - `desc` (String)
-  - `stat` (String, optional): The stat to modify.
-  - `amount` (Number/Boolean, optional): The amount to add/multiply/set.
-  - `cooldownMult` (Number, optional): Multiplies the tower's attack cooldown.
-  - `extraMods` (Object, optional): Additional stats to add directly to `tower.stats`.
+See js/towers/dart.js for an example and js/towers/index.js for the registration point.
 
----
+## Optional behavior hooks
 
-## Optional Hooks (Methods)
+The generic engine resolves behavior through getBehavior(tower.type). Common hooks include:
 
-These methods are called by the generic engine if they exist on the module.
+| Hook | Typical signature | Purpose |
+| --- | --- | --- |
+| fire | fire(tower, target, damage, dmgType, isCrit, effects, engine) | Spawn attack projectiles. |
+| update | update(tower, dt, engine) | Custom per-step behavior. |
+| updateSupport | updateSupport(tower, dt, engine) | Support aura/passive logic. |
+| ability | ability(tower, engine) | First ability. |
+| ability2 / ability3 | ability2(tower, engine) | Further abilities where supported. |
+| postUpgrade | postUpgrade(tower, path) | Apply side effects after an upgrade. |
+| canBuyTier5 | canBuyTier5(tower, path, engine) | Tower-specific Tier 5 purchase rule. |
 
-### `fire(tower, target, damage, dmgType, isCrit, effects, engine)`
-**Called by:** `towerBehavior.js` (`_delegateFire`)
-**Purpose:** Spawns the projectile(s) for the tower's standard attack.
-**Arguments:**
-- `tower`: The tower instance executing the attack.
-- `target`: The targeted `Enemy` object (can be null for Spike Factory).
-- `damage`: The final calculated damage (including buffs/crits).
-- `dmgType`: The composed damage type object.
-- `isCrit`: Boolean indicating if this is a critical hit.
-- `effects`: Status effects to apply on hit (e.g., `{ knockback: 20 }`).
-- `engine`: The `GameEngine` instance (useful for accessing `projectilePool`).
-**Note:** If this method is omitted, the engine defaults to spawning a single standard projectile.
+Only add hooks that the engine actually calls. Search current call sites before adding a method name.
 
-### `update(tower, dt, engine)`
-**Called by:** `tower.js` (via `TowerBehavior.update`) every frame.
-**Purpose:** Per-frame custom logic (e.g., Sentry spawning, Beast Handler power scaling, Farm income generation).
-**Arguments:**
-- `tower`: The tower instance.
-- `dt`: Delta time in seconds.
-- `engine`: The `GameEngine` instance.
+## Upgrade definitions
 
-### `updateSupport(tower, dt, engine)`
-**Called by:** `simulationLoop.js` (`_updateTowers`) every frame, *before* standard `update`.
-**Purpose:** Passive aura/buff logic separate from attacking. Used by Village (buffing nearby towers), Farm (generating bananas), and Ninja/Sniper (global buffs).
-**Arguments:**
-- `tower`: The tower instance.
-- `dt`: Delta time in seconds.
-- `engine`: The `GameEngine` instance.
+An upgrade commonly contains name, cost and desc. Optional fields include stat and amount for a direct stat change, cooldownMult for attack cooldown scaling, and extraMods for additional stat changes or unlock flags.
 
-### `draw(ctx, tower, isPreview)`
-**Called by:** `renderer.js` (`_drawEntities`) every render frame.
-**Purpose:** Custom rendering beyond just drawing the base/arm sprites.
-**Arguments:**
-- `ctx`: The Canvas 2D rendering context.
-- `tower`: The tower instance.
-- `isPreview`: Boolean indicating if this is drawing a placement preview (useful for hiding UI elements or dynamic effects).
-**Note:** If omitted, `towerRenderer.js` handles drawing the base sprite, arm sprite, and attack animations.
+The engine applies generic changes in Tower._applyUpgradeStats() and then calls the behavior's post-upgrade hook. Inspect that method before adding a new upgrade field; unknown fields are not automatically meaningful.
 
-### `ability(tower, engine)`
-**Called by:** `engineInput.js` (`activateAbility`) when the player clicks an ability button.
-**Purpose:** Executes the active ability (e.g., stunning bloons, spawning a trap, granting cash).
-**Arguments:**
-- `tower`: The tower instance.
-- `engine`: The `GameEngine` instance.
+## Rendering
 
-### `postUpgrade(tower, path)`
-**Called by:** `tower.js` (`_postUpgradeHook`) immediately after an upgrade is purchased and stats are applied.
-**Purpose:** One-time logic triggered by specific upgrades (e.g., Beast Handler spawning a new beast, Super Monkey unlocking the Vengeful temple).
-**Arguments:**
-- `tower`: The tower instance.
-- `path`: The upgrade path that was just upgraded (1, 2, or 3).
-```
+The live renderer is PixiJS. Tower visuals are implemented in js/webgl/renderTowers.js and related modules. Do not assume an old Canvas 2D draw(ctx, ...) hook is automatically called by the live renderer. Follow js/webgl/MIGRATION.md and current Pixi patterns.
+
+## Checklist for a new tower
+
+1. Add js/towers/<type>.js with stats and upgrade paths.
+2. Import it and add its key to TowerRegistry in js/towers/index.js.
+3. Add its shop category in TOWER_CATEGORIES.
+4. Add sprite assets and update/regenerate the sprite manifest as appropriate.
+5. Implement only the custom hooks needed.
+6. Add tests for upgrade values, damage/pierce, abilities, placement constraints and custom behavior.
+7. Test all upgrade paths in the browser, including save/load if it has special state.
+
+## Shared-state cautions
+
+- Do not mutate a definition's stats object for per-instance values. Tower copies stats for each placed tower.
+- Store runtime state on the individual tower instance and initialize/reset it consistently.
+- Prefer the engine parameter supplied to hooks instead of reaching for the global singleton.
+- When behavior relies on an invariant, add a focused test and explain it briefly.
