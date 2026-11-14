@@ -3,6 +3,7 @@ import { GameEngine } from '../engineRef.js';
 import { Utils } from '../utils.js';
 import Assets from '../assets.js';
 import { GLOBAL_SCALE, GS } from '../constants.js';
+import { MAX_ACTIVE_PROJECTILES } from '../projectilePoolLimits.js';
 
 
 const _sniperBounceScratch = [];
@@ -187,7 +188,13 @@ export default {
         }
     },
     _fireShrapnel(tower, originTarget, dmgType, engine) {
-        let count = 5;
+        const activeProjectiles = engine.projectilePool?.active;
+        const availableSlots = activeProjectiles
+            ? Math.max(0, MAX_ACTIVE_PROJECTILES - activeProjectiles.length)
+            : 5;
+        const count = Math.min(5, availableSlots);
+        if (count === 0) return;
+
         let baseAngle = Math.atan2(originTarget.y - tower.y, originTarget.x - tower.x);
         let spread = Math.PI / 4;
         let startAngle = baseAngle - spread / 2;

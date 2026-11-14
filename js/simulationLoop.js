@@ -3,8 +3,8 @@ import { Utils } from './utils.js';
 import { getBehavior } from './registry.js';
 import { AudioEngine } from './audio.js';
 
-const MAX_PROJECTILES = 1500;
-const MAX_PARTICLES = 400;
+import { MAX_ACTIVE_PROJECTILES, MAX_ACTIVE_PARTICLES } from './projectilePoolLimits.js';
+
 const MAX_EXPLOSIONS = 100;
 const MAX_ACID_POOLS = 100;
 
@@ -16,8 +16,8 @@ const SimulationLoop = {
         // A single update can spawn a whole volley (for example, Sniper
         // Shrapnel). Trim the complete overflow: removing only one object per
         // tick lets burst-producing towers exceed these limits indefinitely.
-        while (this.projectilePool.active.length > MAX_PROJECTILES) this.projectilePool.removeAt(0);
-        while (this.particlePool.active.length > MAX_PARTICLES) this.particlePool.removeAt(0);
+        while (this.projectilePool.active.length > MAX_ACTIVE_PROJECTILES) this.projectilePool.removeAt(0);
+        while (this.particlePool.active.length > MAX_ACTIVE_PARTICLES) this.particlePool.removeAt(0);
         // [REGRESSION GUARD | upstream d29d4af "ace fix and performance improvements"]
         // Swap-remove instead of shift() — shift() reindexes the whole array at the
         // effect cap every frame during heavy fights. Pinned by tests/gitsniperfixes.test.js.
