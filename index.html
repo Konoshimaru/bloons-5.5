@@ -382,6 +382,15 @@
                 <h2 style="text-align: center;">Update Log</h2>
                 <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 10px;">
                     <div style="border: 1px solid #f1c40f; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
+                        <h3 style="color: var(--gold); margin-bottom: 6px;">v1.4.8 — Sniper profiling refinement</h3>
+                        <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
+                            <li>Removed the per-tick target-rule string allocation while preserving immediate retargeting when mode, Elite leak state, Camo visibility, or MOAB targeting changes.</li>
+                            <li>F3 profiler captures now time target-rule setup, cooldown gates, the complete acquisition call, cache commit, scan setup, target ranking, and cache storage separately.</li>
+                            <li>Added counters for shared-cache eligibility, hits, misses, expiry and cache reuse, plus per-frame Chromium heap samples when available.</li>
+                            <li><b>Still under investigation:</b> the latest capture showed long Sniper targeting pauses that were not explained by the measured enemy-list scan. This update adds visibility into those gaps; it does not claim the lag is fixed.</li>
+                        </ul>
+                    </div>
+                    <div style="border: 1px solid #f1c40f; border-radius: 8px; padding: 12px 16px; background: rgba(0,0,0,0.3);">
                         <h3 style="color: var(--gold); margin-bottom: 6px;">v1.4.7 — Sniper retargeting</h3>
                         <ul style="margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: #ecf0f1;">
                             <li><b>Sniper target fallback:</b> global-range Snipers keep their next three ranked targets briefly. When a bloon is popped, the next surviving candidate is reused before scanning the full enemy list again.</li>
