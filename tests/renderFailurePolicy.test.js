@@ -117,7 +117,8 @@ describe('PixiRenderer safe draw integration', () => {
             disabled: true,
             retryAtFrame: Number.POSITIVE_INFINITY,
         });
-        expect(renderer._hideDisabledDrawLayer).toHaveBeenCalledOnceWith('_drawOptionalPanel');
+        expect(renderer._hideDisabledDrawLayer).toHaveBeenCalledTimes(1);
+        expect(renderer._hideDisabledDrawLayer).toHaveBeenCalledWith('_drawOptionalPanel');
         renderer._renderFrame = 1_000_000;
         expect(PixiRenderer._safeDraw.call(renderer, '_drawOptionalPanel')).toBe(false);
         expect(renderer._drawOptionalPanel).toHaveBeenCalledTimes(3);
