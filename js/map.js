@@ -160,9 +160,9 @@ export class GameMap {
 
     _findSegmentIndex(distance, cumulativeDistances) {
         if (isNaN(distance)) return 0; 
-        let low = 0, high = cumulativeDistances.length - 1, mid = 0;
+        let low = 0, high = cumulativeDistances.length - 1;
         while (low <= high) {
-            mid = Math.floor((low + high) / 2);
+            const mid = Math.floor((low + high) / 2);
             if (distance < cumulativeDistances[mid]) high = mid - 1;
             else if (distance > cumulativeDistances[mid]) low = mid + 1;
             else return mid;
