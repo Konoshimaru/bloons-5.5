@@ -287,7 +287,7 @@ function _getAcquireTarget(tower, engine) {
         ? Profiler.beginMeasure('sniper.findTargetCall')
         : null;
     try {
-        if (isSniper) Profiler.count('sniper.findTargetCalls');
+        if (isSniper) Profiler.count('sniper.targetAcquisitionCalls');
         tower._cachedTarget = _findTarget(tower, engine);
     } finally {
         Profiler.endMeasure(acquireMeasure);
