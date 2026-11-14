@@ -190,8 +190,18 @@ describe('GitHub sniper-fix lineage: d29d4af "ace fix and perfomrnace improvemen
     });
 
     it('renderers sweep dead entries via frameGen stamps, not per-frame Sets', () => {
-        for (const f of ['js/webgl/renderTowers.js', 'js/webgl/renderUI.js', 'js/webgl/renderProjectiles.js', 'js/webgl/renderWorld.js']) {
-            expect(read(f)).toMatch(/_frameGen = \(this\._frameGen \+ 1\) \|\| 1;/);
+        const renderers = [
+            ['js/webgl/renderTowers.js', '_towerFrameGen'],
+            ['js/webgl/renderEnemies.js', '_enemyFrameGen'],
+            ['js/webgl/renderProjectiles.js', '_projectileFrameGen'],
+            ['js/webgl/renderWorld.js', '_worldFrameGen'],
+            ['js/webgl/renderUI.js', '_uiFrameGen'],
+            ['js/webgl/renderHeroVFX.js', '_heroVfxFrameGen'],
+        ];
+        for (const [file, frameField] of renderers) {
+            expect(read(file)).toMatch(
+                new RegExp(`${frameField} = \\(this\\.${frameField} \\+ 1\\) \\|\\| 1;`)
+            );
         }
         expect(read('js/webgl/renderTowers.js')).toMatch(/const EMPTY_OVERLAYS = \[\];/);
         expect(read('js/webgl/renderTowers.js')).toMatch(/this\._frameMscale = mscale;/);
