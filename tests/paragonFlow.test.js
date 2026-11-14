@@ -65,7 +65,7 @@ beforeAll(() => {
     });
     // Mix the GameSession methods in (engine.js does Object.assign too).
     Object.assign(G, GameSession);
-    G.startGame = vi.fn(); // loadGame calls this.startGame(false)
+    G.startGame = vi.fn(() => true); // loadGame checks that the engine accepted initialization
 });
 
 describe('creation flow: three T5s -> real paragon (BTD6 rules, v1.3.2)', () => {
