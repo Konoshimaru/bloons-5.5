@@ -16,6 +16,7 @@ Vite also builds separate HTML entry points for the Cutscene Editor, Sprite Edit
 - js/gameSession.js contains save/load and end-of-run persistence.
 - js/simulationLoop.js contains update passes for entities and transient effects.
 - These modules attach to the shared GameEngine object through js/engineComposition.js through attachModuleMethods(). The helper preserves property descriptors, rejects duplicate names before mutation, and requires an explicit allowlist for intentional wrapper overrides. This is still a method-bag composition over one singleton, so future refactoring should make ownership/dependencies clearer incrementally rather than through a broad rewrite.
+- The PixiRenderer facade uses the same guarded composition helper for its focused rendering modules. Each renderer owns a separate frame-generation counter, avoiding accidental shared state while keeping the existing renderer API stable.
 
 ## Entity definitions and behavior
 
