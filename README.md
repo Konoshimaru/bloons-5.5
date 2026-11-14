@@ -28,8 +28,8 @@ The Vite server is configured for 127.0.0.1:5500 and opens the browser automatic
 | npm run dev | Start the local development server. |
 | npm test | Run the Vitest automated suite. |
 | npm run check:syntax | Parse all source, test, and tool JavaScript files with Node.js. |
-| npm run typecheck:core | Type-check the initial set of isolated core helpers. |
-| npm run lint:core | Lint the initial set of core helpers and their regression tests. |
+| npm run typecheck:core | Type-check selected core helpers (not the whole project). |
+| npm run lint:core | Lint 10 selected production modules and 8 regression-test files. |
 | npm run audit:deps | Print a structured summary of npm dependency advisories. |
 | npm run build | Create the production build in dist/. |
 | npm run gen:manifest | Regenerate the sprite manifest. |
@@ -66,7 +66,7 @@ Vite builds five HTML entry points: the game, Cutscene Editor, Sprite Editor, Bl
 - **Map Editor:** available from in-game menus; saves custom maps in player configuration.
 - **Sprite Editor:** /spriteeditor.html. Uses a Vite development endpoint to write sprite configuration and rotate backups.
 - **Bloon Editor:** /blooneditor.html. Edits bloon sprite/configuration data through the development server.
-- **Browser test harness:** /tests.html runs older manual checks. Use npm test for Vitest.
+- **Browser test harness:** /tests.html is labelled Manual / Legacy and runs older browser checks. Use npm test for Vitest.
 
 Check the Git diff carefully after saving editor output or generating assets. The Windows update.bat helper pushes the current branch; update teste.bat is restricted to test-version. Both require you to stage and review files manually before committing.
 

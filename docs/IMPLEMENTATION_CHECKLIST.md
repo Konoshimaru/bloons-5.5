@@ -56,15 +56,15 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add a shared module-composition helper with tests for duplicate names, explicitly permitted overrides, getter preservation, and no partial application.
 - [x] Isolate the GameSession sandbox-save test so it does not pre-populate the shared engine singleton before engine initialization.
 - [x] Add a GitHub Actions workflow that runs `npm ci`, `npm run check:syntax`, `npm test`, and `npm run build` for pushes and pull requests.
-- [x] Add a dependency-free syntax scanner that parsed all 211 source/test/tool files successfully in CI.
-- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 43 test files and 448 tests passed; all 213 syntax-checked files passed; the core type-check passed; npm audit reported zero advisories; production build passed.
+- [x] Add a dependency-free syntax scanner that parsed all 212 source/test/tool files successfully in CI.
+- [x] Re-run and confirm CI after renderer recovery, guarded composition, factory registration, and the large-target collision broadphase: 43 test files and 448 tests passed; all 212 syntax-checked files passed; the core type-check passed; npm audit reported zero advisories; production build passed.
 - [x] Replace the copied undo/redo, curve-subdivision, and Ice Monkey test simulations with Vitest tests against `js/mapEditorHistory.js`, `GameMap`, and the real Ice Monkey/Enemy behavior; remove those duplicate simulations from `js/tests/tests.js`.
-- [ ] Keep `tests.html` explicitly labelled as a manual/legacy browser harness; it is separate from Vitest.
+- [x] Label `tests.html` explicitly as a manual/legacy browser harness, separate from Vitest.
 - [x] Add ESLint 10.15.0 and @eslint/js 10.0.1 with a flat config for the initial core helper modules and their regression tests; `npm run lint:core` passes in CI.
-- [ ] Expand ESLint coverage across the rest of `js/`, tests and development tools incrementally, fixing findings without blanket disables.
+- [x] Expand the initial ESLint allowlist to 10 production modules and 8 associated regression-test files, including damage types, status effects, spatial grid, and MapEditorHistory; the CI lint step passes.\n- [ ] Continue expanding ESLint coverage across the remaining `js/`, tests, and development tools incrementally, fixing findings without blanket disables.
 - [ ] Choose and configure a formatter, then format incrementally without unrelated churn.
 - [x] Add an initial TypeScript check (`typecheck:core`) for isolated, dependency-free helpers, using a pinned compiler and a separate `jsconfig.typecheck.json`.
-- [x] Run the initial type-check in CI successfully for the five selected pure modules.
+- [x] Run the expanded type-check in CI successfully for seven selected core modules.
 - [ ] Expand type-check coverage gradually as JSDoc and dependency boundaries are improved; do not treat the initial subset as a whole-project type check.
 - [ ] Expand tests for save migration, malformed editor documents, and renderer error paths where practical.
 
@@ -114,7 +114,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 
 ## 8. Final acceptance
 
-- [x] Confirm latest CI after ESLint core checks were added is green: dependency audit, syntax scan, core type-check, ESLint core lint, 43 Vitest files (448 tests), and production build. (See the latest CI run for this branch.)
+- [x] Confirm CI run 43605871724 is green on commit `9ee00448394c7ceda019485e7c1f2f5f847f1e60`: zero npm advisories, 212 syntax-checked files, seven type-checked modules, 10 ESLint production modules plus 8 test files, 43 Vitest files (448 tests), and production build.
 - [x] Review Windows batch scripts: `jogar.bat` avoids reinstalling dependencies on every launch; `update.bat` and `update teste.bat` require explicit staging, show the staged diff, verify branch/remote/command status, and ask before pushing.
 - [ ] Manually test the Windows batch scripts on Windows.
 - [ ] Launch the production build and open all five HTML entry points.

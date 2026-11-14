@@ -10,15 +10,15 @@ The syntax check runs Node.js parsing over JavaScript files in js/, tests/, and 
 
 ## Incremental linting
 
-The initial ESLint flat config is intentionally limited to the fixed-step clock, collision geometry, saved-run validation, engine composition, tower factory, renderer failure policy and the tests that exercise those helpers. Run `npm run lint:core`. This is a starting scope; expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
+The ESLint flat config currently checks 10 production modules: the fixed-step clock, collision geometry, saved-run validation, engine composition, tower factory, damage types, status effects, spatial grid, renderer failure policy, and MapEditorHistory. It also checks 8 corresponding regression-test files. Run `npm run lint:core`. This remains an incremental subset; expand it file-by-file after reviewing legacy globals, browser APIs and older patterns rather than turning on strict rules across the whole repository in one step.
 
 ## Dependency security audit
 
-Run `npm run audit:deps` to print the package names, severities, advisory summaries, and available fixes reported by the npm registry. The CI workflow currently treats this report as informational while the existing high-severity advisory is investigated; do not run `npm audit fix` blindly or accept major dependency changes without testing the application.
+Run `npm run audit:deps` to print the package names, severities, advisory summaries, and available fixes reported by the npm registry. The CI workflow currently treats this report as informational (`continue-on-error`); the latest confirmed run reports zero vulnerabilities. Do not run `npm audit fix` blindly or accept major dependency changes without testing the application.
 
 ## Incremental type-checking
 
-The initial `typecheck:core` command uses a pinned TypeScript compiler and checks a small set of dependency-free helpers listed in `jsconfig.typecheck.json`. It is an initial, deliberately narrow check—not a claim that the entire JavaScript codebase is typed. Expand the file list only as modules gain accurate JSDoc and their external dependencies can be described without hiding real errors.
+The `typecheck:core` command uses a pinned TypeScript compiler and currently checks seven selected core modules listed in `jsconfig.typecheck.json`. It remains a deliberately narrow check—not a claim that the entire JavaScript codebase is typed. Expand the file list only as modules gain accurate JSDoc and their external dependencies can be described without hiding real errors.
 
 ## Test production behavior
 
@@ -32,7 +32,7 @@ Some tests use jsdom. Follow nearby tests when a module expects window, document
 
 ## Browser test page
 
-tests.html runs the older js/tests/tests.js harness. It is separate from npm test and should be treated as a manual/legacy smoke page. Its results do not represent Vitest coverage.
+tests.html is explicitly labelled as a manual/legacy browser harness. It runs the older js/tests/tests.js checks, is separate from npm test, and does not represent Vitest coverage. Its results do not represent Vitest coverage.
 
 ## What to test
 
