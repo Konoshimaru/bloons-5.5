@@ -102,6 +102,14 @@ export default {
     },
     updateSupport(tower, dt) {
         if (tower.stats.globalSniperBuff) {
+            // Multiple Elite Snipers share one global support sweep per
+            // simulation step. Each source still gets its own 0.4s refresh
+            // timer only when it is the source performing that shared pass.
+            if (GameEngine._updatingTowerSupport) {
+                if (GameEngine._eliteSniperSupportStep === GameEngine._towerUpdateStep) return;
+                GameEngine._eliteSniperSupportStep = GameEngine._towerUpdateStep;
+            }
+
             // [REGRESSION GUARD | upstream 2a7c064 "sniper lag improvement"] Elite Support
             // re-buff throttle — without it every Elite Sniper pair churns activeBuffs
             // (find + push) 60x/sec. Pinned behaviorally by tests/gitsniperfixes.test.js.

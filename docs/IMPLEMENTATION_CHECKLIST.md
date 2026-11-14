@@ -32,6 +32,7 @@ Legend: `[x]` implemented in this branch; `[ ]` still open; browser/manual verif
 - [x] Add first automated Sniper firing mitigations: throttle successful target reacquisition to 0.15 simulation seconds while retaining immediate reacquisition for invalid/recycled targets or targeting-mode changes, and trim projectile/particle burst overflow to their configured limits; cover both with production regression tests.
 - [x] Share the 0.15-second global-target ranking cache across compatible global-range Snipers, keyed by target mode and visibility rules; invalidate immediately when the target dies, is recycled, becomes hidden, or the targeting rules change.
 - [x] Handle a one-slot Shrapnel burst without producing a NaN projectile angle when the shared projectile pool is nearly full.
+- [x] Run Elite Support's all-tower buff sweep once per simulation step, regardless of how many Elite Snipers are present; retain the existing 0.4-second buff refresh throttle.
 
 ## 2. Architecture and maintainability
 

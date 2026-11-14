@@ -401,6 +401,67 @@ describe('behavioral: Elite Support re-buff throttle (real sniper module)', () =
     });
 });
 
+describe('Elite Support shared sweep', () => {
+    it('multiple Elite Snipers perform one all-tower support pass per simulation step', async () => {
+        const { GameEngine: G } = await import('../js/engineRef.js');
+        const SimulationLoop = (await import('../js/simulationLoop.js')).default;
+
+        const previous = {
+            towers: G.towers,
+            towerGrid: G.towerGrid,
+            updating: G._updatingTowerSupport,
+            step: G._towerUpdateStep,
+            supportStep: G._eliteSniperSupportStep,
+        };
+
+        const firstElite = {
+            type: 'sniper',
+            stats: { globalSniperBuff: true },
+            update: vi.fn(),
+            addBuff: vi.fn(),
+            buffedFireRate: 0,
+        };
+        const secondElite = {
+            type: 'sniper',
+            stats: { globalSniperBuff: true },
+            update: vi.fn(),
+            addBuff: vi.fn(),
+            buffedFireRate: 0,
+        };
+        const target = {
+            type: 'sniper',
+            stats: {},
+            update: vi.fn(),
+            addBuff: vi.fn(),
+            buffedFireRate: 0,
+        };
+
+        G.towers = [firstElite, secondElite, target];
+        G.towerGrid = { clear: vi.fn(), insert: vi.fn() };
+
+        try {
+            SimulationLoop._updateTowers.call(G, 1 / 60);
+
+            // First Elite Sniper refreshes both other Snipers. The second
+            // source skips its duplicate sweep during the same simulation step.
+            expect(secondElite.addBuff).not.toHaveBeenCalled();
+            expect(target.addBuff).toHaveBeenCalledTimes(1);
+            expect(secondElite.buffedFireRate).toBe(0.33);
+            expect(target.buffedFireRate).toBe(0.33);
+
+            // A following simulation step permits one new shared sweep.
+            SimulationLoop._updateTowers.call(G, 1 / 60);
+            expect(target.addBuff).toHaveBeenCalledTimes(2);
+        } finally {
+            G.towers = previous.towers;
+            G.towerGrid = previous.towerGrid;
+            G._updatingTowerSupport = previous.updating;
+            G._towerUpdateStep = previous.step;
+            G._eliteSniperSupportStep = previous.supportStep;
+        }
+    });
+});
+
 // ---------------------------------------------------------------------------
 // v1.4.4 wiring - the runtime version badge + package cross-check.
 // ---------------------------------------------------------------------------

@@ -119,6 +119,11 @@ const SimulationLoop = {
     },
 
     _updateTowers(dt) {
+        // Monotonic simulation-step id lets tower support effects that touch
+        // every tower do their shared sweep only once, even when several
+        // identical support towers are present.
+        this._towerUpdateStep = (this._towerUpdateStep || 0) + 1;
+
         // Shared global-range targeting results expire in simulation time, not
         // wall-clock time. This keeps the optimization deterministic at 1x/10x/20x.
         if (!(this._globalTargetCache instanceof Map)) this._globalTargetCache = new Map();
@@ -140,11 +145,16 @@ const SimulationLoop = {
         this.hasIceShardTower = false;
         this.towerGrid.clear();
         for (const t of this.towers) { if (t) this.towerGrid.insert(t); }
-        for (const t of this.towers) {
-            if (!t) continue;
-            const behavior = getBehavior(t.type);
-            if (behavior && behavior.updateSupport) { behavior.updateSupport(t, dt); }
-            if (t.type === 'ice' && t.upgrades[0] >= 3) { this.hasIceShardTower = true; }
+        this._updatingTowerSupport = true;
+        try {
+            for (const t of this.towers) {
+                if (!t) continue;
+                const behavior = getBehavior(t.type);
+                if (behavior && behavior.updateSupport) { behavior.updateSupport(t, dt); }
+                if (t.type === 'ice' && t.upgrades[0] >= 3) { this.hasIceShardTower = true; }
+            }
+        } finally {
+            this._updatingTowerSupport = false;
         }
         for (const t of this.towers) { if (t) t.update(dt, this); }
     },
